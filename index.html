@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Buluş Küre Rehberlik &amp; Mentörlük</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <!-- Açılış iskeleti: JS yüklenene kadar görünür, React ilk çizimde yerine geçer. -->
+    <style>
+      body{margin:0;background:#f6f3ec;color:#1b2a2f;font-family:"IBM Plex Sans",system-ui,sans-serif}
+      @media (prefers-color-scheme:dark){body{background:#121b1e;color:#f1ede4}}
+      .bk-splash-top{display:flex;align-items:center;gap:10px;min-height:62px;padding:10px 20px;border-bottom:1px solid rgba(127,127,127,.2);box-sizing:border-box}
+      .bk-splash-top b{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:18px}
+      .bk-splash{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 62px)}
+      .bk-splash svg{animation:bk-turn 2.4s linear infinite}
+      @keyframes bk-turn{to{transform:rotate(360deg)}}
+      @media (prefers-reduced-motion:reduce){.bk-splash svg{animation:none}}
+    </style>
+    <div id="root">
+      <div class="bk-splash-top">
+        <svg width="32" height="32" viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="15" stroke="#c9962e" stroke-width="2"/><path d="M17 2c-5 5-5 25 0 30M17 2c5 5 5 25 0 30M3 13h28M3 21h28" stroke="#c9962e" stroke-width="1.4"/></svg>
+        <b>Buluş Küre Koleji</b>
+      </div>
+      <div class="bk-splash" role="status" aria-label="Yükleniyor">
+        <svg width="48" height="48" viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="15" stroke="#c9962e" stroke-width="2"/><path d="M17 2c-5 5-5 25 0 30M17 2c5 5 5 25 0 30M3 13h28M3 21h28" stroke="#c9962e" stroke-width="1.4"/></svg>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

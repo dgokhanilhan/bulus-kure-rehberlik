@@ -1,0 +1,38 @@
+# Haftalık şifreli veritabanı yedeği (Supabase Pro'nun günlük yedeğine ek).
+# Gerekli GitHub secret'ları: SUPABASE_DB_URL (Settings → Database → Connection string, "session" modu),
+# BACKUP_PASSPHRASE (uzun, rastgele; okulun güvenli yerinde saklanır). Yedek, 30 gün tutulan bir artefakt olarak
+# yüklenir; okulun kendi depolama alanına taşınması için indirilebilir. Şifresiz yedek hiçbir yerde durmaz.
+name: Haftalık yedek
+on:
+  schedule:
+    - cron: '0 1 * * 0' # Pazar 04.00 (Türkiye)
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  yedek:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PostgreSQL istemcisi
+        run: sudo apt-get install -y -q postgresql-common && sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && sudo apt-get install -y -q postgresql-client-17
+      - name: pg_dump + şifreleme
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$DB_URL" && test -n "$PASS"
+          f="yedek-$(date -u +%Y%m%d).dump"
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --format=custom --no-owner --no-privileges --schema=public --schema=auth --file="$f"
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" --symmetric --cipher-algo AES256 --output "$f.gpg" "$f"
+          shred -u "$f"
+          # Doğrulama: şifreli yedek açılıyor ve tablolar içinde mi?
+          n=$(gpg --batch --quiet --pinentry-mode loopback --passphrase "$PASS" --decrypt "$f.gpg" | /usr/lib/postgresql/17/bin/pg_restore --list | grep -c "TABLE DATA public" || true)
+          echo "doğrulandı: public şemasında $n tablo verisi"
+          test "$n" -ge 15
+          ls -la "$f.gpg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yedek
+          path: '*.gpg'
+          retention-days: 30

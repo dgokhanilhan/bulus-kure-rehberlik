@@ -1,0 +1,162 @@
+/* OTOMATİK ÜRETİLDİ — scripts/gen-tokens.mjs (LGS Atlas v1). Elle düzenleme. */
+:root {
+  --paper: #f6f3ec;
+  --surface: #ffffff;
+  --surface-sunken: #ece6d9;
+  --line: #e3ddd0;
+  --line-strong: #8a8f88;
+  --ink: #1b2a2f;
+  --ink-muted: #56636a;
+  --primary: #1f5f5b;
+  --on-primary: #ffffff;
+  --primary-soft: #e1eeeb;
+  --signal: #b5541a;
+  --signal-soft: #fbe9da;
+  --highlight: #e7c57a;
+  --ink-fixed: #1b2a2f;
+  --nav: #1b2a2f;
+  --on-nav: #f6f3ec;
+  --on-nav-muted: #c9d2d4;
+  --heat-1: #b5541a;
+  --heat-2: #f2c4a2;
+  --heat-3: #cfe0dc;
+  --heat-4: #1f5f5b;
+  --ink-2: #3b4a50;
+  --primary-line: #c5dcd7;
+  --bar-soft: #cfe0dc;
+  --signal-line: #f0c6a6;
+  --nav-2: #24363b;
+  --nav-active: #2e4349;
+  --signal-ink: #a14a16;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 28px;
+  --space-7: 48px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-pill: 999px;
+  --touch-min: 44px;
+  --button-l: 54px;
+  --font-display: Fraunces, Georgia, serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --shadow: 0 1px 2px rgba(27, 42, 47, 0.08), 0 8px 24px rgba(27, 42, 47, 0.06);
+  --ease: cubic-bezier(0.2, 0.75, 0.2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --paper: #121b1e;
+    --surface: #1b2a2f;
+    --surface-sunken: #24363b;
+    --line: #2e4349;
+    --line-strong: #7d8b8f;
+    --ink: #f1ede4;
+    --ink-muted: #aebbbe;
+    --primary: #7cc2b5;
+    --on-primary: #10201f;
+    --primary-soft: #1f3b39;
+    --signal: #f0a36b;
+    --signal-soft: #3a2618;
+    --highlight: #e7c57a;
+    --ink-fixed: #1b2a2f;
+    --nav: #0c1416;
+    --on-nav: #f1ede4;
+    --on-nav-muted: #aebbbe;
+    --heat-1: #b5541a;
+    --heat-2: #f2c4a2;
+    --heat-3: #cfe0dc;
+    --heat-4: #1f5f5b;
+    --ink-2: #d3d9d8;
+    --primary-line: #2d5652;
+    --bar-soft: #2d5652;
+    --signal-line: #6a4128;
+    --nav-2: #16242a;
+    --nav-active: #24363b;
+    --signal-ink: #f0a36b;
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --paper: #121b1e;
+  --surface: #1b2a2f;
+  --surface-sunken: #24363b;
+  --line: #2e4349;
+  --line-strong: #7d8b8f;
+  --ink: #f1ede4;
+  --ink-muted: #aebbbe;
+  --primary: #7cc2b5;
+  --on-primary: #10201f;
+  --primary-soft: #1f3b39;
+  --signal: #f0a36b;
+  --signal-soft: #3a2618;
+  --highlight: #e7c57a;
+  --ink-fixed: #1b2a2f;
+  --nav: #0c1416;
+  --on-nav: #f1ede4;
+  --on-nav-muted: #aebbbe;
+  --heat-1: #b5541a;
+  --heat-2: #f2c4a2;
+  --heat-3: #cfe0dc;
+  --heat-4: #1f5f5b;
+  --ink-2: #d3d9d8;
+  --primary-line: #2d5652;
+  --bar-soft: #2d5652;
+  --signal-line: #6a4128;
+  --nav-2: #16242a;
+  --nav-active: #24363b;
+  --signal-ink: #f0a36b;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-signal: var(--signal);
+  --color-signal-soft: var(--signal-soft);
+  --color-highlight: var(--highlight);
+  --color-ink-fixed: var(--ink-fixed);
+  --color-nav: var(--nav);
+  --color-on-nav: var(--on-nav);
+  --color-on-nav-muted: var(--on-nav-muted);
+  --color-heat-1: var(--heat-1);
+  --color-heat-2: var(--heat-2);
+  --color-heat-3: var(--heat-3);
+  --color-heat-4: var(--heat-4);
+  --color-ink-2: var(--ink-2);
+  --color-primary-line: var(--primary-line);
+  --color-bar-soft: var(--bar-soft);
+  --color-signal-line: var(--signal-line);
+  --color-nav-2: var(--nav-2);
+  --color-nav-active: var(--nav-active);
+  --color-signal-ink: var(--signal-ink);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+  --font-display: Fraunces, Georgia, serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.t-display-l { font-family: var(--font-display); font-size: 40px; line-height: 44px; font-weight: 500; letter-spacing: -0.6px; }
+.t-display-m { font-family: var(--font-display); font-size: 30px; line-height: 36px; font-weight: 500; letter-spacing: -0.4px; }
+.t-title { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 600; }
+.t-body { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 400; }
+.t-body-s { font-family: var(--font-sans); font-size: 13px; line-height: 19px; font-weight: 400; }
+.t-label { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.4px; }
+.t-numeric-l { font-family: var(--font-mono); font-size: 30px; line-height: 34px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.t-numeric { font-family: var(--font-mono); font-size: 14px; line-height: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }

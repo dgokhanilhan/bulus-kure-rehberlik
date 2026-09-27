@@ -1,0 +1,58 @@
+{
+  "name": "bulus-kure-rehberlik",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run tokens && tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "tokens": "node scripts/gen-tokens.mjs",
+    "seed:gen": "node scripts/gen-seed.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "db:reset": "supabase db reset",
+    "regresyon:kaydet": "REGRESYON_KAYDET=1 vitest run tests/regresyon.test.ts",
+    "ornek:gen": "node scripts/gen-ornek-paket.mjs",
+    "katalog:gen": "node scripts/gen-outcomes.mjs",
+    "ai:sahte": "node scripts/sahte-deepseek.mjs",
+    "functions": "supabase functions serve",
+    "e2e:dist": "npm run build && E2E_DIST=1 playwright test e2e/asama3.spec.ts e2e/asama4.spec.ts",
+    "deploy:staging": "npm run tokens && tsc -b && vite build --mode staging && npx wrangler pages deploy dist --project-name bulus-kure-staging --branch master",
+    "deploy:prod": "npm run tokens && tsc -b && vite build --mode production && npx wrangler pages deploy dist --project-name ${CF_PROJECT:-bulus-kure} --branch main"
+  },
+  "dependencies": {
+    "@fontsource/fraunces": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@ibm/plex-mono": "^2.5.0",
+    "@ibm/plex-sans": "^1.1.0",
+    "@react-pdf/renderer": "^4.9.0",
+    "@sentry/react": "^11.0.0",
+    "@supabase/supabase-js": "^2.117.2",
+    "@tanstack/react-query": "^5.104.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^22.20.4",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "otplib": "^13.5.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  },
+  "license": "AGPL-3.0-or-later"
+}

@@ -1,0 +1,22 @@
+# Her push ve PR'da: tip kontrolü, birim/RLS testleri ve uçtan uca testler (yerel Supabase ile).
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - run: npm ci
+      - run: supabase start -x studio,imgproxy,vector,logflare
+      - run: supabase status -o env | sed -E 's/^API_URL=/VITE_SUPABASE_URL=/; s/^ANON_KEY=/VITE_SUPABASE_ANON_KEY=/; s/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' | grep -E '^(VITE_|SUPABASE_SERVICE)' > .env.local
+      - run: cp supabase/functions/.env.example supabase/functions/.env
+      - run: npm run functions &
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run e2e

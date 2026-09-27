@@ -1,0 +1,465 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:deneme-koprusu:schema:1.0.0",
+  "title": "Deneme Köprüsü 1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "records"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "curriculumCatalogId": {
+      "type": "string"
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "$defs": {
+    "subject": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "enum": [
+            "TUR",
+            "MAT",
+            "FEN",
+            "INK",
+            "DIN",
+            "ING"
+          ]
+        },
+        "questionCount": {
+          "type": "integer",
+          "enum": [
+            10,
+            20
+          ]
+        },
+        "correct": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "wrong": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "blank": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "net": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "questionCount",
+        "correct",
+        "wrong",
+        "blank",
+        "net"
+      ],
+      "additionalProperties": true
+    },
+    "question": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "enum": [
+            "TUR",
+            "MAT",
+            "FEN",
+            "INK",
+            "DIN",
+            "ING"
+          ]
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "booklet": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "correctAnswer": {
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "D",
+            null
+          ]
+        },
+        "studentAnswer": {
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "D",
+            null
+          ]
+        },
+        "status": {
+          "enum": [
+            "correct",
+            "wrong",
+            "blank",
+            "credited"
+          ]
+        },
+        "sourceOutcomeCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceOutcomeText": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "officialOutcomeCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "officialOutcomeText": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "questionOutcomeMethod": {
+          "enum": [
+            "SOURCE_ROW",
+            "UNRESOLVED"
+          ]
+        },
+        "outcomeMatchMethod": {
+          "enum": [
+            "UNVERIFIED",
+            "CODE_EXACT",
+            "CODE_PARENT",
+            "TEXT_EXACT",
+            "TEXT_PREFIX"
+          ]
+        },
+        "inferredOutcome": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "code": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "method": {
+              "const": "AGGREGATE_CONSTRAINT_UNIQUE"
+            },
+            "requiresReview": {
+              "const": true
+            }
+          },
+          "required": [
+            "text",
+            "code",
+            "method",
+            "requiresReview"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "subject",
+        "number",
+        "correctAnswer",
+        "studentAnswer",
+        "status",
+        "sourceOutcomeCode",
+        "sourceOutcomeText",
+        "officialOutcomeCode",
+        "officialOutcomeText",
+        "questionOutcomeMethod",
+        "outcomeMatchMethod"
+      ],
+      "additionalProperties": true
+    },
+    "group": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "enum": [
+            "TUR",
+            "MAT",
+            "FEN",
+            "INK",
+            "DIN",
+            "ING"
+          ]
+        },
+        "sourceOutcomeText": {
+          "type": "string"
+        },
+        "questionCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "correct": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "wrong": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "blank": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "questionNumbers": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer"
+          }
+        },
+        "inferredQuestionNumbers": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "officialOutcomeCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "officialOutcomeText": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "questionOutcomeMethod": {
+          "enum": [
+            "UNRESOLVED",
+            "AGGREGATE_CONSTRAINT_UNIQUE"
+          ]
+        }
+      },
+      "required": [
+        "subject",
+        "sourceOutcomeText",
+        "questionCount",
+        "correct",
+        "wrong",
+        "blank",
+        "questionNumbers"
+      ],
+      "additionalProperties": true
+    },
+    "record": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0"
+        },
+        "recordId": {
+          "type": "string"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "filename": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "pages": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "adapter": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "filename",
+            "sha256",
+            "pages",
+            "adapter"
+          ],
+          "additionalProperties": true
+        },
+        "student": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "number": {
+              "type": "string"
+            },
+            "class": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "number",
+            "class"
+          ],
+          "additionalProperties": true
+        },
+        "exam": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "score": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "totalNet": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "totalNetOrigin": {
+              "type": "string"
+            },
+            "scoreOrigin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "score",
+            "totalNet",
+            "date",
+            "totalNetOrigin",
+            "scoreOrigin"
+          ],
+          "additionalProperties": true
+        },
+        "subjects": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/subject"
+          }
+        },
+        "questions": {
+          "type": "array",
+          "maxItems": 90,
+          "items": {
+            "$ref": "#/$defs/question"
+          }
+        },
+        "outcomeGroups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/group"
+          }
+        },
+        "validation": {
+          "type": "object",
+          "properties": {
+            "errors": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "status": {
+              "enum": [
+                "REVIEW_REQUIRED",
+                "VALIDATED"
+              ]
+            }
+          },
+          "required": [
+            "errors",
+            "warnings",
+            "status"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordId",
+        "source",
+        "student",
+        "exam",
+        "subjects",
+        "questions",
+        "outcomeGroups",
+        "validation"
+      ],
+      "additionalProperties": true
+    }
+  }
+}
