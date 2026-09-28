@@ -783,6 +783,10 @@ insert into timetable (school_id, class_id, weekday, period, subject) values
   ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 5, 7, 'Seçmeli'),
   ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 5, 8, 'Seçmeli');
 
+update timetable set teacher_id = (select id from profiles where email = 'matematik@buluskure.k12.tr') where subject = 'Matematik';
+update timetable set teacher_id = (select id from profiles where email = 'fen@buluskure.k12.tr') where subject = 'Fen Bilimleri';
+update classes set homeroom_teacher_id = (select id from profiles where email = 'rehber@buluskure.k12.tr') where name = '8/A';
+
 insert into meals (school_id, day, meal, items) values
   ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 0, 'ogle', 'Mercimek çorbası, tavuk sote, bulgur pilavı, ayran'),
   ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 1, 'ogle', 'Ezogelin çorbası, etli kuru fasulye, pirinç pilavı, turşu'),

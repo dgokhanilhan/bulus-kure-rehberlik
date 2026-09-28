@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { SUBJECT, fmt, indexResults, studentExams, totalNet } from '@/lib/analiz'
-import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useDataset, useMeals, useMeetings, useNotes, useReports, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
+import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useDataset, useMeals, useMeetings, useNotes, useReports, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
 import { GUN, addDays, ago, gen, isoDow, localDate, localHM, todayISO, trD, trDW, weekStart } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { Icon } from '@/components/Icon'
@@ -275,7 +275,9 @@ export function OkulPage() {
   const bells = useBellTimes()
   const meals = useMeals(week, addDays(week, 4))
   const att = useAttendance({ student: s?.id })
+  const contacts = useChildContacts(s?.id)
   if (!s) return <Wait loading={loading} />
+  const tName = (id: string | null) => contacts.data?.find((c) => c.id === id)?.full_name
   const first = s.full_name.split(' ')[0]!
   const dow = isoDow(today)
   const lessons = tt.data ?? []
@@ -306,7 +308,15 @@ export function OkulPage() {
             {todayL.length ? (
               todayL.map((l) => (
                 <div key={l.id} className="kv" data-testid="today-lesson">
-                  <b>{l.subject}</b>
+                  <span>
+                    <b>{l.subject}</b>
+                    {tName(l.teacher_id) && (
+                      <span className="m" style={{ fontSize: 12 }}>
+                        {' '}
+                        · {tName(l.teacher_id)}
+                      </span>
+                    )}
+                  </span>
                   <span className="m mono" style={{ fontSize: 13 }}>
                     {hm(l.period)}
                   </span>

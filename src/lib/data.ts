@@ -99,6 +99,83 @@ export function useMeals(from: string, to: string) {
   })
 }
 
+// ---------- İletişim (0010): duyurular ve mesajlar ----------
+export interface Announcement {
+  id: string
+  title: string
+  body: string
+  scope: 'okul' | 'kademe' | 'sinif'
+  level: 'ilkokul' | 'ortaokul' | 'lise' | null
+  class_id: string | null
+  audience: ('veli' | 'ogrenci' | 'ogretmen')[]
+  created_by: string | null
+  author_name: string | null
+  created_at: string
+}
+export function useAnnouncements() {
+  return useQuery({
+    queryKey: ['announcements'],
+    queryFn: () => all<Announcement>(supabase.from('announcements').select('id, title, body, scope, level, class_id, audience, created_by, author_name, created_at').order('created_at', { ascending: false }).limit(200)),
+  })
+}
+
+export interface Conversation {
+  id: string
+  student_id: string
+  student_name: string
+  parent_id: string
+  parent_name: string
+  teacher_id: string
+  teacher_name: string
+  teacher_branch: string | null
+  last_at: string
+  last_body: string | null
+  unread: number
+}
+/** Yazışmalarım (yönetici: okulun bütün yazışmaları). 30 sn'de bir tazelenir. */
+export function useConversations(enabled = true) {
+  return useQuery({
+    queryKey: ['conversations'],
+    enabled,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('my_conversations')
+      if (error) throw error
+      return (data ?? []) as Conversation[]
+    },
+  })
+}
+
+export interface Message {
+  id: string
+  sender_id: string | null
+  body: string
+  created_at: string
+  read_at: string | null
+}
+export function useMessages(conv: string | null) {
+  return useQuery({
+    queryKey: ['messages', conv ?? ''],
+    enabled: !!conv,
+    refetchInterval: 10_000,
+    queryFn: () => all<Message>(supabase.from('messages').select('id, sender_id, body, created_at, read_at').eq('conversation_id', conv!).order('created_at')),
+  })
+}
+
+/** Velinin çocuğu için yazışabileceği kişiler (öğretmenler, rehberlik, yönetim) — öğretmen adları da buradan. */
+export function useChildContacts(sid?: string) {
+  return useQuery({
+    queryKey: ['child_contacts', sid ?? ''],
+    enabled: !!sid,
+    staleTime: STALE,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('child_contacts', { p_student: sid })
+      if (error) throw error
+      return (data ?? []) as { id: string; full_name: string; branch: string | null; role: string; subjects: string[]; homeroom: boolean }[]
+    },
+  })
+}
+
 /** Denemeler + cevap anahtarı + kazanımlar + (görülebilen) sonuçlar. */
 export function useDataset() {
   const q = useQuery({
