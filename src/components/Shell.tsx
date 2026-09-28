@@ -290,10 +290,10 @@ export function PendingPage() {
         >
           <Icon name="lock" size={30} />
         </span>
-        <h1 className="hd">{rejected ? 'Kaydın onaylanmadı' : 'Kaydın onay bekliyor'}</h1>
+        <h1 className="hd">{rejected ? 'Hesabına erişim yok' : 'Kaydın onay bekliyor'}</h1>
         <p className="m">
           {rejected
-            ? 'Bilgilerinde bir sorun olabilir. Okul rehberlik servisiyle görüşebilirsin.'
+            ? 'Kaydın onaylanmadı ya da hesabın okul yönetimince kapatıldı. Okul yönetimiyle görüşebilirsin.'
             : 'Okul yönetimi kaydını onayladığında öğrenci bilgilerini burada görebileceksin. Onaylanmamış hesaplar hiçbir öğrenci bilgisine erişemez.'}
         </p>
         <div className="card" style={{ padding: '14px 16px', width: '100%' }}>

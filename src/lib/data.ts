@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import type { Dataset, Exam, Outcome, Question, Result, Subject } from './analiz'
-import type { Student } from './types'
+import type { ClassRow, Student } from './types'
 
 async function all<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await q
@@ -19,6 +19,15 @@ export function useStudents() {
     staleTime: STALE,
     queryFn: () =>
       all<Student>(supabase.from('students').select('id, full_name, class_name, school_no, target_score').is('archived_at', null).order('class_name').order('full_name')),
+  })
+}
+
+/** Okulun sınıfları (düzey, şube sırasıyla). */
+export function useClasses() {
+  return useQuery({
+    queryKey: ['classes'],
+    staleTime: STALE,
+    queryFn: () => all<ClassRow>(supabase.from('classes').select('id, name, grade, section, level, homeroom_teacher_id').order('grade').order('section')),
   })
 }
 

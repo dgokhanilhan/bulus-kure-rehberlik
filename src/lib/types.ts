@@ -32,6 +32,15 @@ export interface Student {
   target_score?: number | null
 }
 
+export interface ClassRow {
+  id: string
+  name: string
+  grade: number
+  section: string
+  level: 'ilkokul' | 'ortaokul' | 'lise'
+  homeroom_teacher_id: string | null
+}
+
 export interface Notification {
   id: string
   text: string

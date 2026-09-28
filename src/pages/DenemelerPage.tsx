@@ -5,9 +5,9 @@ import { supabase } from '@/lib/supabase'
 import { readExamFile } from '@/lib/engine'
 import { ADAPTER_PUBLISHER, buildPayload, buildReview, pendingCount, titleCase, type Review } from '@/lib/deneme'
 import { SUBJECT } from '@/lib/analiz'
-import { useRefresh, useStudents } from '@/lib/data'
+import { useClasses, useRefresh, useStudents } from '@/lib/data'
 import { todayISO, trD } from '@/lib/format'
-import { SUBE } from '@/lib/roles'
+import { DENEME_GRADE } from '@/lib/roles'
 import type { Student } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 import { Dropdown } from '@/components/Indicator'
@@ -359,6 +359,8 @@ function ReviewStep(props: {
   onCancel: () => void
 }) {
   const { rv, students } = props
+  const classes = useClasses()
+  const eighth = (classes.data ?? []).filter((c) => c.grade === DENEME_GRADE).map((c) => c.name)
   const left = pendingCount(rv)
   const update = (fn: (r: Review) => void) => {
     const c: Review = { ...rv, rows: rv.rows.map((r) => ({ ...r, subjectIssues: r.subjectIssues.map((i) => ({ ...i })) })), failedPages: rv.failedPages.map((f) => ({ ...f })) }
@@ -406,7 +408,7 @@ function ReviewStep(props: {
         {unknown.map((r) => {
           const ok = !!r.choice
           const cls = (r.read.class ?? '').toLocaleUpperCase('tr').replace(/\s/g, '')
-          const newCls = (SUBE as readonly string[]).includes(cls) ? cls : '8/A'
+          const newCls = eighth.includes(cls) ? cls : (eighth[0] ?? `${DENEME_GRADE}/A`)
           const cands = r.match.kind === 'unknown' ? r.match.candidates : []
           return (
             <article key={r.key} className={`card issue a ${ok ? 'ok' : ''}`} style={{ ['--d' as string]: d++ }} data-testid="issue">

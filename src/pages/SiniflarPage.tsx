@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { SUBJECT, SUBJECTS, classHeat, fmt, indexResults, repeats, type HeatRow, type Subject } from '@/lib/analiz'
-import { useDataset, useRefresh, useStudents, useStudySessions } from '@/lib/data'
+import { useClasses, useDataset, useRefresh, useStudents, useStudySessions } from '@/lib/data'
 import { addDays, initials, nextDow, todayISO, trDW } from '@/lib/format'
-import { SUBE } from '@/lib/roles'
+import { DENEME_GRADE } from '@/lib/roles'
 import { Icon } from '@/components/Icon'
 import { Dropdown, Seg } from '@/components/Indicator'
 import { Modal } from '@/components/Modal'
@@ -35,7 +35,10 @@ export default function SiniflarPage() {
   const sessions = useStudySessions()
   const toast = useToast()
   const refresh = useRefresh()
-  const [cls, setCls] = useState<string>('8/A')
+  const classes = useClasses()
+  const eighth = (classes.data ?? []).filter((c) => c.grade === DENEME_GRADE).map((c) => c.name)
+  const [pick, setCls] = useState<string | null>(null)
+  const cls = pick ?? eighth[0] ?? ''
   const [sub, setSub] = useState<Subject>('MAT')
   const [konu, setKonu] = useState<HeatRow | null>(null)
   const [etut, setEtut] = useState<string[] | null>(null)
@@ -80,7 +83,7 @@ export default function SiniflarPage() {
     <>
       <div className="head a">
         <h1 className="hd">Sınıflar</h1>
-        <Seg label="Şube" value={cls} onChange={setCls} options={SUBE.map((c) => [c, c] as const)} />
+        <Seg label="Şube" value={cls} onChange={setCls} options={eighth.map((c) => [c, c] as const)} />
       </div>
       <Seg className="a" style={{ ['--d' as string]: 1, alignSelf: 'flex-start' }} label="Ders" value={sub} onChange={setSub} options={SUBJECTS.map((s) => [s.code, s.short] as const)} />
       <section className="card a" style={{ ['--d' as string]: 2, padding: '16px 20px', display: 'flex', gap: 26, alignItems: 'center', flexWrap: 'wrap' }}>

@@ -85,7 +85,7 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
     await expect(page.getByRole('alert')).toContainText('Kod hatalı')
 
     secret = await completeMfa(page)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Denemeler', 'Sınıflar', /Onaylar/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Denemeler', 'Sınıflar', 'Yönetim', /Onaylar/])
     await page.getByRole('link', { name: /Onaylar/ }).click()
     await expect(page.getByRole('heading', { name: 'Kayıt onayları' })).toBeVisible()
     await expect(page.getByTestId('pending-card')).toHaveCount(await pendingCount())
@@ -116,7 +116,7 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
     await page.getByLabel('Şifre', { exact: true }).fill('Deneme123!')
     await page.getByLabel('Şifre tekrar').fill('Deneme12!')
     await page.getByLabel('Öğrencinin adı soyadı').fill('kerem aydin')
-    await page.getByLabel('Öğrencinin şubesi').selectOption('8/B')
+    await page.getByLabel('Öğrencinin sınıfı').selectOption('8/B')
     await page.getByLabel('Yakınlığın').selectOption('Baba')
     await page.getByRole('button', { name: 'Kayıt ol' }).last().click()
     await expect(page.getByRole('alert')).toHaveText('Şifreler aynı değil. Aydınlatma metnini onayla.')
@@ -177,7 +177,7 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
     await logout(page)
 
     await login(page, email, 'Deneme123!')
-    await expect(page.getByRole('heading', { name: 'Kaydın onaylanmadı' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Hesabına erişim yok' })).toBeVisible()
   })
 
   test('mobil görünüm: menü üstte yatay', async ({ page }) => {

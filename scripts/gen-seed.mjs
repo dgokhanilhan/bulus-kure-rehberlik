@@ -99,6 +99,10 @@ for (const d of DERS) for (const [code, title] of KONU[d.k]) oc.push(`(${q(code)
 // Resmî katalogda zaten olan kodlar korunur (0004 migration); yalnız örnek kodlar eklenir.
 out.push(`insert into outcomes (code, subject, title) values\n  ${oc.join(',\n  ')}\non conflict (code) do nothing;\n`)
 
+// Sınıflar (8'ler deneme analizi için; diğer kademelerden birer boş örnek sınıf)
+const CLASSES = [...new Set(STU.map((s) => s.cls)), '3/A', '6/A', '10/A']
+out.push(`insert into classes (school_id, grade, section) values\n  ${CLASSES.map((c) => `(${q(SCHOOL)}, ${c.split('/')[0]}, ${q(c.split('/')[1])})`).join(',\n  ')};\n`)
+
 // Öğrenciler
 out.push(`insert into students (id, school_id, full_name, class_name, school_no, target_score) values\n  ${STU.map((s) => `(${q(sid(s.no))}, ${q(SCHOOL)}, ${q(s.name)}, ${q(s.cls)}, ${q(s.no)}, 450)`).join(',\n  ')};\n`)
 
