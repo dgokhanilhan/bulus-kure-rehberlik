@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase, SOURCE_URL } from '@/lib/supabase'
 import { gateOf, useAuth } from '@/auth/AuthProvider'
 import { navItems, ROLE_HINT, ROLE_TR } from '@/lib/roles'
+import { useConversations } from '@/lib/data'
 import type { Notification } from '@/lib/types'
 import { ago, initials } from '@/lib/format'
 import { Icon, Logo } from './Icon'
@@ -170,6 +171,7 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
     setOpen(false)
     const L = n.link
     if (L.report) openReport({ id: L.report })
+    else if (L.conversation) nav(`/iletisim?sekme=mesajlar&c=${L.conversation}`)
     else if (L.page === 'ogrenci' && L.sid) nav(`/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`)
     else if (L.page) nav(`/${L.page}`)
   }
@@ -226,6 +228,8 @@ export function AppShell() {
   const loc = useLocation()
   const items = navItems(role!)
   const pending = usePendingCount(role === 'admin')
+  const convs = useConversations(role !== 'ogrenci')
+  const unread = (convs.data ?? []).reduce((n, c) => n + c.unread, 0)
   const active = items.find((i) => loc.pathname === `/${i.id}` || loc.pathname.startsWith(`/${i.id}/`))?.id
   const { ref, ind } = useIndicator<HTMLDivElement>(active)
   const [enterKey, setEnterKey] = useState(loc.pathname)
@@ -240,6 +244,11 @@ export function AppShell() {
             <NavLink key={it.id} to={`/${it.id}`} className="navbtn">
               <Icon name={it.icon} />
               <span className="lbl">{it.label}</span>
+              {it.id === 'iletisim' && unread > 0 && (
+                <span className="badge" aria-label={`${unread} okunmamış mesaj`}>
+                  {unread}
+                </span>
+              )}
               {it.id === 'onaylar' && pending > 0 && (
                 <span className="badge" aria-label={`${pending} bekleyen`}>
                   {pending}

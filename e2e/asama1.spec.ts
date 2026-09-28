@@ -12,7 +12,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('rehber öğretmen: Bugün, Öğrenciler, Denemeler, Sınıflar — Onaylar yok', async ({ page }) => {
     await login(page, ...DEMO.rehber)
     await expect(page).toHaveURL(/\/bugun$/)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Denemeler', 'Sınıflar'])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Denemeler', 'Sınıflar', /^İletişim/])
     await page.goto('/onaylar')
     await expect(page).toHaveURL(/\/bugun$/)
     await expect(page.getByText('Rehber öğretmen').first()).toBeVisible()
@@ -26,7 +26,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('branş öğretmeni yalnız Öğrenciler sekmesini görür', async ({ page }) => {
     await login(page, ...DEMO.matematik)
     await expect(page).toHaveURL(/\/ogrenciler$/)
-    await expect(menu(page)).toHaveText(['Öğrenciler'])
+    await expect(menu(page)).toHaveText(['Öğrenciler', /^İletişim/])
     for (const p of ['/bugun', '/denemeler', '/siniflar', '/onaylar', '/ozet']) {
       await page.goto(p)
       await expect(page).toHaveURL(/\/ogrenciler$/)
@@ -38,7 +38,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('veli yalnız kendi sayfalarını görür', async ({ page }) => {
     await login(page, ...DEMO.veli)
     await expect(page).toHaveURL(/\/ozet$/)
-    await expect(menu(page)).toHaveText(['Özet', 'Okul', 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(menu(page)).toHaveText(['Özet', 'Okul', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
     for (const p of ['/bugun', '/ogrenciler', '/onaylar']) {
       await page.goto(p)
       await expect(page).toHaveURL(/\/ozet$/)
@@ -49,7 +49,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('öğrenci yalnız kendi sayfalarını görür', async ({ page }) => {
     await login(page, ...DEMO.ogrenci)
     await expect(page).toHaveURL(/\/ozet$/)
-    await expect(menu(page)).toHaveText(['Özet', 'Okul', 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(menu(page)).toHaveText(['Özet', 'Okul', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
     await page.goto('/ogrenciler')
     await expect(page).toHaveURL(/\/ozet$/)
     await logout(page)
@@ -85,7 +85,7 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
     await expect(page.getByRole('alert')).toContainText('Kod hatalı')
 
     secret = await completeMfa(page)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Denemeler', 'Sınıflar', 'Yönetim', /Onaylar/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Denemeler', 'Sınıflar', /^İletişim/, 'Yönetim', /Onaylar/])
     await page.getByRole('link', { name: /Onaylar/ }).click()
     await expect(page.getByRole('heading', { name: 'Kayıt onayları' })).toBeVisible()
     await expect(page.getByTestId('pending-card')).toHaveCount(await pendingCount())

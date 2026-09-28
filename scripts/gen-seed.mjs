@@ -231,6 +231,11 @@ const PROG = [
   ['İngilizce', 'Türkçe', 'Fen Bilimleri', 'Matematik', 'Matematik', 'Türkçe', 'Seçmeli', 'Seçmeli'],
 ]
 out.push(`insert into timetable (school_id, class_id, weekday, period, subject) values\n  ${PROG.flatMap((g, d) => g.map((ders, p) => `(${q(SCHOOL)}, (select id from classes where school_id = ${q(SCHOOL)} and name = '8/A'), ${d + 1}, ${p + 1}, ${q(ders)})`)).join(',\n  ')};\n`)
+// Ders programında branş öğretmenleri (iletişim: öğretmen yalnız ders verdiği sınıfın velileriyle yazışır)
+out.push(`update timetable set teacher_id = (select id from profiles where email = 'matematik@buluskure.k12.tr') where subject = 'Matematik';
+update timetable set teacher_id = (select id from profiles where email = 'fen@buluskure.k12.tr') where subject = 'Fen Bilimleri';
+update classes set homeroom_teacher_id = (select id from profiles where email = 'rehber@buluskure.k12.tr') where name = '8/A';
+`)
 const YEMEK = ['Mercimek çorbası, tavuk sote, bulgur pilavı, ayran', 'Ezogelin çorbası, etli kuru fasulye, pirinç pilavı, turşu', 'Yayla çorbası, fırın köfte, patates püresi, mevsim salata', 'Domates çorbası, zeytinyağlı taze fasulye, makarna, yoğurt', 'Tarhana çorbası, izmir köfte, şehriyeli pilav, meyve']
 out.push(`insert into meals (school_id, day, meal, items) values\n  ${YEMEK.map((y, i) => `(${q(SCHOOL)}, date_trunc('week', current_date)::date + ${i}, 'ogle', ${q(y)})`).join(',\n  ')};\n`)
 
