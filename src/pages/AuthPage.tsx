@@ -59,7 +59,7 @@ export default function AuthPage() {
             <path className="draw" pathLength={1} d="M22 37l10 10 19-21" fill="none" stroke="var(--primary)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500 }}>Kaydın alındı</h2>
-          <p className="m">Okul yönetimi onayladığında bu e-posta ve şifreyle giriş yapabilirsin.</p>
+          <p className="m">E-posta adresine bir doğrulama bağlantısı gönderdik; önce ona tıkla (gelmediyse gereksiz/spam klasörüne bak). Okul yönetimi de onayladığında bu e-posta ve şifreyle giriş yapabilirsin.</p>
           <button className="btn pri" onClick={() => setStep('login')}>
             Giriş ekranına dön
           </button>
@@ -89,17 +89,29 @@ function LoginForm({ onStep }: { onStep: (s: Step) => void }) {
   const [pass, setPass] = useState('')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [unconfirmed, setUnconfirmed] = useState(false)
+
+  async function resend() {
+    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() })
+    setErr(error ? (error.status === 429 ? 'Kısa süre önce gönderildi. Birkaç dakika sonra tekrar dene.' : 'Bağlantı gönderilemedi.') : 'Doğrulama bağlantısı yeniden gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.')
+    setUnconfirmed(false)
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     setErr(null)
+    setUnconfirmed(false)
     setBusy(true)
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: pass })
     setBusy(false)
     if (error) {
+      const notConfirmed = error.code === 'email_not_confirmed' || /not confirmed/i.test(error.message)
+      setUnconfirmed(notConfirmed)
       setErr(
         error.status === 429
           ? 'Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar dene.'
+          : notConfirmed
+            ? 'E-posta adresin henüz doğrulanmadı. Kayıttan sonra gönderilen bağlantıya tıkla.'
           : error.message.includes('Invalid login')
             ? 'E-posta veya şifre hatalı.'
             : 'Giriş yapılamadı. Bağlantını kontrol edip tekrar dene.',
@@ -124,6 +136,11 @@ function LoginForm({ onStep }: { onStep: (s: Step) => void }) {
           <div className="err" role="alert">
             {err}
           </div>
+        )}
+        {unconfirmed && (
+          <button className="btn" type="button" onClick={resend}>
+            Doğrulama bağlantısını yeniden gönder
+          </button>
         )}
         <button className="btn pri" style={{ minHeight: 50, fontSize: 16 }} type="submit" disabled={busy}>
           {busy ? <span className="spinner" aria-hidden="true" /> : null}
