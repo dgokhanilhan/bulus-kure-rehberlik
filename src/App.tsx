@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 
 // Sayfalar ihtiyaç anında yüklenir (ilk açılış hızlı; Lighthouse).
 const OnaylarPage = lazy(() => import('@/pages/OnaylarPage'))
+const YonetimPage = lazy(() => import('@/pages/YonetimPage'))
 const BugunPage = lazy(() => import('@/pages/BugunPage'))
 const DenemelerPage = lazy(() => import('@/pages/DenemelerPage'))
 const SiniflarPage = lazy(() => import('@/pages/SiniflarPage'))
@@ -34,6 +35,7 @@ const PAGES: Record<PageId, JSX.Element> = {
   denemeler: <DenemelerPage />,
   siniflar: <SiniflarPage />,
   onaylar: <OnaylarPage />,
+  yonetim: <YonetimPage />,
   ozet: <OzetPage />,
   gorevler: <GorevlerPage />,
   raporlar: <RaporlarPage />,

@@ -1,7 +1,8 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { supabase, signupClient, SCHOOL_SLUG, SOURCE_URL } from '@/lib/supabase'
 import { KVKK_VERSION } from '@/lib/kvkk'
-import { BRANS, SUBE, YAKINLIK } from '@/lib/roles'
+import { useQuery } from '@tanstack/react-query'
+import { BRANS, LEVEL_TR, LEVELS, YAKINLIK, type Level } from '@/lib/roles'
 import { Globe, Icon, Logo } from '@/components/Icon'
 import { Dropdown, Seg } from '@/components/Indicator'
 
@@ -201,8 +202,8 @@ export function validateRegistration(f: RegForm): string[] {
   if (f.pass.length < 8) err.push('Şifre en az 8 karakter olmalı.')
   else if (f.pass !== f.pass2) err.push('Şifreler aynı değil.')
   if (f.role === 'ogretmen' && !f.brans) err.push('Branşını seç.')
-  if (f.role === 'ogrenci' && !f.cls) err.push('Şubeni seç.')
-  if (f.role === 'veli' && (!f.childName.trim() || !f.childCls)) err.push('Öğrencinin adını ve şubesini yaz.')
+  if (f.role === 'ogrenci' && !f.cls) err.push('Sınıfını seç.')
+  if (f.role === 'veli' && (!f.childName.trim() || !f.childCls)) err.push('Öğrencinin adını ve sınıfını yaz.')
   if (!f.consent) err.push('Aydınlatma metnini onayla.')
   return err
 }
@@ -310,12 +311,10 @@ function RegisterForm({ onStep }: { onStep: (s: Step) => void }) {
         {r === 'ogrenci' && (
           <div className="grid2">
             <label className="field" htmlFor="rCls">
-              Şuben
+              Sınıfın
               <select id="rCls" value={f.cls} onChange={set('cls')}>
                 <option value="">Seç</option>
-                {SUBE.map((b) => (
-                  <option key={b}>{b}</option>
-                ))}
+                <ClassOptions />
               </select>
             </label>
             <label className="field" htmlFor="rNo">
@@ -332,12 +331,10 @@ function RegisterForm({ onStep }: { onStep: (s: Step) => void }) {
             </label>
             <div className="grid2">
               <label className="field" htmlFor="rCCls">
-                Öğrencinin şubesi
+                Öğrencinin sınıfı
                 <select id="rCCls" value={f.childCls} onChange={set('childCls')}>
                   <option value="">Seç</option>
-                  {SUBE.map((b) => (
-                    <option key={b}>{b}</option>
-                  ))}
+                  <ClassOptions />
                 </select>
               </label>
               <label className="field" htmlFor="rRel">
@@ -373,6 +370,34 @@ function RegisterForm({ onStep }: { onStep: (s: Step) => void }) {
           Kaydın okul yönetimi onayladıktan sonra açılır.
         </p>
       </form>
+    </>
+  )
+}
+
+/** Kayıt formundaki sınıf seçenekleri: okulda açılmış sınıflar, kademeye göre gruplu (giriş gerekmez). */
+function ClassOptions() {
+  const q = useQuery({
+    queryKey: ['signup-classes'],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('signup_classes', { p_school: SCHOOL_SLUG })
+      if (error) throw error
+      return data as { name: string; grade: number; level: Level }[]
+    },
+  })
+  if (!q.data) return <option disabled>{q.isError ? 'Sınıflar yüklenemedi' : 'Yükleniyor…'}</option>
+  return (
+    <>
+      {LEVELS.map((lv) => {
+        const cs = q.data.filter((c) => c.level === lv)
+        return cs.length ? (
+          <optgroup key={lv} label={LEVEL_TR[lv]}>
+            {cs.map((c) => (
+              <option key={c.name}>{c.name}</option>
+            ))}
+          </optgroup>
+        ) : null
+      })}
     </>
   )
 }

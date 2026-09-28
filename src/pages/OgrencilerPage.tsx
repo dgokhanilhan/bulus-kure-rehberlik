@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fmt, indexResults, repeats, totalNet } from '@/lib/analiz'
-import { useDataset, useStudents } from '@/lib/data'
+import { useClasses, useDataset, useStudents } from '@/lib/data'
 import { fold, initials } from '@/lib/format'
-import { SUBE } from '@/lib/roles'
-import { Seg } from '@/components/Indicator'
+import { LEVEL_TR, LEVELS } from '@/lib/roles'
 
 export default function OgrencilerPage() {
   const students = useStudents()
   const dsq = useDataset()
+  const classes = useClasses()
   const nav = useNavigate()
   const [cls, setCls] = useState<string>('all')
   const [q, setQ] = useState('')
@@ -34,7 +34,21 @@ export default function OgrencilerPage() {
     <>
       <div className="head a">
         <h1 className="hd">Öğrenciler</h1>
-        <Seg label="Şube" value={cls} onChange={setCls} options={[['all', 'Tümü'], ...SUBE.map((c) => [c, c] as const)]} />
+        <label className="field" style={{ minWidth: 160 }}>
+          <select aria-label="Sınıf" value={cls} onChange={(e) => setCls(e.target.value)}>
+            <option value="all">Tüm sınıflar</option>
+            {LEVELS.map((lv) => {
+              const cs = (classes.data ?? []).filter((c) => c.level === lv)
+              return cs.length ? (
+                <optgroup key={lv} label={LEVEL_TR[lv]}>
+                  {cs.map((c) => (
+                    <option key={c.id}>{c.name}</option>
+                  ))}
+                </optgroup>
+              ) : null
+            })}
+          </select>
+        </label>
       </div>
       <label className="field a" style={{ ['--d' as string]: 1, maxWidth: 420 }} htmlFor="qStu">
         <span className="m" style={{ fontWeight: 500 }}>
@@ -53,7 +67,7 @@ export default function OgrencilerPage() {
               <thead>
                 <tr>
                   <th>Öğrenci</th>
-                  <th>Şube</th>
+                  <th>Sınıf</th>
                   <th className="num">Son net</th>
                   <th className="num">Değişim</th>
                   <th>Durum</th>

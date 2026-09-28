@@ -1,7 +1,16 @@
 import type { Profile, Role } from './types'
 
-export const BRANS = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'T.C. İnkılap Tarihi', 'Din Kültürü', 'İngilizce', 'Rehberlik'] as const
-export const SUBE = ['8/A', '8/B', '8/C'] as const
+// Veritabanındaki valid_branches() ile aynı liste (0008).
+export const BRANS = [
+  'Sınıf Öğretmeni', 'Okul Öncesi', 'Türkçe', 'Türk Dili ve Edebiyatı', 'Matematik', 'Fen Bilimleri', 'Fizik', 'Kimya',
+  'Biyoloji', 'Sosyal Bilgiler', 'T.C. İnkılap Tarihi', 'Tarih', 'Coğrafya', 'Felsefe', 'Din Kültürü', 'İngilizce', 'Almanca',
+  'Beden Eğitimi', 'Müzik', 'Görsel Sanatlar', 'Bilişim Teknolojileri', 'Rehberlik',
+] as const
+export type Level = 'ilkokul' | 'ortaokul' | 'lise'
+export const LEVEL_TR: Record<Level, string> = { ilkokul: 'İlkokul', ortaokul: 'Ortaokul', lise: 'Lise' }
+export const LEVELS: Level[] = ['ilkokul', 'ortaokul', 'lise']
+/** LGS deneme analizi yalnız 8. sınıflar içindir. */
+export const DENEME_GRADE = 8
 export const YAKINLIK = ['Anne', 'Baba', 'Vasi', 'Diğer'] as const
 
 export function roleOf(p: Pick<Profile, 'role' | 'branch'>): Role {
@@ -20,13 +29,13 @@ export const ROLE_TR: Record<Role, string> = {
 export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 
 export type PageId =
-  | 'bugun' | 'ogrenciler' | 'denemeler' | 'siniflar' | 'onaylar'
+  | 'bugun' | 'ogrenciler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
   | 'ozet' | 'gorevler' | 'raporlar' | 'gorusmeler'
 
 export interface NavItem {
   id: PageId
   label: string
-  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal'
+  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen'
 }
 
 const STAFF: NavItem[] = [
@@ -44,14 +53,14 @@ const FAMILY: NavItem[] = [
 
 /** Rol bazlı menü — prototipteki navItems() ile aynı. Yetki ayrıca veritabanında (RLS) zorlanır. */
 export function navItems(r: Role): NavItem[] {
-  if (r === 'admin') return [...STAFF, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
+  if (r === 'admin') return [...STAFF, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
   if (r === 'rehber') return STAFF
   if (r === 'brans') return [STAFF[1]!]
   return FAMILY
 }
 
 export const ROLE_HINT: Record<Role, string> = {
-  admin: 'Tam yetki ve kayıt onayları.',
+  admin: 'Tam yetki: okul yönetimi ve kayıt onayları.',
   rehber: 'Tam yetki: görev, görüşme, rapor.',
   brans: 'Öğrencileri görüntüleyebilir ve not ekleyebilirsin.',
   veli: 'Yalnızca kendi bilgilerini görürsün.',
