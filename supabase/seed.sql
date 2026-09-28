@@ -731,4 +731,67 @@ insert into notifications (user_id, text, link, created_at) values
   ('00000000-0000-4000-8003-000000000001', 'Yeni kayıt onay bekliyor: Fatma Kaya (Veli)', '{"page":"onaylar"}', now() - interval '3 hours'),
   ('00000000-0000-4000-8003-000000000001', 'Yeni kayıt onay bekliyor: Deniz Er (Branş öğretmeni · İngilizce)', '{"page":"onaylar"}', now() - interval '1 hour');
 
+insert into bell_times (school_id, period, starts, ends) values
+  ('00000000-0000-4000-8000-000000000001', 1, '08:30', '09:10'),
+  ('00000000-0000-4000-8000-000000000001', 2, '09:20', '10:00'),
+  ('00000000-0000-4000-8000-000000000001', 3, '10:10', '10:50'),
+  ('00000000-0000-4000-8000-000000000001', 4, '11:00', '11:40'),
+  ('00000000-0000-4000-8000-000000000001', 5, '11:50', '12:30'),
+  ('00000000-0000-4000-8000-000000000001', 6, '13:20', '14:00'),
+  ('00000000-0000-4000-8000-000000000001', 7, '14:10', '14:50'),
+  ('00000000-0000-4000-8000-000000000001', 8, '15:00', '15:40');
+
+insert into timetable (school_id, class_id, weekday, period, subject) values
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 1, 1, 'Türkçe'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 1, 2, 'Türkçe'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 1, 3, 'Matematik'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 1, 4, 'Matematik'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 1, 5, 'Fen Bilimleri'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 1, 6, 'Fen Bilimleri'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 1, 7, 'İngilizce'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 1, 8, 'Beden Eğitimi'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 2, 1, 'Matematik'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 2, 2, 'Matematik'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 2, 3, 'T.C. İnkılap Tarihi'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 2, 4, 'T.C. İnkılap Tarihi'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 2, 5, 'Türkçe'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 2, 6, 'Türkçe'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 2, 7, 'Din Kültürü'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 2, 8, 'Müzik'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 3, 1, 'Fen Bilimleri'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 3, 2, 'Fen Bilimleri'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 3, 3, 'Türkçe'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 3, 4, 'İngilizce'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 3, 5, 'İngilizce'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 3, 6, 'Matematik'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 3, 7, 'Görsel Sanatlar'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 3, 8, 'Bilişim Teknolojileri'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 4, 1, 'Türkçe'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 4, 2, 'Matematik'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 4, 3, 'Matematik'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 4, 4, 'Fen Bilimleri'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 4, 5, 'Din Kültürü'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 4, 6, 'T.C. İnkılap Tarihi'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 4, 7, 'Rehberlik ve Yönlendirme'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 4, 8, 'Beden Eğitimi'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 5, 1, 'İngilizce'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 5, 2, 'Türkçe'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 5, 3, 'Fen Bilimleri'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 5, 4, 'Matematik'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 5, 5, 'Matematik'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 5, 6, 'Türkçe'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 5, 7, 'Seçmeli'),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where school_id = '00000000-0000-4000-8000-000000000001' and name = '8/A'), 5, 8, 'Seçmeli');
+
+update timetable set teacher_id = (select id from profiles where email = 'matematik@buluskure.k12.tr') where subject = 'Matematik';
+update timetable set teacher_id = (select id from profiles where email = 'fen@buluskure.k12.tr') where subject = 'Fen Bilimleri';
+update classes set homeroom_teacher_id = (select id from profiles where email = 'rehber@buluskure.k12.tr') where name = '8/A';
+
+insert into meals (school_id, day, meal, items) values
+  ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 0, 'ogle', 'Mercimek çorbası, tavuk sote, bulgur pilavı, ayran'),
+  ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 1, 'ogle', 'Ezogelin çorbası, etli kuru fasulye, pirinç pilavı, turşu'),
+  ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 2, 'ogle', 'Yayla çorbası, fırın köfte, patates püresi, mevsim salata'),
+  ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 3, 'ogle', 'Domates çorbası, zeytinyağlı taze fasulye, makarna, yoğurt'),
+  ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 4, 'ogle', 'Tarhana çorbası, izmir köfte, şehriyeli pilav, meyve');
+
 commit;

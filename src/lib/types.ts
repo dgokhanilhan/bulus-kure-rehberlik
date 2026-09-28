@@ -28,6 +28,7 @@ export interface Student {
   id: string
   full_name: string
   class_name: string
+  class_id?: string | null
   school_no: string | null
   target_score?: number | null
 }
@@ -44,7 +45,7 @@ export interface ClassRow {
 export interface Notification {
   id: string
   text: string
-  link: { page?: string; sid?: string; tab?: string; report?: string; meeting?: string }
+  link: { page?: string; sid?: string; tab?: string; report?: string; meeting?: string; conversation?: string; announcement?: string }
   read_at: string | null
   created_at: string
 }

@@ -4,8 +4,8 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { SUBJECT, fmt, indexResults, studentExams, totalNet } from '@/lib/analiz'
-import { useDataset, useMeetings, useNotes, useReports, useStudents, useStudySessions, useTasks } from '@/lib/data'
-import { ago, gen, localDate, localHM, todayISO, trD, trDW } from '@/lib/format'
+import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useDataset, useMeals, useMeetings, useNotes, useReports, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
+import { GUN, addDays, ago, gen, isoDow, localDate, localHM, todayISO, trD, trDW, weekStart } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 import { Dropdown, Seg } from '@/components/Indicator'
@@ -262,6 +262,165 @@ export function RaporlarPage() {
       ) : (
         <div className="empty a">Henüz rapor gönderilmedi.</div>
       )}
+    </>
+  )
+}
+
+/** Okul günü: bugünkü dersler ve yemek, haftalık ders programı, yemek listesi, devamsızlık (0009). */
+export function OkulPage() {
+  const { s, list, loading, choose, veli } = useMyStudent()
+  const today = todayISO()
+  const week = weekStart(today)
+  const tt = useTimetable(s?.class_id)
+  const bells = useBellTimes()
+  const meals = useMeals(week, addDays(week, 4))
+  const att = useAttendance({ student: s?.id })
+  const contacts = useChildContacts(s?.id)
+  if (!s) return <Wait loading={loading} />
+  const tName = (id: string | null) => contacts.data?.find((c) => c.id === id)?.full_name
+  const first = s.full_name.split(' ')[0]!
+  const dow = isoDow(today)
+  const lessons = tt.data ?? []
+  const days = lessons.some((l) => l.weekday === 6) ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5]
+  const nPer = Math.max(0, ...lessons.map((l) => l.period))
+  const bell = (p: number) => bells.data?.find((b) => b.period === p)
+  const hm = (p: number) => (bell(p) ? `${bell(p)!.starts.slice(0, 5)}–${bell(p)!.ends.slice(0, 5)}` : `${p}. ders`)
+  const todayL = lessons.filter((l) => l.weekday === dow)
+  const todayM = (meals.data ?? []).filter((m) => m.day === today)
+  const recs = att.data ?? []
+  const cnt = (k: AttendanceStatus) => recs.filter((a) => a.status === k).length
+
+  return (
+    <>
+      <div className="head a">
+        <div className="stack" style={{ gap: 4 }}>
+          <span className="m" style={{ fontWeight: 500 }}>
+            {s.class_name} · {trDW(today)}
+          </span>
+          <h1 className="hd">{veli ? `${first}'in okul günü` : 'Okul günün'}</h1>
+        </div>
+      </div>
+      <ChildPicker list={list} s={s} choose={choose} />
+      <div className="cols">
+        <section className="stack">
+          <article className="card a" style={{ ['--d' as string]: 1, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }} aria-label="Bugünün dersleri">
+            <h2 style={{ fontSize: 17 }}>Bugünün dersleri</h2>
+            {todayL.length ? (
+              todayL.map((l) => (
+                <div key={l.id} className="kv" data-testid="today-lesson">
+                  <span>
+                    <b>{l.subject}</b>
+                    {tName(l.teacher_id) && (
+                      <span className="m" style={{ fontSize: 12 }}>
+                        {' '}
+                        · {tName(l.teacher_id)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="m mono" style={{ fontSize: 13 }}>
+                    {hm(l.period)}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <span className="m">{dow > 5 && !lessons.some((l) => l.weekday === dow) ? 'Bugün okul yok.' : 'Bugün için ders programı girilmemiş.'}</span>
+            )}
+          </article>
+          <article className="card a" style={{ ['--d' as string]: 2, overflow: 'hidden' }} aria-label="Haftalık ders programı">
+            <h2 style={{ fontSize: 17, padding: '16px 18px 4px' }}>Haftalık ders programı</h2>
+            {nPer ? (
+              <div className="tbl" tabIndex={0} role="region" aria-label="Haftalık ders programı tablosu (yana kaydırılabilir)">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Ders</th>
+                      {days.map((d) => (
+                        <th key={d} style={d === dow ? { color: 'var(--primary)' } : undefined}>
+                          {GUN[d]}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: nPer }, (_, i) => i + 1).map((p) => (
+                      <tr key={p}>
+                        <td className="mono" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                          {hm(p)}
+                        </td>
+                        {days.map((d) => (
+                          <td key={d} style={d === dow ? { background: 'var(--primary-soft)' } : undefined}>
+                            {lessons.find((l) => l.weekday === d && l.period === p)?.subject ?? ''}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="empty" style={{ margin: 16 }}>
+                Ders programı henüz girilmemiş.
+              </div>
+            )}
+          </article>
+        </section>
+        <aside className="stack" style={{ gap: 14 }}>
+          <article className="card a" style={{ ['--d' as string]: 2, padding: 18, display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Bugünün yemeği">
+            <h2 style={{ fontSize: 17 }}>Bugünün yemeği</h2>
+            {todayM.length ? (
+              todayM.map((m) => (
+                <div key={m.id}>
+                  <span className="label">{MEAL_TR[m.meal]}</span>
+                  <div style={{ fontSize: 14, whiteSpace: 'pre-line' }}>{m.items}</div>
+                </div>
+              ))
+            ) : (
+              <span className="m">Bugün için yemek listesi yok.</span>
+            )}
+          </article>
+          <Dropdown title="Bu haftanın yemek listesi" sub={`${trD(week)} – ${trD(addDays(week, 4))}`} icon={<Icon name="cal" size={22} />} delay={3}>
+            {(meals.data ?? []).length ? (
+              [0, 1, 2, 3, 4].map((i) => {
+                const d = addDays(week, i)
+                const ms = (meals.data ?? []).filter((m) => m.day === d)
+                return ms.length ? (
+                  <div key={d} className="stack" style={{ gap: 2 }}>
+                    <b style={{ fontSize: 14 }}>{GUN[i + 1]}</b>
+                    {ms.map((m) => (
+                      <span key={m.id} style={{ fontSize: 13 }}>
+                        <span className="m">{MEAL_TR[m.meal]}:</span> {m.items}
+                      </span>
+                    ))}
+                  </div>
+                ) : null
+              })
+            ) : (
+              <span className="m">Bu hafta için liste girilmemiş.</span>
+            )}
+          </Dropdown>
+          <Dropdown
+            title="Devamsızlık"
+            sub={recs.length ? `${cnt('devamsiz')} gün gelmedi · ${cnt('gec')} geç` : 'Kayıt yok'}
+            icon={<Icon name="task" size={22} />}
+            delay={4}
+            right={cnt('devamsiz') ? <span className="chip down">{cnt('devamsiz')}</span> : undefined}
+          >
+            <div className="btns">
+              {(['devamsiz', 'gec', 'izinli', 'raporlu'] as AttendanceStatus[]).map((k) => (
+                <span key={k} className={`chip ${k === 'devamsiz' && cnt(k) ? 'down' : 'n'}`}>
+                  {ATT_TR[k]}: {cnt(k)}
+                </span>
+              ))}
+            </div>
+            {recs.slice(0, 12).map((a) => (
+              <div key={a.id} className="kv" data-testid="att-record">
+                <span>{trDW(a.day)}</span>
+                <span className={`chip ${a.status === 'devamsiz' ? 'down' : 'n'}`}>{ATT_TR[a.status]}</span>
+              </div>
+            ))}
+          </Dropdown>
+        </aside>
+      </div>
     </>
   )
 }

@@ -30,12 +30,12 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
-  | 'ozet' | 'gorevler' | 'raporlar' | 'gorusmeler'
+  | 'ozet' | 'okul' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler'
 
 export interface NavItem {
   id: PageId
   label: string
-  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen'
+  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat'
 }
 
 const STAFF: NavItem[] = [
@@ -44,8 +44,11 @@ const STAFF: NavItem[] = [
   { id: 'denemeler', label: 'Denemeler', icon: 'doc' },
   { id: 'siniflar', label: 'Sınıflar', icon: 'grid' },
 ]
+const ILETISIM: NavItem = { id: 'iletisim', label: 'İletişim', icon: 'chat' }
 const FAMILY: NavItem[] = [
   { id: 'ozet', label: 'Özet', icon: 'home' },
+  { id: 'okul', label: 'Okul', icon: 'grid' },
+  { id: 'iletisim', label: 'İletişim', icon: 'chat' },
   { id: 'gorevler', label: 'Görevler', icon: 'task' },
   { id: 'raporlar', label: 'Raporlar', icon: 'doc' },
   { id: 'gorusmeler', label: 'Görüşmeler', icon: 'cal' },
@@ -53,9 +56,9 @@ const FAMILY: NavItem[] = [
 
 /** Rol bazlı menü — prototipteki navItems() ile aynı. Yetki ayrıca veritabanında (RLS) zorlanır. */
 export function navItems(r: Role): NavItem[] {
-  if (r === 'admin') return [...STAFF, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
-  if (r === 'rehber') return STAFF
-  if (r === 'brans') return [STAFF[1]!]
+  if (r === 'admin') return [...STAFF, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
+  if (r === 'rehber') return [...STAFF, ILETISIM]
+  if (r === 'brans') return [STAFF[1]!, ILETISIM]
   return FAMILY
 }
 

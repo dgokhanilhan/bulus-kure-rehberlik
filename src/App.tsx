@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 // Sayfalar ihtiyaç anında yüklenir (ilk açılış hızlı; Lighthouse).
 const OnaylarPage = lazy(() => import('@/pages/OnaylarPage'))
 const YonetimPage = lazy(() => import('@/pages/YonetimPage'))
+const IletisimPage = lazy(() => import('@/pages/IletisimPage'))
 const BugunPage = lazy(() => import('@/pages/BugunPage'))
 const DenemelerPage = lazy(() => import('@/pages/DenemelerPage'))
 const SiniflarPage = lazy(() => import('@/pages/SiniflarPage'))
@@ -20,6 +21,7 @@ const OgrencilerPage = lazy(() => import('@/pages/OgrencilerPage'))
 const OgrenciPage = lazy(() => import('@/pages/OgrenciPage'))
 const fam = () => import('@/pages/FamilyPages')
 const OzetPage = lazy(() => fam().then((m) => ({ default: m.OzetPage })))
+const OkulPage = lazy(() => fam().then((m) => ({ default: m.OkulPage })))
 const GorevlerPage = lazy(() => fam().then((m) => ({ default: m.GorevlerPage })))
 const GorusmelerPage = lazy(() => fam().then((m) => ({ default: m.GorusmelerPage })))
 const RaporlarPage = lazy(() => fam().then((m) => ({ default: m.RaporlarPage })))
@@ -36,7 +38,9 @@ const PAGES: Record<PageId, JSX.Element> = {
   siniflar: <SiniflarPage />,
   onaylar: <OnaylarPage />,
   yonetim: <YonetimPage />,
+  iletisim: <IletisimPage />,
   ozet: <OzetPage />,
+  okul: <OkulPage />,
   gorevler: <GorevlerPage />,
   raporlar: <RaporlarPage />,
   gorusmeler: <GorusmelerPage />,

@@ -18,7 +18,7 @@ export function useStudents() {
     queryKey: ['students'],
     staleTime: STALE,
     queryFn: () =>
-      all<Student>(supabase.from('students').select('id, full_name, class_name, school_no, target_score').is('archived_at', null).order('class_name').order('full_name')),
+      all<Student>(supabase.from('students').select('id, full_name, class_name, class_id, school_no, target_score').is('archived_at', null).order('class_name').order('full_name')),
   })
 }
 
@@ -28,6 +28,151 @@ export function useClasses() {
     queryKey: ['classes'],
     staleTime: STALE,
     queryFn: () => all<ClassRow>(supabase.from('classes').select('id, name, grade, section, level, homeroom_teacher_id').order('grade').order('section')),
+  })
+}
+
+// ---------- Okul günlüğü (0009): yoklama, ders programı, yemek listesi ----------
+export type AttendanceStatus = 'devamsiz' | 'gec' | 'izinli' | 'raporlu'
+export const ATT_TR: Record<AttendanceStatus, string> = { devamsiz: 'Gelmedi', gec: 'Geç geldi', izinli: 'İzinli', raporlu: 'Raporlu' }
+export interface Attendance {
+  id: string
+  student_id: string
+  day: string
+  status: AttendanceStatus
+  note: string | null
+}
+/** Bir öğrencinin bütün kayıtları ya da bir günün kayıtları (RLS: yalnız görebildiklerin). */
+export function useAttendance(f: { student?: string; day?: string }) {
+  return useQuery({
+    queryKey: ['attendance', f.student ?? '', f.day ?? ''],
+    enabled: !!(f.student || f.day),
+    queryFn: () => {
+      let q = supabase.from('attendance').select('id, student_id, day, status, note').order('day', { ascending: false })
+      if (f.student) q = q.eq('student_id', f.student)
+      if (f.day) q = q.eq('day', f.day)
+      return all<Attendance>(q)
+    },
+  })
+}
+
+export interface Lesson {
+  id: string
+  class_id: string
+  weekday: number
+  period: number
+  subject: string
+  teacher_id: string | null
+}
+export function useTimetable(classId?: string | null) {
+  return useQuery({
+    queryKey: ['timetable', classId ?? ''],
+    enabled: !!classId,
+    queryFn: () => all<Lesson>(supabase.from('timetable').select('id, class_id, weekday, period, subject, teacher_id').eq('class_id', classId!).order('weekday').order('period')),
+  })
+}
+
+export interface Bell {
+  period: number
+  starts: string
+  ends: string
+}
+export function useBellTimes() {
+  return useQuery({
+    queryKey: ['bell_times'],
+    staleTime: STALE,
+    queryFn: () => all<Bell>(supabase.from('bell_times').select('period, starts, ends').order('period')),
+  })
+}
+
+export type MealKind = 'kahvalti' | 'ogle' | 'ikindi'
+export const MEAL_TR: Record<MealKind, string> = { kahvalti: 'Kahvaltı', ogle: 'Öğle yemeği', ikindi: 'İkindi' }
+export interface Meal {
+  id: string
+  day: string
+  meal: MealKind
+  items: string
+}
+export function useMeals(from: string, to: string) {
+  return useQuery({
+    queryKey: ['meals', from, to],
+    queryFn: () => all<Meal>(supabase.from('meals').select('id, day, meal, items').gte('day', from).lte('day', to).order('day')),
+  })
+}
+
+// ---------- İletişim (0010): duyurular ve mesajlar ----------
+export interface Announcement {
+  id: string
+  title: string
+  body: string
+  scope: 'okul' | 'kademe' | 'sinif'
+  level: 'ilkokul' | 'ortaokul' | 'lise' | null
+  class_id: string | null
+  audience: ('veli' | 'ogrenci' | 'ogretmen')[]
+  created_by: string | null
+  author_name: string | null
+  created_at: string
+}
+export function useAnnouncements() {
+  return useQuery({
+    queryKey: ['announcements'],
+    queryFn: () => all<Announcement>(supabase.from('announcements').select('id, title, body, scope, level, class_id, audience, created_by, author_name, created_at').order('created_at', { ascending: false }).limit(200)),
+  })
+}
+
+export interface Conversation {
+  id: string
+  student_id: string
+  student_name: string
+  parent_id: string
+  parent_name: string
+  teacher_id: string
+  teacher_name: string
+  teacher_branch: string | null
+  last_at: string
+  last_body: string | null
+  unread: number
+}
+/** Yazışmalarım (yönetici: okulun bütün yazışmaları). 30 sn'de bir tazelenir. */
+export function useConversations(enabled = true) {
+  return useQuery({
+    queryKey: ['conversations'],
+    enabled,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('my_conversations')
+      if (error) throw error
+      return (data ?? []) as Conversation[]
+    },
+  })
+}
+
+export interface Message {
+  id: string
+  sender_id: string | null
+  body: string
+  created_at: string
+  read_at: string | null
+}
+export function useMessages(conv: string | null) {
+  return useQuery({
+    queryKey: ['messages', conv ?? ''],
+    enabled: !!conv,
+    refetchInterval: 10_000,
+    queryFn: () => all<Message>(supabase.from('messages').select('id, sender_id, body, created_at, read_at').eq('conversation_id', conv!).order('created_at')),
+  })
+}
+
+/** Velinin çocuğu için yazışabileceği kişiler (öğretmenler, rehberlik, yönetim) — öğretmen adları da buradan. */
+export function useChildContacts(sid?: string) {
+  return useQuery({
+    queryKey: ['child_contacts', sid ?? ''],
+    enabled: !!sid,
+    staleTime: STALE,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('child_contacts', { p_student: sid })
+      if (error) throw error
+      return (data ?? []) as { id: string; full_name: string; branch: string | null; role: string; subjects: string[]; homeroom: boolean }[]
+    },
   })
 }
 
