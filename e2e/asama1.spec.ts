@@ -38,7 +38,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('veli yalnız kendi sayfalarını görür', async ({ page }) => {
     await login(page, ...DEMO.veli)
     await expect(page).toHaveURL(/\/ozet$/)
-    await expect(menu(page)).toHaveText(['Özet', 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(menu(page)).toHaveText(['Özet', 'Okul', 'Görevler', 'Raporlar', 'Görüşmeler'])
     for (const p of ['/bugun', '/ogrenciler', '/onaylar']) {
       await page.goto(p)
       await expect(page).toHaveURL(/\/ozet$/)
@@ -49,7 +49,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('öğrenci yalnız kendi sayfalarını görür', async ({ page }) => {
     await login(page, ...DEMO.ogrenci)
     await expect(page).toHaveURL(/\/ozet$/)
-    await expect(menu(page)).toHaveText(['Özet', 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(menu(page)).toHaveText(['Özet', 'Okul', 'Görevler', 'Raporlar', 'Görüşmeler'])
     await page.goto('/ogrenciler')
     await expect(page).toHaveURL(/\/ozet$/)
     await logout(page)

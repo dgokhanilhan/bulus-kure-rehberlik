@@ -220,6 +220,20 @@ out.push(`insert into notifications (user_id, text, link, created_at) values
   (${q(admin)}, 'Yeni kayıt onay bekliyor: Fatma Kaya (Veli)', '{"page":"onaylar"}', now() - interval '3 hours'),
   (${q(admin)}, 'Yeni kayıt onay bekliyor: Deniz Er (Branş öğretmeni · İngilizce)', '{"page":"onaylar"}', now() - interval '1 hour');
 `)
+// Okul günlüğü örneği (0009): zil saatleri, 8/A ders programı, bu haftanın yemek listesi (tarih seed anında hesaplanır).
+const BELLS = [['08:30', '09:10'], ['09:20', '10:00'], ['10:10', '10:50'], ['11:00', '11:40'], ['11:50', '12:30'], ['13:20', '14:00'], ['14:10', '14:50'], ['15:00', '15:40']]
+out.push(`insert into bell_times (school_id, period, starts, ends) values\n  ${BELLS.map(([a, b], i) => `(${q(SCHOOL)}, ${i + 1}, '${a}', '${b}')`).join(',\n  ')};\n`)
+const PROG = [
+  ['Türkçe', 'Türkçe', 'Matematik', 'Matematik', 'Fen Bilimleri', 'Fen Bilimleri', 'İngilizce', 'Beden Eğitimi'],
+  ['Matematik', 'Matematik', 'T.C. İnkılap Tarihi', 'T.C. İnkılap Tarihi', 'Türkçe', 'Türkçe', 'Din Kültürü', 'Müzik'],
+  ['Fen Bilimleri', 'Fen Bilimleri', 'Türkçe', 'İngilizce', 'İngilizce', 'Matematik', 'Görsel Sanatlar', 'Bilişim Teknolojileri'],
+  ['Türkçe', 'Matematik', 'Matematik', 'Fen Bilimleri', 'Din Kültürü', 'T.C. İnkılap Tarihi', 'Rehberlik ve Yönlendirme', 'Beden Eğitimi'],
+  ['İngilizce', 'Türkçe', 'Fen Bilimleri', 'Matematik', 'Matematik', 'Türkçe', 'Seçmeli', 'Seçmeli'],
+]
+out.push(`insert into timetable (school_id, class_id, weekday, period, subject) values\n  ${PROG.flatMap((g, d) => g.map((ders, p) => `(${q(SCHOOL)}, (select id from classes where school_id = ${q(SCHOOL)} and name = '8/A'), ${d + 1}, ${p + 1}, ${q(ders)})`)).join(',\n  ')};\n`)
+const YEMEK = ['Mercimek çorbası, tavuk sote, bulgur pilavı, ayran', 'Ezogelin çorbası, etli kuru fasulye, pirinç pilavı, turşu', 'Yayla çorbası, fırın köfte, patates püresi, mevsim salata', 'Domates çorbası, zeytinyağlı taze fasulye, makarna, yoğurt', 'Tarhana çorbası, izmir köfte, şehriyeli pilav, meyve']
+out.push(`insert into meals (school_id, day, meal, items) values\n  ${YEMEK.map((y, i) => `(${q(SCHOOL)}, date_trunc('week', current_date)::date + ${i}, 'ogle', ${q(y)})`).join(',\n  ')};\n`)
+
 out.push(`commit;`)
 
 writeFileSync(new URL('../supabase/seed.sql', import.meta.url), out.join('\n'))

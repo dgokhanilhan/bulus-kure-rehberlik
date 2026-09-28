@@ -30,7 +30,7 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
-  | 'ozet' | 'gorevler' | 'raporlar' | 'gorusmeler'
+  | 'ozet' | 'okul' | 'gorevler' | 'raporlar' | 'gorusmeler'
 
 export interface NavItem {
   id: PageId
@@ -46,6 +46,7 @@ const STAFF: NavItem[] = [
 ]
 const FAMILY: NavItem[] = [
   { id: 'ozet', label: 'Özet', icon: 'home' },
+  { id: 'okul', label: 'Okul', icon: 'grid' },
   { id: 'gorevler', label: 'Görevler', icon: 'task' },
   { id: 'raporlar', label: 'Raporlar', icon: 'doc' },
   { id: 'gorusmeler', label: 'Görüşmeler', icon: 'cal' },

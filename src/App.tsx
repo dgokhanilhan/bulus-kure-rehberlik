@@ -20,6 +20,7 @@ const OgrencilerPage = lazy(() => import('@/pages/OgrencilerPage'))
 const OgrenciPage = lazy(() => import('@/pages/OgrenciPage'))
 const fam = () => import('@/pages/FamilyPages')
 const OzetPage = lazy(() => fam().then((m) => ({ default: m.OzetPage })))
+const OkulPage = lazy(() => fam().then((m) => ({ default: m.OkulPage })))
 const GorevlerPage = lazy(() => fam().then((m) => ({ default: m.GorevlerPage })))
 const GorusmelerPage = lazy(() => fam().then((m) => ({ default: m.GorusmelerPage })))
 const RaporlarPage = lazy(() => fam().then((m) => ({ default: m.RaporlarPage })))
@@ -37,6 +38,7 @@ const PAGES: Record<PageId, JSX.Element> = {
   onaylar: <OnaylarPage />,
   yonetim: <YonetimPage />,
   ozet: <OzetPage />,
+  okul: <OkulPage />,
   gorevler: <GorevlerPage />,
   raporlar: <RaporlarPage />,
   gorusmeler: <GorusmelerPage />,
