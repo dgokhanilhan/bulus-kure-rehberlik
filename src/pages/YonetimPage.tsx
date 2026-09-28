@@ -14,13 +14,17 @@ import { Modal } from '@/components/Modal'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
+import { ProgramAdmin, YemekAdmin, YoklamaAdmin } from './OkulGunluguAdmin'
 
-type Tab = 'siniflar' | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali'
+type Tab = 'siniflar' | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'yoklama' | 'program' | 'yemek' | 'kapali'
 const TABS: [Tab, string][] = [
   ['siniflar', 'Sınıflar'],
   ['ogrenciler', 'Öğrenciler'],
   ['ogretmenler', 'Öğretmenler'],
   ['veliler', 'Veliler'],
+  ['yoklama', 'Yoklama'],
+  ['program', 'Ders programı'],
+  ['yemek', 'Yemek listesi'],
   ['kapali', 'Kapalı hesaplar'],
 ]
 const HARF = 'ABCDEFGHIJKLMNOPRSTUVYZ'.split('')
@@ -75,7 +79,7 @@ export default function YonetimPage() {
       <div className="head a">
         <div className="stack" style={{ gap: 4 }}>
           <h1 className="hd">Yönetim</h1>
-          <span className="m">Sınıfları, öğrencileri ve hesapları buradan yönetirsin. Yeni kayıtları onaylamak için Onaylar sayfası.</span>
+          <span className="m">Sınıflar, öğrenciler, hesaplar, yoklama, ders programı ve yemek listesi. Yeni kayıtları onaylamak için Onaylar sayfası.</span>
         </div>
       </div>
       <div style={{ overflowX: 'auto' }} className="a">
@@ -93,6 +97,9 @@ export default function YonetimPage() {
           {tab === 'ogrenciler' && <Ogrenciler classes={classes.data!} {...data.data!} />}
           {tab === 'ogretmenler' && <Ogretmenler classes={classes.data!} {...data.data!} />}
           {tab === 'veliler' && <Veliler {...data.data!} />}
+          {tab === 'yoklama' && <YoklamaAdmin classes={classes.data!} students={data.data!.students} />}
+          {tab === 'program' && <ProgramAdmin classes={classes.data!} profiles={data.data!.profiles} />}
+          {tab === 'yemek' && <YemekAdmin />}
           {tab === 'kapali' && <Kapali {...data.data!} />}
         </>
       )}

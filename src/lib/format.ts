@@ -32,6 +32,12 @@ export const addDays = (iso: string, n: number) => {
   d.setUTCDate(d.getUTCDate() + n)
   return d.toISOString().slice(0, 10)
 }
+/** Haftanın günü: 1 = Pazartesi … 7 = Pazar. */
+export const isoDow = (iso: string) => noon(iso).getUTCDay() || 7
+/** Tarihin içinde olduğu haftanın pazartesisi. */
+export const weekStart = (iso: string) => addDays(iso, 1 - isoDow(iso))
+export const GUN = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'] as const
+
 /** Bir sonraki haftanın günü (1 = Pazartesi … 7 = Pazar), bugünden sonra. */
 export const nextDow = (isoDow: number, from = todayISO()) => {
   for (let i = 1; i <= 7; i++) {
