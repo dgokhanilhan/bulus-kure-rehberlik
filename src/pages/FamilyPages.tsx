@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { SUBJECT, fmt, indexResults, studentExams, totalNet } from '@/lib/analiz'
-import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useDataset, useMeals, useMeetings, useNotes, useReports, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
+import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useModules, useDataset, useMeals, useMeetings, useNotes, useReports, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
 import { GUN, addDays, ago, gen, isoDow, localDate, localHM, todayISO, trD, trDW, weekStart } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { Icon } from '@/components/Icon'
@@ -276,6 +276,7 @@ export function OkulPage() {
   const meals = useMeals(week, addDays(week, 4))
   const att = useAttendance({ student: s?.id })
   const contacts = useChildContacts(s?.id)
+  const mods = useModules()
   if (!s) return <Wait loading={loading} />
   const tName = (id: string | null) => contacts.data?.find((c) => c.id === id)?.full_name
   const first = s.full_name.split(' ')[0]!
@@ -303,6 +304,8 @@ export function OkulPage() {
       <ChildPicker list={list} s={s} choose={choose} />
       <div className="cols">
         <section className="stack">
+          {mods.ders_programi ? (
+            <>
           <article className="card a" style={{ ['--d' as string]: 1, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }} aria-label="Bugünün dersleri">
             <h2 style={{ fontSize: 17 }}>Bugünün dersleri</h2>
             {todayL.length ? (
@@ -363,8 +366,14 @@ export function OkulPage() {
               </div>
             )}
           </article>
+            </>
+          ) : (
+            <div className="empty">Ders programı okul yönetimince kapatıldı.</div>
+          )}
         </section>
         <aside className="stack" style={{ gap: 14 }}>
+          {mods.yemek && (
+            <>
           <article className="card a" style={{ ['--d' as string]: 2, padding: 18, display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Bugünün yemeği">
             <h2 style={{ fontSize: 17 }}>Bugünün yemeği</h2>
             {todayM.length ? (
@@ -398,6 +407,9 @@ export function OkulPage() {
               <span className="m">Bu hafta için liste girilmemiş.</span>
             )}
           </Dropdown>
+            </>
+          )}
+          {mods.yoklama && (
           <Dropdown
             title="Devamsızlık"
             sub={recs.length ? `${cnt('devamsiz')} gün gelmedi · ${cnt('gec')} geç` : 'Kayıt yok'}
@@ -419,6 +431,7 @@ export function OkulPage() {
               </div>
             ))}
           </Dropdown>
+          )}
         </aside>
       </div>
     </>

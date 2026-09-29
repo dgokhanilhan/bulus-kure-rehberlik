@@ -16,8 +16,17 @@ const ACTION_TR: Record<string, string> = {
   send_report: 'Rapor gönderdi',
   settings: 'Okul ayarlarını değiştirdi',
   view: 'Görüntüledi',
+  insert: 'Ekledi',
+  update: 'Değiştirdi',
+  delete: 'Sildi',
+  activate: 'Hesabı açtı',
+  deactivate: 'Hesabı kapattı',
 }
-const ENTITY_TR: Record<string, string> = { profiles: 'kullanıcı', exams: 'deneme', reports: 'rapor', schools: 'okul', rehber_notlari: 'rehberlik notları', rapor: 'rapor' }
+const ENTITY_TR: Record<string, string> = {
+  profiles: 'kullanıcı', exams: 'deneme', reports: 'rapor', schools: 'okul', rehber_notlari: 'rehberlik notları', rapor: 'rapor',
+  students: 'öğrenci', classes: 'sınıf', courses: 'ders', teaching_assignments: 'ders ataması', bell_times: 'ders saati',
+  academic_years: 'eğitim yılı', timetable: 'ders programı', school_settings: 'okul ayarları',
+}
 
 interface Audit {
   id: number

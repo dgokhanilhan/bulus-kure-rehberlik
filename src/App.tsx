@@ -7,6 +7,7 @@ import AuthPage from '@/pages/AuthPage'
 import MfaPage from '@/pages/MfaPage'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
+import { useModules } from '@/lib/data'
 
 // Sayfalar ihtiyaç anında yüklenir (ilk açılış hızlı; Lighthouse).
 const OnaylarPage = lazy(() => import('@/pages/OnaylarPage'))
@@ -95,7 +96,8 @@ export default function App() {
 /** Rol bazlı yönlendirme: menüde olmayan sayfaya gidilirse rolün ilk sayfasına döner. */
 function RoleRoutes() {
   const { role } = useAuth()
-  const allowed = navItems(role!).map((n) => n.id)
+  const mods = useModules()
+  const allowed = navItems(role!, mods).map((n) => n.id)
   const home = `/${allowed[0]}`
   return (
     <Routes>

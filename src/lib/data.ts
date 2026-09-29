@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import type { Dataset, Exam, Outcome, Question, Result, Subject } from './analiz'
 import type { ClassRow, Student } from './types'
+import { MODULE_DEFAULTS, type Modules } from './roles'
 
 async function all<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await q
@@ -19,6 +20,76 @@ export function useStudents() {
     staleTime: STALE,
     queryFn: () =>
       all<Student>(supabase.from('students').select('id, full_name, class_name, class_id, school_no, target_score').is('archived_at', null).order('class_name').order('full_name')),
+  })
+}
+
+// ---------- Yönetim Merkezi (0011–0012) ----------
+/** Okul ayarları (anahtar → değer). Yazma yalnız set_settings RPC'siyle. */
+export function useSettings() {
+  return useQuery({
+    queryKey: ['school_settings'],
+    staleTime: STALE,
+    queryFn: async () => {
+      const rows = await all<{ key: string; value: unknown }>(supabase.from('school_settings').select('key, value'))
+      return Object.fromEntries(rows.map((r) => [r.key, r.value])) as Record<string, unknown>
+    },
+  })
+}
+/** Modül durumları; yüklenirken hepsi varsayılan (açık) sayılır. */
+export function useModules(): Modules {
+  const s = useSettings()
+  return useMemo(() => {
+    const m = { ...MODULE_DEFAULTS }
+    for (const k of Object.keys(m) as (keyof Modules)[]) if (typeof s.data?.[`modul.${k}`] === 'boolean') m[k] = s.data[`modul.${k}`] as boolean
+    return m
+  }, [s.data])
+}
+
+export interface AcademicYear {
+  id: string
+  name: string
+  starts: string
+  term1_ends: string
+  term2_starts: string
+  ends: string
+  is_active: boolean
+}
+export function useAcademicYears() {
+  return useQuery({
+    queryKey: ['academic_years'],
+    staleTime: STALE,
+    queryFn: () => all<AcademicYear>(supabase.from('academic_years').select('id, name, starts, term1_ends, term2_starts, ends, is_active').order('starts', { ascending: false })),
+  })
+}
+
+export interface Course {
+  id: string
+  name: string
+  short_name: string
+  levels: ('ilkokul' | 'ortaokul' | 'lise')[]
+  color: string | null
+  active: boolean
+  sort: number
+}
+export function useCourses() {
+  return useQuery({
+    queryKey: ['courses'],
+    staleTime: STALE,
+    queryFn: () => all<Course>(supabase.from('courses').select('id, name, short_name, levels, color, active, sort').order('sort').order('name')),
+  })
+}
+
+export interface Assignment {
+  id: string
+  class_id: string
+  course_id: string
+  teacher_id: string
+}
+export function useAssignments() {
+  return useQuery({
+    queryKey: ['teaching_assignments'],
+    staleTime: STALE,
+    queryFn: () => all<Assignment>(supabase.from('teaching_assignments').select('id, class_id, course_id, teacher_id')),
   })
 }
 
@@ -62,12 +133,13 @@ export interface Lesson {
   period: number
   subject: string
   teacher_id: string | null
+  course_id?: string | null
 }
 export function useTimetable(classId?: string | null) {
   return useQuery({
     queryKey: ['timetable', classId ?? ''],
     enabled: !!classId,
-    queryFn: () => all<Lesson>(supabase.from('timetable').select('id, class_id, weekday, period, subject, teacher_id').eq('class_id', classId!).order('weekday').order('period')),
+    queryFn: () => all<Lesson>(supabase.from('timetable').select('id, class_id, weekday, period, subject, teacher_id, course_id').eq('class_id', classId!).order('weekday').order('period')),
   })
 }
 
@@ -75,12 +147,14 @@ export interface Bell {
   period: number
   starts: string
   ends: string
+  active?: boolean
+  label?: string | null
 }
 export function useBellTimes() {
   return useQuery({
     queryKey: ['bell_times'],
     staleTime: STALE,
-    queryFn: () => all<Bell>(supabase.from('bell_times').select('period, starts, ends').order('period')),
+    queryFn: () => all<Bell>(supabase.from('bell_times').select('period, starts, ends, active, label').order('period')),
   })
 }
 

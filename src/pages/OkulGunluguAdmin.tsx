@@ -3,11 +3,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
-import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useMeals, useTimetable, type AttendanceStatus, type Lesson, type MealKind } from '@/lib/data'
-import { BRANS, LEVEL_TR, LEVELS } from '@/lib/roles'
+import { ATT_TR, MEAL_TR, useAssignments, useAttendance, useBellTimes, useCourses, useMeals, useTimetable, type AttendanceStatus, type Lesson, type MealKind } from '@/lib/data'
+import { LEVEL_TR, LEVELS } from '@/lib/roles'
 import { GUN, addDays, todayISO, trD, trDW, weekStart } from '@/lib/format'
 import type { ClassRow, Profile } from '@/lib/types'
-import { Seg, Dropdown } from '@/components/Indicator'
+import { Seg } from '@/components/Indicator'
 import { Modal } from '@/components/Modal'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
@@ -145,7 +145,6 @@ export function YoklamaAdmin({ classes, students }: { classes: ClassRow[]; stude
 }
 
 // ---------------------------------------------------------------- Ders programı
-const DERSLER = [...new Set([...BRANS.filter((b) => b !== 'Rehberlik' && b !== 'Sınıf Öğretmeni' && b !== 'Okul Öncesi'), 'Hayat Bilgisi', 'Rehberlik ve Yönlendirme', 'Seçmeli'])]
 
 export function ProgramAdmin({ classes, profiles }: { classes: ClassRow[]; profiles: Profile[] }) {
   const [cls, setCls] = useState(classes[0]?.id ?? '')
@@ -156,10 +155,13 @@ export function ProgramAdmin({ classes, profiles }: { classes: ClassRow[]; profi
   const teachers = profiles.filter((p) => p.status === 'approved' && (p.role === 'ogretmen' || p.role === 'admin'))
   const lessons = tt.data ?? []
   const days = sat || lessons.some((l) => l.weekday === 6) ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5]
-  const nPer = Math.max(8, ...lessons.map((l) => l.period), ...(bells.data ?? []).map((b) => b.period))
+  // Satırlar: aktif ders saatleri + (pasif olsa da) dersi olan saatler; hiç saat yoksa 1–8
+  const periods = [...new Set([...(bells.data ?? []).filter((b) => b.active !== false).map((b) => b.period), ...lessons.map((l) => l.period)])].sort((a, b) => a - b)
+  if (!periods.length) periods.push(1, 2, 3, 4, 5, 6, 7, 8)
   const bell = (p: number) => bells.data?.find((b) => b.period === p)
   const tName = (id: string | null) => teachers.find((t) => t.id === id)?.full_name
-  const cName = classes.find((c) => c.id === cls)?.name ?? ''
+  const cur = classes.find((c) => c.id === cls)
+  const cName = cur?.name ?? ''
 
   return (
     <>
@@ -182,13 +184,18 @@ export function ProgramAdmin({ classes, profiles }: { classes: ClassRow[]; profi
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: nPer }, (_, i) => i + 1).map((p) => (
+              {periods.map((p) => (
                 <tr key={p}>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     <b>{p}.</b>{' '}
                     <span className="m mono" style={{ fontSize: 12 }}>
                       {bell(p) ? `${bell(p)!.starts.slice(0, 5)}–${bell(p)!.ends.slice(0, 5)}` : ''}
                     </span>
+                    {bell(p)?.label && (
+                      <span className="m" style={{ display: 'block', fontSize: 11 }}>
+                        {bell(p)!.label}
+                      </span>
+                    )}
                   </td>
                   {days.map((d) => {
                     const l = lessons.find((x) => x.weekday === d && x.period === p)
@@ -216,29 +223,40 @@ export function ProgramAdmin({ classes, profiles }: { classes: ClassRow[]; profi
           </table>
         </div>
       </section>
-      <BellEditor n={nPer} />
-      {cell && <LessonModal cls={cls} cName={cName} {...cell} teachers={teachers} onClose={() => setCell(null)} />}
+      <p className="m" style={{ fontSize: 13 }}>
+        Satırlar Yönetim Merkezi → <b>Ders saatleri</b>'nden, dersler <b>Dersler</b> kataloğundan gelir. Öğretmenli girilen ders, Ders atamalarına da eklenir.
+      </p>
+      {cell && <LessonModal cls={cls} level={cur?.level} cName={cName} {...cell} teachers={teachers} onClose={() => setCell(null)} />}
     </>
   )
 }
 
-function LessonModal({ cls, cName, weekday, period, l, teachers, onClose }: { cls: string; cName: string; weekday: number; period: number; l?: Lesson; teachers: Profile[]; onClose: () => void }) {
+function LessonModal({ cls, level, cName, weekday, period, l, teachers, onClose }: { cls: string; level?: string; cName: string; weekday: number; period: number; l?: Lesson; teachers: Profile[]; onClose: () => void }) {
   const { profile } = useAuth()
   const qc = useQueryClient()
   const toast = useToast()
-  const [subject, setSubject] = useState(l?.subject ?? '')
-  const [teacher, setTeacher] = useState(l?.teacher_id ?? '')
+  const courses = useCourses()
+  const asg = useAssignments()
+  const opts = (courses.data ?? []).filter((c) => (c.active && (!c.levels.length || !level || c.levels.includes(level as never))) || c.id === l?.course_id)
+  const [course, setCourse] = useState(l?.course_id ?? '')
+  const [teacher, setTeacher] = useState<string | null>(l ? (l.teacher_id ?? '') : null)
   const [err, setErr] = useState<string | null>(null)
+  const courseId = course || opts[0]?.id || ''
+  // Öğretmen seçilmediyse o sınıftaki bu dersin atanmış öğretmeni önerilir
+  const suggested = (asg.data ?? []).find((a) => a.class_id === cls && a.course_id === courseId)?.teacher_id ?? ''
+  const teacherId = teacher ?? suggested
   const done = (m: string) => {
     qc.invalidateQueries({ queryKey: ['timetable'] })
+    qc.invalidateQueries({ queryKey: ['teaching_assignments'] })
     toast(m)
     onClose()
   }
   async function save() {
-    if (!subject.trim()) return setErr('Ders adını yaz.')
+    if (!courseId) return setErr('Ders seç (Dersler kataloğunda ders yoksa önce ekle).')
+    const name = opts.find((c) => c.id === courseId)?.name ?? ''
     const { error } = await supabase
       .from('timetable')
-      .upsert({ school_id: profile!.school_id, class_id: cls, weekday, period, subject: subject.trim(), teacher_id: teacher || null }, { onConflict: 'class_id,weekday,period' })
+      .upsert({ school_id: profile!.school_id, class_id: cls, weekday, period, subject: name, course_id: courseId, teacher_id: teacherId || null }, { onConflict: 'class_id,weekday,period' })
     if (error) return setErr(errText(error))
     done(`${GUN[weekday]} ${period}. ders kaydedildi`)
   }
@@ -269,16 +287,24 @@ function LessonModal({ cls, cName, weekday, period, l, teachers, onClose }: { cl
     >
       <label className="field" htmlFor="lSub">
         Ders
-        <input id="lSub" list="dersler" value={subject} onChange={(e) => setSubject(e.target.value)} autoComplete="off" />
-        <datalist id="dersler">
-          {DERSLER.map((d) => (
-            <option key={d} value={d} />
+        <select
+          id="lSub"
+          value={courseId}
+          onChange={(e) => {
+            setCourse(e.target.value)
+            setTeacher(null)
+          }}
+        >
+          {opts.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
           ))}
-        </datalist>
+        </select>
       </label>
       <label className="field" htmlFor="lTeacher">
         Öğretmen (isteğe bağlı)
-        <select id="lTeacher" value={teacher} onChange={(e) => setTeacher(e.target.value)}>
+        <select id="lTeacher" value={teacherId} onChange={(e) => setTeacher(e.target.value)}>
           <option value="">Seç</option>
           {teachers.map((t) => (
             <option key={t.id} value={t.id}>
@@ -286,6 +312,11 @@ function LessonModal({ cls, cName, weekday, period, l, teachers, onClose }: { cl
             </option>
           ))}
         </select>
+        {suggested && teacher === null && !l && (
+          <span className="m" style={{ fontWeight: 400 }}>
+            Ders atamasındaki öğretmen seçildi.
+          </span>
+        )}
       </label>
       {err && (
         <div className="err" role="alert">
@@ -293,50 +324,6 @@ function LessonModal({ cls, cName, weekday, period, l, teachers, onClose }: { cl
         </div>
       )}
     </Modal>
-  )
-}
-
-function BellEditor({ n }: { n: number }) {
-  const { profile } = useAuth()
-  const qc = useQueryClient()
-  const toast = useToast()
-  const bells = useBellTimes()
-  const [draft, setDraft] = useState<Record<number, { starts: string; ends: string }>>({})
-  const val = (p: number) => draft[p] ?? { starts: bells.data?.find((b) => b.period === p)?.starts.slice(0, 5) ?? '', ends: bells.data?.find((b) => b.period === p)?.ends.slice(0, 5) ?? '' }
-  async function save() {
-    const rows = Object.keys(draft).map(Number)
-    const up = rows.filter((p) => val(p).starts && val(p).ends).map((p) => ({ school_id: profile!.school_id, period: p, starts: val(p).starts, ends: val(p).ends }))
-    const del = rows.filter((p) => !val(p).starts && !val(p).ends)
-    const bad = rows.find((p) => (val(p).starts && val(p).ends && val(p).ends <= val(p).starts) || !!val(p).starts !== !!val(p).ends)
-    if (bad) return toast(`${bad}. dersin başlangıç ve bitiş saatini kontrol et.`, 'warn')
-    const r1 = up.length ? await supabase.from('bell_times').upsert(up, { onConflict: 'school_id,period' }) : { error: null }
-    const r2 = del.length ? await supabase.from('bell_times').delete().in('period', del) : { error: null }
-    const e = r1.error ?? r2.error
-    if (e) return toast(errText(e)!, 'warn')
-    setDraft({})
-    qc.invalidateQueries({ queryKey: ['bell_times'] })
-    toast('Ders saatleri kaydedildi')
-  }
-  return (
-    <Dropdown title="Ders saatleri" sub="Bütün sınıflar için ortak zil saatleri" icon={<Icon name="cal" size={22} />} delay={2}>
-      <div className="stack" style={{ gap: 8 }}>
-        {Array.from({ length: n }, (_, i) => i + 1).map((p) => (
-          <div key={p} className="btns" style={{ alignItems: 'center' }}>
-            <b style={{ width: 60 }}>{p}. ders</b>
-            <label className="field">
-              <input type="time" aria-label={`${p}. ders başlangıç`} value={val(p).starts} onChange={(e) => setDraft((d) => ({ ...d, [p]: { ...val(p), starts: e.target.value } }))} />
-            </label>
-            <span className="m">–</span>
-            <label className="field">
-              <input type="time" aria-label={`${p}. ders bitiş`} value={val(p).ends} onChange={(e) => setDraft((d) => ({ ...d, [p]: { ...val(p), ends: e.target.value } }))} />
-            </label>
-          </div>
-        ))}
-        <button className="btn pri" style={{ alignSelf: 'flex-start' }} onClick={save} disabled={!Object.keys(draft).length}>
-          Ders saatlerini kaydet
-        </button>
-      </div>
-    </Dropdown>
   )
 }
 

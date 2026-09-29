@@ -55,11 +55,29 @@ const FAMILY: NavItem[] = [
 ]
 
 /** Rol bazlı menü — prototipteki navItems() ile aynı. Yetki ayrıca veritabanında (RLS) zorlanır. */
-export function navItems(r: Role): NavItem[] {
+function navFor(r: Role): NavItem[] {
   if (r === 'admin') return [...STAFF, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
   if (r === 'rehber') return [...STAFF, ILETISIM]
   if (r === 'brans') return [STAFF[1]!, ILETISIM]
   return FAMILY
+}
+
+/** Modüller (Yönetim → Modüller). Kapalı modülün sayfası menüden kalkar; veri erişimi veritabanında da kapanır (0011). */
+export type ModuleId = 'lgs' | 'yoklama' | 'ders_programi' | 'yemek' | 'duyuru' | 'mesaj' | 'odev' | 'takvim' | 'bursluluk'
+export type Modules = Record<ModuleId, boolean>
+export const MODULE_DEFAULTS: Modules = { lgs: true, yoklama: true, ders_programi: true, yemek: true, duyuru: true, mesaj: true, odev: true, takvim: true, bursluluk: false }
+
+/** Sayfanın bağlı olduğu modüller: hepsi kapalıysa sayfa menüden kalkar. */
+const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
+  denemeler: ['lgs'],
+  siniflar: ['lgs'],
+  raporlar: ['lgs'],
+  okul: ['yoklama', 'ders_programi', 'yemek'],
+  iletisim: ['duyuru', 'mesaj'],
+}
+
+export function navItems(r: Role, mods: Modules = MODULE_DEFAULTS): NavItem[] {
+  return navFor(r).filter((n) => !PAGE_MODULES[n.id] || PAGE_MODULES[n.id]!.some((m) => mods[m]))
 }
 
 export const ROLE_HINT: Record<Role, string> = {
