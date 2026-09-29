@@ -15,6 +15,7 @@ const OnaylarPage = lazy(() => import('@/pages/OnaylarPage'))
 const YonetimPage = lazy(() => import('@/pages/YonetimPage'))
 const IletisimPage = lazy(() => import('@/pages/IletisimPage'))
 const OdevlerPage = lazy(() => import('@/pages/OdevlerPage'))
+const PanelPage = lazy(() => import('@/pages/PanelPage'))
 const TakvimPage = lazy(() => import('@/pages/TakvimPage'))
 const BildirimlerPage = lazy(() => import('@/pages/BildirimlerPage'))
 const BugunPage = lazy(() => import('@/pages/BugunPage'))
@@ -46,6 +47,7 @@ const PAGES: Record<PageId, JSX.Element> = {
   yonetim: <YonetimPage />,
   iletisim: <IletisimPage />,
   odevler: <OdevlerPage />,
+  panel: <PanelPage />,
   takvim: <TakvimPage />,
   bildirimler: <BildirimlerPage />,
   ozet: <OzetPage />,

@@ -72,7 +72,7 @@ test.describe.serial('Okul günlüğü', () => {
 
   test('veli: devamsızlık bildirimi, Okul sayfasında program, yemek ve devamsızlık', async ({ page }) => {
     await login(page, ...DEMO.veli)
-    await expect(page.getByRole('heading', { name: "Elif'in durumu" })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^Merhaba/ })).toBeVisible()
     await expectNotification(page, /Elif Yıldız .* günü okula gelmedi\./)
     await page.getByRole('link', { name: 'Okul' }).click()
     await expect(page.getByRole('heading', { name: "Elif'in okul günü" })).toBeVisible()

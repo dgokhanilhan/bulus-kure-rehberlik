@@ -51,6 +51,7 @@ test.describe.serial('§7 Sınıflar ve etüt', () => {
 
     await login(page, ...DEMO.veli) // Elif 8/A
     await expectNotification(page, /^Cumartesi etüdü: .* 11\.00–12\.00 · Matematik · .*E2E karışık tekrar/)
+    await page.goto('/ozet')
     await page.getByText('Cumartesi etütleri').click()
     await expect(page.getByText(/11\.00–12\.00/).first()).toBeVisible()
   })
@@ -114,6 +115,9 @@ test.describe('Erişilebilirlik (axe, WCAG 2 AA: ciddi/kritik ihlal yok)', () =>
   })
   test('veli ekranları ve klavye ile menü', async ({ page }) => {
     await login(page, ...DEMO.veli)
+    await expect(page.getByRole('heading', { name: /^Merhaba/ })).toBeVisible()
+    await axe(page, 'veli ana sayfa')
+    await page.goto('/ozet')
     await expect(page.getByRole('heading', { name: "Elif'in durumu" })).toBeVisible()
     await axe(page, 'veli özet')
     // Klavye: Tab ile menüye ulaşılır, Enter ile sayfa değişir

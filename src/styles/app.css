@@ -439,3 +439,22 @@ h2.sec{font-size:17px;font-weight:600}
   .print-only{display:flex}
   .noprint{display:none}
 }
+
+/* Ana sayfa kartları */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:start}
+.pcard{padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.prow{display:flex;flex-direction:column;gap:1px;padding:6px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none;min-width:0;font-size:14px}
+.prow:first-of-type{border-top:0}
+.prow:hover b{color:var(--primary)}
+/* Ana sayfa düzeni + toplu aktarım */
+.lay{list-style:none;margin:0;padding:0}
+.lay li{display:flex;align-items:center;gap:8px;padding:2px 8px;border-radius:10px;background:var(--surface)}
+.lay li+li{border-top:1px solid var(--line)}
+.lay li.dragging{opacity:.5;background:var(--paper)}
+.lay .check{gap:10px;cursor:pointer}
+.lay .check input{width:18px;height:18px;accent-color:var(--primary)}
+.grip{cursor:grab;color:var(--ink-muted);letter-spacing:-3px;user-select:none}
+.ib{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font-size:16px;cursor:pointer}
+.ib:disabled{opacity:.35;cursor:default}
+.tbl tbody tr.bad{background:color-mix(in srgb,var(--signal) 7%,transparent)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}

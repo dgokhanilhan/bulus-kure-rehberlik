@@ -25,11 +25,11 @@ test.describe('Giriş ve rol bazlı menü', () => {
 
   test('branş öğretmeni yalnız Öğrenciler sekmesini görür', async ({ page }) => {
     await login(page, ...DEMO.matematik)
-    await expect(page).toHaveURL(/\/ogrenciler$/)
-    await expect(menu(page)).toHaveText(['Öğrenciler', 'Ödevler', 'Takvim', /^İletişim/])
+    await expect(page).toHaveURL(/\/panel$/)
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', /^İletişim/])
     for (const p of ['/bugun', '/denemeler', '/siniflar', '/onaylar', '/ozet']) {
       await page.goto(p)
-      await expect(page).toHaveURL(/\/ogrenciler$/)
+      await expect(page).toHaveURL(/\/panel$/)
     }
     await expect(page.getByText('Branş öğretmeni · Matematik')).toBeVisible()
     await shot(page, '04-brans-matematik')
@@ -37,21 +37,21 @@ test.describe('Giriş ve rol bazlı menü', () => {
 
   test('veli yalnız kendi sayfalarını görür', async ({ page }) => {
     await login(page, ...DEMO.veli)
-    await expect(page).toHaveURL(/\/ozet$/)
-    await expect(menu(page)).toHaveText(['Özet', 'Okul', 'Ödevler', 'Takvim', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(page).toHaveURL(/\/panel$/)
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Takvim', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
     for (const p of ['/bugun', '/ogrenciler', '/onaylar']) {
       await page.goto(p)
-      await expect(page).toHaveURL(/\/ozet$/)
+      await expect(page).toHaveURL(/\/panel$/)
     }
     await shot(page, '05-veli')
   })
 
   test('öğrenci yalnız kendi sayfalarını görür', async ({ page }) => {
     await login(page, ...DEMO.ogrenci)
-    await expect(page).toHaveURL(/\/ozet$/)
-    await expect(menu(page)).toHaveText(['Özet', 'Okul', 'Ödevler', 'Takvim', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(page).toHaveURL(/\/panel$/)
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Takvim', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
     await page.goto('/ogrenciler')
-    await expect(page).toHaveURL(/\/ozet$/)
+    await expect(page).toHaveURL(/\/panel$/)
     await logout(page)
   })
 
@@ -147,7 +147,7 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
 
     // veli artık uygulamaya girer ve onay bildirimini görür
     await login(page, email, 'Deneme123!')
-    await expect(page).toHaveURL(/\/ozet$/)
+    await expect(page).toHaveURL(/\/panel$/)
     await page.getByRole('button', { name: /Bildirimler, 1 okunmamış/ }).click()
     await expect(page.getByText('Kaydın onaylandı. Hoş geldin!')).toBeVisible()
     await shot(page, '09-veli-onaylandi-bildirim')
