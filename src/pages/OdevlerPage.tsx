@@ -28,6 +28,8 @@ import { Modal } from '@/components/Modal'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
+import { AttachmentList, FilePick, PickedFiles } from '@/components/Files'
+import { uploadFiles, useAttachments, useFileRules, type Attachment } from '@/lib/files'
 
 const errText = (e: { message?: string } | null) => (e ? (/row-level security/i.test(e.message ?? '') ? 'Bu sınıf ve derse ödev verme yetkin yok.' : (e.message ?? 'Kaydedilemedi.')) : null)
 const CHIP: Record<HwStatus, string> = { bekliyor: 'n', yapti: 'up', yapmadi: 'down', eksik: 'down', gelmedi: 'n', izinli: 'n' }
@@ -198,6 +200,8 @@ function HomeworkModal({
   const [f, setF] = useState({ title: h?.title ?? '', description: h?.description ?? '', assigned_on: h?.assigned_on ?? todayISO(), due_on: h?.due_on ?? '' })
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [files, setFiles] = useState<File[]>([])
+  const rules = useFileRules()
   // Yeni ödevde bu sınıfta bu dersin haftadaki bir sonraki günü önerilir
   useEffect(() => {
     if (h || f.due_on || !tt.data || !courseId) return
@@ -219,8 +223,14 @@ function HomeworkModal({
     const res = h
       ? await supabase.from('homework').update(row).eq('id', h.id).select('id').single()
       : await supabase.from('homework').insert({ ...row, class_id: cls, school_id: profile!.school_id, teacher_id: profile!.id }).select('id').single()
+    if (res.error) {
+      setBusy(false)
+      return setErr(errText(res.error))
+    }
+    const upErr = files.length ? await uploadFiles('homework', res.data.id as string, files) : null
     setBusy(false)
-    if (res.error) return setErr(errText(res.error))
+    if (upErr) toast(`Ödev kaydedildi ama bir dosya yüklenemedi: ${upErr}`, 'warn')
+    qc.invalidateQueries({ queryKey: ['attachments'] })
     qc.invalidateQueries({ queryKey: ['homework'] })
     qc.invalidateQueries({ queryKey: ['homework_students'] })
     toast(h ? 'Ödev güncellendi' : 'Ödev verildi; öğrencilere ve velilere bildirim gitti')
@@ -292,9 +302,17 @@ function HomeworkModal({
           <input id="hDue" type="date" value={f.due_on} min={f.assigned_on} onChange={set('due_on')} />
         </label>
       </div>
-      <p className="m" style={{ fontSize: 12, margin: 0 }}>
-        Ek dosya/görsel yükleme dosya altyapısıyla (Faz C) eklenecek.
-      </p>
+      {rules.teacherHomework && (
+        <div className="stack" style={{ gap: 6 }}>
+          <div className="btns">
+            <FilePick label="Dosya / görsel ekle" onPick={(f) => setFiles((x) => [...x, ...f])} />
+            <span className="m" style={{ fontSize: 12 }}>
+              JPG, PNG, WEBP{rules.types.includes('application/pdf') ? ', PDF' : ''} · en fazla {rules.maxMb} MB
+            </span>
+          </div>
+          <PickedFiles files={files} onRemove={(i) => setFiles((x) => x.filter((_, j) => j !== i))} />
+        </div>
+      )}
       {err && (
         <div className="err" role="alert">
           {err}
@@ -343,6 +361,13 @@ function HomeworkDetail({
   const [busy, setBusy] = useState(false)
   const [del, setDel] = useState(false)
   const canEdit = profile?.role === 'admin' || h.teacher_id === profile?.id
+  const atts = useAttachments({ kind: 'homework', ids: [h.id] })
+  const subs = useAttachments({ kind: 'submission', ids: [h.id] })
+  async function delFile(a: Attachment) {
+    await supabase.storage.from('ekler').remove([a.path])
+    await supabase.from('attachments').delete().eq('id', a.id)
+    qc.invalidateQueries({ queryKey: ['attachments'] })
+  }
   const sName = (id: string) => students.data?.find((s) => s.id === id)?.full_name ?? '—'
   const list = [...(rows.data ?? [])].sort((a, b) => sName(a.student_id).localeCompare(sName(b.student_id), 'tr'))
   const val = (sid: string) => {
@@ -394,10 +419,11 @@ function HomeworkDetail({
           </div>
         )}
       </div>
-      {h.description && (
-        <p className="card a" style={{ padding: 16, fontSize: 14, whiteSpace: 'pre-line', margin: 0 }}>
-          {h.description}
-        </p>
+      {(h.description || (atts.data ?? []).length > 0) && (
+        <div className="card a" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {h.description && <p style={{ fontSize: 14, whiteSpace: 'pre-line', margin: 0 }}>{h.description}</p>}
+          <AttachmentList items={atts.data ?? []} onDelete={canEdit ? delFile : undefined} />
+        </div>
       )}
       <div className="kv a" style={{ ['--d' as string]: 1, flexWrap: 'wrap' }}>
         <div className="btns" aria-label="Özet">
@@ -429,6 +455,11 @@ function HomeworkDetail({
                   <tr key={r.student_id} data-testid="hw-row">
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <b>{sName(r.student_id)}</b>
+                      {(subs.data ?? []).some((x) => x.student_id === r.student_id) && (
+                        <div style={{ marginTop: 4 }}>
+                          <AttachmentList items={(subs.data ?? []).filter((x) => x.student_id === r.student_id)} />
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div className="seg" role="group" aria-label={`${sName(r.student_id)} ödev durumu`} style={{ display: 'inline-flex' }}>
@@ -501,6 +532,18 @@ function AileOdev() {
   const [tab, setTab] = useState<'bekleyen' | 'geciken' | 'tamam'>('bekleyen')
   const today = todayISO()
   const focus = sp.get('odev')
+  const rules = useFileRules()
+  const qc = useQueryClient()
+  const toast = useToast()
+  const hwIds = (hw.data ?? []).map((h) => h.id)
+  const atts = useAttachments({ kind: 'homework', ids: hwIds })
+  const subs = useAttachments({ kind: 'submission', ids: hwIds })
+  async function submit(hwId: string, files: File[]) {
+    const e = await uploadFiles('submission', hwId, files, { student: profile!.student_id! })
+    if (e) toast(e, 'warn')
+    else toast('Dosya öğretmene gönderildi')
+    qc.invalidateQueries({ queryKey: ['attachments'] })
+  }
 
   const items = useMemo(() => {
     const byHw = new Map((rows.data ?? []).map((r) => [r.homework_id, r]))
@@ -579,10 +622,22 @@ function AileOdev() {
                   {(r || !veli || settings.parentSees) && status !== 'bekliyor' ? <span className={`chip ${CHIP[status]}`}>{HW_TR[status]}</span> : null}
                 </div>
                 {h.description && <p style={{ fontSize: 14, whiteSpace: 'pre-line', margin: 0 }}>{h.description}</p>}
+                <AttachmentList items={(atts.data ?? []).filter((x) => x.homework_id === h.id)} />
                 {r?.note && (
                   <p className="m" style={{ fontSize: 13, margin: 0 }}>
                     Öğretmen notu: {r.note}
                   </p>
+                )}
+                {(subs.data ?? []).some((x) => x.homework_id === h.id && x.student_id === s.id) && (
+                  <div className="stack" style={{ gap: 4 }}>
+                    <span className="label">Teslim edilen</span>
+                    <AttachmentList items={(subs.data ?? []).filter((x) => x.homework_id === h.id && x.student_id === s.id)} />
+                  </div>
+                )}
+                {!veli && rules.studentHomework && r && (
+                  <div>
+                    <FilePick label="Ödevimi yükle" onPick={(f) => submit(h.id, f)} />
+                  </div>
                 )}
                 <span style={{ fontSize: 13, color: red ? 'var(--signal)' : 'var(--ink-muted)', fontWeight: red ? 600 : 400 }}>
                   {h.due_on ? `Son gün: ${trDW(h.due_on)}${red ? ' · gecikti' : ''}` : 'Son gün yok'}

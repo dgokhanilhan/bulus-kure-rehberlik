@@ -3,10 +3,12 @@ import { supabase, signupClient, SCHOOL_SLUG, SOURCE_URL } from '@/lib/supabase'
 import { KVKK_VERSION } from '@/lib/kvkk'
 import { useQuery } from '@tanstack/react-query'
 import { BRANS, LEVEL_TR, LEVELS, YAKINLIK, type Level } from '@/lib/roles'
-import { Globe, Icon, Logo } from '@/components/Icon'
+import { Globe, Icon, SchoolLogo } from '@/components/Icon'
+import { useSchoolInfo } from '@/lib/files'
 import { Dropdown, Seg } from '@/components/Indicator'
 
 export function AuthLayout({ children }: { children: ReactNode }) {
+  const info = useSchoolInfo()
   return (
     <div className="login">
       <section className="login-art">
@@ -26,9 +28,9 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       <section className="login-form">
         <div className="inner">
           <div className="a" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Logo />
+            <SchoolLogo url={info.data?.logo} />
             <div>
-              <b style={{ fontFamily: 'var(--font-display)', fontSize: 21, display: 'block', lineHeight: 1.1 }}>Buluş Küre Koleji</b>
+              <b style={{ fontFamily: 'var(--font-display)', fontSize: 21, display: 'block', lineHeight: 1.1 }}>{info.data?.name ?? 'Buluş Küre Koleji'}</b>
               <span className="m" style={{ fontSize: 13 }}>
                 Rehberlik &amp; Mentörlük
               </span>

@@ -12,6 +12,8 @@ import { Modal } from '@/components/Modal'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
+import { SchoolLogo } from '@/components/Icon'
+import { useSchoolInfo } from '@/lib/files'
 
 const errText = (e: { code?: string; message?: string } | null, dup = 'Bu kayıt zaten var.') =>
   !e ? null : e.code === '23505' ? dup : /row-level security|42501/i.test(`${e.code} ${e.message}`) ? 'Bu işlem için yönetici yetkisi gerekir.' : (e.message ?? 'Kaydedilemedi.')
@@ -79,9 +81,10 @@ export function GenelAyarlar({ schoolName }: { schoolName: string }) {
         Adres
         <textarea id="gAdres" rows={2} value={f.adres} onChange={set('adres')} maxLength={300} />
       </label>
+      <LogoField />
       <div className="kv">
         <span className="m" style={{ fontSize: 13 }}>
-          Aktif eğitim yılı: <b>{active?.name ?? '—'}</b> (Eğitim yılları bölümünden değiştirilir). Logo yükleme dosya altyapısıyla (Faz C) gelecek.
+          Aktif eğitim yılı: <b>{active?.name ?? '—'}</b> (Eğitim yılları bölümünden değiştirilir).
         </span>
         <button className="btn pri" onClick={save} disabled={busy}>
           {busy && <span className="spinner" aria-hidden="true" />} Kaydet
@@ -851,6 +854,116 @@ export function OdevAyarlari() {
         <span className="m" style={{ fontSize: 12 }}>
           Hatırlatma her sabah 08.00'de, hâlâ “Bekliyor” olan öğrencilere ve velilerine bir kez gider.
         </span>
+      </section>
+    </>
+  )
+}
+
+function LogoField() {
+  const { profile } = useAuth()
+  const info = useSchoolInfo()
+  const toast = useToast()
+  const inv = useInvalidate()
+  const [busy, setBusy] = useState(false)
+  async function upload(f: File | undefined) {
+    if (!f) return
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(f.type) || f.size > 2 * 1048576) return toast('Logo PNG, JPG ya da WEBP ve en fazla 2 MB olmalı.', 'warn')
+    setBusy(true)
+    const path = `${profile!.school_id}/logo-${Date.now()}.${f.type.split('/')[1]}`
+    const up = await supabase.storage.from('okul').upload(path, f, { contentType: f.type })
+    const { error } = up.error ? up : await supabase.rpc('set_settings', { p: { 'genel.logo': path } })
+    setBusy(false)
+    if (error) return toast(errText(error)!, 'warn')
+    inv('school-info', 'school_settings')
+    toast('Logo güncellendi')
+  }
+  async function remove() {
+    const { error } = await supabase.rpc('set_settings', { p: { 'genel.logo': '' } })
+    if (error) return toast(errText(error)!, 'warn')
+    inv('school-info', 'school_settings')
+    toast('Logo kaldırıldı')
+  }
+  return (
+    <div className="kv" style={{ justifyContent: 'flex-start', gap: 14 }}>
+      <SchoolLogo url={info.data?.logo} size={48} />
+      <label className="btn sm" style={{ cursor: 'pointer' }}>
+        {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="up" size={16} />} Logo yükle
+        <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => upload(e.target.files?.[0])} aria-label="Logo yükle" />
+      </label>
+      {info.data?.logo && (
+        <button className="btn sm" onClick={remove}>
+          Logoyu kaldır
+        </button>
+      )}
+      <span className="m" style={{ fontSize: 12 }}>
+        Giriş ekranında ve üst çubukta görünür (PNG/JPG/WEBP, en fazla 2 MB).
+      </span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- Dosya ve duyuru ayarları
+export function DosyaDuyuruAyarlari() {
+  const s = useSettings()
+  const toast = useToast()
+  const inv = useInvalidate()
+  const [mb, setMb] = useState<string | null>(null)
+  const [days, setDays] = useState<string | null>(null)
+  const b = (k: string, d: boolean) => (typeof s.data?.[k] === 'boolean' ? (s.data[k] as boolean) : d)
+  const scope = (s.data?.['duyuru.ogretmen_kapsam'] as string | undefined) ?? 'sinif'
+  const mbVal = mb ?? String((s.data?.['dosya.max_mb'] as number | undefined) ?? 10)
+  const dayVal = days ?? String((s.data?.['duyuru.gosterim_gun'] as number | undefined) ?? 14)
+  async function put(p: Record<string, unknown>, m: string) {
+    const { error } = await supabase.rpc('set_settings', { p })
+    if (error) return toast(errText(error)!, 'warn')
+    inv('school_settings')
+    toast(m)
+  }
+  const sw = (k: string, d: boolean, l: string, h: string) => (
+    <div style={{ padding: 8 }}>
+      <Check on={b(k, d)} onClick={() => put({ [k]: !b(k, d) }, `${l}: ${b(k, d) ? 'kapalı' : 'açık'}`)} label={l} hint={h} />
+    </div>
+  )
+  return (
+    <>
+      <h3 className="label a">Dosyalar</h3>
+      <section className="card a" style={{ padding: 8 }} aria-label="Dosya ayarları">
+        {sw('dosya.gorsel', true, 'Görsel yüklenebilir', 'JPG, JPEG, PNG, WEBP')}
+        {sw('dosya.pdf', true, 'PDF yüklenebilir', 'Belgeler, izin formları')}
+        {sw('mesaj.dosya', true, 'Mesajlarda dosya', 'Veli ve öğretmen mesaja dosya ekleyebilir')}
+        <div style={{ padding: 8, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <label className="field" htmlFor="fMb" style={{ maxWidth: 220 }}>
+            Dosya başına en fazla (MB, 1–25)
+            <input id="fMb" type="number" min={1} max={25} value={mbVal} onChange={(e) => setMb(e.target.value)} />
+          </label>
+          <button className="btn pri" disabled={mb === null} onClick={() => put({ 'dosya.max_mb': Number(mbVal) }, 'Dosya boyutu sınırı kaydedildi').then(() => setMb(null))}>
+            Kaydet
+          </button>
+        </div>
+      </section>
+      <h3 className="label a">Duyurular</h3>
+      <section className="card a" style={{ padding: 8 }} aria-label="Duyuru ayarları">
+        {sw('duyuru.dosya', true, 'Duyurularda görsel ve belge', 'Kapak görseli, fotoğraf, PDF')}
+        {sw('duyuru.ogretmen_yazabilir', true, 'Öğretmenler duyuru yayınlayabilir', 'Kapalıysa yalnız yönetim ve rehberlik yayınlar')}
+        <div style={{ padding: 8 }}>
+          <label className="field" htmlFor="dScope" style={{ maxWidth: 360 }}>
+            Öğretmen hangi kapsamda duyuru yapabilir?
+            <select id="dScope" value={scope} onChange={(e) => put({ 'duyuru.ogretmen_kapsam': e.target.value }, 'Öğretmen duyuru kapsamı kaydedildi')}>
+              <option value="sinif">Yalnız ders verdiği / sınıf öğretmeni olduğu sınıflar</option>
+              <option value="kademe">Ders verdiği kademeler (ör. tüm ortaokul)</option>
+              <option value="okul">Tüm okul</option>
+            </select>
+          </label>
+        </div>
+        <div style={{ padding: 8, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <label className="field" htmlFor="dDays" style={{ maxWidth: 260 }}>
+            Duyuru ana sayfada kaç gün öne çıksın? (1–365)
+            <input id="dDays" type="number" min={1} max={365} value={dayVal} onChange={(e) => setDays(e.target.value)} />
+          </label>
+          <button className="btn pri" disabled={days === null} onClick={() => put({ 'duyuru.gosterim_gun': Number(dayVal) }, 'Gösterim süresi kaydedildi').then(() => setDays(null))}>
+            Kaydet
+          </button>
+        </div>
       </section>
     </>
   )
