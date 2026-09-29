@@ -4,7 +4,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { isFullAccess, ROLE_TR, roleOf } from '@/lib/roles'
 import { SUBJECT, SUBJECTS, fmt, indexResults, repeats, studentExams, totalNet, type Subject } from '@/lib/analiz'
-import { useDataset, useMeetings, useNotes, useParentLinks, usePeople, useRefresh, useReports, useStudents, useTasks, type Meeting, type Task } from '@/lib/data'
+import { useDataset, useMeetings, useNotes, useParentLinks, usePeople, useRefresh, useReports, useStudents, useTasks, type Meeting, type Task, useModules } from '@/lib/data'
 import { ago, initials, todayISO, trD } from '@/lib/format'
 import { Icon } from '@/components/Icon'
 import { useIndicator } from '@/components/Indicator'
@@ -16,6 +16,7 @@ import { useToast } from '@/components/Toast'
 import { useOpenReport } from '@/components/Report'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { useNavigate } from 'react-router-dom'
+import { DevamsizlikTab } from '@/components/Devamsizlik'
 
 const TABS = [
   ['gelisim', 'Gelişim'],
@@ -25,6 +26,7 @@ const TABS = [
   ['gorusmeler', 'Görüşmeler'],
   ['notlar', 'Notlar'],
   ['raporlar', 'Raporlar'],
+  ['devamsizlik', 'Devamsızlık'],
 ] as const
 type Tab = (typeof TABS)[number][0]
 
@@ -35,6 +37,7 @@ const HIST_TR = { y: 'Yanlış', d: 'Doğru', b: 'Boş', o: 'Okunamadı', n: 'So
 export default function OgrenciPage() {
   const { sid = '' } = useParams()
   const [sp, setSp] = useSearchParams()
+  const mods = useModules()
   const tab = (TABS.find(([k]) => k === sp.get('sekme'))?.[0] ?? 'gelisim') as Tab
   const setTab = (t: Tab) => setSp(t === 'gelisim' ? {} : { sekme: t }, { replace: true })
   const { role } = useAuth()
@@ -193,7 +196,7 @@ export default function OgrenciPage() {
 
       <div className="tabs a" style={{ ['--d' as string]: 3 }} role="tablist" aria-label="Öğrenci dosyası" ref={tabs.ref}>
         {tabs.ind}
-        {TABS.map(([id, l]) => (
+        {TABS.filter(([id]) => id !== 'devamsizlik' || mods.yoklama).map(([id, l]) => (
           <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
             {l}
           </button>
@@ -391,6 +394,7 @@ export default function OgrenciPage() {
 
       {tab === 'gorusmeler' && <MeetingsTab sid={s.id} F={F} name={s.full_name} onPlan={() => setModal({ t: 'meeting' })} onChange={(g) => setModal({ t: 'meeting', edit: g })} />}
       {tab === 'notlar' && <NotesTab sid={s.id} F={F} />}
+      {tab === 'devamsizlik' && <DevamsizlikTab s={s} />}
       {tab === 'raporlar' && <ReportsTab sid={s.id} examName={(eid) => ds.exams.find((e) => e.id === eid)?.name ?? ''} />}
 
       {modal?.t === 'task' && (

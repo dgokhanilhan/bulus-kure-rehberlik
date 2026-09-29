@@ -1048,3 +1048,75 @@ export function TakvimAyarlari() {
     </>
   )
 }
+
+// ---------------------------------------------------------------- Yoklama ayarları (devamsızlık sınırları)
+const LIMITS: [string, string, number][] = [
+  ['yoklama.limit_donem1', '1. dönem raporsuz sınır (gün)', 10],
+  ['yoklama.limit_donem2', '2. dönem raporsuz sınır (gün)', 10],
+  ['yoklama.limit_yillik', 'Yıllık raporsuz sınır (gün)', 20],
+  ['yoklama.limit_toplam', 'Yıllık toplam sınır — raporlu ve izinli dahil (gün, 0 = yok)', 0],
+  ['yoklama.uyari_sari', 'Sarı uyarı (sınırın %’si)', 70],
+  ['yoklama.uyari_turuncu', 'Turuncu uyarı (sınırın %’si)', 90],
+]
+export function YoklamaAyarlari() {
+  const s = useSettings()
+  const toast = useToast()
+  const inv = useInvalidate()
+  const [f, setF] = useState<Record<string, string>>({})
+  const num = (k: string, d: number) => f[k] ?? String((s.data?.[k] as number | undefined) ?? d)
+  const gec = (s.data?.['yoklama.gec_sayim'] as string | undefined) ?? 'yok'
+  const veli = typeof s.data?.['yoklama.veli_uyari'] === 'boolean' ? (s.data['yoklama.veli_uyari'] as boolean) : true
+  async function put(p: Record<string, unknown>, m: string) {
+    const { error } = await supabase.rpc('set_settings', { p })
+    if (error) return toast(errText(error)!, 'warn')
+    inv('school_settings', 'attendance_limits', 'attendance_watchlist')
+    toast(m)
+  }
+  async function saveNums() {
+    const p: Record<string, number> = {}
+    for (const k of Object.keys(f)) p[k] = Number(f[k])
+    if (p['yoklama.uyari_sari'] !== undefined || p['yoklama.uyari_turuncu'] !== undefined) {
+      const sari = Number(num('yoklama.uyari_sari', 70))
+      const tur = Number(num('yoklama.uyari_turuncu', 90))
+      if (sari >= tur) return toast('Sarı eşik turuncudan küçük olmalı.', 'warn')
+    }
+    await put(p, 'Devamsızlık sınırları kaydedildi')
+    setF({})
+  }
+  return (
+    <>
+      <p className="m a" style={{ fontSize: 13 }}>
+        Sınırlar aktif eğitim yılının dönem tarihlerine göre hesaplanır (Eğitim yılları). Raporsuz = “Gelmedi” (+ ayara göre geç kalma). Uyarılar yalnız bilgilendirmedir; sistem karar vermez.
+      </p>
+      <section className="card a" style={{ ['--d' as string]: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }} aria-label="Devamsızlık sınırları">
+        <div className="grid2">
+          {LIMITS.map(([k, l, d]) => (
+            <label key={k} className="field" htmlFor={k}>
+              {l}
+              <input id={k} type="number" min={k.includes('uyari') ? 1 : 0} max={k.includes('uyari') ? 99 : 180} value={num(k, d)} onChange={(e) => setF((x) => ({ ...x, [k]: e.target.value }))} />
+            </label>
+          ))}
+        </div>
+        <div className="kv">
+          <span className="m" style={{ fontSize: 12 }}>
+            Sınıra ulaşınca kırmızı gösterilir.
+          </span>
+          <button className="btn pri" disabled={!Object.keys(f).length} onClick={saveNums}>
+            Kaydet
+          </button>
+        </div>
+      </section>
+      <section className="card a" style={{ ['--d' as string]: 2, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <label className="field" htmlFor="gecSayim" style={{ maxWidth: 360 }}>
+          Geç kalma raporsuz devamsızlığa nasıl sayılsın?
+          <select id="gecSayim" value={gec} onChange={(e) => put({ 'yoklama.gec_sayim': e.target.value }, 'Geç kalma sayımı kaydedildi')}>
+            <option value="yok">Sayılmasın</option>
+            <option value="yarim">Yarım gün</option>
+            <option value="tam">Tam gün</option>
+          </select>
+        </label>
+        <Check on={veli} onClick={() => put({ 'yoklama.veli_uyari': !veli }, `Veli uyarısı ${veli ? 'kapatıldı' : 'açıldı'}`)} label="Turuncu ve kırmızı eşikte veliye bildirim" hint="Öğrenci, velisi ve sınıf öğretmeni her eşikte bir kez bilgilendirilir." />
+      </section>
+    </>
+  )
+}

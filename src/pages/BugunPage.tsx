@@ -6,6 +6,8 @@ import { initials, localDate, localHM, todayISO, todayLong, trD, trDayShort } fr
 import { Icon } from '@/components/Icon'
 import { Dropdown, Seg } from '@/components/Indicator'
 import { MeetingModal, WITH_SHORT } from '@/components/Meetings'
+import { LEVEL_COLOR, LEVEL_INK, gun, useAttendanceWatchlist } from '@/components/Devamsizlik'
+import { useModules } from '@/lib/data'
 
 type Filter = 'all' | AttentionKind
 
@@ -18,6 +20,8 @@ export default function BugunPage() {
   const nav = useNavigate()
   const [filter, setFilter] = useState<Filter>('all')
   const [change, setChange] = useState<Meeting | null>(null)
+  const mods = useModules()
+  const watch = useAttendanceWatchlist(mods.yoklama)
   const today = todayISO()
 
   const data = useMemo(() => {
@@ -170,6 +174,26 @@ export default function BugunPage() {
                 <span>{eq} sabit</span>
                 <span>↓ {dn} düştü</span>
               </div>
+            </section>
+          )}
+          {mods.yoklama && (watch.data ?? []).length > 0 && (
+            <section className="card a" style={{ ['--d' as string]: 3, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Devamsızlık sınırına yaklaşanlar">
+              <h2 style={{ fontSize: 16 }}>Devamsızlık sınırına yaklaşanlar</h2>
+              {watch.data!.slice(0, 8).map((w) => (
+                <button key={w.student_id} className="srow" style={{ padding: '6px 2px', borderTop: 0 }} onClick={() => nav(`/ogrenciler/${w.student_id}?sekme=devamsizlik`)} data-testid="watch-row">
+                  <span style={{ width: 8, height: 8, borderRadius: 99, background: LEVEL_COLOR[w.level], flexShrink: 0 }} aria-hidden="true" />
+                  <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                    <b style={{ fontSize: 14 }}>{w.full_name}</b>{' '}
+                    <span className="m" style={{ fontSize: 12 }}>
+                      {w.class_name}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 12, color: LEVEL_INK[w.level], fontWeight: 600 }}>
+                      {gun(w.used)}/{w.lim} · {w.used >= w.lim ? 'sınıra ulaştı' : `⚠ sınıra ${gun(w.lim - w.used)} gün kaldı`}
+                    </span>
+                  </span>
+                </button>
+              ))}
+              {watch.data!.length > 8 && <span className="m" style={{ fontSize: 12 }}>+{watch.data!.length - 8} öğrenci daha</span>}
             </section>
           )}
           <Dropdown title="Görüşmeler" sub={meet.length ? `${meet.length} yaklaşan görüşme` : 'Yaklaşan görüşme yok'} icon={<Icon name="cal" size={22} />} delay={3}>

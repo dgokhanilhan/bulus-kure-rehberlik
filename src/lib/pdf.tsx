@@ -210,3 +210,81 @@ function Report(d: PdfVeli | PdfOgretmen) {
 export async function reportPdfBlob(d: PdfVeli | PdfOgretmen): Promise<Blob> {
   return pdf(<Report {...d} />).toBlob()
 }
+
+// ---------- Devamsızlık raporu (Faz E) ----------
+export interface PdfAttendance {
+  school: string
+  student: string
+  className: string
+  schoolNo: string
+  range: string
+  summary: [string, string][]
+  rows: { date: string; status: string; note: string }[]
+  printed: string
+}
+
+function AttendanceDoc(d: PdfAttendance) {
+  return (
+    <Document title={`Devamsızlık raporu · ${d.student}`} author={d.school}>
+      <Page size="A4" style={s.page}>
+        <View style={s.head}>
+          <View>
+            <Text style={s.brand}>{d.school}</Text>
+            <Text style={s.sub}>Devamsızlık raporu</Text>
+          </View>
+          <Text style={s.sub}>{d.printed}</Text>
+        </View>
+        <View style={s.info}>
+          {[
+            ['Öğrenci', d.student],
+            ['Sınıf · No', `${d.className} · ${d.schoolNo}`],
+            ['Tarih aralığı', d.range],
+          ].map(([k, v]) => (
+            <View key={k} style={s.infoCell}>
+              <View style={s.infoBox}>
+                <Text style={s.infoK}>{k}</Text>
+                <Text style={s.infoV}>{v}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+        <Text style={s.h3}>ÖZET</Text>
+        <View style={s.info}>
+          {d.summary.map(([k, v]) => (
+            <View key={k} style={{ width: '20%', padding: 3 }}>
+              <View style={s.infoBox}>
+                <Text style={s.infoK}>{k}</Text>
+                <Text style={s.infoV}>{v}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+        <Text style={s.h3}>KAYITLAR</Text>
+        <View style={s.tr}>
+          <Text style={[s.th, { width: '34%' }]}>Tarih</Text>
+          <Text style={[s.th, { width: '22%' }]}>Durum</Text>
+          <Text style={[s.th, { width: '44%' }]}>Açıklama</Text>
+        </View>
+        {d.rows.length ? (
+          d.rows.map((r, i) => (
+            <View key={i} style={s.tr} wrap={false}>
+              <Text style={{ width: '34%' }}>{r.date}</Text>
+              <Text style={{ width: '22%', fontWeight: 600 }}>{r.status}</Text>
+              <Text style={{ width: '44%', color: C.muted }}>{r.note}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={s.p}>Bu aralıkta devamsızlık kaydı yok.</Text>
+        )}
+        <View style={s.foot} fixed>
+          <Text>{d.school} · Bilgilendirme amaçlıdır.</Text>
+          <Text render={({ pageNumber, totalPages }) => `${pageNumber}/${totalPages}`} />
+        </View>
+      </Page>
+    </Document>
+  )
+}
+
+export async function attendancePdfBlob(d: PdfAttendance): Promise<Blob> {
+  return pdf(<AttendanceDoc {...d} />).toBlob()
+}
