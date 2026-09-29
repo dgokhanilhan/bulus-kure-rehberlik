@@ -62,7 +62,7 @@ test.describe.serial('Yönetim Merkezi', () => {
     await logout(page)
 
     await login(page, ...DEMO.rehber)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', /^İletişim/])
     await logout(page)
 
     await loginAdmin(page, secret)

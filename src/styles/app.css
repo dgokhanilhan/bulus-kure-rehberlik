@@ -387,3 +387,10 @@ h2.sec{font-size:17px;font-weight:600}
   .ygrp .label{padding:0 4px 0 0}
   .ymenu button{white-space:nowrap}
 }
+
+/* Ödevler */
+.hwcard{display:flex;flex-direction:column;text-align:left;padding:16px;width:100%;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+.hwcard:hover{border-color:var(--primary);box-shadow:0 6px 18px rgba(27,42,47,.08)}
+.seg button.hwon{background:var(--surface);box-shadow:0 1px 3px rgba(27,42,47,.15);font-weight:600}
+.seg button.hwon.up{color:var(--primary)}
+.seg button.hwon.down{color:var(--signal-ink,var(--signal))}

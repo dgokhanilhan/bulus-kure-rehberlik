@@ -807,3 +807,51 @@ export function DersAtamalari({ classes, profiles }: { classes: ClassRow[]; prof
     </>
   )
 }
+
+// ---------------------------------------------------------------- Ödev ayarları
+const HW_BOOLS: [string, string, string, boolean][] = [
+  ['odev.son_tarih_zorunlu', 'Son teslim tarihi zorunlu', 'Kapalıysa öğretmen tarihsiz ödev verebilir.', true],
+  ['odev.veli_durum_gorur', 'Veli ödev durumunu görür', 'Yaptı / Yapmadı / Eksik ve öğretmen notu veliye görünür, bildirimi gider.', true],
+  ['odev.geciken_kirmizi', 'Geciken ödev kırmızı gösterilir', 'Veli ve öğrenci ekranında süresi geçmiş, yapılmamış ödevler.', true],
+  ['odev.bildirim_yeni', 'Yeni ödevde bildirim', 'Ödev verilince öğrencilere ve velilere.', true],
+  ['odev.bildirim_kontrol', 'Ödev kontrol edilince bildirim', 'Öğretmen durum işaretleyince öğrenciye (ve ayar açıksa veliye).', true],
+  ['odev.ogretmen_dosya', 'Öğretmen ek dosya yükleyebilir', 'Dosya altyapısıyla (Faz C) devreye girer.', true],
+  ['odev.ogrenci_dosya', 'Öğrenci dosya yükleyebilir', 'Dosya altyapısıyla (Faz C) devreye girer.', false],
+]
+export function OdevAyarlari() {
+  const s = useSettings()
+  const toast = useToast()
+  const inv = useInvalidate()
+  const [days, setDays] = useState<string | null>(null)
+  const val = (k: string, d: boolean) => (typeof s.data?.[k] === 'boolean' ? (s.data[k] as boolean) : d)
+  const dayVal = days ?? String((s.data?.['odev.hatirlatma_gun'] as number | undefined) ?? 1)
+  async function put(p: Record<string, unknown>, m: string) {
+    const { error } = await supabase.rpc('set_settings', { p })
+    if (error) return toast(errText(error)!, 'warn')
+    inv('school_settings')
+    toast(m)
+  }
+  return (
+    <>
+      <section className="card a" style={{ padding: 8, display: 'flex', flexDirection: 'column' }} aria-label="Ödev ayarları">
+        {HW_BOOLS.map(([k, l, h, d]) => (
+          <div key={k} style={{ padding: 8 }}>
+            <Check on={val(k, d)} onClick={() => put({ [k]: !val(k, d) }, `${l}: ${val(k, d) ? 'kapalı' : 'açık'}`)} label={l} hint={h} />
+          </div>
+        ))}
+      </section>
+      <section className="card a" style={{ ['--d' as string]: 1, padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <label className="field" htmlFor="hwDays" style={{ maxWidth: 260 }}>
+          Son teslimden kaç gün önce hatırlatılsın? (0 = kapalı)
+          <input id="hwDays" type="number" min={0} max={14} value={dayVal} onChange={(e) => setDays(e.target.value)} />
+        </label>
+        <button className="btn pri" disabled={days === null} onClick={() => put({ 'odev.hatirlatma_gun': Number(dayVal) }, 'Hatırlatma günü kaydedildi').then(() => setDays(null))}>
+          Kaydet
+        </button>
+        <span className="m" style={{ fontSize: 12 }}>
+          Hatırlatma her sabah 08.00'de, hâlâ “Bekliyor” olan öğrencilere ve velilerine bir kez gider.
+        </span>
+      </section>
+    </>
+  )
+}
