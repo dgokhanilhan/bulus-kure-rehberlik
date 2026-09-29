@@ -14,6 +14,7 @@ import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { ProgramAdmin, YemekAdmin, YoklamaAdmin } from './OkulGunluguAdmin'
+import { InviteChip, InviteParentModal, InviteTeacherModal } from './YonetimDavet'
 import { BildirimAyarlari, YoklamaAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
 
 type Tab =
@@ -531,14 +532,18 @@ function Ogretmenler({ classes, profiles }: { classes: ClassRow[]; profiles: Pro
   const { profile: me } = useAuth()
   const [edit, setEdit] = useState<Profile | null>(null)
   const [close, setClose] = useState<Profile | null>(null)
+  const [invite, setInvite] = useState(false)
   const list = teachersOf(profiles)
   return (
     <>
-      <div className="card a" style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div className="card a" style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <Icon name="users" size={22} />
-        <span style={{ flex: 1, fontSize: 14 }}>
-          Yeni öğretmen, giriş ekranındaki <b>Kayıt ol → Öğretmen</b> ile kendi hesabını açar; sen <Link to="/onaylar">Onaylar</Link> sayfasından onaylarsın. Burada ad ve branşını düzenler, sınıf öğretmenliği verir (Sınıflar) ya da hesabını kapatırsın.
+        <span style={{ flex: 1, fontSize: 14, minWidth: 240 }}>
+          <b>Öğretmen ekle</b> ile hesabı sen açarsın; öğretmene şifresini belirleyeceği bir davet e-postası gider. Öğretmen kendisi de <b>Kayıt ol → Öğretmen</b> ile başvurabilir; onu <Link to="/onaylar">Onaylar</Link>'dan onaylarsın.
         </span>
+        <button className="btn pri" onClick={() => setInvite(true)}>
+          <Icon name="plus" size={18} stroke={2} /> Öğretmen ekle
+        </button>
       </div>
       <section className="card a" style={{ ['--d' as string]: 1, overflow: 'hidden' }}>
         <div className="tbl">
@@ -557,6 +562,9 @@ function Ogretmenler({ classes, profiles }: { classes: ClassRow[]; profiles: Pro
                 <tr key={t.id} data-testid="teacher-row">
                   <td>
                     <b>{t.full_name}</b>
+                    <div>
+                      <InviteChip id={t.id} />
+                    </div>
                   </td>
                   <td>{t.role === 'admin' ? ROLE_TR.admin : `${ROLE_TR[roleOf(t)]} · ${t.branch}`}</td>
                   <td>
@@ -588,6 +596,7 @@ function Ogretmenler({ classes, profiles }: { classes: ClassRow[]; profiles: Pro
       </section>
       {edit && <ProfileModal p={edit} onClose={() => setEdit(null)} />}
       {close && <CloseAccount p={close} onClose={() => setClose(null)} />}
+      {invite && <InviteTeacherModal onClose={() => setInvite(false)} />}
     </>
   )
 }
@@ -701,6 +710,7 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
   const [edit, setEdit] = useState<Profile | null>(null)
   const [close, setClose] = useState<Profile | null>(null)
   const [add, setAdd] = useState<Record<string, string>>({})
+  const [invite, setInvite] = useState(false)
   const veliler = profiles.filter((p) => p.role === 'veli' && p.status === 'approved')
   const stu = (id: string) => students.find((s) => s.id === id)
 
@@ -722,6 +732,15 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
 
   return (
     <>
+      <div className="kv a">
+        <span className="m" style={{ fontSize: 13 }}>
+          <b>Veli ekle</b> ile hesabı sen açarsın ve öğrencilerine bağlarsın; veliye davet e-postası gider.
+        </span>
+        <button className="btn pri" onClick={() => setInvite(true)}>
+          <Icon name="plus" size={18} stroke={2} /> Veli ekle
+        </button>
+      </div>
+      {invite && <InviteParentModal students={students} onClose={() => setInvite(false)} />}
       {veliler.length ? (
         <div className="stack">
           {veliler.map((p, i) => {
@@ -735,7 +754,9 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
                       <b style={{ display: 'block' }}>{p.full_name}</b>
                       <span className="m" style={{ fontSize: 13 }}>
                         {p.declared.relation ?? 'Veli'} · {p.email}
+                        {p.phone ? ` · ${p.phone}` : ''}
                       </span>
+                      <InviteChip id={p.id} />
                     </span>
                   </span>
                   <div className="btns">

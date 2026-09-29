@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
+import { PW_FLAG, supabase } from '@/lib/supabase'
 import type { Profile, Role } from '@/lib/types'
 import { roleOf } from '@/lib/roles'
 
@@ -12,6 +12,9 @@ interface AuthState {
   role: Role | null
   /** Oturumun mevcut güvence seviyesi: aal2 = TOTP doğrulandı. */
   aal: 'aal1' | 'aal2' | null
+  /** Davet/sıfırlama bağlantısıyla gelindi: önce şifre belirlenir. */
+  needPassword: boolean
+  passwordSet: () => void
   signOut: () => Promise<void>
 }
 
@@ -27,6 +30,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient()
   const [session, setSession] = useState<Session | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [needPassword, setNeedPassword] = useState(() => {
+    try {
+      return sessionStorage.getItem(PW_FLAG) === '1'
+    } catch {
+      return false
+    }
+  })
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -45,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s)
+      if (event === 'PASSWORD_RECOVERY') setNeedPassword(true)
       if (event === 'SIGNED_OUT') qc.clear()
       if (event === 'MFA_CHALLENGE_VERIFIED' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         qc.invalidateQueries({ queryKey: ['me'] })
@@ -75,6 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile,
     role: profile ? roleOf(profile) : null,
     aal: me.data?.aal ?? null,
+    needPassword,
+    passwordSet: () => {
+      try {
+        sessionStorage.removeItem(PW_FLAG)
+      } catch {
+        /* yok say */
+      }
+      setNeedPassword(false)
+      qc.invalidateQueries({ queryKey: ['me'] })
+    },
     signOut: async () => {
       await supabase.auth.signOut()
     },
@@ -83,12 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 /** Oturumun nereye gitmesi gerektiği: tek yerde karar verilir. */
-export type Gate = 'loading' | 'login' | 'mfa' | 'pending' | 'app'
+export type Gate = 'loading' | 'login' | 'password' | 'consent' | 'mfa' | 'pending' | 'app'
 export function gateOf(a: AuthState): Gate {
   if (!a.ready) return 'loading'
   if (!a.session) return 'login'
+  if (a.needPassword) return 'password'
   if (!a.profile) return 'pending' // profil okunamıyorsa hiçbir veri gösterilmez
   if (a.profile.status !== 'approved') return 'pending'
+  // Yöneticinin davetiyle açılan hesap KVKK metnini ilk girişte onaylar (0017)
+  if (a.profile.invited_at && !a.profile.consent_version) return 'consent'
   if (a.profile.role === 'admin' && a.aal !== 'aal2') return 'mfa'
   return 'app'
 }

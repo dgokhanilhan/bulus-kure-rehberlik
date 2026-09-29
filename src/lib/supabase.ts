@@ -4,6 +4,15 @@ const url = import.meta.env.VITE_SUPABASE_URL
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY
 if (!url || !key) throw new Error('VITE_SUPABASE_URL ve VITE_SUPABASE_ANON_KEY tanımlı değil (.env.local).')
 
+/** Davet ya da şifre sıfırlama bağlantısıyla gelindiyse (adres #…type=invite|recovery): şifre belirleme ekranı açılır.
+ *  supabase-js bağlantıdaki oturumu alıp adresi temizlemeden önce okunur. */
+export const PW_FLAG = 'bk.setpw'
+try {
+  if (/type=(invite|recovery)/.test(window.location.hash)) sessionStorage.setItem(PW_FLAG, '1')
+} catch {
+  /* depolama kapalı: şifre ekranı gösterilmez, kişi "Şifremi unuttum" ile belirleyebilir */
+}
+
 export const SCHOOL_SLUG = import.meta.env.VITE_SCHOOL_SLUG ?? 'bulus-kure'
 
 export const supabase = createClient(url, key, {

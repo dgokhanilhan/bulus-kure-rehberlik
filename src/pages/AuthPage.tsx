@@ -93,6 +93,13 @@ function LoginForm({ onStep }: { onStep: (s: Step) => void }) {
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  async function forgot() {
+    const em = email.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)) return setErr('Şifre sıfırlama bağlantısı için önce e-postanı yaz.')
+    const { error } = await supabase.auth.resetPasswordForEmail(em, { redirectTo: `${window.location.origin}/` })
+    setErr(error?.status === 429 ? 'Kısa süre önce gönderildi. Birkaç dakika sonra tekrar dene.' : 'Bu e-postayla bir hesap varsa şifre belirleme bağlantısı gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.')
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault()
     setErr(null)
@@ -131,6 +138,9 @@ function LoginForm({ onStep }: { onStep: (s: Step) => void }) {
         <button className="btn pri" style={{ minHeight: 50, fontSize: 16 }} type="submit" disabled={busy}>
           {busy ? <span className="spinner" aria-hidden="true" /> : null}
           Giriş yap
+        </button>
+        <button type="button" className="linkbtn" style={{ alignSelf: 'center', fontSize: 13 }} onClick={forgot}>
+          Şifremi unuttum
         </button>
       </form>
       {DEMO.length > 0 && (
