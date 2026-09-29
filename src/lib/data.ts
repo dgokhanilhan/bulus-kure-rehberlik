@@ -23,6 +23,45 @@ export function useStudents() {
   })
 }
 
+// ---------- Takvim (0015) ----------
+export type EventType = 'yazili' | 'deneme' | 'bursluluk' | 'gezi' | 'veli_toplantisi' | 'kulup' | 'tatil' | 'odev_teslim' | 'proje' | 'diger'
+export const EVENT_TR: Record<EventType, string> = {
+  yazili: 'Yazılı', deneme: 'Deneme', bursluluk: 'Bursluluk sınavı', gezi: 'Gezi', veli_toplantisi: 'Veli toplantısı',
+  kulup: 'Kulüp etkinliği', tatil: 'Tatil', odev_teslim: 'Ödev teslimi', proje: 'Proje', diger: 'Diğer',
+}
+export const EVENT_COLOR: Record<EventType, string> = {
+  yazili: '#b5541a', deneme: '#9c36b5', bursluluk: '#c92a2a', gezi: '#2b8a3e', veli_toplantisi: '#3b5bdb',
+  kulup: '#0c8599', tatil: '#868e96', odev_teslim: '#1f5f5b', proje: '#e67700', diger: '#495057',
+}
+export interface CalEvent {
+  id: string
+  title: string
+  description: string | null
+  type: EventType
+  starts_on: string
+  ends_on: string
+  starts_at: string | null
+  ends_at: string | null
+  location: string | null
+  target: 'okul' | 'kademe' | 'sinif' | 'ogrenci' | 'ogretmen'
+  level: 'ilkokul' | 'ortaokul' | 'lise' | null
+  class_id: string | null
+  student_id: string | null
+  teacher_id: string | null
+  course_id: string | null
+  audience: ('veli' | 'ogrenci' | 'ogretmen')[]
+  created_by: string | null
+}
+export function useCalendar(from: string, to: string) {
+  return useQuery({
+    queryKey: ['calendar', from, to],
+    queryFn: () =>
+      all<CalEvent>(
+        supabase.from('calendar_events').select('id, title, description, type, starts_on, ends_on, starts_at, ends_at, location, target, level, class_id, student_id, teacher_id, course_id, audience, created_by').lte('starts_on', to).gte('ends_on', from).order('starts_on').order('starts_at', { nullsFirst: true }),
+      ),
+  })
+}
+
 // ---------- Ödev (0013) ----------
 export type HwStatus = 'bekliyor' | 'yapti' | 'yapmadi' | 'eksik' | 'gelmedi' | 'izinli'
 export const HW_TR: Record<HwStatus, string> = { bekliyor: 'Bekliyor', yapti: 'Yaptı', yapmadi: 'Yapmadı', eksik: 'Eksik', gelmedi: 'Gelmedi', izinli: 'İzinli' }

@@ -398,3 +398,34 @@ h2.sec{font-size:17px;font-weight:600}
 /* Ek dosyalar */
 .thumb{padding:0;border:1px solid var(--line);border-radius:10px;background:var(--surface-sunken);overflow:hidden;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:88px;min-height:66px}
 .thumb:hover{border-color:var(--primary)}
+
+/* Alt çubukta sığmayan sayfalar: "Daha" menüsü (yalnız dar ekran) */
+.nav .morebtn,.moresheet{display:none}
+@media (max-width:860px){
+  .nav .navbtn.over{display:none}
+  .nav .morebtn{display:flex;background:transparent;border:0;cursor:pointer}
+  .nav .morebtn.on{color:var(--primary);font-weight:600}
+  .moresheet{
+    display:flex;flex-direction:column;gap:2px;pointer-events:auto;position:absolute;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));
+    min-width:200px;padding:6px;border-radius:18px;background:var(--surface);border:1px solid var(--line);box-shadow:0 12px 32px rgba(27,42,47,.18);
+    animation:dockIn .3s var(--spring) both;
+  }
+  .moresheet .navbtn{flex-direction:row;justify-content:flex-start;gap:10px;min-height:44px;padding:8px 12px;border-radius:12px;color:var(--ink);font-size:14px}
+  .moresheet .navbtn[aria-current="page"]{background:var(--primary-soft);color:var(--primary);font-weight:600}
+}
+
+/* Takvim */
+.calcols{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));overflow:hidden}
+.calhd{font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-muted);padding:10px 8px;border-bottom:1px solid var(--line)}
+.calday{min-height:96px;padding:6px;border-top:1px solid var(--line);border-left:1px solid var(--line);display:flex;flex-direction:column;gap:3px;min-width:0}
+.calday:nth-child(7n+8){border-left:0}
+.calday.out{background:var(--paper);color:var(--ink-muted)}
+.calday.today .calnum{background:var(--primary);color:var(--on-primary);border-radius:99px;padding:0 7px}
+.calnum{font-size:12px;font-weight:600;align-self:flex-start}
+.calchip{display:block;width:100%;text-align:left;font-size:11.5px;line-height:1.3;padding:2px 6px;border-radius:6px;border:0;cursor:pointer;
+  background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--ink);border-left:3px solid var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.calchip:hover{background:color-mix(in srgb,var(--c) 24%,transparent)}
+@media (max-width:1180px){.calcols{grid-template-columns:1fr}}
+@media (max-width:600px){.calday{min-height:64px;padding:3px}.calchip{font-size:0;height:6px;padding:0;border-left-width:0;background:var(--c)}}
+.moresheet .badge{margin-left:auto;font-size:12px;background:var(--highlight);color:var(--ink-fixed);border-radius:99px;padding:1px 8px;font-weight:700}

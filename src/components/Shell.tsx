@@ -9,8 +9,8 @@ import type { Notification } from '@/lib/types'
 import { ago, initials } from '@/lib/format'
 import { Icon, SchoolLogo } from './Icon'
 import { useSchoolInfo } from '@/lib/files'
+import { ntype, useOpenNotification } from '@/lib/notifications'
 import { useIndicator } from './Indicator'
-import { useOpenReport } from './Report'
 import { useToast } from './Toast'
 
 function Brand() {
@@ -129,14 +129,13 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
   const { profile } = useAuth()
   const qc = useQueryClient()
   const nav = useNavigate()
-  const openReport = useOpenReport()
   const ref = useRef<HTMLDivElement>(null)
   const q = useQuery({
     queryKey: ['notifications', profile?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notifications')
-        .select('id, text, link, read_at, created_at')
+        .select('id, text, link, read_at, created_at, type')
         .order('created_at', { ascending: false })
         .limit(40)
       if (error) throw error
@@ -168,15 +167,11 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
     }
   }, [open, setOpen])
 
+  const openN = useOpenNotification()
   const openItem = (n: Notification) => {
     if (!n.read_at) markRead.mutate([n.id])
     setOpen(false)
-    const L = n.link
-    if (L.report) openReport({ id: L.report })
-    else if (L.homework) nav(`/odevler?odev=${L.homework}`)
-    else if (L.conversation) nav(`/iletisim?sekme=mesajlar&c=${L.conversation}`)
-    else if (L.page === 'ogrenci' && L.sid) nav(`/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`)
-    else if (L.page) nav(`/${L.page}`)
+    openN(n)
   }
 
   return (
@@ -204,7 +199,7 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
             list.map((x) => (
               <button key={x.id} className={`nitem ${x.read_at ? '' : 'unread'}`} onClick={() => openItem(x)}>
                 <span style={{ color: 'var(--primary)', marginTop: 2 }}>
-                  <Icon name={x.link.report ? 'doc' : x.link.meeting ? 'cal' : x.link.page === 'onaylar' ? 'shield' : 'bell'} size={18} />
+                  <Icon name={ntype(x.type).icon} size={18} />
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 14 }}>{x.text}</span>
@@ -219,6 +214,16 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
               Henüz bildirim yok.
             </div>
           )}
+          <button
+            className="btn ghost sm"
+            style={{ width: '100%', borderTop: '1px solid var(--line)', borderRadius: 0, minHeight: 44 }}
+            onClick={() => {
+              setOpen(false)
+              nav('/bildirimler')
+            }}
+          >
+            Tüm bildirimler
+          </button>
         </div>
       )}
     </div>
@@ -237,15 +242,23 @@ export function AppShell() {
   const active = items.find((i) => loc.pathname === `/${i.id}` || loc.pathname.startsWith(`/${i.id}/`))?.id
   const { ref, ind } = useIndicator<HTMLDivElement>(active)
   const [enterKey, setEnterKey] = useState(loc.pathname)
-  useEffect(() => setEnterKey(loc.pathname), [loc.pathname])
+  const [more, setMore] = useState(false)
+  useEffect(() => {
+    setEnterKey(loc.pathname)
+    setMore(false)
+  }, [loc.pathname])
+  // Telefonda alt çubukta ilk 4 sayfa + "Daha" (menü 5'ten uzunsa); geniş ekranda hepsi yan menüde.
+  const overflow = items.length > 5
+  const extra = overflow ? items.slice(4) : []
+  const extraBadge = (extra.some((x) => x.id === 'iletisim') ? unread : 0) + (extra.some((x) => x.id === 'onaylar') ? pending : 0)
 
   return (
     <div className="app">
       <nav className="side" aria-label="Ana menü">
         <div className="nav" ref={ref}>
           {ind}
-          {items.map((it) => (
-            <NavLink key={it.id} to={`/${it.id}`} className="navbtn">
+          {items.map((it, i) => (
+            <NavLink key={it.id} to={`/${it.id}`} className={`navbtn${overflow && i >= 4 ? ' over' : ''}`}>
               <Icon name={it.icon} />
               <span className="lbl">{it.label}</span>
               {it.id === 'iletisim' && unread > 0 && (
@@ -260,7 +273,30 @@ export function AppShell() {
               )}
             </NavLink>
           ))}
+          {overflow && (
+            <button type="button" className={`navbtn morebtn${extra.some((x) => x.id === active) ? ' on' : ''}`} aria-expanded={more} aria-haspopup="menu" onClick={() => setMore((x) => !x)}>
+              <Icon name="more" />
+              <span className="lbl">Daha</span>
+              {extraBadge > 0 && (
+                <span className="badge" aria-label={`${extraBadge} bekleyen`}>
+                  {extraBadge}
+                </span>
+              )}
+            </button>
+          )}
         </div>
+        {more && (
+          <div className="moresheet" role="menu" aria-label="Diğer sayfalar">
+            {extra.map((it) => (
+              <NavLink key={it.id} to={`/${it.id}`} role="menuitem" className="navbtn">
+                <Icon name={it.icon} />
+                <span className="lbl">{it.label}</span>
+                {it.id === 'onaylar' && pending > 0 && <span className="badge">{pending}</span>}
+                {it.id === 'iletisim' && unread > 0 && <span className="badge">{unread}</span>}
+              </NavLink>
+            ))}
+          </div>
+        )}
         <div className="rolebox">
           <b style={{ color: 'var(--on-nav)', display: 'block' }}>{ROLE_TR[role!]}</b>
           {ROLE_HINT[role!]}

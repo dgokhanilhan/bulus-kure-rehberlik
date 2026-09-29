@@ -102,11 +102,11 @@ const MODULES: [ModuleId, string, string][] = [
   ['yemek', 'Yemek listesi', 'Haftalık yemek listesi'],
   ['duyuru', 'Duyurular', 'Okul, kademe ve sınıf duyuruları'],
   ['mesaj', 'Mesajlaşma', 'Veli–öğretmen yazışmaları'],
-  ['odev', 'Ödev sistemi', 'Faz B ile gelecek'],
-  ['takvim', 'Takvim', 'Faz D ile gelecek'],
+  ['odev', 'Ödev sistemi', 'Ödev verme, kontrol, veli ve öğrenci görünümü'],
+  ['takvim', 'Takvim', 'Sınav ve etkinlik takvimi, sınav hatırlatmaları'],
   ['bursluluk', 'Bursluluk', 'Faz G ile gelecek'],
 ]
-const SOON: ModuleId[] = ['odev', 'takvim', 'bursluluk']
+const SOON: ModuleId[] = ['bursluluk']
 
 export function Moduller() {
   const mods = useModules()
@@ -965,6 +965,86 @@ export function DosyaDuyuruAyarlari() {
           </button>
         </div>
       </section>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------- Bildirim ayarları
+const NOTIF: [string, string, string][] = [
+  ['odev.bildirim_yeni', 'Yeni ödev', 'Ödev verilince öğrenci ve veliye'],
+  ['odev.bildirim_kontrol', 'Ödev kontrol edildi', 'Öğretmen durum işaretleyince'],
+  ['bildirim.mesaj', 'Yeni mesaj', 'Veli–öğretmen yazışmalarında'],
+  ['bildirim.duyuru', 'Yeni duyuru', 'Duyurunun hedef kitlesine'],
+  ['bildirim.sinav', 'Sınav eklendi', 'Takvime yazılı, deneme ya da bursluluk eklenince'],
+  ['bildirim.sinav_hatirlatma', 'Yaklaşan sınav', 'Sınavdan önce hatırlatma (gün sayısı Takvim ayarlarında)'],
+  ['bildirim.etkinlik', 'Etkinlik', 'Gezi, veli toplantısı, kulüp, tatil vb.'],
+  ['bildirim.devamsizlik', 'Devamsızlık', 'Öğrenci gelmedi ya da geç geldi'],
+  ['bildirim.rapor', 'Yeni rapor', 'Veli raporu ya da öğretmen raporu gönderilince'],
+  ['bildirim.deneme', 'Deneme sonucu', 'Deneme yayınlanınca veli ve öğrenciye'],
+  ['bildirim.gorev', 'Görevler', 'Rehberlik görevi verildi, gecikti, tamamlandı'],
+  ['bildirim.gorusme', 'Görüşmeler', 'Görüşme planlandı, değişti, yanıtlandı'],
+  ['bildirim.not', 'Rehberlik notları', 'Öğretmenin veliye açık notu'],
+]
+export function BildirimAyarlari() {
+  const s = useSettings()
+  const toast = useToast()
+  const inv = useInvalidate()
+  const val = (k: string) => (typeof s.data?.[k] === 'boolean' ? (s.data[k] as boolean) : true)
+  async function toggle(k: string, l: string) {
+    const { error } = await supabase.rpc('set_settings', { p: { [k]: !val(k) } })
+    if (error) return toast(errText(error)!, 'warn')
+    inv('school_settings')
+    toast(`${l} bildirimi ${val(k) ? 'kapatıldı' : 'açıldı'}`)
+  }
+  return (
+    <>
+      <p className="m a" style={{ fontSize: 13 }}>
+        Kapalı olan olay için bildirim hiç oluşmaz (zil ve bildirim listesi). Kayıt onayı ve sistem uyarıları her zaman gider. Ödev hatırlatması Ödev ayarlarındaki gün sayısıyla açılır/kapanır.
+      </p>
+      <section className="card a" style={{ ['--d' as string]: 1, padding: 8 }} aria-label="Bildirim ayarları">
+        {NOTIF.map(([k, l, h]) => (
+          <div key={k} style={{ padding: 8 }}>
+            <Check on={val(k)} onClick={() => toggle(k, l)} label={l} hint={h} />
+          </div>
+        ))}
+      </section>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------- Takvim ayarları
+export function TakvimAyarlari() {
+  const s = useSettings()
+  const toast = useToast()
+  const inv = useInvalidate()
+  const [days, setDays] = useState<string | null>(null)
+  const can = typeof s.data?.['takvim.ogretmen_ekler'] === 'boolean' ? (s.data['takvim.ogretmen_ekler'] as boolean) : true
+  const dayVal = days ?? String((s.data?.['takvim.hatirlatma_gun'] as number | undefined) ?? 1)
+  async function put(p: Record<string, unknown>, m: string) {
+    const { error } = await supabase.rpc('set_settings', { p })
+    if (error) return toast(errText(error)!, 'warn')
+    inv('school_settings')
+    toast(m)
+  }
+  return (
+    <>
+      <section className="card a" style={{ padding: 8 }} aria-label="Takvim ayarları">
+        <div style={{ padding: 8 }}>
+          <Check on={can} onClick={() => put({ 'takvim.ogretmen_ekler': !can }, `Öğretmen etkinlik ekleme ${can ? 'kapatıldı' : 'açıldı'}`)} label="Öğretmenler takvime ekleyebilir" hint="Ders verdiği sınıflara ve öğrencilerine yazılı, proje vb. Yönetim ve rehberlik her zaman ekler." />
+        </div>
+        <div style={{ padding: 8, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <label className="field" htmlFor="tDays" style={{ maxWidth: 280 }}>
+            Sınavdan kaç gün önce hatırlatılsın? (0 = kapalı)
+            <input id="tDays" type="number" min={0} max={14} value={dayVal} onChange={(e) => setDays(e.target.value)} />
+          </label>
+          <button className="btn pri" disabled={days === null} onClick={() => put({ 'takvim.hatirlatma_gun': Number(dayVal) }, 'Hatırlatma günü kaydedildi').then(() => setDays(null))}>
+            Kaydet
+          </button>
+        </div>
+      </section>
+      <p className="m" style={{ fontSize: 12 }}>
+        Etkinlikler menüdeki <b>Takvim</b> sayfasından eklenir. Hatırlatma her sabah 08.05'te, yazılı, deneme ve bursluluk sınavları için bir kez gider.
+      </p>
     </>
   )
 }

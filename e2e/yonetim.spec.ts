@@ -25,7 +25,7 @@ test.describe.serial('Yönetim paneli', () => {
 
   test('menü ve sınıflar: kademelere göre liste, sınıf ekle/düzenle', async ({ page }) => {
     secret = await loginAdmin(page)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Denemeler', 'Sınıflar', /^İletişim/, 'Yönetim', /Onaylar/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', /^İletişim/, 'Yönetim', /Onaylar/])
     await page.getByRole('link', { name: 'Yönetim' }).click()
     await expect(page.getByRole('heading', { name: 'Yönetim' })).toBeVisible()
     for (const k of ['İlkokul', 'Ortaokul', 'Lise']) await expect(page.getByRole('region', { name: k })).toBeVisible()
@@ -150,7 +150,7 @@ test.describe.serial('Yönetim paneli', () => {
 
   test('rehber: Yönetim menüsü yok, adresle de açılmaz', async ({ page }) => {
     await login(page, ...DEMO.rehber)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Denemeler', 'Sınıflar', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', /^İletişim/])
     await page.goto('/yonetim')
     await expect(page).toHaveURL(/\/bugun$/)
   })
