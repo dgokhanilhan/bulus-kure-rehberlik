@@ -22,7 +22,7 @@
     "katalog:gen": "node scripts/gen-outcomes.mjs",
     "ai:sahte": "node scripts/sahte-deepseek.mjs",
     "functions": "supabase functions serve",
-    "e2e:dist": "npm run build && E2E_DIST=1 playwright test e2e/asama3.spec.ts e2e/asama4.spec.ts e2e/dosyalar.spec.ts",
+    "e2e:dist": "npm run build && E2E_DIST=1 playwright test e2e/asama3.spec.ts e2e/asama4.spec.ts e2e/dosyalar.spec.ts e2e/davet.spec.ts",
     "deploy:staging": "npm run tokens && tsc -b && vite build --mode staging && npx wrangler pages deploy dist --project-name bulus-kure-staging --branch master",
     "deploy:prod": "npm run tokens && tsc -b && vite build --mode production && npx wrangler pages deploy dist --project-name ${CF_PROJECT:-bulus-kure} --branch main"
   },

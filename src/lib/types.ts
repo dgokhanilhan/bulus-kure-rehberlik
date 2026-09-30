@@ -22,6 +22,9 @@ export interface Profile {
   declared: Declared
   email: string | null
   created_at: string
+  invited_at?: string | null
+  consent_version?: string | null
+  phone?: string | null
 }
 
 export interface Student {

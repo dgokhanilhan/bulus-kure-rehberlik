@@ -5,6 +5,7 @@ import { navItems, type PageId } from '@/lib/roles'
 import { AppShell, PendingPage, TopBar } from '@/components/Shell'
 import AuthPage from '@/pages/AuthPage'
 import MfaPage from '@/pages/MfaPage'
+import { ConsentPage, SetPasswordPage } from '@/pages/HesapPages'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import { useModules } from '@/lib/data'
@@ -92,6 +93,8 @@ export default function App() {
         </main>
       )}
       {gate === 'login' && <AuthPage />}
+      {gate === 'password' && <SetPasswordPage />}
+      {gate === 'consent' && <ConsentPage />}
       {gate === 'mfa' && <MfaPage />}
       {gate === 'pending' && <PendingPage />}
       {gate === 'app' && <RoleRoutes />}
