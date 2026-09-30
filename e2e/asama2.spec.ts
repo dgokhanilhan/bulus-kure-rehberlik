@@ -5,7 +5,8 @@ import { DEMO, ELIF, KEREM, expectNotification, login, loginAdmin, logout, menu,
 test.describe('§2 Yetkiler', () => {
   test('2.1 matematik öğretmeni: yalnız Öğrenciler; dosyada görev/rapor/görüşme düğmesi yok; not ekleyebilir', async ({ page }) => {
     await login(page, ...DEMO.matematik)
-    await expect(menu(page)).toHaveText(['Öğrenciler', 'Ödevler', 'Takvim', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', /^İletişim/])
+    await menu(page).filter({ hasText: 'Öğrenciler' }).click()
     await page.getByRole('row', { name: 'Elif Yıldız dosyası' }).click()
     await expect(page.getByRole('heading', { name: 'Elif Yıldız' })).toBeVisible()
     for (const name of ['Görev ata', 'Görüşme planla', 'Veli raporu', 'Öğretmen raporu']) await expect(page.getByRole('button', { name })).toHaveCount(0)
@@ -24,9 +25,11 @@ test.describe('§2 Yetkiler', () => {
 
   test('2.2 veli yalnız kendi çocuğunu görür; başka öğrencinin dosyası açılmaz, API boş döner', async ({ page }) => {
     await login(page, ...DEMO.veli)
-    await expect(page.getByRole('heading', { name: "Elif'in durumu" })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^Merhaba/ })).toBeVisible()
     await page.goto(`/ogrenciler/${KEREM}`)
-    await expect(page).toHaveURL(/\/ozet$/)
+    await expect(page).toHaveURL(/\/panel$/)
+    await page.goto('/ozet')
+    await expect(page.getByRole('heading', { name: "Elif'in durumu" })).toBeVisible()
     // Tarayıcıdaki velinin oturum anahtarıyla doğrudan API'ye Kerem'in sonuçlarını sor → boş.
     const token = await page.evaluate(() => JSON.parse(localStorage.getItem('bk-auth') ?? '{}').access_token as string)
     const res = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/exam_results?student_id=eq.${KEREM}`, {
@@ -151,7 +154,7 @@ test.describe.serial('§4 Görüşmeler ve notlar', () => {
 
   test('4.3 veli "Katılacağım" → rehbere bildirim', async ({ page }) => {
     await login(page, ...DEMO.veli)
-    await page.getByRole('link', { name: 'Görüşmeler' }).click()
+    await page.getByRole('link', { name: 'Görüşmeler', exact: true }).click()
     const row = page.getByTestId('meeting-row').filter({ hasText: 'E2E deneme değerlendirmesi' })
     await row.getByRole('button', { name: 'Katılacağım' }).click()
     await expect(row).toContainText('Katılım onaylandı')
@@ -176,6 +179,7 @@ test.describe.serial('§4 Görüşmeler ve notlar', () => {
 
     await login(page, ...DEMO.veli)
     await expectNotification(page, 'Öğretmen notu: E2E veliye not: bu hafta çok düzenliydi.')
+    await page.goto('/ozet')
     await page.getByText('Öğretmen notları').click()
     await expect(page.getByText('E2E veliye not: bu hafta çok düzenliydi.').first()).toBeVisible()
     await expect(page.getByText('E2E gizli rehberlik notu')).toHaveCount(0)

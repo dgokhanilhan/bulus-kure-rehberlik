@@ -47,7 +47,7 @@ test.describe.serial('§5 Denemeler', () => {
     // Profile işlendi, Bugün yeniden hesaplandı
     await openStudent(page, ELIF, 'denemeler')
     await expect(page.getByRole('row').filter({ hasText: 'TG-6' })).toBeVisible()
-    await page.getByRole('link', { name: 'Bugün' }).click()
+    await page.getByRole('link', { name: 'Bugün', exact: true }).click()
     await expect(page.getByText('Son deneme · TG-6')).toBeVisible()
     await logout(page)
 

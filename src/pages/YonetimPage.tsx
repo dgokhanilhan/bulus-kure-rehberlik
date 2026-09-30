@@ -15,16 +15,17 @@ import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { ProgramAdmin, YemekAdmin, YoklamaAdmin } from './OkulGunluguAdmin'
 import { BurslulukAdmin } from './BurslulukAdmin'
+import { AnaSayfaDuzeni, TopluAktarim } from './YonetimAktarim'
 import { InviteChip, InviteParentModal, InviteTeacherModal } from './YonetimDavet'
 import { BildirimAyarlari, YoklamaAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
 
 type Tab =
   | 'genel' | 'moduller' | 'yillar' | 'dosya' | 'bildirim' | 'takvim'
   | 'siniflar' | 'dersler' | 'saatler' | 'atamalar' | 'program' | 'yoklama' | 'yoklama_ayar' | 'yemek' | 'odev'
-  | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali' | 'bursluluk'
+  | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali' | 'bursluluk' | 'anasayfa' | 'aktarim'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
-  { title: 'Genel', items: [['genel', 'Genel ayarlar'], ['moduller', 'Modüller'], ['yillar', 'Eğitim yılları'], ['dosya', 'Dosya ve duyuru ayarları'], ['bildirim', 'Bildirim ayarları']] },
+  { title: 'Genel', items: [['genel', 'Genel ayarlar'], ['moduller', 'Modüller'], ['yillar', 'Eğitim yılları'], ['dosya', 'Dosya ve duyuru ayarları'], ['bildirim', 'Bildirim ayarları'], ['anasayfa', 'Ana sayfa düzeni']] },
   {
     title: 'Akademik',
     items: [
@@ -40,7 +41,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['takvim', 'Takvim ayarları', 'takvim'],
     ],
   },
-  { title: 'Kişiler', items: [['ogrenciler', 'Öğrenciler'], ['ogretmenler', 'Öğretmenler'], ['veliler', 'Veliler'], ['kapali', 'Kapalı hesaplar']] },
+  { title: 'Kişiler', items: [['ogrenciler', 'Öğrenciler'], ['ogretmenler', 'Öğretmenler'], ['veliler', 'Veliler'], ['kapali', 'Kapalı hesaplar'], ['aktarim', 'Toplu aktarım']] },
   { title: 'Kayıt', items: [['bursluluk', 'Bursluluk', 'bursluluk']] },
 ]
 const TABS = GROUPS.flatMap((g) => g.items)
@@ -157,6 +158,8 @@ export default function YonetimPage() {
               {tab === 'odev' && <OdevAyarlari />}
               {tab === 'kapali' && <Kapali {...data.data!} />}
               {tab === 'bursluluk' && <BurslulukAdmin />}
+              {tab === 'anasayfa' && <AnaSayfaDuzeni />}
+              {tab === 'aktarim' && <TopluAktarim />}
             </>
           )}
         </div>

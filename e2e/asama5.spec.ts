@@ -6,7 +6,7 @@ import { DEMO, expectNotification, login, loginAdmin, logout, resetAdminMfa, ser
 test.describe.serial('§7 Sınıflar ve etüt', () => {
   test('7.1 8/B · Matematik → en zor konu → yanlış yapanlar → öğrenciye git', async ({ page }) => {
     await login(page, ...DEMO.rehber)
-    await page.getByRole('link', { name: 'Sınıflar' }).click()
+    await page.getByRole('link', { name: 'Sınıflar', exact: true }).click()
     await page.getByRole('group', { name: 'Şube' }).getByRole('button', { name: '8/B' }).click()
     await page.getByRole('group', { name: 'Ders' }).getByRole('button', { name: 'Matematik' }).click()
     await expect(page.getByRole('table', { name: '8/B Matematik konu doğru oranları' })).toBeVisible()
@@ -24,7 +24,7 @@ test.describe.serial('§7 Sınıflar ve etüt', () => {
 
   test('7.2 etüt: yalnız Cumartesiler, 09–13 arası 1 saatlik dilimler, dolu saat seçilemez, konu eklenir, şubeye bildirim', async ({ page }) => {
     await login(page, ...DEMO.rehber)
-    await page.getByRole('link', { name: 'Sınıflar' }).click()
+    await page.getByRole('link', { name: 'Sınıflar', exact: true }).click()
     await page.getByRole('button', { name: 'Etüt planla' }).click()
     const dlg = page.getByRole('dialog', { name: 'Etüt planla' })
     const days = await dlg.getByLabel('Cumartesi').locator('option').allInnerTexts()
@@ -51,6 +51,7 @@ test.describe.serial('§7 Sınıflar ve etüt', () => {
 
     await login(page, ...DEMO.veli) // Elif 8/A
     await expectNotification(page, /^Cumartesi etüdü: .* 11\.00–12\.00 · Matematik · .*E2E karışık tekrar/)
+    await page.goto('/ozet')
     await page.getByText('Cumartesi etütleri').click()
     await expect(page.getByText(/11\.00–12\.00/).first()).toBeVisible()
   })
@@ -60,7 +61,7 @@ test.describe.serial('Okul ayarları', () => {
   test('yönetici Bugün eşiğini değiştirir → Bugün listesi yeniden hesaplanır; işlem kaydı görünür', async ({ page }) => {
     await resetAdminMfa()
     await loginAdmin(page)
-    await page.getByRole('link', { name: 'Bugün' }).click()
+    await page.getByRole('link', { name: 'Bugün', exact: true }).click()
     const before = Number((await page.getByRole('heading', { name: /^Bugün \d+ öğrenciye bakmalısın\.$/ }).innerText()).match(/\d+/)![0])
     await page.getByRole('button', { name: /^Profil:/ }).click()
     await page.getByRole('menuitem', { name: 'Okul ayarları' }).click()
@@ -72,7 +73,7 @@ test.describe.serial('Okul ayarları', () => {
     await page.getByText('İşlem kayıtları').click()
     await expect(page.getByTestId('audit-row').filter({ hasText: 'Okul ayarlarını değiştirdi' }).first()).toBeVisible()
     await shot(page, '25-okul-ayarlari')
-    await page.getByRole('link', { name: 'Bugün' }).click()
+    await page.getByRole('link', { name: 'Bugün', exact: true }).click()
     const after = Number((await page.getByRole('heading', { name: /^Bugün \d+ öğrenciye bakmalısın\.$/ }).innerText()).match(/\d+/)![0])
     expect(after).toBeLessThan(before)
     await service().from('schools').update({ settings: {} }).eq('id', '00000000-0000-4000-8000-000000000001')
@@ -114,6 +115,9 @@ test.describe('Erişilebilirlik (axe, WCAG 2 AA: ciddi/kritik ihlal yok)', () =>
   })
   test('veli ekranları ve klavye ile menü', async ({ page }) => {
     await login(page, ...DEMO.veli)
+    await expect(page.getByRole('heading', { name: /^Merhaba/ })).toBeVisible()
+    await axe(page, 'veli ana sayfa')
+    await page.goto('/ozet')
     await expect(page.getByRole('heading', { name: "Elif'in durumu" })).toBeVisible()
     await axe(page, 'veli özet')
     // Klavye: Tab ile menüye ulaşılır, Enter ile sayfa değişir

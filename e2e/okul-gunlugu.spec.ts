@@ -72,9 +72,9 @@ test.describe.serial('Okul günlüğü', () => {
 
   test('veli: devamsızlık bildirimi, Okul sayfasında program, yemek ve devamsızlık', async ({ page }) => {
     await login(page, ...DEMO.veli)
-    await expect(page.getByRole('heading', { name: "Elif'in durumu" })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^Merhaba/ })).toBeVisible()
     await expectNotification(page, /Elif Yıldız .* günü okula gelmedi\./)
-    await page.getByRole('link', { name: 'Okul' }).click()
+    await page.getByRole('link', { name: 'Okul', exact: true }).click()
     await expect(page.getByRole('heading', { name: "Elif'in okul günü" })).toBeVisible()
     const week = page.getByRole('article', { name: 'Haftalık ders programı' })
     await expect(week.getByRole('columnheader', { name: 'Cumartesi' })).toBeVisible()
@@ -88,7 +88,7 @@ test.describe.serial('Okul günlüğü', () => {
 
   test('öğrenci de kendi Okul sayfasını görür', async ({ page }) => {
     await login(page, ...DEMO.ogrenci)
-    await page.getByRole('link', { name: 'Okul' }).click()
+    await page.getByRole('link', { name: 'Okul', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Okul günün' })).toBeVisible()
     await expect(page.getByRole('article', { name: 'Haftalık ders programı' }).getByText('Matematik').first()).toBeVisible()
   })

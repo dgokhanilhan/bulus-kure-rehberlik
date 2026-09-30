@@ -30,12 +30,12 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'odevler' | 'takvim' | 'bildirimler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
-  | 'ozet' | 'okul' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler'
+  | 'panel' | 'ozet' | 'okul' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler'
 
 export interface NavItem {
   id: PageId
   label: string
-  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book'
+  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark'
 }
 
 const STAFF: NavItem[] = [
@@ -47,8 +47,10 @@ const STAFF: NavItem[] = [
   { id: 'siniflar', label: 'Sınıflar', icon: 'grid' },
 ]
 const ILETISIM: NavItem = { id: 'iletisim', label: 'İletişim', icon: 'chat' }
+const PANEL: NavItem = { id: 'panel', label: 'Ana sayfa', icon: 'home' }
 const FAMILY: NavItem[] = [
-  { id: 'ozet', label: 'Özet', icon: 'home' },
+  PANEL,
+  { id: 'ozet', label: 'LGS özeti', icon: 'spark' },
   { id: 'okul', label: 'Okul', icon: 'grid' },
   { id: 'odevler', label: 'Ödevler', icon: 'book' },
   { id: 'takvim', label: 'Takvim', icon: 'cal' },
@@ -62,7 +64,7 @@ const FAMILY: NavItem[] = [
 function navFor(r: Role): NavItem[] {
   if (r === 'admin') return [...STAFF, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
   if (r === 'rehber') return [...STAFF, ILETISIM]
-  if (r === 'brans') return [STAFF[1]!, STAFF[2]!, STAFF[3]!, ILETISIM]
+  if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, ILETISIM]
   return FAMILY
 }
 
@@ -74,6 +76,7 @@ export const MODULE_DEFAULTS: Modules = { lgs: true, yoklama: true, ders_program
 /** Sayfanın bağlı olduğu modüller: hepsi kapalıysa sayfa menüden kalkar. */
 const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
   denemeler: ['lgs'],
+  ozet: ['lgs'],
   siniflar: ['lgs'],
   odevler: ['odev'],
   takvim: ['takvim'],
