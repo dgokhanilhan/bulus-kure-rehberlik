@@ -12,6 +12,8 @@ import { Seg } from '@/components/Indicator'
 import { Modal } from '@/components/Modal'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
+import { AttachmentList, Cover, FilePick, PickedFiles } from '@/components/Files'
+import { uploadFiles, useAttachments, useFileRules } from '@/lib/files'
 
 type Tab = 'duyurular' | 'mesajlar'
 const AUD_TR = { veli: 'Veliler', ogrenci: 'Öğrenciler', ogretmen: 'Öğretmenler' } as const
@@ -72,6 +74,8 @@ function Duyurular() {
   const [write, setWrite] = useState(false)
   const teacher = role === 'admin' || role === 'rehber' || role === 'brans'
   const cName = (id: string | null) => classes.data?.find((c) => c.id === id)?.name ?? 'Sınıf'
+  const atts = useAttachments({ kind: 'announcement', ids: (list.data ?? []).map((a) => a.id) })
+  const filesOf = (id: string) => (atts.data ?? []).filter((x) => x.announcement_id === id)
   const scopeText = (a: Announcement) => (a.scope === 'okul' ? 'Tüm okul' : a.scope === 'kademe' ? LEVEL_TR[a.level as Level] : cName(a.class_id))
 
   async function remove(a: Announcement) {
@@ -100,12 +104,14 @@ function Duyurular() {
       ) : (list.data ?? []).length ? (
         <div className="stack">
           {list.data!.map((a, i) => (
-            <article key={a.id} className="card a" style={{ ['--d' as string]: Math.min(i + 2, 8), padding: 18, display: 'flex', flexDirection: 'column', gap: 8 }} data-testid="announcement" aria-label={a.title}>
+            <article key={a.id} className="card a" style={{ ['--d' as string]: Math.min(i + 2, 8), padding: 18, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden' }} data-testid="announcement" aria-label={a.title}>
+              {filesOf(a.id).find((x) => x.is_cover) && <Cover a={filesOf(a.id).find((x) => x.is_cover)!} />}
               <div className="kv" style={{ alignItems: 'flex-start' }}>
                 <h2 style={{ fontSize: 17 }}>{a.title}</h2>
                 <span className="chip n">{scopeText(a)}</span>
               </div>
               <p style={{ fontSize: 14, whiteSpace: 'pre-line', margin: 0 }}>{a.body}</p>
+              <AttachmentList items={filesOf(a.id).filter((x) => !x.is_cover)} />
               <div className="kv">
                 <span className="m" style={{ fontSize: 12 }}>
                   {a.author_name ?? 'Okul'} · {localDate(a.created_at) === todayISO() ? `bugün ${localHM(a.created_at)}` : trD(localDate(a.created_at))}
@@ -144,6 +150,9 @@ function AnnouncementModal({ onClose }: { onClose: () => void }) {
   const [body, setBody] = useState('')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [cover, setCover] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
+  const rules = useFileRules()
   const clsId = cls || opts[0]?.id || ''
 
   async function send() {
@@ -152,7 +161,7 @@ function AnnouncementModal({ onClose }: { onClose: () => void }) {
     if (!aud.length) return setErr('En az bir alıcı grubu seç.')
     if (scope === 'sinif' && !clsId) return setErr('Sınıf seç.')
     setBusy(true)
-    const { error } = await supabase.from('announcements').insert({
+    const { data: row, error } = await supabase.from('announcements').insert({
       school_id: profile!.school_id,
       created_by: profile!.id,
       title: title.trim(),
@@ -161,10 +170,19 @@ function AnnouncementModal({ onClose }: { onClose: () => void }) {
       level: scope === 'kademe' ? level : null,
       class_id: scope === 'sinif' ? clsId : null,
       audience: aud,
-    })
+    }).select('id').single()
+    if (error) {
+      setBusy(false)
+      return setErr(errText(error))
+    }
+    const upErr = cover || files.length ? await uploadFiles('announcement', row.id as string, files, { cover }) : null
     setBusy(false)
-    if (error) return setErr(errText(error))
     qc.invalidateQueries({ queryKey: ['announcements'] })
+    qc.invalidateQueries({ queryKey: ['attachments'] })
+    if (upErr) {
+      toast(`Duyuru yayınlandı ama bir dosya yüklenemedi: ${upErr}`, 'warn')
+      return onClose()
+    }
     toast('Duyuru yayınlandı; alıcılara bildirim gitti')
     onClose()
   }
@@ -233,6 +251,17 @@ function AnnouncementModal({ onClose }: { onClose: () => void }) {
           </select>
           {onlyClass && !opts.length && <span className="m">Ders programında sana atanmış sınıf yok; yönetimle görüş.</span>}
         </label>
+      )}
+      {rules.announcement && (
+        <div className="stack" style={{ gap: 6 }}>
+          <span className="label">Görsel ve belgeler (isteğe bağlı · en fazla {rules.maxMb} MB)</span>
+          <div className="btns">
+            {rules.images && <FilePick label={cover ? 'Kapak görselini değiştir' : 'Kapak görseli'} multiple={false} imagesOnly onPick={(f) => setCover(f[0] ?? null)} />}
+            <FilePick label="Dosya ekle" onPick={(f) => setFiles((x) => [...x, ...f])} />
+          </div>
+          {cover && <PickedFiles files={[cover]} onRemove={() => setCover(null)} />}
+          <PickedFiles files={files} onRemove={(i) => setFiles((x) => x.filter((_, j) => j !== i))} />
+        </div>
       )}
       <div className="stack" style={{ gap: 6 }}>
         <span className="label">Kime</span>
@@ -347,6 +376,9 @@ function Thread({ c, title, onBack }: { c: Conversation; title: string; onBack: 
   const end = useRef<HTMLDivElement>(null)
   const party = profile?.id === c.parent_id || profile?.id === c.teacher_id
   const n = msgs.data?.length ?? 0
+  const rules = useFileRules()
+  const [files, setFiles] = useState<File[]>([])
+  const atts = useAttachments({ kind: 'message', ids: (msgs.data ?? []).map((m) => m.id) })
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'nearest' })
@@ -354,12 +386,19 @@ function Thread({ c, title, onBack }: { c: Conversation; title: string; onBack: 
   }, [n, c.id, c.unread, party, qc])
 
   async function send() {
-    if (!text.trim()) return
+    if (!text.trim() && !files.length) return
     setBusy(true)
-    const { error } = await supabase.rpc('send_message', { p_conversation: c.id, p_body: text })
+    const { data: mid, error } = await supabase.rpc('send_message', { p_conversation: c.id, p_body: text, p_with_files: files.length > 0 })
+    if (error) {
+      setBusy(false)
+      return toast(errText(error)!, 'warn')
+    }
+    const upErr = files.length ? await uploadFiles('message', mid as string, files) : null
     setBusy(false)
-    if (error) return toast(errText(error)!, 'warn')
+    if (upErr) toast(upErr, 'warn')
     setText('')
+    setFiles([])
+    qc.invalidateQueries({ queryKey: ['attachments'] })
     qc.invalidateQueries({ queryKey: ['messages', c.id] })
     qc.invalidateQueries({ queryKey: ['conversations'] })
   }
@@ -396,7 +435,8 @@ function Thread({ c, title, onBack }: { c: Conversation; title: string; onBack: 
                   overflowWrap: 'anywhere',
                 }}
               >
-                {m.body}
+                {m.body || (atts.data?.some((x) => x.message_id === m.id) ? '' : '📎')}
+                <AttachmentList items={(atts.data ?? []).filter((x) => x.message_id === m.id)} />
               </div>
               <span className="m" style={{ fontSize: 11, display: 'block', textAlign: mine ? 'right' : 'left', marginTop: 2 }}>
                 {!party && (fromParent ? `${c.parent_name} · ` : `${c.teacher_name} · `)}
@@ -415,8 +455,13 @@ function Thread({ c, title, onBack }: { c: Conversation; title: string; onBack: 
             e.preventDefault()
             send()
           }}
-          style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid var(--line)', alignItems: 'flex-end' }}
+          style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid var(--line)', alignItems: 'flex-end', flexWrap: 'wrap' }}
         >
+          {files.length > 0 && (
+            <div style={{ flexBasis: '100%' }}>
+              <PickedFiles files={files} onRemove={(i) => setFiles((x) => x.filter((_, j) => j !== i))} />
+            </div>
+          )}
           <label className="field" style={{ flex: 1 }}>
             <textarea
               aria-label="Mesajın"
@@ -434,7 +479,8 @@ function Thread({ c, title, onBack }: { c: Conversation; title: string; onBack: 
               placeholder="Mesajını yaz… (Enter gönderir, Shift+Enter yeni satır)"
             />
           </label>
-          <button className="btn pri" type="submit" disabled={busy || !text.trim()}>
+          {rules.message && <FilePick label="Dosya" onPick={(f) => setFiles((x) => [...x, ...f])} disabled={busy} />}
+          <button className="btn pri" type="submit" disabled={busy || (!text.trim() && !files.length)}>
             {busy && <span className="spinner" aria-hidden="true" />} Gönder
           </button>
         </form>

@@ -394,3 +394,7 @@ h2.sec{font-size:17px;font-weight:600}
 .seg button.hwon{background:var(--surface);box-shadow:0 1px 3px rgba(27,42,47,.15);font-weight:600}
 .seg button.hwon.up{color:var(--primary)}
 .seg button.hwon.down{color:var(--signal-ink,var(--signal))}
+
+/* Ek dosyalar */
+.thumb{padding:0;border:1px solid var(--line);border-radius:10px;background:var(--surface-sunken);overflow:hidden;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:88px;min-height:66px}
+.thumb:hover{border-color:var(--primary)}

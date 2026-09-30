@@ -7,17 +7,19 @@ import { navItems, ROLE_HINT, ROLE_TR } from '@/lib/roles'
 import { useConversations, useModules } from '@/lib/data'
 import type { Notification } from '@/lib/types'
 import { ago, initials } from '@/lib/format'
-import { Icon, Logo } from './Icon'
+import { Icon, SchoolLogo } from './Icon'
+import { useSchoolInfo } from '@/lib/files'
 import { useIndicator } from './Indicator'
 import { useOpenReport } from './Report'
 import { useToast } from './Toast'
 
 function Brand() {
+  const info = useSchoolInfo()
   return (
     <div className="brandline">
-      <Logo />
+      <SchoolLogo url={info.data?.logo} />
       <div>
-        <b>Buluş Küre Koleji</b>
+        <b>{info.data?.name ?? 'Buluş Küre Koleji'}</b>
         <small>Rehberlik &amp; Mentörlük</small>
       </div>
     </div>

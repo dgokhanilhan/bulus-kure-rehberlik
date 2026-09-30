@@ -14,15 +14,15 @@ import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { ProgramAdmin, YemekAdmin, YoklamaAdmin } from './OkulGunluguAdmin'
-import { DersAtamalari, DersSaatleri, Dersler, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
+import { DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
 
 type Tab =
-  | 'genel' | 'moduller' | 'yillar'
+  | 'genel' | 'moduller' | 'yillar' | 'dosya'
   | 'siniflar' | 'dersler' | 'saatler' | 'atamalar' | 'program' | 'yoklama' | 'yemek' | 'odev'
   | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
-  { title: 'Genel', items: [['genel', 'Genel ayarlar'], ['moduller', 'Modüller'], ['yillar', 'Eğitim yılları']] },
+  { title: 'Genel', items: [['genel', 'Genel ayarlar'], ['moduller', 'Modüller'], ['yillar', 'Eğitim yılları'], ['dosya', 'Dosya ve duyuru ayarları']] },
   {
     title: 'Akademik',
     items: [
@@ -135,6 +135,7 @@ export default function YonetimPage() {
               {tab === 'genel' && <GenelAyarlar schoolName={school.data ?? ''} />}
               {tab === 'moduller' && <Moduller />}
               {tab === 'yillar' && <EgitimYillari />}
+              {tab === 'dosya' && <DosyaDuyuruAyarlari />}
               {tab === 'siniflar' && <Siniflar classes={classes.data!} {...data.data!} />}
               {tab === 'dersler' && <Dersler />}
               {tab === 'saatler' && <DersSaatleri />}
