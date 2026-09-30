@@ -52,7 +52,7 @@ test.describe.serial('Okul günlüğü', () => {
     await page.getByRole('checkbox', { name: 'Cumartesi' }).click()
     await page.getByRole('button', { name: 'Cumartesi 1. ders boş' }).click()
     const dlg = page.getByRole('dialog', { name: /Cumartesi 1\. ders/ })
-    await dlg.getByLabel('Ders', { exact: true }).selectOption({ label: 'Müzik' })
+    await dlg.getByRole('combobox', { name: /^Ders/ }).selectOption({ label: 'Müzik' })
     await dlg.getByLabel('Öğretmen (isteğe bağlı)').selectOption({ label: 'Esra Demir · Fen Bilimleri' })
     await dlg.getByRole('button', { name: 'Kaydet' }).click()
     await expect(page.getByRole('button', { name: 'Cumartesi 1. ders: Müzik' })).toContainText('Esra Demir')
