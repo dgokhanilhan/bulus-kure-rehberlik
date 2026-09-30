@@ -20,6 +20,7 @@ export const NTYPES: Record<string, { label: string; icon: IconName }> = {
   gorusme: { label: 'Görüşme', icon: 'cal' },
   not: { label: 'Rehberlik notu', icon: 'doc' },
   kayit: { label: 'Kayıt', icon: 'shield' },
+  bursluluk: { label: 'Bursluluk', icon: 'users' },
   sistem: { label: 'Sistem', icon: 'warn' },
   diger: { label: 'Genel', icon: 'bell' },
 }
@@ -36,6 +37,6 @@ export function useOpenNotification() {
     else if (L.event) nav(`/takvim?etkinlik=${L.event}`)
     else if (L.conversation) nav(`/iletisim?sekme=mesajlar&c=${L.conversation}`)
     else if (L.page === 'ogrenci' && L.sid) nav(`/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`)
-    else if (L.page) nav(`/${L.page}`)
+    else if (L.page) nav(L.tab ? `/${L.page}?sekme=${L.tab}` : `/${L.page}`)
   }
 }

@@ -104,9 +104,9 @@ const MODULES: [ModuleId, string, string][] = [
   ['mesaj', 'Mesajlaşma', 'Veli–öğretmen yazışmaları'],
   ['odev', 'Ödev sistemi', 'Ödev verme, kontrol, veli ve öğrenci görünümü'],
   ['takvim', 'Takvim', 'Sınav ve etkinlik takvimi, sınav hatırlatmaları'],
-  ['bursluluk', 'Bursluluk', 'Faz G ile gelecek'],
+  ['bursluluk', 'Bursluluk', 'Bursluluk sınavı tanımlama ve herkese açık başvuru formu'],
 ]
-const SOON: ModuleId[] = ['bursluluk']
+const SOON: ModuleId[] = []
 
 export function Moduller() {
   const mods = useModules()
@@ -984,6 +984,7 @@ const NOTIF: [string, string, string][] = [
   ['bildirim.gorev', 'Görevler', 'Rehberlik görevi verildi, gecikti, tamamlandı'],
   ['bildirim.gorusme', 'Görüşmeler', 'Görüşme planlandı, değişti, yanıtlandı'],
   ['bildirim.not', 'Rehberlik notları', 'Öğretmenin veliye açık notu'],
+  ['bildirim.bursluluk', 'Bursluluk', 'Yeni bursluluk başvurusu (yöneticilere), salon/saat atanınca (okul öğrencisinin velisine)'],
 ]
 export function BildirimAyarlari() {
   const s = useSettings()

@@ -44,6 +44,7 @@ test.describe.serial('Okul günlüğü', () => {
   })
 
   test('yönetici: ders programına Cumartesi dersi ekle, yemek listesi gir', async ({ page }) => {
+    test.setTimeout(120_000) // yönetici girişi yeni TOTP penceresini bekleyebilir (≤30 sn)
     await loginAdmin(page, secret)
     await page.goto('/yonetim?sekme=program')
     await page.getByLabel('Sınıf').selectOption({ label: '8/A' })

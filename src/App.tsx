@@ -22,6 +22,7 @@ const DenemelerPage = lazy(() => import('@/pages/DenemelerPage'))
 const SiniflarPage = lazy(() => import('@/pages/SiniflarPage'))
 const AyarlarPage = lazy(() => import('@/pages/AyarlarPage'))
 const KvkkPage = lazy(() => import('@/pages/KvkkPage'))
+const BurslulukBasvuru = lazy(() => import('@/pages/BurslulukBasvuru'))
 const OgrencilerPage = lazy(() => import('@/pages/OgrencilerPage'))
 const OgrenciPage = lazy(() => import('@/pages/OgrenciPage'))
 const fam = () => import('@/pages/FamilyPages')
@@ -75,6 +76,15 @@ export default function App() {
     const i = setInterval(check, 60_000)
     return () => clearInterval(i)
   }, [auth.profile?.role, auth.session, toast])
+  if (loc.pathname === '/bursluluk')
+    return (
+      <>
+        <TopBar />
+        <Suspense fallback={<Wait />}>
+          <BurslulukBasvuru />
+        </Suspense>
+      </>
+    )
   if (loc.pathname === '/kvkk')
     return (
       <>
