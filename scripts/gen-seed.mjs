@@ -246,6 +246,12 @@ update homework_students set status = 'yapti', checked_at = now() where homework
 update homework_students set status = 'eksik', note = '4. sorudan sonrası eksik.' where homework_id = (select id from homework where title = 'Üslü ifadeler özet')
   and student_id = (select id from students where full_name = 'Burak Şahin');
 `)
+// Takvim örneği (0015)
+out.push(`insert into calendar_events (school_id, title, type, starts_on, ends_on, starts_at, ends_at, location, target, class_id, audience, created_by) values
+  (${q(SCHOOL)}, '1. dönem veli toplantısı', 'veli_toplantisi', current_date + 6, current_date + 6, '17:00', '18:30', 'Konferans salonu', 'okul', null, '{veli}', (select id from profiles where email = 'admin@buluskure.k12.tr')),
+  (${q(SCHOOL)}, 'Matematik 1. yazılı', 'yazili', current_date + 9, current_date + 9, '10:10', '10:50', null, 'sinif', (select id from classes where name = '8/A'), '{veli,ogrenci,ogretmen}', (select id from profiles where email = 'matematik@buluskure.k12.tr')),
+  (${q(SCHOOL)}, 'Cumhuriyet Bayramı', 'tatil', current_date + 20, current_date + 20, null, null, null, 'okul', null, '{veli,ogrenci,ogretmen}', (select id from profiles where email = 'admin@buluskure.k12.tr'));
+`)
 const YEMEK = ['Mercimek çorbası, tavuk sote, bulgur pilavı, ayran', 'Ezogelin çorbası, etli kuru fasulye, pirinç pilavı, turşu', 'Yayla çorbası, fırın köfte, patates püresi, mevsim salata', 'Domates çorbası, zeytinyağlı taze fasulye, makarna, yoğurt', 'Tarhana çorbası, izmir köfte, şehriyeli pilav, meyve']
 out.push(`insert into meals (school_id, day, meal, items) values\n  ${YEMEK.map((y, i) => `(${q(SCHOOL)}, date_trunc('week', current_date)::date + ${i}, 'ogle', ${q(y)})`).join(',\n  ')};\n`)
 

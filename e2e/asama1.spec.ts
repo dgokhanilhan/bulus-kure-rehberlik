@@ -12,7 +12,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('rehber öğretmen: Bugün, Öğrenciler, Denemeler, Sınıflar — Onaylar yok', async ({ page }) => {
     await login(page, ...DEMO.rehber)
     await expect(page).toHaveURL(/\/bugun$/)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Denemeler', 'Sınıflar', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', /^İletişim/])
     await page.goto('/onaylar')
     await expect(page).toHaveURL(/\/bugun$/)
     await expect(page.getByText('Rehber öğretmen').first()).toBeVisible()
@@ -26,7 +26,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('branş öğretmeni yalnız Öğrenciler sekmesini görür', async ({ page }) => {
     await login(page, ...DEMO.matematik)
     await expect(page).toHaveURL(/\/ogrenciler$/)
-    await expect(menu(page)).toHaveText(['Öğrenciler', 'Ödevler', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Öğrenciler', 'Ödevler', 'Takvim', /^İletişim/])
     for (const p of ['/bugun', '/denemeler', '/siniflar', '/onaylar', '/ozet']) {
       await page.goto(p)
       await expect(page).toHaveURL(/\/ogrenciler$/)
@@ -38,7 +38,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('veli yalnız kendi sayfalarını görür', async ({ page }) => {
     await login(page, ...DEMO.veli)
     await expect(page).toHaveURL(/\/ozet$/)
-    await expect(menu(page)).toHaveText(['Özet', 'Okul', 'Ödevler', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(menu(page)).toHaveText(['Özet', 'Okul', 'Ödevler', 'Takvim', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
     for (const p of ['/bugun', '/ogrenciler', '/onaylar']) {
       await page.goto(p)
       await expect(page).toHaveURL(/\/ozet$/)
@@ -49,7 +49,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('öğrenci yalnız kendi sayfalarını görür', async ({ page }) => {
     await login(page, ...DEMO.ogrenci)
     await expect(page).toHaveURL(/\/ozet$/)
-    await expect(menu(page)).toHaveText(['Özet', 'Okul', 'Ödevler', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(menu(page)).toHaveText(['Özet', 'Okul', 'Ödevler', 'Takvim', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
     await page.goto('/ogrenciler')
     await expect(page).toHaveURL(/\/ozet$/)
     await logout(page)
@@ -85,7 +85,7 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
     await expect(page.getByRole('alert')).toContainText('Kod hatalı')
 
     secret = await completeMfa(page)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Denemeler', 'Sınıflar', /^İletişim/, 'Yönetim', /Onaylar/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', /^İletişim/, 'Yönetim', /Onaylar/])
     await page.getByRole('link', { name: /Onaylar/ }).click()
     await expect(page.getByRole('heading', { name: 'Kayıt onayları' })).toBeVisible()
     await expect(page.getByTestId('pending-card')).toHaveCount(await pendingCount())
@@ -184,7 +184,11 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
     test.skip(!secret, 'önceki test çalışmadı')
     await page.setViewportSize({ width: 390, height: 844 })
     await loginAdmin(page, secret)
-    await page.getByRole('link', { name: /Onaylar/ }).click()
+    // Telefonda alt çubukta ilk 4 sayfa; Onaylar "Daha" menüsünde (bekleyen sayısı Daha'nın üstünde)
+    const more = page.getByRole('navigation', { name: 'Ana menü' }).getByRole('button', { name: /^Daha/ })
+    if ((await pendingCount()) > 0) await expect(more.getByLabel(/bekleyen/)).toBeVisible()
+    await more.click()
+    await page.getByRole('menuitem', { name: /Onaylar/ }).click()
     await expect(page.getByRole('heading', { name: 'Kayıt onayları' })).toBeVisible()
     await shot(page, '10-admin-onaylar-mobil')
   })

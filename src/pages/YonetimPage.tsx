@@ -14,15 +14,15 @@ import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { ProgramAdmin, YemekAdmin, YoklamaAdmin } from './OkulGunluguAdmin'
-import { DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
+import { BildirimAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
 
 type Tab =
-  | 'genel' | 'moduller' | 'yillar' | 'dosya'
+  | 'genel' | 'moduller' | 'yillar' | 'dosya' | 'bildirim' | 'takvim'
   | 'siniflar' | 'dersler' | 'saatler' | 'atamalar' | 'program' | 'yoklama' | 'yemek' | 'odev'
   | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
-  { title: 'Genel', items: [['genel', 'Genel ayarlar'], ['moduller', 'Modüller'], ['yillar', 'Eğitim yılları'], ['dosya', 'Dosya ve duyuru ayarları']] },
+  { title: 'Genel', items: [['genel', 'Genel ayarlar'], ['moduller', 'Modüller'], ['yillar', 'Eğitim yılları'], ['dosya', 'Dosya ve duyuru ayarları'], ['bildirim', 'Bildirim ayarları']] },
   {
     title: 'Akademik',
     items: [
@@ -34,6 +34,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['yoklama', 'Yoklama', 'yoklama'],
       ['yemek', 'Yemek listesi', 'yemek'],
       ['odev', 'Ödev ayarları', 'odev'],
+      ['takvim', 'Takvim ayarları', 'takvim'],
     ],
   },
   { title: 'Kişiler', items: [['ogrenciler', 'Öğrenciler'], ['ogretmenler', 'Öğretmenler'], ['veliler', 'Veliler'], ['kapali', 'Kapalı hesaplar']] },
@@ -136,6 +137,8 @@ export default function YonetimPage() {
               {tab === 'moduller' && <Moduller />}
               {tab === 'yillar' && <EgitimYillari />}
               {tab === 'dosya' && <DosyaDuyuruAyarlari />}
+              {tab === 'bildirim' && <BildirimAyarlari />}
+              {tab === 'takvim' && <TakvimAyarlari />}
               {tab === 'siniflar' && <Siniflar classes={classes.data!} {...data.data!} />}
               {tab === 'dersler' && <Dersler />}
               {tab === 'saatler' && <DersSaatleri />}

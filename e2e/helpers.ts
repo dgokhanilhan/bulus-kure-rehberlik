@@ -71,7 +71,7 @@ export async function completeMfa(page: Page, secret?: string): Promise<string> 
   if (!s) throw new Error('Admin TOTP anahtarı bilinmiyor; önce resetAdminMfa() çağır.')
   await page.getByLabel('Kod').fill(await totpCode(s))
   await page.getByRole('button', { name: 'Doğrula ve gir' }).click()
-  await expect(page.getByRole('link', { name: /Onaylar/ })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
   return s
 }
 

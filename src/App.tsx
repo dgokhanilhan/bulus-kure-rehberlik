@@ -14,6 +14,8 @@ const OnaylarPage = lazy(() => import('@/pages/OnaylarPage'))
 const YonetimPage = lazy(() => import('@/pages/YonetimPage'))
 const IletisimPage = lazy(() => import('@/pages/IletisimPage'))
 const OdevlerPage = lazy(() => import('@/pages/OdevlerPage'))
+const TakvimPage = lazy(() => import('@/pages/TakvimPage'))
+const BildirimlerPage = lazy(() => import('@/pages/BildirimlerPage'))
 const BugunPage = lazy(() => import('@/pages/BugunPage'))
 const DenemelerPage = lazy(() => import('@/pages/DenemelerPage'))
 const SiniflarPage = lazy(() => import('@/pages/SiniflarPage'))
@@ -42,6 +44,8 @@ const PAGES: Record<PageId, JSX.Element> = {
   yonetim: <YonetimPage />,
   iletisim: <IletisimPage />,
   odevler: <OdevlerPage />,
+  takvim: <TakvimPage />,
+  bildirimler: <BildirimlerPage />,
   ozet: <OzetPage />,
   okul: <OkulPage />,
   gorevler: <GorevlerPage />,
@@ -117,6 +121,14 @@ function RoleRoutes() {
             }
           />
         )}
+        <Route
+          path="bildirimler"
+          element={
+            <Suspense fallback={<Wait />}>
+              <BildirimlerPage />
+            </Suspense>
+          }
+        />
         {role === 'admin' && (
           <Route
             path="ayarlar"

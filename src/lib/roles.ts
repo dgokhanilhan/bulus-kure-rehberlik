@@ -29,7 +29,7 @@ export const ROLE_TR: Record<Role, string> = {
 export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 
 export type PageId =
-  | 'bugun' | 'ogrenciler' | 'odevler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
+  | 'bugun' | 'ogrenciler' | 'odevler' | 'takvim' | 'bildirimler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
   | 'ozet' | 'okul' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler'
 
 export interface NavItem {
@@ -42,6 +42,7 @@ const STAFF: NavItem[] = [
   { id: 'bugun', label: 'Bugün', icon: 'sun' },
   { id: 'ogrenciler', label: 'Öğrenciler', icon: 'users' },
   { id: 'odevler', label: 'Ödevler', icon: 'book' },
+  { id: 'takvim', label: 'Takvim', icon: 'cal' },
   { id: 'denemeler', label: 'Denemeler', icon: 'doc' },
   { id: 'siniflar', label: 'Sınıflar', icon: 'grid' },
 ]
@@ -50,6 +51,7 @@ const FAMILY: NavItem[] = [
   { id: 'ozet', label: 'Özet', icon: 'home' },
   { id: 'okul', label: 'Okul', icon: 'grid' },
   { id: 'odevler', label: 'Ödevler', icon: 'book' },
+  { id: 'takvim', label: 'Takvim', icon: 'cal' },
   { id: 'iletisim', label: 'İletişim', icon: 'chat' },
   { id: 'gorevler', label: 'Görevler', icon: 'task' },
   { id: 'raporlar', label: 'Raporlar', icon: 'doc' },
@@ -60,7 +62,7 @@ const FAMILY: NavItem[] = [
 function navFor(r: Role): NavItem[] {
   if (r === 'admin') return [...STAFF, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
   if (r === 'rehber') return [...STAFF, ILETISIM]
-  if (r === 'brans') return [STAFF[1]!, STAFF[2]!, ILETISIM]
+  if (r === 'brans') return [STAFF[1]!, STAFF[2]!, STAFF[3]!, ILETISIM]
   return FAMILY
 }
 
@@ -74,6 +76,7 @@ const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
   denemeler: ['lgs'],
   siniflar: ['lgs'],
   odevler: ['odev'],
+  takvim: ['takvim'],
   raporlar: ['lgs'],
   okul: ['yoklama', 'ders_programi', 'yemek'],
   iletisim: ['duyuru', 'mesaj'],
