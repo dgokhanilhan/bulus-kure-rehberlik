@@ -236,6 +236,16 @@ out.push(`update timetable set teacher_id = (select id from profiles where email
 update timetable set teacher_id = (select id from profiles where email = 'fen@buluskure.k12.tr') where subject = 'Fen Bilimleri';
 update classes set homeroom_teacher_id = (select id from profiles where email = 'rehber@buluskure.k12.tr') where name = '8/A';
 `)
+// Ödev örneği (0013): 8/A matematik — biri açık, biri süresi geçmiş (kontrol edilmiş)
+out.push(`insert into homework (school_id, class_id, course_id, teacher_id, title, description, assigned_on, due_on) values
+  (${q(SCHOOL)}, (select id from classes where name = '8/A'), (select id from courses where name = 'Matematik'), (select id from profiles where email = 'matematik@buluskure.k12.tr'),
+   'Çarpanlar ve katlar — test 3', 'Kitap s. 42–44, 20 soru.', current_date - 1, current_date + 3),
+  (${q(SCHOOL)}, (select id from classes where name = '8/A'), (select id from courses where name = 'Matematik'), (select id from profiles where email = 'matematik@buluskure.k12.tr'),
+   'Üslü ifadeler özet', 'Konu özetini deftere çıkar.', current_date - 7, current_date - 2);
+update homework_students set status = 'yapti', checked_at = now() where homework_id = (select id from homework where title = 'Üslü ifadeler özet');
+update homework_students set status = 'eksik', note = '4. sorudan sonrası eksik.' where homework_id = (select id from homework where title = 'Üslü ifadeler özet')
+  and student_id = (select id from students where full_name = 'Burak Şahin');
+`)
 const YEMEK = ['Mercimek çorbası, tavuk sote, bulgur pilavı, ayran', 'Ezogelin çorbası, etli kuru fasulye, pirinç pilavı, turşu', 'Yayla çorbası, fırın köfte, patates püresi, mevsim salata', 'Domates çorbası, zeytinyağlı taze fasulye, makarna, yoğurt', 'Tarhana çorbası, izmir köfte, şehriyeli pilav, meyve']
 out.push(`insert into meals (school_id, day, meal, items) values\n  ${YEMEK.map((y, i) => `(${q(SCHOOL)}, date_trunc('week', current_date)::date + ${i}, 'ogle', ${q(y)})`).join(',\n  ')};\n`)
 

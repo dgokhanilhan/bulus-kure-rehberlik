@@ -13,6 +13,7 @@ import { useModules } from '@/lib/data'
 const OnaylarPage = lazy(() => import('@/pages/OnaylarPage'))
 const YonetimPage = lazy(() => import('@/pages/YonetimPage'))
 const IletisimPage = lazy(() => import('@/pages/IletisimPage'))
+const OdevlerPage = lazy(() => import('@/pages/OdevlerPage'))
 const BugunPage = lazy(() => import('@/pages/BugunPage'))
 const DenemelerPage = lazy(() => import('@/pages/DenemelerPage'))
 const SiniflarPage = lazy(() => import('@/pages/SiniflarPage'))
@@ -40,6 +41,7 @@ const PAGES: Record<PageId, JSX.Element> = {
   onaylar: <OnaylarPage />,
   yonetim: <YonetimPage />,
   iletisim: <IletisimPage />,
+  odevler: <OdevlerPage />,
   ozet: <OzetPage />,
   okul: <OkulPage />,
   gorevler: <GorevlerPage />,

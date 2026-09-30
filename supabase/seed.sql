@@ -787,6 +787,15 @@ update timetable set teacher_id = (select id from profiles where email = 'matema
 update timetable set teacher_id = (select id from profiles where email = 'fen@buluskure.k12.tr') where subject = 'Fen Bilimleri';
 update classes set homeroom_teacher_id = (select id from profiles where email = 'rehber@buluskure.k12.tr') where name = '8/A';
 
+insert into homework (school_id, class_id, course_id, teacher_id, title, description, assigned_on, due_on) values
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where name = '8/A'), (select id from courses where name = 'Matematik'), (select id from profiles where email = 'matematik@buluskure.k12.tr'),
+   'Çarpanlar ve katlar — test 3', 'Kitap s. 42–44, 20 soru.', current_date - 1, current_date + 3),
+  ('00000000-0000-4000-8000-000000000001', (select id from classes where name = '8/A'), (select id from courses where name = 'Matematik'), (select id from profiles where email = 'matematik@buluskure.k12.tr'),
+   'Üslü ifadeler özet', 'Konu özetini deftere çıkar.', current_date - 7, current_date - 2);
+update homework_students set status = 'yapti', checked_at = now() where homework_id = (select id from homework where title = 'Üslü ifadeler özet');
+update homework_students set status = 'eksik', note = '4. sorudan sonrası eksik.' where homework_id = (select id from homework where title = 'Üslü ifadeler özet')
+  and student_id = (select id from students where full_name = 'Burak Şahin');
+
 insert into meals (school_id, day, meal, items) values
   ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 0, 'ogle', 'Mercimek çorbası, tavuk sote, bulgur pilavı, ayran'),
   ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 1, 'ogle', 'Ezogelin çorbası, etli kuru fasulye, pirinç pilavı, turşu'),

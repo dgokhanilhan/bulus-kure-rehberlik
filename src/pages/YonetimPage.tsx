@@ -14,11 +14,11 @@ import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { ProgramAdmin, YemekAdmin, YoklamaAdmin } from './OkulGunluguAdmin'
-import { DersAtamalari, DersSaatleri, Dersler, EgitimYillari, GenelAyarlar, Moduller } from './YonetimMerkezi'
+import { DersAtamalari, DersSaatleri, Dersler, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
 
 type Tab =
   | 'genel' | 'moduller' | 'yillar'
-  | 'siniflar' | 'dersler' | 'saatler' | 'atamalar' | 'program' | 'yoklama' | 'yemek'
+  | 'siniflar' | 'dersler' | 'saatler' | 'atamalar' | 'program' | 'yoklama' | 'yemek' | 'odev'
   | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
@@ -33,6 +33,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['program', 'Ders programı', 'ders_programi'],
       ['yoklama', 'Yoklama', 'yoklama'],
       ['yemek', 'Yemek listesi', 'yemek'],
+      ['odev', 'Ödev ayarları', 'odev'],
     ],
   },
   { title: 'Kişiler', items: [['ogrenciler', 'Öğrenciler'], ['ogretmenler', 'Öğretmenler'], ['veliler', 'Veliler'], ['kapali', 'Kapalı hesaplar']] },
@@ -144,6 +145,7 @@ export default function YonetimPage() {
               {tab === 'yoklama' && <YoklamaAdmin classes={classes.data!} students={data.data!.students} />}
               {tab === 'program' && <ProgramAdmin classes={classes.data!} profiles={data.data!.profiles} />}
               {tab === 'yemek' && <YemekAdmin />}
+              {tab === 'odev' && <OdevAyarlari />}
               {tab === 'kapali' && <Kapali {...data.data!} />}
             </>
           )}

@@ -23,6 +23,55 @@ export function useStudents() {
   })
 }
 
+// ---------- Ödev (0013) ----------
+export type HwStatus = 'bekliyor' | 'yapti' | 'yapmadi' | 'eksik' | 'gelmedi' | 'izinli'
+export const HW_TR: Record<HwStatus, string> = { bekliyor: 'Bekliyor', yapti: 'Yaptı', yapmadi: 'Yapmadı', eksik: 'Eksik', gelmedi: 'Gelmedi', izinli: 'İzinli' }
+export interface Homework {
+  id: string
+  class_id: string
+  course_id: string
+  teacher_id: string | null
+  title: string
+  description: string | null
+  assigned_on: string
+  due_on: string | null
+  created_at: string
+}
+export function useHomework() {
+  return useQuery({
+    queryKey: ['homework'],
+    queryFn: () => all<Homework>(supabase.from('homework').select('id, class_id, course_id, teacher_id, title, description, assigned_on, due_on, created_at').order('due_on', { ascending: false, nullsFirst: true }).order('created_at', { ascending: false }).limit(500)),
+  })
+}
+export interface HwRow {
+  homework_id: string
+  student_id: string
+  status: HwStatus
+  note: string | null
+  checked_at: string | null
+}
+/** Ödevin öğrenci satırları (öğretmen) ya da bir öğrencinin bütün ödev satırları (veli/öğrenci). */
+export function useHomeworkRows(f: { homework?: string | null; student?: string | null }) {
+  return useQuery({
+    queryKey: ['homework_students', f.homework ?? '', f.student ?? ''],
+    enabled: !!(f.homework || f.student),
+    queryFn: () => {
+      let q = supabase.from('homework_students').select('homework_id, student_id, status, note, checked_at')
+      if (f.homework) q = q.eq('homework_id', f.homework)
+      if (f.student) q = q.eq('student_id', f.student)
+      return all<HwRow>(q)
+    },
+  })
+}
+/** Ödev bölümündeki toplu durumlar (liste kartlarındaki "kontrol edildi" sayısı için). */
+export function useHomeworkProgress(enabled: boolean) {
+  return useQuery({
+    queryKey: ['homework_students', 'progress'],
+    enabled,
+    queryFn: () => all<{ homework_id: string; status: HwStatus }>(supabase.from('homework_students').select('homework_id, status').limit(20000)),
+  })
+}
+
 // ---------- Yönetim Merkezi (0011–0012) ----------
 /** Okul ayarları (anahtar → değer). Yazma yalnız set_settings RPC'siyle. */
 export function useSettings() {

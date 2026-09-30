@@ -171,6 +171,7 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
     setOpen(false)
     const L = n.link
     if (L.report) openReport({ id: L.report })
+    else if (L.homework) nav(`/odevler?odev=${L.homework}`)
     else if (L.conversation) nav(`/iletisim?sekme=mesajlar&c=${L.conversation}`)
     else if (L.page === 'ogrenci' && L.sid) nav(`/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`)
     else if (L.page) nav(`/${L.page}`)
