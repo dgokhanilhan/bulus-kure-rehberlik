@@ -4,6 +4,7 @@
 // service_role yalnız burada (Edge Function ortam değişkeni); tarayıcıya çıkmaz.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { cors, json } from '../_shared/ai.ts'
+import { safeRedirect } from './redirect.ts'
 
 const BRANCHES = ['Sınıf Öğretmeni', 'Okul Öncesi', 'Türkçe', 'Türk Dili ve Edebiyatı', 'Matematik', 'Fen Bilimleri', 'Fizik', 'Kimya', 'Biyoloji', 'Sosyal Bilgiler', 'T.C. İnkılap Tarihi', 'Tarih', 'Coğrafya', 'Felsefe', 'Din Kültürü', 'İngilizce', 'Almanca', 'Beden Eğitimi', 'Müzik', 'Görsel Sanatlar', 'Bilişim Teknolojileri', 'Rehberlik']
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -17,7 +18,7 @@ interface Ctx {
   adminId: string
   schoolId: string
   slug: string
-  redirectTo?: string
+  redirectTo: string
 }
 
 Deno.serve(async (req) => {
@@ -43,7 +44,8 @@ Deno.serve(async (req) => {
     adminId: u.user.id,
     schoolId: me!.school_id as string,
     slug: school!.slug as string,
-    redirectTo: typeof b.redirect_to === 'string' && /^https?:\/\/[^/]+\/?$/.test(b.redirect_to) ? (b.redirect_to as string) : undefined,
+    // Yalnız okulun alan adı (redirect.ts): istemcinin gönderdiği başka adres kabul edilmez
+    redirectTo: safeRedirect(b.redirect_to, Deno.env.get('DAVET_YEREL_ADRESLER') ?? ''),
   }
 
   // Daveti yeniden gönder (hesap açılmış ama kişi henüz giriş yapmamış)
