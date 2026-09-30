@@ -154,7 +154,7 @@ test.describe.serial('§4 Görüşmeler ve notlar', () => {
 
   test('4.3 veli "Katılacağım" → rehbere bildirim', async ({ page }) => {
     await login(page, ...DEMO.veli)
-    await page.getByRole('link', { name: 'Görüşmeler' }).click()
+    await page.getByRole('link', { name: 'Görüşmeler', exact: true }).click()
     const row = page.getByTestId('meeting-row').filter({ hasText: 'E2E deneme değerlendirmesi' })
     await row.getByRole('button', { name: 'Katılacağım' }).click()
     await expect(row).toContainText('Katılım onaylandı')

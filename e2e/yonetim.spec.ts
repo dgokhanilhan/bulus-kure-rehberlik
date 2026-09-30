@@ -26,7 +26,7 @@ test.describe.serial('Yönetim paneli', () => {
   test('menü ve sınıflar: kademelere göre liste, sınıf ekle/düzenle', async ({ page }) => {
     secret = await loginAdmin(page)
     await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', /^İletişim/, 'Yönetim', /Onaylar/])
-    await page.getByRole('link', { name: 'Yönetim' }).click()
+    await page.getByRole('link', { name: 'Yönetim', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Yönetim' })).toBeVisible()
     for (const k of ['İlkokul', 'Ortaokul', 'Lise']) await expect(page.getByRole('region', { name: k })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Lise' }).getByText('10/A')).toBeVisible()

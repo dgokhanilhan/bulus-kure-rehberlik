@@ -31,7 +31,7 @@ test.describe.serial('Yönetim Merkezi', () => {
 
   test('gruplu menü, genel ayarlar ve eğitim yılı', async ({ page }) => {
     secret = await loginAdmin(page)
-    await page.getByRole('link', { name: 'Yönetim' }).click()
+    await page.getByRole('link', { name: 'Yönetim', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Yönetim Merkezi' })).toBeVisible()
     await section(page, 'Genel ayarlar').click()
     await page.getByLabel('Telefon').fill('0212 555 00 00')
