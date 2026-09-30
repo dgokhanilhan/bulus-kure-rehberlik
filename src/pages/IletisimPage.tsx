@@ -5,7 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
-import { useAnnouncements, useChildContacts, useClasses, useConversations, useMessages, useStudents, type Announcement, type Conversation } from '@/lib/data'
+import { useAnnouncements, useChildContacts, useClasses, useConversations, useMessages, useModules, useStudents, type Announcement, type Conversation } from '@/lib/data'
 import { LEVEL_TR, LEVELS, type Level } from '@/lib/roles'
 import { ago, initials, localDate, localHM, todayISO, trD } from '@/lib/format'
 import { Seg } from '@/components/Indicator'
@@ -22,8 +22,9 @@ const errText = (e: { message?: string } | null) => (e ? (/row-level security/i.
 export default function IletisimPage() {
   const { profile } = useAuth()
   const [sp, setSp] = useSearchParams()
-  const canMessage = profile?.role !== 'ogrenci'
-  const tab: Tab = canMessage && (sp.get('sekme') === 'mesajlar' || sp.get('c')) ? 'mesajlar' : 'duyurular'
+  const mods = useModules()
+  const canMessage = profile?.role !== 'ogrenci' && mods.mesaj
+  const tab: Tab = !mods.duyuru || (canMessage && (sp.get('sekme') === 'mesajlar' || sp.get('c'))) ? 'mesajlar' : 'duyurular'
   const convs = useConversations(canMessage)
   const unread = (convs.data ?? []).reduce((n, c) => n + c.unread, 0)
   return (
@@ -31,7 +32,7 @@ export default function IletisimPage() {
       <div className="head a">
         <h1 className="hd">İletişim</h1>
       </div>
-      {canMessage && (
+      {canMessage && mods.duyuru && (
         <Seg
           className="a"
           style={{ ['--d' as string]: 1, alignSelf: 'flex-start' }}
@@ -44,7 +45,7 @@ export default function IletisimPage() {
           ]}
         />
       )}
-      {tab === 'duyurular' ? <Duyurular /> : <Mesajlar convs={convs.data ?? []} loading={convs.isLoading} />}
+      {tab === 'duyurular' ? <Duyurular /> : canMessage ? <Mesajlar convs={convs.data ?? []} loading={convs.isLoading} /> : <div className="empty">Bu bölüm okul yönetimince kapatıldı.</div>}
     </>
   )
 }

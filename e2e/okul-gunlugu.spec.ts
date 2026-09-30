@@ -13,7 +13,7 @@ async function axe(page: Page, label: string) {
   expect(bad.map((v) => `${label}: ${v.id} (${v.nodes.length}) ${v.nodes[0]?.target}`)).toEqual([])
 }
 
-const tab = (page: Page, name: string) => page.getByRole('group', { name: 'Yönetim bölümü' }).getByRole('button', { name })
+const tab = (page: Page, name: string | RegExp) => page.getByRole('group', { name: 'Yönetim bölümü' }).getByRole('button', { name })
 
 test.describe.serial('Okul günlüğü', () => {
   let secret = ''
@@ -21,6 +21,8 @@ test.describe.serial('Okul günlüğü', () => {
     const svc = service()
     await svc.from('attendance').delete().eq('student_id', ELIF).eq('day', today)
     await svc.from('timetable').delete().eq('weekday', 6)
+    const { data: muzik } = await svc.from('courses').select('id').eq('name', 'Müzik').single()
+    if (muzik) await svc.from('teaching_assignments').delete().eq('course_id', muzik.id)
   }
   test.beforeAll(async () => {
     await resetAdminMfa()
@@ -49,14 +51,14 @@ test.describe.serial('Okul günlüğü', () => {
     await page.getByRole('checkbox', { name: 'Cumartesi' }).click()
     await page.getByRole('button', { name: 'Cumartesi 1. ders boş' }).click()
     const dlg = page.getByRole('dialog', { name: /Cumartesi 1\. ders/ })
-    await dlg.getByLabel('Ders', { exact: true }).fill('Satranç')
+    await dlg.getByRole('combobox', { name: /^Ders/ }).selectOption({ label: 'Müzik' })
     await dlg.getByLabel('Öğretmen (isteğe bağlı)').selectOption({ label: 'Esra Demir · Fen Bilimleri' })
     await dlg.getByRole('button', { name: 'Kaydet' }).click()
-    await expect(page.getByRole('button', { name: 'Cumartesi 1. ders: Satranç' })).toContainText('Esra Demir')
+    await expect(page.getByRole('button', { name: 'Cumartesi 1. ders: Müzik' })).toContainText('Esra Demir')
     await axe(page, 'ders programı')
     await shot(page, 'o2-ders-programi')
 
-    await tab(page, 'Yemek listesi').click()
+    await tab(page, /^Yemek listesi/).click()
     const box = page.getByRole('textbox', { name: /Kahvaltı/ }).first()
     await box.fill('Peynir, zeytin, domates')
     await page.getByRole('button', { name: 'Haftayı kaydet' }).click()
@@ -75,7 +77,7 @@ test.describe.serial('Okul günlüğü', () => {
     await expect(page.getByRole('heading', { name: "Elif'in okul günü" })).toBeVisible()
     const week = page.getByRole('article', { name: 'Haftalık ders programı' })
     await expect(week.getByRole('columnheader', { name: 'Cumartesi' })).toBeVisible()
-    await expect(week.getByText('Satranç')).toBeVisible()
+    await expect(week.getByRole('cell', { name: 'Müzik' }).first()).toBeVisible()
     await expect(week.getByText('T.C. İnkılap Tarihi').first()).toBeVisible()
     await page.locator('summary', { hasText: 'Devamsızlık' }).click()
     await expect(page.getByTestId('att-record').first()).toContainText('Gelmedi')

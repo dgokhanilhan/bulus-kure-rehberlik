@@ -370,3 +370,20 @@ h2.sec{font-size:17px;font-weight:600}
   .show-m{display:inline-flex}
 }
 .srow .badge{font-size:12px;background:var(--highlight);color:var(--ink-fixed);border-radius:99px;padding:1px 8px;font-weight:700;flex-shrink:0}
+
+/* Yönetim Merkezi: solda gruplu bölüm menüsü; dar ekranda üstte yatay kayan şerit */
+.ymc{display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;align-items:start}
+.ymenu{display:flex;flex-direction:column;gap:14px;position:sticky;top:84px}
+.ygrp{display:flex;flex-direction:column;gap:2px}
+.ygrp .label{padding:0 10px 4px}
+.ymenu button{display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left;background:transparent;border:0;border-radius:10px;padding:8px 10px;font-size:14px;font-weight:500;color:var(--ink-2);transition:background .2s,color .2s}
+.ymenu button:hover{background:var(--surface-sunken);color:var(--ink)}
+.ymenu button[aria-pressed="true"]{background:var(--primary-soft);color:var(--primary);font-weight:600}
+.linkbtn{background:none;border:0;padding:0;color:var(--primary);font-weight:600;text-decoration:underline;cursor:pointer}
+@media (max-width:860px){
+  .ymc{grid-template-columns:1fr}
+  .ymenu{position:static;flex-direction:row;overflow-x:auto;gap:12px;padding-bottom:4px}
+  .ygrp{flex-direction:row;align-items:center}
+  .ygrp .label{padding:0 4px 0 0}
+  .ymenu button{white-space:nowrap}
+}

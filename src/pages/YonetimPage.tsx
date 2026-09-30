@@ -5,28 +5,39 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
-import { useClasses } from '@/lib/data'
-import { BRANS, LEVEL_TR, LEVELS, ROLE_TR, roleOf } from '@/lib/roles'
+import { useClasses, useModules } from '@/lib/data'
+import { BRANS, LEVEL_TR, LEVELS, ROLE_TR, roleOf, type ModuleId } from '@/lib/roles'
 import { fold, initials } from '@/lib/format'
 import type { ClassRow, Profile } from '@/lib/types'
-import { Seg } from '@/components/Indicator'
 import { Modal } from '@/components/Modal'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { ProgramAdmin, YemekAdmin, YoklamaAdmin } from './OkulGunluguAdmin'
+import { DersAtamalari, DersSaatleri, Dersler, EgitimYillari, GenelAyarlar, Moduller } from './YonetimMerkezi'
 
-type Tab = 'siniflar' | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'yoklama' | 'program' | 'yemek' | 'kapali'
-const TABS: [Tab, string][] = [
-  ['siniflar', 'Sınıflar'],
-  ['ogrenciler', 'Öğrenciler'],
-  ['ogretmenler', 'Öğretmenler'],
-  ['veliler', 'Veliler'],
-  ['yoklama', 'Yoklama'],
-  ['program', 'Ders programı'],
-  ['yemek', 'Yemek listesi'],
-  ['kapali', 'Kapalı hesaplar'],
+type Tab =
+  | 'genel' | 'moduller' | 'yillar'
+  | 'siniflar' | 'dersler' | 'saatler' | 'atamalar' | 'program' | 'yoklama' | 'yemek'
+  | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali'
+/** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
+const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
+  { title: 'Genel', items: [['genel', 'Genel ayarlar'], ['moduller', 'Modüller'], ['yillar', 'Eğitim yılları']] },
+  {
+    title: 'Akademik',
+    items: [
+      ['siniflar', 'Sınıflar'],
+      ['dersler', 'Dersler'],
+      ['saatler', 'Ders saatleri'],
+      ['atamalar', 'Ders atamaları'],
+      ['program', 'Ders programı', 'ders_programi'],
+      ['yoklama', 'Yoklama', 'yoklama'],
+      ['yemek', 'Yemek listesi', 'yemek'],
+    ],
+  },
+  { title: 'Kişiler', items: [['ogrenciler', 'Öğrenciler'], ['ogretmenler', 'Öğretmenler'], ['veliler', 'Veliler'], ['kapali', 'Kapalı hesaplar']] },
 ]
+const TABS = GROUPS.flatMap((g) => g.items)
 const HARF = 'ABCDEFGHIJKLMNOPRSTUVYZ'.split('')
 
 interface Stu {
@@ -73,36 +84,71 @@ export default function YonetimPage() {
   const setTab = (t: Tab) => setSp(t === 'siniflar' ? {} : { sekme: t }, { replace: true })
   const data = useAdminData()
   const classes = useClasses()
+  const mods = useModules()
+  const school = useQuery({ queryKey: ['school-name'], queryFn: async () => (await supabase.from('schools').select('name').single()).data?.name as string })
+  const item = TABS.find(([k]) => k === tab)!
+  const off = item[2] && !mods[item[2]]
 
   return (
     <>
       <div className="head a">
         <div className="stack" style={{ gap: 4 }}>
-          <h1 className="hd">Yönetim</h1>
-          <span className="m">Sınıflar, öğrenciler, hesaplar, yoklama, ders programı ve yemek listesi. Yeni kayıtları onaylamak için Onaylar sayfası.</span>
+          <h1 className="hd">Yönetim Merkezi</h1>
+          <span className="m">
+            Okulun ayarlarını, ders yapısını ve kişilerini kod gerektirmeden buradan yönetirsin. Yeni kayıtlar için <Link to="/onaylar">Onaylar</Link>, yapay zekâ ve işlem geçmişi için{' '}
+            <Link to="/ayarlar">Sistem ayarları</Link>.
+          </span>
         </div>
       </div>
-      <div style={{ overflowX: 'auto' }} className="a">
-        <Seg label="Yönetim bölümü" value={tab} onChange={setTab} options={TABS} />
+      <div className="ymc">
+        <div className="ymenu a" role="group" aria-label="Yönetim bölümü">
+          {GROUPS.map((g) => (
+            <div key={g.title} className="ygrp">
+              <span className="label">{g.title}</span>
+              {g.items.map(([k, l, m]) => (
+                <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>
+                  {l}
+                  {m && !mods[m] && <span className="chip n">kapalı</span>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="stack" style={{ minWidth: 0 }}>
+          <h2 className="a" style={{ fontSize: 20 }}>
+            {item[1]}
+          </h2>
+          {off && (
+            <div className="card a" style={{ padding: 12, fontSize: 14 }}>
+              Bu modül kapalı: veliler, öğrenciler ve öğretmenler göremez. Açmak için <button className="linkbtn" onClick={() => setTab('moduller')}>Modüller</button>.
+            </div>
+          )}
+          {data.isLoading || classes.isLoading ? (
+            <p className="m">
+              <span className="spinner" aria-hidden="true" /> Yükleniyor…
+            </p>
+          ) : data.isError || classes.isError ? (
+            <div className="empty">Yönetim verisi yüklenemedi. Sayfayı yenile.</div>
+          ) : (
+            <>
+              {tab === 'genel' && <GenelAyarlar schoolName={school.data ?? ''} />}
+              {tab === 'moduller' && <Moduller />}
+              {tab === 'yillar' && <EgitimYillari />}
+              {tab === 'siniflar' && <Siniflar classes={classes.data!} {...data.data!} />}
+              {tab === 'dersler' && <Dersler />}
+              {tab === 'saatler' && <DersSaatleri />}
+              {tab === 'atamalar' && <DersAtamalari classes={classes.data!} profiles={data.data!.profiles} />}
+              {tab === 'ogrenciler' && <Ogrenciler classes={classes.data!} {...data.data!} />}
+              {tab === 'ogretmenler' && <Ogretmenler classes={classes.data!} {...data.data!} />}
+              {tab === 'veliler' && <Veliler {...data.data!} />}
+              {tab === 'yoklama' && <YoklamaAdmin classes={classes.data!} students={data.data!.students} />}
+              {tab === 'program' && <ProgramAdmin classes={classes.data!} profiles={data.data!.profiles} />}
+              {tab === 'yemek' && <YemekAdmin />}
+              {tab === 'kapali' && <Kapali {...data.data!} />}
+            </>
+          )}
+        </div>
       </div>
-      {data.isLoading || classes.isLoading ? (
-        <p className="m">
-          <span className="spinner" aria-hidden="true" /> Yükleniyor…
-        </p>
-      ) : data.isError || classes.isError ? (
-        <div className="empty">Yönetim verisi yüklenemedi. Sayfayı yenile.</div>
-      ) : (
-        <>
-          {tab === 'siniflar' && <Siniflar classes={classes.data!} {...data.data!} />}
-          {tab === 'ogrenciler' && <Ogrenciler classes={classes.data!} {...data.data!} />}
-          {tab === 'ogretmenler' && <Ogretmenler classes={classes.data!} {...data.data!} />}
-          {tab === 'veliler' && <Veliler {...data.data!} />}
-          {tab === 'yoklama' && <YoklamaAdmin classes={classes.data!} students={data.data!.students} />}
-          {tab === 'program' && <ProgramAdmin classes={classes.data!} profiles={data.data!.profiles} />}
-          {tab === 'yemek' && <YemekAdmin />}
-          {tab === 'kapali' && <Kapali {...data.data!} />}
-        </>
-      )}
     </>
   )
 }
