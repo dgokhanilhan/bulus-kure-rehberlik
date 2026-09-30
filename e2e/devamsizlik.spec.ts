@@ -66,7 +66,7 @@ test.describe.serial('Devamsızlık', () => {
 
   test('veli: Okul sayfasında devamsızlık sınırı (bilgilendirme)', async ({ page }) => {
     await login(page, ...DEMO.veli)
-    await page.getByRole('link', { name: 'Okul' }).click()
+    await page.getByRole('link', { name: 'Okul', exact: true }).click()
     await page.locator('summary', { hasText: 'Devamsızlık' }).click()
     await expect(page.getByTestId('limit-bar').first()).toContainText('/9 gün')
     await expect(page.getByText('Bilgilendirme amaçlıdır')).toBeVisible()

@@ -55,7 +55,7 @@ test.describe.serial('Yönetim Merkezi', () => {
     await logout(page)
 
     await login(page, ...DEMO.veli)
-    await page.getByRole('link', { name: 'Okul' }).click()
+    await page.getByRole('link', { name: 'Okul', exact: true }).click()
     await expect(page.getByRole('article', { name: 'Haftalık ders programı' })).toBeVisible()
     await expect(page.getByRole('article', { name: 'Bugünün yemeği' })).toHaveCount(0)
     await expect(menu(page)).not.toContainText(['Raporlar'])
