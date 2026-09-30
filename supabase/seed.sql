@@ -801,6 +801,17 @@ insert into calendar_events (school_id, title, type, starts_on, ends_on, starts_
   ('00000000-0000-4000-8000-000000000001', 'Matematik 1. yazılı', 'yazili', current_date + 9, current_date + 9, '10:10', '10:50', null, 'sinif', (select id from classes where name = '8/A'), '{veli,ogrenci,ogretmen}', (select id from profiles where email = 'matematik@buluskure.k12.tr')),
   ('00000000-0000-4000-8000-000000000001', 'Cumhuriyet Bayramı', 'tatil', current_date + 20, current_date + 20, null, null, null, 'okul', null, '{veli,ogrenci,ogretmen}', (select id from profiles where email = 'admin@buluskure.k12.tr'));
 
+insert into attendance (school_id, student_id, day, status, note)
+select '00000000-0000-4000-8000-000000000001', (select id from students where full_name = 'Kaan Polat'), d::date, 'devamsiz', null
+from generate_series(current_date - 30, current_date - 1, interval '1 day') d
+where extract(isodow from d) < 6 and d::date >= (select starts from academic_years where is_active)
+order by d desc limit 8;
+insert into attendance (school_id, student_id, day, status, note)
+select '00000000-0000-4000-8000-000000000001', (select id from students where full_name = 'Kaan Polat'), d::date, 'raporlu', 'Grip (hastane raporu)'
+from generate_series(current_date - 40, current_date - 31, interval '1 day') d
+where extract(isodow from d) < 6 and d::date >= (select starts from academic_years where is_active)
+order by d desc limit 2;
+
 insert into meals (school_id, day, meal, items) values
   ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 0, 'ogle', 'Mercimek çorbası, tavuk sote, bulgur pilavı, ayran'),
   ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 1, 'ogle', 'Ezogelin çorbası, etli kuru fasulye, pirinç pilavı, turşu'),

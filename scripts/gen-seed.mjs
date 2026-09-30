@@ -252,6 +252,18 @@ out.push(`insert into calendar_events (school_id, title, type, starts_on, ends_o
   (${q(SCHOOL)}, 'Matematik 1. yazılı', 'yazili', current_date + 9, current_date + 9, '10:10', '10:50', null, 'sinif', (select id from classes where name = '8/A'), '{veli,ogrenci,ogretmen}', (select id from profiles where email = 'matematik@buluskure.k12.tr')),
   (${q(SCHOOL)}, 'Cumhuriyet Bayramı', 'tatil', current_date + 20, current_date + 20, null, null, null, 'okul', null, '{veli,ogrenci,ogretmen}', (select id from profiles where email = 'admin@buluskure.k12.tr'));
 `)
+// Devamsızlık örneği (0016): bir öğrencinin bu dönemde 8 gün raporsuz devamsızlığı (sarı uyarı)
+out.push(`insert into attendance (school_id, student_id, day, status, note)
+select ${q(SCHOOL)}, (select id from students where full_name = 'Kaan Polat'), d::date, 'devamsiz', null
+from generate_series(current_date - 30, current_date - 1, interval '1 day') d
+where extract(isodow from d) < 6 and d::date >= (select starts from academic_years where is_active)
+order by d desc limit 8;
+insert into attendance (school_id, student_id, day, status, note)
+select ${q(SCHOOL)}, (select id from students where full_name = 'Kaan Polat'), d::date, 'raporlu', 'Grip (hastane raporu)'
+from generate_series(current_date - 40, current_date - 31, interval '1 day') d
+where extract(isodow from d) < 6 and d::date >= (select starts from academic_years where is_active)
+order by d desc limit 2;
+`)
 const YEMEK = ['Mercimek çorbası, tavuk sote, bulgur pilavı, ayran', 'Ezogelin çorbası, etli kuru fasulye, pirinç pilavı, turşu', 'Yayla çorbası, fırın köfte, patates püresi, mevsim salata', 'Domates çorbası, zeytinyağlı taze fasulye, makarna, yoğurt', 'Tarhana çorbası, izmir köfte, şehriyeli pilav, meyve']
 out.push(`insert into meals (school_id, day, meal, items) values\n  ${YEMEK.map((y, i) => `(${q(SCHOOL)}, date_trunc('week', current_date)::date + ${i}, 'ogle', ${q(y)})`).join(',\n  ')};\n`)
 

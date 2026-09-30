@@ -14,11 +14,11 @@ import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { ProgramAdmin, YemekAdmin, YoklamaAdmin } from './OkulGunluguAdmin'
-import { BildirimAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
+import { BildirimAyarlari, YoklamaAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
 
 type Tab =
   | 'genel' | 'moduller' | 'yillar' | 'dosya' | 'bildirim' | 'takvim'
-  | 'siniflar' | 'dersler' | 'saatler' | 'atamalar' | 'program' | 'yoklama' | 'yemek' | 'odev'
+  | 'siniflar' | 'dersler' | 'saatler' | 'atamalar' | 'program' | 'yoklama' | 'yoklama_ayar' | 'yemek' | 'odev'
   | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
@@ -32,6 +32,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['atamalar', 'Ders atamaları'],
       ['program', 'Ders programı', 'ders_programi'],
       ['yoklama', 'Yoklama', 'yoklama'],
+      ['yoklama_ayar', 'Yoklama ayarları', 'yoklama'],
       ['yemek', 'Yemek listesi', 'yemek'],
       ['odev', 'Ödev ayarları', 'odev'],
       ['takvim', 'Takvim ayarları', 'takvim'],
@@ -149,6 +150,7 @@ export default function YonetimPage() {
               {tab === 'yoklama' && <YoklamaAdmin classes={classes.data!} students={data.data!.students} />}
               {tab === 'program' && <ProgramAdmin classes={classes.data!} profiles={data.data!.profiles} />}
               {tab === 'yemek' && <YemekAdmin />}
+              {tab === 'yoklama_ayar' && <YoklamaAyarlari />}
               {tab === 'odev' && <OdevAyarlari />}
               {tab === 'kapali' && <Kapali {...data.data!} />}
             </>

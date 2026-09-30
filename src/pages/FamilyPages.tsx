@@ -8,6 +8,7 @@ import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useModu
 import { GUN, addDays, ago, gen, isoDow, localDate, localHM, todayISO, trD, trDW, weekStart } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { Icon } from '@/components/Icon'
+import { LimitBars, useAttendanceLimits } from '@/components/Devamsizlik'
 import { Dropdown, Seg } from '@/components/Indicator'
 import { LineChart } from '@/components/LineChart'
 import { TaskList } from '@/components/Tasks'
@@ -277,6 +278,7 @@ export function OkulPage() {
   const att = useAttendance({ student: s?.id })
   const contacts = useChildContacts(s?.id)
   const mods = useModules()
+  const lim = useAttendanceLimits(s?.id)
   if (!s) return <Wait loading={loading} />
   const tName = (id: string | null) => contacts.data?.find((c) => c.id === id)?.full_name
   const first = s.full_name.split(' ')[0]!
@@ -417,6 +419,7 @@ export function OkulPage() {
             delay={4}
             right={cnt('devamsiz') ? <span className="chip down">{cnt('devamsiz')}</span> : undefined}
           >
+            {lim.data && <LimitBars l={lim.data} compact />}
             <div className="btns">
               {(['devamsiz', 'gec', 'izinli', 'raporlu'] as AttendanceStatus[]).map((k) => (
                 <span key={k} className={`chip ${k === 'devamsiz' && cnt(k) ? 'down' : 'n'}`}>
