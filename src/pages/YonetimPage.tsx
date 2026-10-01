@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { useClasses, useModules } from '@/lib/data'
-import { BRANS, LEVEL_TR, LEVELS, ROLE_TR, roleOf, type ModuleId } from '@/lib/roles'
+import { BRANS, isParentP, isTeacherP, LEVEL_TR, LEVELS, ROLE_TR, roleOf, type ModuleId } from '@/lib/roles'
 import { fold, initials } from '@/lib/format'
 import type { ClassRow, Profile } from '@/lib/types'
 import { Modal } from '@/components/Modal'
@@ -17,6 +17,7 @@ import { ProgramAdmin, YemekAdmin, YoklamaAdmin } from './OkulGunluguAdmin'
 import { BurslulukAdmin } from './BurslulukAdmin'
 import { AnaSayfaDuzeni, TopluAktarim } from './YonetimAktarim'
 import { InviteChip, InviteParentModal, InviteTeacherModal } from './YonetimDavet'
+import { RolesSection } from './YonetimRoller'
 import { BildirimAyarlari, YoklamaAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
 
 type Tab =
@@ -73,14 +74,15 @@ function useAdminData() {
     queryKey: ['yonetim'],
     queryFn: async () => {
       const [p, s, l] = await Promise.all([
-        supabase.from('profiles').select('*').in('status', ['approved', 'rejected']).order('full_name'),
+        supabase.from('profiles').select('*, profile_roles!profile_roles_profile_id_fkey(role)').in('status', ['approved', 'rejected']).order('full_name'),
         supabase.from('students').select('id, full_name, class_id, class_name, school_no').is('archived_at', null).order('class_name').order('full_name'),
         supabase.from('parent_links').select('parent_id, student_id, relation'),
       ])
       if (p.error) throw p.error
       if (s.error) throw s.error
       if (l.error) throw l.error
-      return { profiles: p.data as Profile[], students: s.data as Stu[], links: l.data as Link2[] }
+      const profiles = (p.data as (Profile & { profile_roles?: { role: Profile['role'] }[] })[]).map(({ profile_roles, ...x }) => ({ ...x, roles: (profile_roles ?? []).map((r) => r.role) }))
+      return { profiles: profiles as Profile[], students: s.data as Stu[], links: l.data as Link2[] }
     },
   })
 }
@@ -175,7 +177,7 @@ function useReload() {
   }
 }
 
-const teachersOf = (profiles: Profile[]) => profiles.filter((p) => p.status === 'approved' && (p.role === 'ogretmen' || p.role === 'admin'))
+const teachersOf = (profiles: Profile[]) => profiles.filter((p) => p.status === 'approved' && isTeacherP(p))
 
 // ---------------------------------------------------------------- Sınıflar
 function Siniflar({ classes, profiles, students }: { classes: ClassRow[]; profiles: Profile[]; students: Stu[] }) {
@@ -572,7 +574,10 @@ function Ogretmenler({ classes, profiles }: { classes: ClassRow[]; profiles: Pro
                       <InviteChip id={t.id} />
                     </div>
                   </td>
-                  <td>{t.role === 'admin' ? ROLE_TR.admin : `${ROLE_TR[roleOf(t)]} · ${t.branch}`}</td>
+                  <td>
+                    {t.role === 'admin' ? ROLE_TR.admin : `${ROLE_TR[roleOf({ role: 'ogretmen', branch: t.branch })]} · ${t.branch}`}
+                    {isParentP(t) && <span className="chip n" style={{ marginLeft: 6 }}>+ Veli</span>}
+                  </td>
                   <td>
                     {classes
                       .filter((c) => c.homeroom_teacher_id === t.id)
@@ -614,9 +619,10 @@ function ProfileModal({ p, onClose }: { p: Profile; onClose: () => void }) {
   const [branch, setBranch] = useState(p.branch ?? '')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const teacher = p.role !== 'admin' && isTeacherP(p)
   async function save() {
     setBusy(true)
-    const { error } = await supabase.rpc('admin_update_profile', { p_profile: p.id, p_full_name: name, p_branch: p.role === 'ogretmen' ? branch : null })
+    const { error } = await supabase.rpc('admin_update_profile', { p_profile: p.id, p_full_name: name, p_branch: teacher ? branch : null })
     setBusy(false)
     if (error) return setErr(msg(error))
     toast(`${name.trim()} güncellendi`)
@@ -644,7 +650,7 @@ function ProfileModal({ p, onClose }: { p: Profile; onClose: () => void }) {
         Ad soyad
         <input id="pName" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
       </label>
-      {p.role === 'ogretmen' && (
+      {teacher && (
         <label className="field" htmlFor="pBranch">
           Branş
           <select id="pBranch" value={branch} onChange={(e) => setBranch(e.target.value)}>
@@ -659,6 +665,7 @@ function ProfileModal({ p, onClose }: { p: Profile; onClose: () => void }) {
           {err}
         </div>
       )}
+      {(p.role === 'ogretmen' || p.role === 'veli') && p.status === 'approved' && <RolesSection p={p} />}
     </Modal>
   )
 }
@@ -717,7 +724,7 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
   const [close, setClose] = useState<Profile | null>(null)
   const [add, setAdd] = useState<Record<string, string>>({})
   const [invite, setInvite] = useState(false)
-  const veliler = profiles.filter((p) => p.role === 'veli' && p.status === 'approved')
+  const veliler = profiles.filter((p) => isParentP(p) && p.status === 'approved')
   const stu = (id: string) => students.find((s) => s.id === id)
 
   async function link(p: Profile) {
@@ -757,7 +764,10 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
                   <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <span className="av s">{initials(p.full_name)}</span>
                     <span>
-                      <b style={{ display: 'block' }}>{p.full_name}</b>
+                      <b style={{ display: 'block' }}>
+                        {p.full_name}
+                        {isTeacherP(p) && <span className="chip n" style={{ marginLeft: 6 }}>+ Öğretmen</span>}
+                      </b>
                       <span className="m" style={{ fontSize: 13 }}>
                         {p.declared.relation ?? 'Veli'} · {p.email}
                         {p.phone ? ` · ${p.phone}` : ''}

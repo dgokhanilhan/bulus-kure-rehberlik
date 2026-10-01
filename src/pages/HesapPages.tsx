@@ -1,9 +1,11 @@
 // Davet / şifre sıfırlama bağlantısıyla gelen kişi: şifre belirleme. Davetle açılan hesap: ilk girişte KVKK onayı (Faz F · 0017).
+// Öğretmen + veli rolü olan hesap: girişten sonra rol seçimi (0020).
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { KVKK_VERSION } from '@/lib/kvkk'
 import { useAuth } from '@/auth/AuthProvider'
+import { SWITCH_TR } from '@/lib/roles'
 import { Icon } from '@/components/Icon'
 import { AuthLayout } from './AuthPage'
 
@@ -92,6 +94,29 @@ export function ConsentPage() {
         <button className="btn pri" style={{ minHeight: 50, fontSize: 16 }} disabled={!ok || busy} onClick={accept}>
           {busy && <span className="spinner" aria-hidden="true" />} Onayla ve devam et
         </button>
+        <button type="button" className="btn ghost sm" onClick={() => signOut()}>
+          Çıkış yap
+        </button>
+      </div>
+    </AuthLayout>
+  )
+}
+
+/** İki rollü hesap: "Nasıl devam etmek istersiniz?" Seçim yalnız ekranı belirler; yetki veritabanında. */
+export function RolePickPage() {
+  const { profile, switchable, switchRole, signOut } = useAuth()
+  return (
+    <AuthLayout>
+      <div className="stack a">
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>Nasıl devam etmek istersiniz?</h2>
+        <p className="m">
+          {profile ? `${profile.full_name}, ` : ''}hesabınızda öğretmen ve veli rolleri var. İstediğiniz zaman profil menüsündeki <b>Rol değiştir</b> ile geçebilirsiniz.
+        </p>
+        {switchable.map((r) => (
+          <button key={r} className={`btn ${r === 'ogretmen' ? 'pri' : ''}`} style={{ minHeight: 54, fontSize: 16 }} onClick={() => switchRole(r)}>
+            <Icon name={r === 'ogretmen' ? 'book' : 'users'} size={18} /> {SWITCH_TR[r]} olarak devam et
+          </button>
+        ))}
         <button type="button" className="btn ghost sm" onClick={() => signOut()}>
           Çıkış yap
         </button>

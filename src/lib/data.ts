@@ -5,6 +5,7 @@ import { supabase } from './supabase'
 import type { Dataset, Exam, Outcome, Question, Result, Subject } from './analiz'
 import type { ClassRow, Student } from './types'
 import { MODULE_DEFAULTS, type Modules } from './roles'
+import { useAuth } from '@/auth/AuthProvider'
 
 async function all<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await q
@@ -14,12 +15,31 @@ async function all<T>(q: PromiseLike<{ data: unknown; error: { message: string }
 
 const STALE = 60_000
 
+/**
+ * İki rollü hesabın seçili rolü (0020). Yetki veritabanında rollerin toplamıdır; ekranda yalnız seçili rolün verisi gösterilir.
+ * Tek rollü hesapta null (süzme yok).
+ */
+function useDualMode(): { uid: string; as: 'veli' | 'ogretmen' } | null {
+  const { profile, switchable } = useAuth()
+  return profile && switchable.length && (profile.role === 'veli' || profile.role === 'ogretmen') ? { uid: profile.id, as: profile.role } : null
+}
+
 export function useStudents() {
+  const { profile } = useAuth()
+  // Veli olarak: yalnız bağlı çocuklar (öğretmen rolü olan velinin okulun tüm öğrencilerini görmesi ekranda istenmez)
+  const parentOf = profile?.role === 'veli' ? profile.id : null
   return useQuery({
-    queryKey: ['students'],
+    queryKey: ['students', parentOf ? 'veli' : 'hepsi'],
     staleTime: STALE,
-    queryFn: () =>
-      all<Student>(supabase.from('students').select('id, full_name, class_name, class_id, school_no, target_score').is('archived_at', null).order('class_name').order('full_name')),
+    queryFn: async () => {
+      let q = supabase.from('students').select('id, full_name, class_name, class_id, school_no, target_score').is('archived_at', null)
+      if (parentOf) {
+        const { data, error } = await supabase.from('parent_links').select('student_id').eq('parent_id', parentOf)
+        if (error) throw new Error(error.message)
+        q = q.in('id', (data ?? []).map((r) => r.student_id as string))
+      }
+      return all<Student>(q.order('class_name').order('full_name'))
+    },
   })
 }
 
@@ -53,8 +73,10 @@ export interface CalEvent {
   created_by: string | null
 }
 export function useCalendar(from: string, to: string) {
+  const dual = useDualMode()
   return useQuery({
     queryKey: ['calendar', from, to],
+    select: dual ? (l: CalEvent[]) => l.filter((e) => e.created_by === dual.uid || e.teacher_id === dual.uid || e.audience.includes(dual.as)) : undefined,
     queryFn: () =>
       all<CalEvent>(
         supabase.from('calendar_events').select('id, title, description, type, starts_on, ends_on, starts_at, ends_at, location, target, level, class_id, student_id, teacher_id, course_id, audience, created_by').lte('starts_on', to).gte('ends_on', from).order('starts_on').order('starts_at', { nullsFirst: true }),
@@ -275,8 +297,10 @@ export interface Announcement {
   created_at: string
 }
 export function useAnnouncements() {
+  const dual = useDualMode()
   return useQuery({
     queryKey: ['announcements'],
+    select: dual ? (l: Announcement[]) => l.filter((a) => a.created_by === dual.uid || a.audience.includes(dual.as)) : undefined,
     queryFn: () => all<Announcement>(supabase.from('announcements').select('id, title, body, scope, level, class_id, audience, created_by, author_name, created_at').order('created_at', { ascending: false }).limit(200)),
   })
 }
@@ -296,9 +320,12 @@ export interface Conversation {
 }
 /** Yazışmalarım (yönetici: okulun bütün yazışmaları). 30 sn'de bir tazelenir. */
 export function useConversations(enabled = true) {
+  const dual = useDualMode()
   return useQuery({
     queryKey: ['conversations'],
     enabled,
+    // İki rollü hesap: veli olarak yalnız veli sıfatıyla, öğretmen olarak yalnız öğretmen sıfatıyla yazışmalar
+    select: dual ? (l: Conversation[]) => l.filter((c) => (dual.as === 'veli' ? c.parent_id : c.teacher_id) === dual.uid) : undefined,
     refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('my_conversations')
@@ -436,6 +463,7 @@ export interface PersonLite {
   id: string
   full_name: string
   role: string
+  roles?: string[]
   branch: string | null
   student_id: string | null
 }
@@ -445,7 +473,10 @@ export function usePeople() {
   return useQuery({
     queryKey: ['people'],
     staleTime: STALE,
-    queryFn: () => all<PersonLite>(supabase.from('profiles').select('id, full_name, role, branch, student_id').eq('status', 'approved')),
+    queryFn: async () =>
+      (await all<PersonLite & { profile_roles?: { role: string }[] }>(
+        supabase.from('profiles').select('id, full_name, role, branch, student_id, profile_roles!profile_roles_profile_id_fkey(role)').eq('status', 'approved'),
+      )).map(({ profile_roles, ...p }) => ({ ...p, roles: (profile_roles ?? []).map((r) => r.role) })),
   })
 }
 

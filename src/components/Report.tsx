@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
-import { isFullAccess, ROLE_TR, roleOf } from '@/lib/roles'
+import { isFullAccess, isTeacherP, ROLE_TR, roleOf } from '@/lib/roles'
 import { SUBJECTS, fmt, totalNet, type Dataset } from '@/lib/analiz'
 import { useDataset, useNotes, usePeople, useRefresh, useStudents, useTasks, useParentLinks } from '@/lib/data'
 import { aiPayload, genVeli, reportData, type OgretmenBody, type VeliBody } from '@/lib/rapor'
@@ -169,7 +169,7 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
 
   const hasParent = links.data?.some((l) => l.student_id === s.id) ?? false
   const hasStudent = people.data?.some((p) => p.role === 'ogrenci' && p.student_id === s.id) ?? false
-  const teachers = (people.data ?? []).filter((p) => p.role === 'ogretmen' && p.id !== profile?.id)
+  const teachers = (people.data ?? []).filter((p) => p.role !== 'admin' && isTeacherP(p) && p.id !== profile?.id)
 
   async function send() {
     const rid = await save(true)

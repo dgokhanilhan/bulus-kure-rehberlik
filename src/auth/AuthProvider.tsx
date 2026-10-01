@@ -3,13 +3,40 @@ import type { Session } from '@supabase/supabase-js'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PW_FLAG, supabase } from '@/lib/supabase'
 import type { Profile, Role } from '@/lib/types'
-import { roleOf } from '@/lib/roles'
+import { roleOf, type SwitchRole } from '@/lib/roles'
+import type { DbRole } from '@/lib/types'
+
+// Seçili rol (yalnız ekran bağlamı; yetki veritabanında has_role ile). Yenilemede korunur, çıkışta ve yeni girişte silinir.
+const ROLE_KEY = 'bk.rol'
+function readChoice(uid: string): SwitchRole | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(ROLE_KEY) ?? 'null') as { uid?: string; role?: string } | null
+    return v?.uid === uid && (v.role === 'ogretmen' || v.role === 'veli') ? v.role : null
+  } catch {
+    return null
+  }
+}
+export function clearRoleChoice() {
+  try {
+    localStorage.removeItem(ROLE_KEY)
+  } catch {
+    /* yok say */
+  }
+}
 
 interface AuthState {
   ready: boolean
   session: Session | null
+  /** Seçili role göre görünen profil: iki rollü hesapta role alanı seçili roldür (ekran kararları için). */
   profile: Profile | null
   role: Role | null
+  /** Hesabın bütün rolleri (profile_roles). */
+  roles: DbRole[]
+  /** Öğretmen + veli birlikteyse geçiş yapılabilen roller; tek rolde boş. */
+  switchable: SwitchRole[]
+  /** İki rollü hesapta henüz rol seçilmedi (giriş sonrası seçim ekranı). */
+  needRole: boolean
+  switchRole: (r: SwitchRole) => void
   /** Oturumun mevcut güvence seviyesi: aal2 = TOTP doğrulandı. */
   aal: 'aal1' | 'aal2' | null
   /** Davet/sıfırlama bağlantısıyla gelindi: önce şifre belirlenir. */
@@ -56,7 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s)
       if (event === 'PASSWORD_RECOVERY') setNeedPassword(true)
-      if (event === 'SIGNED_OUT') qc.clear()
+      if (event === 'SIGNED_OUT') {
+        clearRoleChoice()
+        qc.clear()
+      }
       if (event === 'MFA_CHALLENGE_VERIFIED' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         qc.invalidateQueries({ queryKey: ['me'] })
       }
@@ -70,21 +100,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     enabled: !!uid,
     staleTime: 30_000,
     queryFn: async () => {
-      const [{ data: profile, error }, { data: aal }] = await Promise.all([
+      const [{ data: profile, error }, { data: aal }, { data: roles }] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', uid!).maybeSingle<Profile>(),
         supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+        supabase.from('profile_roles').select('role').eq('profile_id', uid!),
       ])
       if (error) throw error
-      return { profile, aal: (aal?.currentLevel ?? 'aal1') as 'aal1' | 'aal2' }
+      const list = (roles ?? []).map((r) => r.role as DbRole)
+      return { profile: profile ? { ...profile, roles: list.length ? list : [profile.role] } : null, aal: (aal?.currentLevel ?? 'aal1') as 'aal1' | 'aal2' }
     },
   })
 
-  const profile = me.data?.profile ?? null
+  const base = me.data?.profile ?? null
+  const roles = base?.roles ?? []
+  const switchable: SwitchRole[] = roles.includes('ogretmen') && roles.includes('veli') ? ['ogretmen', 'veli'] : []
+  const [picked, setPicked] = useState<{ uid: string; role: SwitchRole } | null>(null)
+  const choice = uid ? (picked?.uid === uid ? picked.role : readChoice(uid)) : null
+  const active = switchable.length && choice && switchable.includes(choice) ? choice : null
+  const profile = base && active ? { ...base, role: active } : base
   const value: AuthState = {
     ready: loaded && (!uid || me.data !== undefined || me.isError),
     session,
     profile,
     role: profile ? roleOf(profile) : null,
+    roles,
+    switchable,
+    needRole: switchable.length > 0 && !active,
+    switchRole: (r) => {
+      if (!uid || !switchable.includes(r)) return
+      try {
+        localStorage.setItem(ROLE_KEY, JSON.stringify({ uid, role: r }))
+      } catch {
+        /* yalnız bu oturum için geçerli olur */
+      }
+      // Önceki rolün ekran verisi karışmasın: oturum dışındaki önbelleği sıfırla
+      qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' })
+      setPicked({ uid, role: r })
+    },
     aal: me.data?.aal ?? null,
     needPassword,
     passwordSet: () => {
@@ -97,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       qc.invalidateQueries({ queryKey: ['me'] })
     },
     signOut: async () => {
+      clearRoleChoice()
       await supabase.auth.signOut()
     },
   }
@@ -104,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 /** Oturumun nereye gitmesi gerektiği: tek yerde karar verilir. */
-export type Gate = 'loading' | 'login' | 'password' | 'consent' | 'mfa' | 'pending' | 'app'
+export type Gate = 'loading' | 'login' | 'password' | 'consent' | 'mfa' | 'pending' | 'rol' | 'app'
 export function gateOf(a: AuthState): Gate {
   if (!a.ready) return 'loading'
   if (!a.session) return 'login'
@@ -114,5 +167,6 @@ export function gateOf(a: AuthState): Gate {
   // Yöneticinin davetiyle açılan hesap KVKK metnini ilk girişte onaylar (0017)
   if (a.profile.invited_at && !a.profile.consent_version) return 'consent'
   if (a.profile.role === 'admin' && a.aal !== 'aal2') return 'mfa'
+  if (a.needRole) return 'rol'
   return 'app'
 }

@@ -6,6 +6,7 @@ import { BRANS, LEVEL_TR, LEVELS, YAKINLIK, type Level } from '@/lib/roles'
 import { Globe, Icon, SchoolLogo } from '@/components/Icon'
 import { useSchoolInfo } from '@/lib/files'
 import { Dropdown, Seg } from '@/components/Indicator'
+import { clearRoleChoice } from '@/auth/AuthProvider'
 
 export function AuthLayout({ children }: { children: ReactNode }) {
   const info = useSchoolInfo()
@@ -112,6 +113,7 @@ function LoginForm({ onStep }: { onStep: (s: Step) => void }) {
     setErr(null)
     setUnconfirmed(false)
     setBusy(true)
+    clearRoleChoice() // iki rollü hesap her girişte rolünü seçer
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: pass })
     setBusy(false)
     if (error) {

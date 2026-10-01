@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { EVENT_COLOR, EVENT_TR, useAssignments, useCalendar, useClasses, useCourses, useHomework, usePeople, useSettings, useStudents, type CalEvent, type EventType } from '@/lib/data'
-import { LEVEL_TR, LEVELS, type Level } from '@/lib/roles'
+import { isTeacherP, LEVEL_TR, LEVELS, type Level } from '@/lib/roles'
 import { GUN, addDays, isoDow, todayISO, trD, trDW } from '@/lib/format'
 import { Modal } from '@/components/Modal'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
@@ -260,7 +260,7 @@ function EventModal({ e, onClose }: { e: CalEvent | null; onClose: () => void })
   }, [asg.data, classes.data, profile?.id])
   const clsOpts = (classes.data ?? []).filter((c) => staff || myClassIds.has(c.id))
   const stuOpts = (students.data ?? []).filter((s) => staff || (s.class_id && myClassIds.has(s.class_id)))
-  const teachers = (people.data ?? []).filter((p) => p.role === 'ogretmen' || p.role === 'admin')
+  const teachers = (people.data ?? []).filter(isTeacherP)
   const targets: [CalEvent['target'], string][] = staff
     ? [['okul', 'Tüm okul'], ['kademe', 'Kademe'], ['sinif', 'Sınıf'], ['ogrenci', 'Öğrenci'], ['ogretmen', 'Öğretmen']]
     : [['sinif', 'Sınıfım'], ['ogrenci', 'Öğrencim'], ['ogretmen', 'Kendim']]
