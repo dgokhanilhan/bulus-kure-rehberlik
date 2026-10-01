@@ -36,6 +36,8 @@ export interface Student {
   class_id?: string | null
   school_no: string | null
   target_score?: number | null
+  /** Sınıf seviyesi (classes.grade); sınıfı yoksa null. LGS/YKS uygunluğu buna göre (examTrack). */
+  grade?: number | null
 }
 
 export interface ClassRow {

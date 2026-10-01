@@ -13,8 +13,8 @@ async function axe(page: Page, label: string) {
 const svc = service()
 const stamp = Date.now() % 100000
 const T = { name: `Deniz Çiftrol ${stamp}`, email: `e2e-ciftrol-${stamp}@ornek.com`, pass: 'Ciftrol123!', id: '' }
-const TEACHER_MENU = ['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', /^İletişim/]
-const FAMILY_MENU = ['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Takvim', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler']
+const TEACHER_MENU = ['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', 'Duyurular', /^İletişim/]
+const FAMILY_MENU = ['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Takvim', 'Duyurular', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler']
 const role = (page: Page) => page.getByRole('button', { name: /^Profil:/ })
 
 test.describe.serial('Çoklu rol', () => {

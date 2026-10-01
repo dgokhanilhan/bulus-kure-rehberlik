@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase, SOURCE_URL } from '@/lib/supabase'
 import { gateOf, useAuth } from '@/auth/AuthProvider'
 import { navItems, ROLE_HINT, ROLE_TR, SWITCH_TR } from '@/lib/roles'
-import { useConversations, useModules } from '@/lib/data'
+import { useConversations, useFamilyTracks, useModules } from '@/lib/data'
 import type { Notification } from '@/lib/types'
 import { ago, initials } from '@/lib/format'
 import { Icon, SchoolLogo } from './Icon'
@@ -260,7 +260,8 @@ export function AppShell() {
   const logout = useLogout()
   const loc = useLocation()
   const mods = useModules()
-  const items = navItems(role!, mods)
+  const fam = useFamilyTracks(role === 'veli' || role === 'ogrenci')
+  const items = navItems(role!, mods, fam)
   const pending = usePendingCount(role === 'admin')
   const convs = useConversations(role !== 'ogrenci')
   const unread = (convs.data ?? []).reduce((n, c) => n + c.unread, 0)

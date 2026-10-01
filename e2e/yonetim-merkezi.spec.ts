@@ -62,7 +62,7 @@ test.describe.serial('Yönetim Merkezi', () => {
     await logout(page)
 
     await login(page, ...DEMO.rehber)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Duyurular', /^İletişim/])
     await logout(page)
 
     await loginAdmin(page, secret)
@@ -126,7 +126,7 @@ test.describe.serial('Yönetim Merkezi', () => {
     await logout(page)
 
     await login(page, ...DEMO.matematik)
-    await page.getByRole('link', { name: /İletişim/ }).click()
+    await page.getByRole('link', { name: 'Duyurular', exact: true }).click()
     await page.getByRole('button', { name: 'Duyuru yaz' }).click()
     await expect(page.getByRole('dialog', { name: 'Duyuru yaz' }).getByLabel('Sınıf').locator('option')).toHaveText(['8/A', '8/B'])
   })
