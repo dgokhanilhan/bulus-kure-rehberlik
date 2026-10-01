@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { useAcademicYears, useAssignments, useBellTimes, useCourses, useModules, useSettings, type AcademicYear, type Course } from '@/lib/data'
-import { LEVEL_TR, LEVELS, MODULE_DEFAULTS, type Level, type ModuleId } from '@/lib/roles'
+import { isTeacherP, LEVEL_TR, LEVELS, MODULE_DEFAULTS, type Level, type ModuleId } from '@/lib/roles'
 import { trD } from '@/lib/format'
 import type { ClassRow, Profile } from '@/lib/types'
 import { Modal } from '@/components/Modal'
@@ -645,7 +645,7 @@ export function DersAtamalari({ classes, profiles }: { classes: ClassRow[]; prof
   const [view, setView] = useState<'sinif' | 'ogretmen'>('sinif')
   const [cls, setCls] = useState(classes[0]?.id ?? '')
   const [f, setF] = useState({ course: '', teacher: '' })
-  const teachers = profiles.filter((p) => p.status === 'approved' && (p.role === 'ogretmen' || p.role === 'admin'))
+  const teachers = profiles.filter((p) => p.status === 'approved' && isTeacherP(p))
   const cur = classes.find((c) => c.id === cls)
   const activeCourses = (courses.data ?? []).filter((c) => c.active && (!cur || !c.levels.length || c.levels.includes(cur.level)))
   const cName = (id: string) => courses.data?.find((c) => c.id === id)?.name ?? '—'

@@ -25,6 +25,8 @@ export interface Profile {
   invited_at?: string | null
   consent_version?: string | null
   phone?: string | null
+  /** Uygulama rolleri (profile_roles, 0020); yoksa yalnız ana rol. */
+  roles?: DbRole[]
 }
 
 export interface Student {

@@ -18,6 +18,15 @@ export function roleOf(p: Pick<Profile, 'role' | 'branch'>): Role {
   return p.role
 }
 
+/** Kişinin bütün rolleri (0020 profile_roles). Liste yüklenmemişse ana rol. */
+export const rolesOf = (p: { role: string; roles?: string[] | null }) => (p.roles?.length ? p.roles : [p.role])
+/** Öğretmen listelerinde görünür mü: yönetici ya da öğretmen rolü olan (ana rolü veli olsa da). */
+export const isTeacherP = (p: { role: string; roles?: string[] | null }) => p.role === 'admin' || rolesOf(p).includes('ogretmen')
+export const isParentP = (p: { role: string; roles?: string[] | null }) => rolesOf(p).includes('veli')
+/** Tek hesapta geçiş yapılabilen roller (yalnız öğretmen + veli birlikteyse). */
+export type SwitchRole = 'ogretmen' | 'veli'
+export const SWITCH_TR: Record<SwitchRole, string> = { ogretmen: 'Öğretmen', veli: 'Veli' }
+
 export const ROLE_TR: Record<Role, string> = {
   admin: 'Yönetici',
   rehber: 'Rehber öğretmen',

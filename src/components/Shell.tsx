@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase, SOURCE_URL } from '@/lib/supabase'
 import { gateOf, useAuth } from '@/auth/AuthProvider'
-import { navItems, ROLE_HINT, ROLE_TR } from '@/lib/roles'
+import { navItems, ROLE_HINT, ROLE_TR, SWITCH_TR } from '@/lib/roles'
 import { useConversations, useModules } from '@/lib/data'
 import type { Notification } from '@/lib/types'
 import { ago, initials } from '@/lib/format'
@@ -63,8 +63,9 @@ export function useLogout() {
 
 /** Profil kartı: tıklanınca kişi bilgisi ve "Çıkış yap" açılır. */
 function ProfileMenu() {
-  const { profile, role, session } = useAuth()
+  const { profile, role, session, switchable, switchRole } = useAuth()
   const logout = useLogout()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -111,6 +112,30 @@ function ProfileMenu() {
               Okul ayarları
             </Link>
           )}
+          {switchable.length > 0 && (
+            <span className="label" style={{ padding: '10px 16px 0', display: 'block' }}>
+              Rol değiştir
+            </span>
+          )}
+          {switchable
+            .filter((r) => r !== profile.role)
+            .map((r) => (
+              <button
+                key={r}
+                className="pitem"
+                role="menuitem"
+                aria-label={`Rol değiştir: ${SWITCH_TR[r]} olarak devam et`}
+                style={{ color: 'var(--ink)' }}
+                onClick={() => {
+                  setOpen(false)
+                  switchRole(r)
+                  navigate('/')
+                }}
+              >
+                <Icon name={r === 'ogretmen' ? 'book' : 'users'} size={18} />
+                {SWITCH_TR[r]} olarak devam et
+              </button>
+            ))}
           <a className="pitem" role="menuitem" href={SOURCE_URL} target="_blank" rel="noreferrer" style={{ color: 'var(--ink-muted)', fontWeight: 500, fontSize: 13, textDecoration: 'none' }}>
             <Icon name="doc" size={18} />
             Kaynak kodu (AGPL-3.0)

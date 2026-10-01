@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { ATT_TR, MEAL_TR, useAssignments, useAttendance, useBellTimes, useCourses, useMeals, useTimetable, type AttendanceStatus, type Lesson, type MealKind } from '@/lib/data'
-import { LEVEL_TR, LEVELS } from '@/lib/roles'
+import { isTeacherP, LEVEL_TR, LEVELS } from '@/lib/roles'
 import { GUN, addDays, todayISO, trD, trDW, weekStart } from '@/lib/format'
 import type { ClassRow, Profile } from '@/lib/types'
 import { Seg } from '@/components/Indicator'
@@ -152,7 +152,7 @@ export function ProgramAdmin({ classes, profiles }: { classes: ClassRow[]; profi
   const tt = useTimetable(cls)
   const bells = useBellTimes()
   const [cell, setCell] = useState<{ weekday: number; period: number; l?: Lesson } | null>(null)
-  const teachers = profiles.filter((p) => p.status === 'approved' && (p.role === 'ogretmen' || p.role === 'admin'))
+  const teachers = profiles.filter((p) => p.status === 'approved' && isTeacherP(p))
   const lessons = tt.data ?? []
   const days = sat || lessons.some((l) => l.weekday === 6) ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5]
   // Satırlar: aktif ders saatleri + (pasif olsa da) dersi olan saatler; hiç saat yoksa 1–8

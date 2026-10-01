@@ -70,7 +70,6 @@ function useReload() {
 
 export function InviteTeacherModal({ onClose }: { onClose: () => void }) {
   const classes = useClasses()
-  const courses = useCourses()
   const toast = useToast()
   const reload = useReload()
   const [f, setF] = useState({ full_name: '', email: '', phone: '', branch: 'Matematik', homeroom: '' })
@@ -78,8 +77,6 @@ export function InviteTeacherModal({ onClose }: { onClose: () => void }) {
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const cls = classes.data ?? []
-  const act = (courses.data ?? []).filter((c) => c.active)
-  const fits = (cl: ClassRow | undefined, lv: string[]) => !cl || !lv.length || lv.includes(cl.level)
   async function send() {
     if (f.full_name.trim().length < 3) return setErr('Ad soyad en az 3 harf olmalı.')
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim())) return setErr('E-posta geçersiz.')
@@ -142,44 +139,7 @@ export function InviteTeacherModal({ onClose }: { onClose: () => void }) {
           ))}
         </select>
       </label>
-      <div className="stack" style={{ gap: 6 }}>
-        <span className="label">Ders atamaları (isteğe bağlı; sonra Ders atamaları'ndan da yapılır)</span>
-        {rows.map((r, i) => {
-          const cl = cls.find((c) => c.id === r.class_id)
-          return (
-            <div key={i} className="btns" style={{ alignItems: 'flex-end' }}>
-              <label className="field" style={{ minWidth: 110 }}>
-                <select aria-label={`${i + 1}. atama sınıf`} value={r.class_id} onChange={(e) => setRows((x) => x.map((y, j) => (j === i ? { ...y, class_id: e.target.value } : y)))}>
-                  <option value="">Sınıf</option>
-                  {cls.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field" style={{ minWidth: 180 }}>
-                <select aria-label={`${i + 1}. atama ders`} value={r.course_id} onChange={(e) => setRows((x) => x.map((y, j) => (j === i ? { ...y, course_id: e.target.value } : y)))}>
-                  <option value="">Ders</option>
-                  {act
-                    .filter((c) => fits(cl, c.levels))
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <button type="button" className="xbtn" onClick={() => setRows((x) => x.filter((_, j) => j !== i))} aria-label={`${i + 1}. atamayı kaldır`}>
-                <Icon name="x" size={14} stroke={2.4} />
-              </button>
-            </div>
-          )
-        })}
-        <button type="button" className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setRows((x) => [...x, { class_id: '', course_id: act.find((c) => c.name === f.branch)?.id ?? '' }])}>
-          <Icon name="plus" size={15} /> Ders ataması ekle
-        </button>
-      </div>
+      <AssignmentPicker rows={rows} setRows={setRows} branch={f.branch} />
       {err && (
         <div className="err" role="alert">
           {err}
@@ -189,7 +149,7 @@ export function InviteTeacherModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-interface StuLite {
+export interface StuLite {
   id: string
   full_name: string
   class_name: string
@@ -246,46 +206,105 @@ export function InviteParentModal({ students, onClose }: { students: StuLite[]; 
         Telefon (isteğe bağlı)
         <input id="vPhone" inputMode="tel" value={f.phone} onChange={set('phone')} />
       </label>
-      <div className="stack" style={{ gap: 6 }}>
-        <span className="label">Öğrenci(ler)i</span>
-        {kids.map((k, i) => (
-          <div key={i} className="btns" style={{ alignItems: 'flex-end' }}>
-            <label className="field" style={{ minWidth: 240 }}>
-              <select aria-label={`${i + 1}. öğrenci`} value={k.student_id} onChange={(e) => setKids((x) => x.map((y, j) => (j === i ? { ...y, student_id: e.target.value } : y)))}>
-                <option value="">Öğrenci seç</option>
-                {students
-                  .filter((s) => s.id === k.student_id || !kids.some((y) => y.student_id === s.id))
-                  .map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.full_name} · {s.class_name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="field" style={{ minWidth: 110 }}>
-              <select aria-label={`${i + 1}. öğrenci yakınlık`} value={k.relation} onChange={(e) => setKids((x) => x.map((y, j) => (j === i ? { ...y, relation: e.target.value } : y)))}>
-                {YAKINLIK.map((r) => (
-                  <option key={r}>{r}</option>
-                ))}
-              </select>
-            </label>
-            {kids.length > 1 && (
-              <button type="button" className="xbtn" onClick={() => setKids((x) => x.filter((_, j) => j !== i))} aria-label={`${i + 1}. öğrenciyi kaldır`}>
-                <Icon name="x" size={14} stroke={2.4} />
-              </button>
-            )}
-          </div>
-        ))}
-        <button type="button" className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setKids((x) => [...x, { student_id: '', relation: x[0]?.relation ?? 'Anne' }])}>
-          <Icon name="plus" size={15} /> Öğrenci ekle
-        </button>
-      </div>
+      <StudentPicker students={students} kids={kids} setKids={setKids} />
       {err && (
         <div className="err" role="alert">
           {err}
         </div>
       )}
     </Modal>
+  )
+}
+
+export type AssignRow = { class_id: string; course_id: string }
+/** Ders ataması seçicisi (davet ve rol ekleme ortak). */
+export function AssignmentPicker({ rows, setRows, branch }: { rows: AssignRow[]; setRows: React.Dispatch<React.SetStateAction<AssignRow[]>>; branch: string }) {
+  const classes = useClasses()
+  const courses = useCourses()
+  const cls = classes.data ?? []
+  const act = (courses.data ?? []).filter((c) => c.active)
+  const fits = (cl: ClassRow | undefined, lv: string[]) => !cl || !lv.length || lv.includes(cl.level)
+  const f = { branch }
+  return (
+  <div className="stack" style={{ gap: 6 }}>
+    <span className="label">Ders atamaları (isteğe bağlı; sonra Ders atamaları'ndan da yapılır)</span>
+    {rows.map((r, i) => {
+      const cl = cls.find((c) => c.id === r.class_id)
+      return (
+        <div key={i} className="btns" style={{ alignItems: 'flex-end' }}>
+          <label className="field" style={{ minWidth: 110 }}>
+            <select aria-label={`${i + 1}. atama sınıf`} value={r.class_id} onChange={(e) => setRows((x) => x.map((y, j) => (j === i ? { ...y, class_id: e.target.value } : y)))}>
+              <option value="">Sınıf</option>
+              {cls.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field" style={{ minWidth: 180 }}>
+            <select aria-label={`${i + 1}. atama ders`} value={r.course_id} onChange={(e) => setRows((x) => x.map((y, j) => (j === i ? { ...y, course_id: e.target.value } : y)))}>
+              <option value="">Ders</option>
+              {act
+                .filter((c) => fits(cl, c.levels))
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <button type="button" className="xbtn" onClick={() => setRows((x) => x.filter((_, j) => j !== i))} aria-label={`${i + 1}. atamayı kaldır`}>
+            <Icon name="x" size={14} stroke={2.4} />
+          </button>
+        </div>
+      )
+    })}
+    <button type="button" className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setRows((x) => [...x, { class_id: '', course_id: act.find((c) => c.name === f.branch)?.id ?? '' }])}>
+      <Icon name="plus" size={15} /> Ders ataması ekle
+    </button>
+  </div>
+  )
+}
+
+export type KidRow = { student_id: string; relation: string }
+/** Öğrenci + yakınlık seçicisi (veli daveti ve veli rolü ekleme ortak). */
+export function StudentPicker({ students, kids, setKids }: { students: StuLite[]; kids: KidRow[]; setKids: React.Dispatch<React.SetStateAction<KidRow[]>> }) {
+  return (
+  <div className="stack" style={{ gap: 6 }}>
+    <span className="label">Öğrenci(ler)i</span>
+    {kids.map((k, i) => (
+      <div key={i} className="btns" style={{ alignItems: 'flex-end' }}>
+        <label className="field" style={{ minWidth: 240 }}>
+          <select aria-label={`${i + 1}. öğrenci`} value={k.student_id} onChange={(e) => setKids((x) => x.map((y, j) => (j === i ? { ...y, student_id: e.target.value } : y)))}>
+            <option value="">Öğrenci seç</option>
+            {students
+              .filter((s) => s.id === k.student_id || !kids.some((y) => y.student_id === s.id))
+              .map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name} · {s.class_name}
+                </option>
+              ))}
+          </select>
+        </label>
+        <label className="field" style={{ minWidth: 110 }}>
+          <select aria-label={`${i + 1}. öğrenci yakınlık`} value={k.relation} onChange={(e) => setKids((x) => x.map((y, j) => (j === i ? { ...y, relation: e.target.value } : y)))}>
+            {YAKINLIK.map((r) => (
+              <option key={r}>{r}</option>
+            ))}
+          </select>
+        </label>
+        {kids.length > 1 && (
+          <button type="button" className="xbtn" onClick={() => setKids((x) => x.filter((_, j) => j !== i))} aria-label={`${i + 1}. öğrenciyi kaldır`}>
+            <Icon name="x" size={14} stroke={2.4} />
+          </button>
+        )}
+      </div>
+    ))}
+    <button type="button" className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setKids((x) => [...x, { student_id: '', relation: x[0]?.relation ?? 'Anne' }])}>
+      <Icon name="plus" size={15} /> Öğrenci ekle
+    </button>
+  </div>
   )
 }
 
