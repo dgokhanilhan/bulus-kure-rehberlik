@@ -11,6 +11,11 @@ export const LEVEL_TR: Record<Level, string> = { ilkokul: 'İlkokul', ortaokul: 
 export const LEVELS: Level[] = ['ilkokul', 'ortaokul', 'lise']
 /** LGS deneme analizi yalnız 8. sınıflar içindir. */
 export const DENEME_GRADE = 8
+/** YKS yalnız 12. sınıflar içindir (YKS veri kaynağı henüz yok: ekranda hiçbir YKS verisi gösterilmez). */
+export const YKS_GRADE = 12
+export type ExamTrack = 'lgs' | 'yks' | null
+/** Sınıf seviyesine göre sınav izi: 8 → LGS, 12 → YKS, diğerleri → yok. Sınıf adından değil classes.grade'den. */
+export const examTrack = (grade: number | null | undefined): ExamTrack => (grade === DENEME_GRADE ? 'lgs' : grade === YKS_GRADE ? 'yks' : null)
 export const YAKINLIK = ['Anne', 'Baba', 'Vasi', 'Diğer'] as const
 
 export function roleOf(p: Pick<Profile, 'role' | 'branch'>): Role {
@@ -39,12 +44,12 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'odevler' | 'takvim' | 'bildirimler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
-  | 'panel' | 'ozet' | 'okul' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler'
+  | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler'
 
 export interface NavItem {
   id: PageId
   label: string
-  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark'
+  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega'
 }
 
 const STAFF: NavItem[] = [
@@ -55,6 +60,8 @@ const STAFF: NavItem[] = [
   { id: 'denemeler', label: 'Denemeler', icon: 'doc' },
   { id: 'siniflar', label: 'Sınıflar', icon: 'grid' },
 ]
+// Duyurular ve iletişim (mesajlaşma) ayrı sayfalar; eski /iletisim?sekme=duyurular bağlantıları /duyurular'a yönlenir.
+const DUYURULAR: NavItem = { id: 'duyurular', label: 'Duyurular', icon: 'mega' }
 const ILETISIM: NavItem = { id: 'iletisim', label: 'İletişim', icon: 'chat' }
 const PANEL: NavItem = { id: 'panel', label: 'Ana sayfa', icon: 'home' }
 const FAMILY: NavItem[] = [
@@ -63,7 +70,8 @@ const FAMILY: NavItem[] = [
   { id: 'okul', label: 'Okul', icon: 'grid' },
   { id: 'odevler', label: 'Ödevler', icon: 'book' },
   { id: 'takvim', label: 'Takvim', icon: 'cal' },
-  { id: 'iletisim', label: 'İletişim', icon: 'chat' },
+  DUYURULAR,
+  ILETISIM,
   { id: 'gorevler', label: 'Görevler', icon: 'task' },
   { id: 'raporlar', label: 'Raporlar', icon: 'doc' },
   { id: 'gorusmeler', label: 'Görüşmeler', icon: 'cal' },
@@ -71,9 +79,10 @@ const FAMILY: NavItem[] = [
 
 /** Rol bazlı menü — prototipteki navItems() ile aynı. Yetki ayrıca veritabanında (RLS) zorlanır. */
 function navFor(r: Role): NavItem[] {
-  if (r === 'admin') return [...STAFF, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
-  if (r === 'rehber') return [...STAFF, ILETISIM]
-  if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, ILETISIM]
+  if (r === 'admin') return [...STAFF, DUYURULAR, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
+  if (r === 'rehber') return [...STAFF, DUYURULAR, ILETISIM]
+  if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, DUYURULAR, ILETISIM]
+  if (r === 'ogrenci') return FAMILY.filter((n) => n.id !== 'iletisim') // öğrenci mesajlaşmaz; duyuruları görür
   return FAMILY
 }
 
@@ -85,17 +94,23 @@ export const MODULE_DEFAULTS: Modules = { lgs: true, yoklama: true, ders_program
 /** Sayfanın bağlı olduğu modüller: hepsi kapalıysa sayfa menüden kalkar. */
 const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
   denemeler: ['lgs'],
-  ozet: ['lgs'],
   siniflar: ['lgs'],
   odevler: ['odev'],
   takvim: ['takvim'],
   raporlar: ['lgs'],
   okul: ['yoklama', 'ders_programi', 'yemek'],
-  iletisim: ['duyuru', 'mesaj'],
+  duyurular: ['duyuru'],
+  iletisim: ['mesaj'],
 }
 
-export function navItems(r: Role, mods: Modules = MODULE_DEFAULTS): NavItem[] {
-  return navFor(r).filter((n) => !PAGE_MODULES[n.id] || PAGE_MODULES[n.id]!.some((m) => mods[m]))
+/**
+ * fam.lgs: veli/öğrenci için LGS'ye uygun (8. sınıf) çocuk var mı. Yoksa ya da LGS modülü kapalıysa sayfa "Özet" adını alır
+ * ve LGS bölümü gösterilmez; görevler, görüşmeler, raporlar, öğretmen notları ve etütler herkes için kalır.
+ */
+export function navItems(r: Role, mods: Modules = MODULE_DEFAULTS, fam: { lgs: boolean } = { lgs: true }): NavItem[] {
+  return navFor(r)
+    .filter((n) => !PAGE_MODULES[n.id] || PAGE_MODULES[n.id]!.some((m) => mods[m]))
+    .map((n) => (n.id === 'ozet' && !(fam.lgs && mods.lgs) ? { ...n, label: 'Özet' } : n))
 }
 
 export const ROLE_HINT: Record<Role, string> = {

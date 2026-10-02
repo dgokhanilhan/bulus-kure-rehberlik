@@ -32,7 +32,7 @@ test.describe.serial('Dosyalar', () => {
   test('veli mesajına PDF ekler; öğretmen eki görür', async ({ page }) => {
     await login(page, ...DEMO.veli)
     await inApp(page)
-    await page.goto('/iletisim?sekme=mesajlar')
+    await page.goto('/iletisim')
     await page.getByRole('button', { name: 'Yeni mesaj' }).click()
     const dlg = page.getByRole('dialog', { name: 'Yeni mesaj' })
     await dlg.getByLabel('Kime').selectOption({ label: 'Murat Kaya · Matematik' })
@@ -48,7 +48,7 @@ test.describe.serial('Dosyalar', () => {
 
     await login(page, ...DEMO.matematik)
     await inApp(page)
-    await page.goto('/iletisim?sekme=mesajlar')
+    await page.goto('/iletisim')
     await page.getByTestId('conversation').first().click()
     const pop = page.waitForEvent('popup')
     await page.getByRole('button', { name: 'odev-sayfa.pdf dosyasını aç' }).click()
@@ -58,7 +58,7 @@ test.describe.serial('Dosyalar', () => {
 
   test('rehberlik kapak görselli ve PDF ekli duyuru yayınlar; veli görür', async ({ page }) => {
     await login(page, ...DEMO.rehber)
-    await page.getByRole('link', { name: /İletişim/ }).click()
+    await page.getByRole('link', { name: 'Duyurular', exact: true }).click()
     await page.getByRole('button', { name: 'Duyuru yaz' }).click()
     const dlg = page.getByRole('dialog', { name: 'Duyuru yaz' })
     await dlg.getByLabel('Başlık').fill('E2E Çanakkale gezisi')
@@ -70,7 +70,7 @@ test.describe.serial('Dosyalar', () => {
     await logout(page)
 
     await login(page, ...DEMO.veli)
-    await page.getByRole('link', { name: /İletişim/ }).click()
+    await page.getByRole('link', { name: 'Duyurular', exact: true }).click()
     const card = page.getByRole('article', { name: 'E2E Çanakkale gezisi' })
     await expect(card.getByRole('img', { name: /kapak görseli/ })).toBeVisible()
     await expect(card.getByRole('button', { name: 'veli-izin-belgesi.pdf dosyasını aç' })).toBeVisible()

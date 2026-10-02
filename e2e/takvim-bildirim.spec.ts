@@ -103,7 +103,7 @@ test.describe.serial('Takvim ve bildirimler', () => {
     await nav.getByRole('button', { name: 'Daha' }).click()
     const menu = page.getByRole('menu', { name: 'Diğer sayfalar' })
     await expect(nav.getByRole('link', { name: 'Ödevler' })).toBeVisible()
-    await expect(menu.getByRole('menuitem')).toHaveText(['Takvim', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(menu.getByRole('menuitem')).toHaveText(['Takvim', 'Duyurular', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
     await menu.getByRole('menuitem', { name: 'Görüşmeler' }).click()
     await expect(page).toHaveURL(/\/gorusmeler$/)
     await expect(menu).toBeHidden()

@@ -23,7 +23,7 @@ test.describe.serial('İletişim', () => {
 
   test('rehberlik velilere okul duyurusu yayınlar', async ({ page }) => {
     await login(page, ...DEMO.rehber)
-    await page.getByRole('link', { name: 'İletişim' }).click()
+    await page.getByRole('link', { name: 'Duyurular', exact: true }).click()
     await page.getByRole('button', { name: 'Duyuru yaz' }).click()
     const dlg = page.getByRole('dialog', { name: 'Duyuru yaz' })
     await dlg.getByLabel('Başlık').fill('E2E Veli toplantısı')
@@ -37,7 +37,7 @@ test.describe.serial('İletişim', () => {
 
   test('branş öğretmeni yalnız ders verdiği sınıfa duyuru yayınlar', async ({ page }) => {
     await login(page, ...DEMO.matematik)
-    await page.getByRole('link', { name: 'İletişim' }).click()
+    await page.getByRole('link', { name: 'Duyurular', exact: true }).click()
     await page.getByRole('button', { name: 'Duyuru yaz' }).click()
     const dlg = page.getByRole('dialog', { name: 'Duyuru yaz' })
     await expect(dlg.getByRole('group', { name: 'Kapsam' })).toHaveCount(0)
@@ -51,12 +51,19 @@ test.describe.serial('İletişim', () => {
   test('veli: duyuruları görür, çocuğunun matematik öğretmenine yazar', async ({ page }) => {
     await login(page, ...DEMO.veli)
     await expectNotification(page, 'Duyuru: E2E Cetvel')
-    await page.getByRole('link', { name: 'İletişim' }).click()
+    // Duyuru bildirimi Duyurular sayfasını açar
+    await page.getByRole('button', { name: /^Bildirimler/ }).click()
+    await page.getByRole('dialog', { name: 'Bildirimler' }).getByText('Duyuru: E2E Cetvel').first().click()
+    await expect(page).toHaveURL(/\/duyurular\?d=/)
+    await expect(page.getByRole('heading', { name: 'Duyurular', exact: true })).toBeVisible()
     await expect(page.getByRole('article', { name: 'E2E Veli toplantısı' })).toBeVisible()
     await expect(page.getByRole('article', { name: 'E2E Cetvel' })).toContainText('Murat Kaya · Matematik öğretmeni')
     await axe(page, 'duyurular (veli)')
 
-    await page.getByRole('group', { name: 'İletişim bölümü' }).getByRole('button', { name: 'Mesajlar' }).click()
+    // İletişim doğrudan mesajlaşmadır (sekme yok); eski ?sekme=duyurular bağlantısı Duyurular'a gider
+    await page.getByRole('navigation', { name: 'Ana menü' }).getByRole('link', { name: /^İletişim/ }).click()
+    await expect(page.getByRole('group', { name: 'İletişim bölümü' })).toHaveCount(0)
+    await expect(page.getByRole('article', { name: 'E2E Cetvel' })).toHaveCount(0)
     await page.getByRole('button', { name: 'Yeni mesaj' }).click()
     const dlg = page.getByRole('dialog', { name: 'Yeni mesaj' })
     await dlg.getByLabel('Kime').selectOption({ label: 'Murat Kaya · Matematik' })
@@ -84,24 +91,31 @@ test.describe.serial('İletişim', () => {
 
     await login(page, ...DEMO.veli)
     await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
-    await page.goto('/iletisim?sekme=mesajlar')
+    await page.goto('/iletisim')
     await page.getByTestId('conversation').first().click()
     await expect(page.getByTestId('message').first()).toContainText('okundu')
     await expect(page.getByTestId('message').last()).toContainText('Yarın ders sonunda birlikte bakalım.')
+    // Eski bağlantılar: ?sekme=duyurular ve ?tab=duyurular → /duyurular
+    await page.goto('/iletisim?sekme=duyurular')
+    await expect(page).toHaveURL(/\/duyurular$/)
+    await page.goto('/iletisim?tab=duyurular')
+    await expect(page).toHaveURL(/\/duyurular$/)
   })
 
   test('yönetici yazışmayı görür ama yazamaz; öğrencide Mesajlar yok', async ({ page }) => {
     await loginAdmin(page)
     await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
-    await page.goto('/iletisim?sekme=mesajlar')
+    await page.goto('/iletisim')
     await page.getByTestId('conversation').first().click()
     await expect(page.getByText('Yönetici olarak bu yazışmayı yalnız görüntülüyorsun.')).toBeVisible()
     await expect(page.getByLabel('Mesajın')).toHaveCount(0)
     await logout(page)
 
     await login(page, ...DEMO.ogrenci)
-    await page.getByRole('link', { name: 'İletişim' }).click()
-    await expect(page.getByRole('group', { name: 'İletişim bölümü' })).toHaveCount(0)
+    await expect(page.getByRole('navigation', { name: 'Ana menü' }).getByRole('link', { name: 'Duyurular' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Ana menü' }).getByRole('link', { name: /^İletişim/ })).toHaveCount(0)
+    await page.goto('/iletisim?sekme=duyurular') // eski bağlantı
+    await expect(page).toHaveURL(/\/duyurular$/)
     await expect(page.getByRole('article', { name: 'E2E Cetvel' })).toBeVisible()
     await expect(page.getByRole('article', { name: 'E2E Veli toplantısı' })).toHaveCount(0)
   })
