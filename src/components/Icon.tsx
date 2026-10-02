@@ -30,6 +30,8 @@ const PATHS = {
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   repeat: '<path d="M4 12a8 8 0 0114-5.3L20 9M20 4v5h-5M20 12a8 8 0 01-14 5.3L4 15M4 20v-5h5"/>',
   flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/>',
+  play: '<path d="M8 5v14l11-7z"/>',
 } as const
 
 export type IconName = keyof typeof PATHS

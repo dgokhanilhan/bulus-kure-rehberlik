@@ -105,6 +105,7 @@ const MODULES: [ModuleId, string, string][] = [
   ['odev', 'Ödev sistemi', 'Ödev verme, kontrol, veli ve öğrenci görünümü'],
   ['takvim', 'Takvim', 'Sınav ve etkinlik takvimi, sınav hatırlatmaları'],
   ['bursluluk', 'Bursluluk', 'Bursluluk sınavı tanımlama ve herkese açık başvuru formu'],
+  ['galeri', 'Galeri', 'Okulun özel fotoğraf ve video albümleri (yalnız yetkili kullanıcılar görür)'],
 ]
 const SOON: ModuleId[] = []
 
@@ -985,6 +986,7 @@ const NOTIF: [string, string, string][] = [
   ['bildirim.gorusme', 'Görüşmeler', 'Görüşme planlandı, değişti, yanıtlandı'],
   ['bildirim.not', 'Rehberlik notları', 'Öğretmenin veliye açık notu'],
   ['bildirim.bursluluk', 'Bursluluk', 'Yeni bursluluk başvurusu (yöneticilere), salon/saat atanınca (okul öğrencisinin velisine)'],
+  ['bildirim.galeri', 'Galeri', 'Albüm yayınlanırken "Kullanıcılara bildirim gönder" seçilirse albümün kitlesine; öğretmen albümü onay bekleyince yöneticilere'],
 ]
 export function BildirimAyarlari() {
   const s = useSettings()

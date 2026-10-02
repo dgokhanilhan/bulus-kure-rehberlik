@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useOpenReport } from '@/components/Report'
 import type { Notification } from './types'
 
-type IconName = 'book' | 'chat' | 'doc' | 'cal' | 'warn' | 'task' | 'shield' | 'bell' | 'spark' | 'users'
+type IconName = 'book' | 'chat' | 'doc' | 'cal' | 'warn' | 'task' | 'shield' | 'bell' | 'spark' | 'users' | 'image'
 export const NTYPES: Record<string, { label: string; icon: IconName }> = {
   odev_yeni: { label: 'Yeni ödev', icon: 'book' },
   odev_kontrol: { label: 'Ödev kontrol edildi', icon: 'book' },
@@ -21,6 +21,7 @@ export const NTYPES: Record<string, { label: string; icon: IconName }> = {
   not: { label: 'Rehberlik notu', icon: 'doc' },
   kayit: { label: 'Kayıt', icon: 'shield' },
   bursluluk: { label: 'Bursluluk', icon: 'users' },
+  galeri: { label: 'Galeri', icon: 'image' },
   sistem: { label: 'Sistem', icon: 'warn' },
   diger: { label: 'Genel', icon: 'bell' },
 }
@@ -35,6 +36,7 @@ export function useOpenNotification() {
     if (L.report) openReport({ id: L.report })
     else if (L.homework) nav(`/odevler?odev=${L.homework}`)
     else if (L.event) nav(`/takvim?etkinlik=${L.event}`)
+    else if (L.album) nav(`/galeri?album=${L.album}`)
     else if (L.conversation) nav(`/iletisim?sekme=mesajlar&c=${L.conversation}`)
     else if (L.page === 'ogrenci' && L.sid) nav(`/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`)
     else if (L.page) nav(L.tab ? `/${L.page}?sekme=${L.tab}` : `/${L.page}`)
