@@ -5,7 +5,7 @@ import { navItems, type PageId } from '@/lib/roles'
 import { AppShell, PendingPage, TopBar } from '@/components/Shell'
 import AuthPage from '@/pages/AuthPage'
 import MfaPage from '@/pages/MfaPage'
-import { ConsentPage, RolePickPage, SetPasswordPage } from '@/pages/HesapPages'
+import { ConsentPage, RolePickPage, SetPasswordPage, StudentPickPage } from '@/pages/HesapPages'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import { useFamilyTracks, useModules } from '@/lib/data'
@@ -112,6 +112,7 @@ export default function App() {
       {gate === 'mfa' && <MfaPage />}
       {gate === 'pending' && <PendingPage />}
       {gate === 'rol' && <RolePickPage />}
+      {gate === 'cocuk' && <StudentPickPage />}
       {gate === 'app' && <RoleRoutes />}
     </>
   )

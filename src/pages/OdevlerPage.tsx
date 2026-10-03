@@ -519,15 +519,15 @@ function HomeworkDetail({
 
 // ---------------------------------------------------------------- Veli / öğrenci
 function AileOdev() {
-  const { profile } = useAuth()
+  const { profile, activeStudent, switchStudent } = useAuth()
+  const [sp] = useSearchParams()
   const students = useStudents()
   const courses = useCourses()
   const hw = useHomework()
   const settings = useHwSettings()
-  const [sp, setSp] = useSearchParams()
   const list = students.data ?? []
   const veli = profile?.role === 'veli'
-  const s = veli ? (list.find((x) => x.id === sp.get('cocuk')) ?? list[0]) : list.find((x) => x.id === profile?.student_id)
+  const s = veli ? (list.find((x) => x.id === activeStudent?.id) ?? list[0]) : list.find((x) => x.id === profile?.student_id)
   const rows = useHomeworkRows({ student: s?.id })
   const [tab, setTab] = useState<'bekleyen' | 'geciken' | 'tamam'>('bekleyen')
   const today = todayISO()
@@ -588,7 +588,7 @@ function AileOdev() {
         </div>
       </div>
       {veli && list.length > 1 && (
-        <Seg className="a" label="Çocuk" value={s.id} onChange={(id) => setSp({ cocuk: id }, { replace: true })} options={list.map((x) => [x.id, x.full_name.split(' ')[0]!] as const)} style={{ alignSelf: 'flex-start' }} />
+        <Seg className="a" label="Çocuk" value={s.id} onChange={switchStudent} options={list.map((x) => [x.id, x.full_name.split(' ')[0]!] as const)} style={{ alignSelf: 'flex-start' }} />
       )}
       <Seg
         className="a"

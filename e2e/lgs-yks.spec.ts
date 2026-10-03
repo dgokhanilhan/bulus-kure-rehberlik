@@ -46,6 +46,8 @@ test.describe.serial('LGS / YKS uygunluğu', () => {
 
   test('çok çocuklu veli: kart seçili çocuğa göre (6 → yok, 8 → LGS, 12 → yok)', async ({ page }) => {
     await login(page, V.email, V.pass)
+    // Çok çocuklu veli önce öğrencisini seçer
+    await page.getByRole('group', { name: 'Öğrenciler' }).getByRole('button').filter({ hasText: 'Deniz Altı' }).click()
     await expect(menu(page)).toContainText(['LGS özeti']) // ailede 8. sınıf var
     const kid = page.getByRole('group', { name: 'Çocuk' })
     await kid.getByRole('button', { name: 'Deniz' }).click()
@@ -63,8 +65,9 @@ test.describe.serial('LGS / YKS uygunluğu', () => {
     const questions: string[] = []
     page.on('request', (r) => r.url().includes('/rest/v1/exam_questions') && questions.push(r.url()))
     await login(page, V.email, V.pass)
+    await page.getByRole('group', { name: 'Öğrenciler' }).getByRole('button').filter({ hasText: 'Deniz Altı' }).click()
     await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
-    await page.goto(`/ozet?cocuk=${ids.s6}`)
+    await page.goto('/ozet')
     await expect(page.getByRole('heading', { name: "Deniz'in durumu" })).toBeVisible()
     await expect(page.getByText('Öğretmen notları')).toBeVisible()
     await expect(page.getByText('Cumartesi etütleri')).toBeVisible()

@@ -736,10 +736,13 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
     setAdd((x) => ({ ...x, [p.id]: '' }))
     reload()
   }
+  // Bağlantı kaldırma onaylı (veli o öğrencinin bilgilerine erişimini kaybeder); işlem kaydı veritabanında (0023)
+  const [unlinkReq, setUnlinkReq] = useState<{ p: Profile; sid: string } | null>(null)
   async function unlink(p: Profile, sid: string) {
     const { error } = await supabase.from('parent_links').delete().eq('parent_id', p.id).eq('student_id', sid)
     if (error) return toast(msg(error)!, 'warn')
     toast(`${stu(sid)?.full_name} bağlantısı kaldırıldı`)
+    setUnlinkReq(null)
     reload()
   }
 
@@ -754,6 +757,26 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
         </button>
       </div>
       {invite && <InviteParentModal students={students} onClose={() => setInvite(false)} />}
+      {unlinkReq && (
+        <Modal
+          title="Veli bağlantısını kaldır"
+          onClose={() => setUnlinkReq(null)}
+          footer={
+            <>
+              <button className="btn" onClick={() => setUnlinkReq(null)}>
+                Vazgeç
+              </button>
+              <button className="btn warn" onClick={() => unlink(unlinkReq.p, unlinkReq.sid)}>
+                Bağlantıyı kaldır
+              </button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, fontSize: 14 }}>
+            <b>{unlinkReq.p.full_name}</b> ile <b>{stu(unlinkReq.sid)?.full_name} · {stu(unlinkReq.sid)?.class_name}</b> arasındaki veli bağlantısı kaldırılacak. Veli bu öğrencinin bilgilerini artık göremez. Gerekirse yeniden bağlayabilirsin.
+          </p>
+        </Modal>
+      )}
       {veliler.length ? (
         <div className="stack">
           {veliler.map((p, i) => {
@@ -788,7 +811,7 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
                   {kids.map((l) => (
                     <span key={l.student_id} className="chip up" style={{ paddingRight: 4 }}>
                       {stu(l.student_id)?.full_name} · {stu(l.student_id)?.class_name}
-                      <button className="xbtn" style={{ width: 22, height: 22 }} onClick={() => unlink(p, l.student_id)} aria-label={`${stu(l.student_id)?.full_name} bağlantısını kaldır`}>
+                      <button className="xbtn" style={{ width: 22, height: 22 }} onClick={() => setUnlinkReq({ p, sid: l.student_id })} aria-label={`${stu(l.student_id)?.full_name} bağlantısını kaldır`}>
                         <Icon name="x" size={12} stroke={2.6} />
                       </button>
                     </span>

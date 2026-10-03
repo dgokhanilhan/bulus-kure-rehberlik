@@ -1,7 +1,7 @@
 // Ana sayfa (Faz H · 0019): rol başına kartlar; hangi kartın görüneceği ve sırası Yönetim Merkezi → Ana sayfa düzeni'nden.
 // Kapalı modülün kartı gösterilmez. Veriler RLS'ten geçer: kişi yalnız görebildiğini görür.
 import { useMemo, type ReactNode } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase, SCHOOL_SLUG } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
@@ -99,14 +99,13 @@ function Card({ id, title, to, children, d }: { id: CardId; title: string; to?: 
 }
 
 export default function PanelPage() {
-  const { profile } = useAuth()
+  const { profile, activeStudent, switchStudent } = useAuth()
   const role: PanelRole = profile?.role === 'veli' ? 'veli' : profile?.role === 'ogrenci' ? 'ogrenci' : 'ogretmen'
   const layout = usePanelLayout(role)
   const mods = useModules()
   const students = useStudents()
-  const [sp, setSp] = useSearchParams()
   const list = students.data ?? []
-  const s = role === 'ogrenci' ? list.find((x) => x.id === profile?.student_id) : role === 'veli' ? (list.find((x) => x.id === sp.get('cocuk')) ?? list[0]) : undefined
+  const s = role === 'ogrenci' ? list.find((x) => x.id === profile?.student_id) : role === 'veli' ? (list.find((x) => x.id === activeStudent?.id) ?? list[0]) : undefined
   // LGS kartı yalnız seçili öğrenci 8. sınıftaysa: ana sayfa düzeni açık bıraksa da sınıf seviyesi aşılamaz (öğretmen ana sayfasında LGS kartı yok)
   const cards = layout.filter((c) => c.on && (!CARD_MODULE[c.id] || mods[CARD_MODULE[c.id]!]) && (c.id !== 'lgs' || examTrack(s?.grade) === 'lgs'))
   const first = profile?.full_name.split(' ')[0]
@@ -122,7 +121,7 @@ export default function PanelPage() {
         </div>
       </div>
       {role === 'veli' && list.length > 1 && s && (
-        <Seg className="a" label="Çocuk" value={s.id} onChange={(id) => setSp({ cocuk: id }, { replace: true })} options={list.map((x) => [x.id, x.full_name.split(' ')[0]!] as const)} style={{ alignSelf: 'flex-start' }} />
+        <Seg className="a" label="Çocuk" value={s.id} onChange={switchStudent} options={list.map((x) => [x.id, x.full_name.split(' ')[0]!] as const)} style={{ alignSelf: 'flex-start' }} />
       )}
       {role !== 'ogretmen' && !s ? (
         <div className="empty">{students.isLoading ? 'Yükleniyor…' : 'Bağlı öğrenci bulunamadı.'}</div>
