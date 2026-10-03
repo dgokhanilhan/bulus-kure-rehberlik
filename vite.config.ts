@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
-import { checkDist } from './deploy/dist-kontrol'
+import { checkDist } from './deploy/dist-kontrol.ts'
 
 /** deploy/_headers.template → dist/_headers (CSP'deki Supabase adresi derleme ortamından). */
 function securityHeaders(mode: string): Plugin {

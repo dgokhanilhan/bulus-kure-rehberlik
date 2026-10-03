@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { checkDist, chunkRefs, headerRule, htmlRefs } from '../deploy/dist-kontrol'
+import { checkDist, chunkRefs, headerRule, htmlRefs } from '../deploy/dist-kontrol.ts'
 
 const HTML = `<!doctype html><html><head>
 <script type="module" crossorigin src="/assets/index-AAA.js"></script>
