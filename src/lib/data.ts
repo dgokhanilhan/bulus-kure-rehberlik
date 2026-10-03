@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import type { Dataset, Exam, Outcome, Question, Result, Subject } from './analiz'
 import type { ClassRow, Student } from './types'
-import { MODULE_DEFAULTS, type Modules } from './roles'
+import { examTrack, MODULE_DEFAULTS, type Modules } from './roles'
 import { useAuth } from '@/auth/AuthProvider'
 
 async function all<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
@@ -24,23 +24,36 @@ function useDualMode(): { uid: string; as: 'veli' | 'ogretmen' } | null {
   return profile && switchable.length && (profile.role === 'veli' || profile.role === 'ogretmen') ? { uid: profile.id, as: profile.role } : null
 }
 
-export function useStudents() {
+export function useStudents(enabled = true) {
   const { profile } = useAuth()
   // Veli olarak: yalnız bağlı çocuklar (öğretmen rolü olan velinin okulun tüm öğrencilerini görmesi ekranda istenmez)
   const parentOf = profile?.role === 'veli' ? profile.id : null
   return useQuery({
     queryKey: ['students', parentOf ? 'veli' : 'hepsi'],
     staleTime: STALE,
+    enabled,
     queryFn: async () => {
-      let q = supabase.from('students').select('id, full_name, class_name, class_id, school_no, target_score').is('archived_at', null)
+      let q = supabase.from('students').select('id, full_name, class_name, class_id, school_no, target_score, classes(grade)').is('archived_at', null)
       if (parentOf) {
         const { data, error } = await supabase.from('parent_links').select('student_id').eq('parent_id', parentOf)
         if (error) throw new Error(error.message)
         q = q.in('id', (data ?? []).map((r) => r.student_id as string))
       }
-      return all<Student>(q.order('class_name').order('full_name'))
+      const rows = await all<Student & { classes?: { grade: number } | null }>(q.order('class_name').order('full_name'))
+      return rows.map(({ classes, ...s }) => ({ ...s, grade: classes?.grade ?? null }))
     },
   })
+}
+
+/** Ailenin (veli/öğrenci) sınav izleri: LGS (8. sınıf) ya da YKS (12. sınıf) uygun çocuk var mı. Yüklenirken açık sayılır. */
+export function useFamilyTracks(enabled = true) {
+  const students = useStudents(enabled)
+  const list = students.data ?? []
+  return {
+    loading: students.isLoading,
+    lgs: students.isLoading || list.some((s) => examTrack(s.grade) === 'lgs'),
+    yks: list.some((s) => examTrack(s.grade) === 'yks'),
+  }
 }
 
 // ---------- Takvim (0015) ----------
@@ -366,9 +379,11 @@ export function useChildContacts(sid?: string) {
 }
 
 /** Denemeler + cevap anahtarı + kazanımlar + (görülebilen) sonuçlar. */
-export function useDataset() {
+/** Deneme verisi (LGS). enabled=false iken sorgu hiç çalışmaz (LGS'ye uygun olmayan öğrencide gereksiz yük olmasın). */
+export function useDataset(enabled = true) {
   const q = useQuery({
     queryKey: ['dataset'],
+    enabled,
     staleTime: STALE,
     queryFn: async () => {
       const [exams, questions, outcomes, results] = await Promise.all([

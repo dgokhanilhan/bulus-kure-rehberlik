@@ -37,7 +37,8 @@ export function useOpenNotification() {
     else if (L.homework) nav(`/odevler?odev=${L.homework}`)
     else if (L.event) nav(`/takvim?etkinlik=${L.event}`)
     else if (L.album) nav(`/galeri?album=${L.album}`)
-    else if (L.conversation) nav(`/iletisim?sekme=mesajlar&c=${L.conversation}`)
+    else if (L.conversation) nav(`/iletisim?c=${L.conversation}`)
+    else if (L.announcement) nav(`/duyurular?d=${L.announcement}`)
     else if (L.page === 'ogrenci' && L.sid) nav(`/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`)
     else if (L.page) nav(L.tab ? `/${L.page}?sekme=${L.tab}` : `/${L.page}`)
   }

@@ -8,12 +8,13 @@ import MfaPage from '@/pages/MfaPage'
 import { ConsentPage, RolePickPage, SetPasswordPage } from '@/pages/HesapPages'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
-import { useModules, useSettings } from '@/lib/data'
+import { useFamilyTracks, useModules, useSettings } from '@/lib/data'
 
 // Sayfalar ihtiyaç anında yüklenir (ilk açılış hızlı; Lighthouse).
 const OnaylarPage = lazy(() => import('@/pages/OnaylarPage'))
 const YonetimPage = lazy(() => import('@/pages/YonetimPage'))
 const IletisimPage = lazy(() => import('@/pages/IletisimPage'))
+const DuyurularPage = lazy(() => import('@/pages/IletisimPage').then((m) => ({ default: m.DuyurularPage })))
 const GaleriPage = lazy(() => import('@/pages/GaleriPage'))
 const OdevlerPage = lazy(() => import('@/pages/OdevlerPage'))
 const PanelPage = lazy(() => import('@/pages/PanelPage'))
@@ -47,6 +48,7 @@ const PAGES: Record<PageId, JSX.Element> = {
   onaylar: <OnaylarPage />,
   yonetim: <YonetimPage />,
   iletisim: <IletisimPage />,
+  duyurular: <DuyurularPage />,
   galeri: <GaleriPage />,
   odevler: <OdevlerPage />,
   panel: <PanelPage />,
@@ -122,7 +124,8 @@ function RoleRoutes() {
   const { role } = useAuth()
   const mods = useModules()
   const settings = useSettings()
-  const allowed = navItems(role!, mods).map((n) => n.id)
+  const fam = useFamilyTracks(role === 'veli' || role === 'ogrenci')
+  const allowed = navItems(role!, mods, fam).map((n) => n.id)
   const home = `/${allowed[0]}`
   // Modül ayarları yüklenmeden yönlendirme kararı verilmez (varsayılanı kapalı modülün sayfasına doğrudan gelen ana sayfaya atılmasın)
   if (settings.isLoading) return <Wait />
@@ -142,6 +145,8 @@ function RoleRoutes() {
             }
           />
         )}
+        {/* Öğrenci mesajlaşmaz: eski /iletisim (duyurular) bağlantısı /duyurular'a */}
+        {!allowed.includes('iletisim') && allowed.includes('duyurular') && <Route path="iletisim" element={<Navigate to="/duyurular" replace />} />}
         <Route
           path="bildirimler"
           element={

@@ -32,6 +32,7 @@ import type { Student } from '@/lib/types'
 import { LimitBars, useAttendanceLimits, useAttendanceWatchlist, LEVEL_INK, gun } from '@/components/Devamsizlik'
 import { Seg } from '@/components/Indicator'
 import { Icon } from '@/components/Icon'
+import { examTrack } from '@/lib/roles'
 
 export type PanelRole = 'veli' | 'ogrenci' | 'ogretmen'
 export type CardId = 'duyuru' | 'odev' | 'yoklama' | 'program' | 'yemek' | 'takvim' | 'mesaj' | 'lgs' | 'bursluluk' | 'derslerim' | 'odev_kontrol' | 'devamsizlik'
@@ -106,7 +107,8 @@ export default function PanelPage() {
   const [sp, setSp] = useSearchParams()
   const list = students.data ?? []
   const s = role === 'ogrenci' ? list.find((x) => x.id === profile?.student_id) : role === 'veli' ? (list.find((x) => x.id === sp.get('cocuk')) ?? list[0]) : undefined
-  const cards = layout.filter((c) => c.on && (!CARD_MODULE[c.id] || mods[CARD_MODULE[c.id]!]))
+  // LGS kartı yalnız seçili öğrenci 8. sınıftaysa: ana sayfa düzeni açık bıraksa da sınıf seviyesi aşılamaz (öğretmen ana sayfasında LGS kartı yok)
+  const cards = layout.filter((c) => c.on && (!CARD_MODULE[c.id] || mods[CARD_MODULE[c.id]!]) && (c.id !== 'lgs' || examTrack(s?.grade) === 'lgs'))
   const first = profile?.full_name.split(' ')[0]
 
   return (
@@ -177,10 +179,10 @@ function DuyuruCard({ d }: { d: number }) {
   const since = addDays(todayISO(), -days)
   const recent = (list.data ?? []).filter((a) => localDate(a.created_at) >= since).slice(0, 3)
   return (
-    <Card id="duyuru" title={CARD_TR.duyuru} to="/iletisim" d={d}>
+    <Card id="duyuru" title={CARD_TR.duyuru} to="/duyurular" d={d}>
       {recent.length ? (
         recent.map((a) => (
-          <Link key={a.id} to="/iletisim" className="prow">
+          <Link key={a.id} to={`/duyurular?d=${a.id}`} className="prow">
             <b>{a.title}</b>
             <span className="m" style={{ fontSize: 12 }}>
               {trD(localDate(a.created_at))} · {a.author_name ?? 'Okul'}
@@ -309,12 +311,12 @@ function MesajCard({ d }: { d: number }) {
   const unread = (convs.data ?? []).reduce((n, c) => n + c.unread, 0)
   const last = convs.data?.[0]
   return (
-    <Card id="mesaj" title={CARD_TR.mesaj} to="/iletisim?sekme=mesajlar" d={d}>
+    <Card id="mesaj" title={CARD_TR.mesaj} to="/iletisim" d={d}>
       <span className={`chip ${unread ? 'gold' : 'n'}`} style={{ alignSelf: 'flex-start' }}>
         {unread ? `${unread} okunmamış mesaj` : 'Okunmamış mesaj yok'}
       </span>
       {last && (
-        <Link to={`/iletisim?sekme=mesajlar&c=${last.id}`} className="prow">
+        <Link to={`/iletisim?c=${last.id}`} className="prow">
           <b>{profile?.id === last.parent_id ? last.teacher_name : last.parent_name}</b>
           <span className="m" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {last.last_body ?? ''}

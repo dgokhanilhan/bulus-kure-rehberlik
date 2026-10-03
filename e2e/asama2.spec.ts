@@ -5,7 +5,7 @@ import { DEMO, ELIF, KEREM, expectNotification, login, loginAdmin, logout, menu,
 test.describe('§2 Yetkiler', () => {
   test('2.1 matematik öğretmeni: yalnız Öğrenciler; dosyada görev/rapor/görüşme düğmesi yok; not ekleyebilir', async ({ page }) => {
     await login(page, ...DEMO.matematik)
-    await expect(menu(page)).toHaveText(['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', 'Duyurular', /^İletişim/])
     await menu(page).filter({ hasText: 'Öğrenciler' }).click()
     await page.getByRole('row', { name: 'Elif Yıldız dosyası' }).click()
     await expect(page.getByRole('heading', { name: 'Elif Yıldız' })).toBeVisible()

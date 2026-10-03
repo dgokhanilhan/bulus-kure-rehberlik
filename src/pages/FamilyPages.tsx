@@ -7,6 +7,7 @@ import { SUBJECT, fmt, indexResults, studentExams, totalNet } from '@/lib/analiz
 import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useModules, useDataset, useMeals, useMeetings, useNotes, useReports, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
 import { GUN, addDays, ago, gen, isoDow, localDate, localHM, todayISO, trD, trDW, weekStart } from '@/lib/format'
 import type { Student } from '@/lib/types'
+import { examTrack } from '@/lib/roles'
 import { Icon } from '@/components/Icon'
 import { LimitBars, useAttendanceLimits } from '@/components/Devamsizlik'
 import { Dropdown, Seg } from '@/components/Indicator'
@@ -44,7 +45,11 @@ function Wait({ loading }: { loading: boolean }) {
 export function OzetPage() {
   const { profile } = useAuth()
   const { s, list, loading, choose, veli } = useMyStudent()
-  const dsq = useDataset()
+  const mods = useModules()
+  // LGS bölümü yalnız 8. sınıf (classes.grade) ve LGS modülü açıkken; değilse deneme verisi hiç sorgulanmaz.
+  // 12. sınıf (YKS) için veri kaynağı yok: hiçbir sınav özeti gösterilmez. Görev, görüşme, rapor, not ve etütler herkes için.
+  const lgs = mods.lgs && examTrack(s?.grade) === 'lgs'
+  const dsq = useDataset(lgs)
   const tasks = useTasks(s?.id)
   const meetings = useMeetings(s?.id)
   const reports = useReports(s?.id)
@@ -55,7 +60,7 @@ export function OzetPage() {
   const today = todayISO()
   const ex = useMemo(() => (dsq.data && s ? studentExams(dsq.data, s.id, indexResults(dsq.data.results)) : []), [dsq.data, s])
 
-  if (!s || !dsq.data) return <Wait loading={loading || dsq.isLoading} />
+  if (!s || (lgs && !dsq.data)) return <Wait loading={loading || (lgs && dsq.isLoading)} />
   const first = s.full_name.split(' ')[0]!
   const L = ex.at(-1)
   const P = ex.at(-2)
@@ -80,37 +85,41 @@ export function OzetPage() {
       </div>
       <ChildPicker list={list} s={s} choose={choose} />
       <div className="stats">
-        <div className="card stat a lift" style={{ ['--d' as string]: 1 }}>
-          <span className="m" style={{ fontSize: 13 }}>
-            Son deneme
-          </span>
-          <span style={{ fontSize: 18, fontWeight: 600 }}>{L?.exam.name ?? '—'}</span>
-          <span className="m" style={{ fontSize: 13 }}>
-            {L ? trD(L.exam.exam_date) : ''}
-          </span>
-        </div>
-        <div className="card stat a lift" style={{ ['--d' as string]: 2 }}>
-          <span className="m" style={{ fontSize: 13 }}>
-            Toplam net
-          </span>
-          <span className="big" style={{ fontSize: 27 }}>
-            {L ? fmt(totalNet(L.result), 2) : '—'}
-          </span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: d != null && d < 0 ? 'var(--signal)' : 'var(--primary)' }}>
-            {d != null ? `${d >= 0 ? '↑' : '↓'} ${fmt(Math.abs(d))} önceki denemeye göre` : ''}
-          </span>
-        </div>
-        <div className="card stat a lift" style={{ ['--d' as string]: 3 }}>
-          <span className="m" style={{ fontSize: 13 }}>
-            Puan
-          </span>
-          <span className="big" style={{ fontSize: 27 }}>
-            {L?.result.score != null ? fmt(L.result.score) : '—'}
-          </span>
-          <span className="m" style={{ fontSize: 13 }}>
-            {s.target_score ? `Hedef ${s.target_score}` : ''}
-          </span>
-        </div>
+        {lgs && (
+          <>
+            <div className="card stat a lift" style={{ ['--d' as string]: 1 }}>
+              <span className="m" style={{ fontSize: 13 }}>
+                Son deneme
+              </span>
+              <span style={{ fontSize: 18, fontWeight: 600 }}>{L?.exam.name ?? '—'}</span>
+              <span className="m" style={{ fontSize: 13 }}>
+                {L ? trD(L.exam.exam_date) : ''}
+              </span>
+            </div>
+            <div className="card stat a lift" style={{ ['--d' as string]: 2 }}>
+              <span className="m" style={{ fontSize: 13 }}>
+                Toplam net
+              </span>
+              <span className="big" style={{ fontSize: 27 }}>
+                {L ? fmt(totalNet(L.result), 2) : '—'}
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: d != null && d < 0 ? 'var(--signal)' : 'var(--primary)' }}>
+                {d != null ? `${d >= 0 ? '↑' : '↓'} ${fmt(Math.abs(d))} önceki denemeye göre` : ''}
+              </span>
+            </div>
+            <div className="card stat a lift" style={{ ['--d' as string]: 3 }}>
+              <span className="m" style={{ fontSize: 13 }}>
+                Puan
+              </span>
+              <span className="big" style={{ fontSize: 27 }}>
+                {L?.result.score != null ? fmt(L.result.score) : '—'}
+              </span>
+              <span className="m" style={{ fontSize: 13 }}>
+                {s.target_score ? `Hedef ${s.target_score}` : ''}
+              </span>
+            </div>
+          </>
+        )}
         <div className="card stat a lift" style={{ ['--d' as string]: 4 }}>
           <span className="m" style={{ fontSize: 13 }}>
             Açık görev
@@ -123,20 +132,22 @@ export function OzetPage() {
           </Link>
         </div>
       </div>
-      <div className="cols">
-        <section className="card a" style={{ ['--d' as string]: 3, padding: 20, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-          <h2 className="sec">Gelişim</h2>
-          <div style={{ overflowX: 'auto' }}>
-            <div style={{ minWidth: 460 }}>
-              {ex.length ? <LineChart values={nets} labels={ex.map((x) => x.exam.name)} onSelect={(i) => setExam(ex[i]!.exam.id)} /> : <div className="empty">Henüz deneme yok.</div>}
+      <div className={lgs ? 'cols' : 'stack'}>
+        {lgs && (
+          <section className="card a" style={{ ['--d' as string]: 3, padding: 20, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }} aria-label="LGS gelişimi">
+            <h2 className="sec">Gelişim</h2>
+            <div style={{ overflowX: 'auto' }}>
+              <div style={{ minWidth: 460 }}>
+                {ex.length ? <LineChart values={nets} labels={ex.map((x) => x.exam.name)} onSelect={(i) => setExam(ex[i]!.exam.id)} /> : <div className="empty">Henüz deneme yok.</div>}
+              </div>
             </div>
-          </div>
-          <span className="m" style={{ fontSize: 13 }}>
-            {veli
-              ? `Deneme adına tıklayarak ders sonuçlarını görebilirsiniz. ${first} yalnızca kendi önceki sonuçlarıyla karşılaştırılır.`
-              : 'Deneme adına tıklayarak ders sonuçlarını görebilirsin. Yalnızca kendi önceki sonuçlarınla karşılaştırılırsın.'}
-          </span>
-        </section>
+            <span className="m" style={{ fontSize: 13 }}>
+              {veli
+                ? `Deneme adına tıklayarak ders sonuçlarını görebilirsiniz. ${first} yalnızca kendi önceki sonuçlarıyla karşılaştırılır.`
+                : 'Deneme adına tıklayarak ders sonuçlarını görebilirsin. Yalnızca kendi önceki sonuçlarınla karşılaştırılırsın.'}
+            </span>
+          </section>
+        )}
         <aside className="stack" style={{ gap: 12 }}>
           <Dropdown title="Raporlar" sub={rs.length ? `${rs.length} rapor` : 'Henüz rapor yok'} icon={<Icon name="doc" size={22} />} delay={4} right={rs.length ? <span className="chip gold">{rs.length}</span> : undefined}>
             {rs.length ? (
@@ -200,7 +211,7 @@ export function OzetPage() {
           )}
         </aside>
       </div>
-      {cur >= 0 && <ExamModal ds={dsq.data} exam={ex[cur]!.exam} result={ex[cur]!.result} prev={ex[cur - 1]?.result} studentName={s.full_name} onClose={() => setExam(null)} />}
+      {cur >= 0 && dsq.data && <ExamModal ds={dsq.data} exam={ex[cur]!.exam} result={ex[cur]!.result} prev={ex[cur - 1]?.result} studentName={s.full_name} onClose={() => setExam(null)} />}
     </>
   )
 }

@@ -1,7 +1,8 @@
-// İletişim: duyurular (okul / kademe / sınıf) ve veli–öğretmen mesajlaşması (0010).
+// İletişim (veli–öğretmen mesajlaşması) ve Duyurular (okul / kademe / sınıf) ayrı sayfalar (0010).
+// Eski /iletisim?sekme=duyurular bağlantıları /duyurular'a yönlenir (App).
 // Kim neyi görür ve kime yazar veritabanında (RLS + fonksiyonlar) zorlanır; bu ekran yalnız arayüzdür.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
@@ -15,39 +16,38 @@ import { useToast } from '@/components/Toast'
 import { AttachmentList, Cover, FilePick, PickedFiles } from '@/components/Files'
 import { uploadFiles, useAttachments, useFileRules } from '@/lib/files'
 
-type Tab = 'duyurular' | 'mesajlar'
 const AUD_TR = { veli: 'Veliler', ogrenci: 'Öğrenciler', ogretmen: 'Öğretmenler' } as const
 type Aud = keyof typeof AUD_TR
 
 const errText = (e: { message?: string } | null) => (e ? (/row-level security/i.test(e.message ?? '') ? 'Bu işlem için yetkin yok.' : (e.message ?? 'İşlem yapılamadı.')) : null)
 
+/** İletişim: doğrudan mesajlaşma (sekme yok). */
 export default function IletisimPage() {
   const { profile } = useAuth()
-  const [sp, setSp] = useSearchParams()
+  const [sp] = useSearchParams()
   const mods = useModules()
   const canMessage = profile?.role !== 'ogrenci' && mods.mesaj
-  const tab: Tab = !mods.duyuru || (canMessage && (sp.get('sekme') === 'mesajlar' || sp.get('c'))) ? 'mesajlar' : 'duyurular'
   const convs = useConversations(canMessage)
-  const unread = (convs.data ?? []).reduce((n, c) => n + c.unread, 0)
+  // Eski bağlantı: /iletisim?sekme=duyurular (ya da ?tab=duyurular) → /duyurular
+  if (sp.get('sekme') === 'duyurular' || sp.get('tab') === 'duyurular') return <Navigate to="/duyurular" replace />
   return (
     <>
       <div className="head a">
         <h1 className="hd">İletişim</h1>
       </div>
-      {canMessage && mods.duyuru && (
-        <Seg
-          className="a"
-          style={{ ['--d' as string]: 1, alignSelf: 'flex-start' }}
-          label="İletişim bölümü"
-          value={tab}
-          onChange={(t) => setSp(t === 'duyurular' ? {} : { sekme: t }, { replace: true })}
-          options={[
-            ['duyurular', 'Duyurular'],
-            ['mesajlar', unread ? `Mesajlar (${unread})` : 'Mesajlar'],
-          ]}
-        />
-      )}
-      {tab === 'duyurular' ? <Duyurular /> : canMessage ? <Mesajlar convs={convs.data ?? []} loading={convs.isLoading} /> : <div className="empty">Bu bölüm okul yönetimince kapatıldı.</div>}
+      {canMessage ? <Mesajlar convs={convs.data ?? []} loading={convs.isLoading} /> : <div className="empty">Bu bölüm okul yönetimince kapatıldı.</div>}
+    </>
+  )
+}
+
+/** Duyurular: ayrı sayfa (/duyurular). ?d=<id> ile bildirimden gelinen duyuru vurgulanır. */
+export function DuyurularPage() {
+  return (
+    <>
+      <div className="head a">
+        <h1 className="hd">Duyurular</h1>
+      </div>
+      <Duyurular />
     </>
   )
 }
@@ -68,6 +68,11 @@ function useMyClasses(enabled: boolean) {
 function Duyurular() {
   const { profile, role } = useAuth()
   const list = useAnnouncements()
+  const [sp] = useSearchParams()
+  const focus = sp.get('d')
+  useEffect(() => {
+    if (focus && list.data) document.getElementById(`duyuru-${focus}`)?.scrollIntoView({ block: 'center' })
+  }, [focus, list.data])
   const classes = useClasses()
   const qc = useQueryClient()
   const toast = useToast()
@@ -104,7 +109,14 @@ function Duyurular() {
       ) : (list.data ?? []).length ? (
         <div className="stack">
           {list.data!.map((a, i) => (
-            <article key={a.id} className="card a" style={{ ['--d' as string]: Math.min(i + 2, 8), padding: 18, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden' }} data-testid="announcement" aria-label={a.title}>
+            <article
+              key={a.id}
+              id={`duyuru-${a.id}`}
+              className="card a"
+              style={{ ['--d' as string]: Math.min(i + 2, 8), padding: 18, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden', outline: focus === a.id ? '2px solid var(--primary)' : undefined }}
+              data-testid="announcement"
+              aria-label={a.title}
+            >
               {filesOf(a.id).find((x) => x.is_cover) && <Cover a={filesOf(a.id).find((x) => x.is_cover)!} />}
               <div className="kv" style={{ alignItems: 'flex-start' }}>
                 <h2 style={{ fontSize: 17 }}>{a.title}</h2>
@@ -292,7 +304,7 @@ function Mesajlar({ convs, loading }: { convs: Conversation[]; loading: boolean 
   const [sp, setSp] = useSearchParams()
   const [start, setStart] = useState(false)
   const open = sp.get('c')
-  const setOpen = (id: string | null) => setSp(id ? { sekme: 'mesajlar', c: id } : { sekme: 'mesajlar' }, { replace: true })
+  const setOpen = (id: string | null) => setSp(id ? { c: id } : {}, { replace: true })
   const cur = convs.find((c) => c.id === open) ?? null
   const other = (c: Conversation) =>
     profile?.id === c.parent_id ? { name: c.teacher_name, sub: c.teacher_branch ?? '' } : profile?.id === c.teacher_id ? { name: c.parent_name, sub: 'Veli' } : { name: `${c.parent_name} ↔ ${c.teacher_name}`, sub: 'Yönetici görünümü' }
