@@ -9,4 +9,5 @@ drop function if exists set_exam_status(uuid, text, boolean);
 drop function if exists import_exam(jsonb);
 drop function if exists template_visible(uuid);
 drop function if exists resolve_outcome(text, smallint[], smallint, text, text, uuid, uuid, uuid);
+update exam_format_profiles set status = 'test' where school_id is null and builtin and code in ('HIZ_ORTAOKUL_KARNE_V1', 'HIZ_LISE_KARNE_V1') and status = 'aktif';
 commit;

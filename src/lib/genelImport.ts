@@ -97,7 +97,7 @@ export function buildGenelReview(pack: GenelPack, tpl: ExamTemplate, roster: Ros
     const errors = validateResult(tpl, sections)
     const missing = tpl.sections.filter((s) => !s.optional_group && sections[s.key] === undefined).map((s) => s.label)
     const notes: string[] = []
-    if (missing.length) notes.push(`${missing.join(', ')} PDF'te yok; okunamadı olarak kalır.`)
+    if (missing.length) notes.push(`${missing.join(', ')}: sonuç yok; okunamadı olarak kalır (puanlamaya katılmaz).`)
     const badItemSections = [...new Set(r.warnings.filter((w) => /^ITEM_(COVERAGE|COUNTS):/.test(w)).map((w) => map[w.split(':')[1]!] ?? w.split(':')[1]!))]
     if (badItemSections.length) notes.push(`${badItemSections.join(', ')}: soru-kazanım bilgisi sonuçla tutarsız; bu bölümlerin kazanım analizi yapılmaz.`)
     const match = matchStudent({ name: r.student.name ?? '', number: r.student.number, class: r.student.class }, roster)
@@ -148,13 +148,16 @@ export function examItems(rv: GenelReview) {
   return [...out.values()]
 }
 
+const sourceKind = (rv: GenelReview) =>
+  rv.detection.family === 'MANUEL' ? ('manuel' as const) : rv.detection.family === 'TABLO' ? (/\.csv$|\.txt$/i.test(rv.filename) ? ('csv' as const) : ('excel' as const)) : ('pdf' as const)
+
 export function toImportPayload(rv: GenelReview, meta: ImportMeta) {
   const rows = rv.rows.filter((r) => r.choice && r.choice.kind !== 'skip' && !r.errors.length)
   return {
     ...meta,
-    sha256: rv.sha256,
+    sha256: rv.sha256 || null, // elle girişte dosya yok: çift içe aktarma koruması uygulanmaz
     filename: rv.filename,
-    source_kind: 'pdf' as const,
+    source_kind: sourceKind(rv),
     format_code: rv.detection.format,
     detection: { family: rv.detection.family, confidence: rv.detection.confidence, grade: rv.detection.grade, examType: rv.detection.examType, publisher: rv.detection.publisher, evidence: rv.detection.evidence },
     items: examItems(rv),

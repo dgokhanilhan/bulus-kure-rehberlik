@@ -495,9 +495,12 @@ create policy formats_admin on exam_format_profiles for all using (is_admin() an
 drop policy if exists publisher_formats_read on publisher_formats;
 create policy publisher_formats_read on publisher_formats for select using (exists (select 1 from publishers p where p.id = publisher_id));
 drop policy if exists publisher_formats_admin on publisher_formats;
+-- Okul kendi yayınını herhangi bir biçime, ya da herhangi bir yayını (yerleşik dahil) kendi biçim kaydına bağlayabilir
 create policy publisher_formats_admin on publisher_formats for all
-  using (is_admin() and exists (select 1 from publishers p where p.id = publisher_id and p.school_id = my_school()))
-  with check (is_admin() and exists (select 1 from publishers p where p.id = publisher_id and p.school_id = my_school()));
+  using (is_admin() and (exists (select 1 from publishers p where p.id = publisher_id and p.school_id = my_school())
+                         or exists (select 1 from exam_format_profiles f where f.id = format_id and f.school_id = my_school() and not f.builtin)))
+  with check (is_admin() and (exists (select 1 from publishers p where p.id = publisher_id and p.school_id = my_school())
+                              or exists (select 1 from exam_format_profiles f where f.id = format_id and f.school_id = my_school() and not f.builtin)));
 drop policy if exists type_defaults_read on exam_type_defaults;
 create policy type_defaults_read on exam_type_defaults for select using (is_approved() and (school_id is null or school_id = my_school()));
 drop policy if exists type_defaults_admin on exam_type_defaults;

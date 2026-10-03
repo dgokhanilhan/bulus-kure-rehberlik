@@ -20,11 +20,12 @@ import { AnaSayfaDuzeni, TopluAktarim } from './YonetimAktarim'
 import { InviteChip, InviteParentModal, InviteTeacherModal } from './YonetimDavet'
 import { RolesSection } from './YonetimRoller'
 import { BildirimAyarlari, YoklamaAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari } from './YonetimMerkezi'
+import { DenemeMerkezi } from './DenemeMerkezi'
 
 type Tab =
   | 'genel' | 'moduller' | 'yillar' | 'dosya' | 'bildirim' | 'takvim'
   | 'siniflar' | 'dersler' | 'saatler' | 'atamalar' | 'program' | 'yoklama' | 'yoklama_ayar' | 'yemek' | 'odev'
-  | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali' | 'bursluluk' | 'anasayfa' | 'aktarim' | 'galeri'
+  | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali' | 'bursluluk' | 'anasayfa' | 'aktarim' | 'galeri' | 'denemeler'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
   { title: 'Genel', items: [['genel', 'Genel ayarlar'], ['moduller', 'Modüller'], ['yillar', 'Eğitim yılları'], ['dosya', 'Dosya ve duyuru ayarları'], ['bildirim', 'Bildirim ayarları'], ['anasayfa', 'Ana sayfa düzeni'], ['galeri', 'Galeri ayarları', 'galeri']] },
@@ -41,6 +42,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['yemek', 'Yemek listesi', 'yemek'],
       ['odev', 'Ödev ayarları', 'odev'],
       ['takvim', 'Takvim ayarları', 'takvim'],
+      ['denemeler', 'Deneme Tanıma Merkezi'],
     ],
   },
   { title: 'Kişiler', items: [['ogrenciler', 'Öğrenciler'], ['ogretmenler', 'Öğretmenler'], ['veliler', 'Veliler'], ['kapali', 'Kapalı hesaplar'], ['aktarim', 'Toplu aktarım']] },
@@ -164,6 +166,7 @@ export default function YonetimPage() {
               {tab === 'galeri' && <GaleriAyarlari />}
               {tab === 'anasayfa' && <AnaSayfaDuzeni />}
               {tab === 'aktarim' && <TopluAktarim />}
+              {tab === 'denemeler' && <DenemeMerkezi />}
             </>
           )}
         </div>

@@ -137,6 +137,20 @@ describe('Yönetim tabloları', () => {
     expect((await admin.from('exam_templates').update({ wrong_per_correct: 5 }).eq('builtin', true).select('id')).data ?? []).toEqual([])
   })
 
+  it('yayın ≠ biçim: yerleşik yayın okulun biçim kaydına bağlanır; yerleşik biçime doğrudan bağlanamaz', async () => {
+    const pub = (await svc.from('publishers').select('id').is('school_id', null).eq('name', 'Özdebir Yayınları').single()).data!
+    const builtin = (await svc.from('exam_format_profiles').select('id').eq('code', 'HIZ_LISE_KARNE_V1').single()).data!
+    expect((await admin.from('publisher_formats').insert({ publisher_id: pub.id, format_id: builtin.id })).error).not.toBeNull()
+    const own = (await admin.from('exam_format_profiles').insert({ school_id: school, code: 'TEST_LISE_FREKANS', name: 'Test', parser_family: 'HIZ_LISE', supported_grades: [12], status: 'test' }).select('id').single())
+    expect(own.error).toBeNull()
+    try {
+      expect((await admin.from('publisher_formats').insert({ publisher_id: pub.id, format_id: own.data!.id })).error).toBeNull()
+      expect((await (await signIn('rehber')).from('publisher_formats').delete().eq('format_id', own.data!.id).select('format_id')).data ?? []).toEqual([])
+    } finally {
+      await svc.from('exam_format_profiles').delete().eq('id', own.data!.id)
+    }
+  })
+
   it('şablonlar doğrulanmış soru sayılarıyla; sınıf varsayılan sınav türleri', async () => {
     const veli = await signIn('veliElif')
     const { data: t } = await veli.from('exam_templates').select('name, wrong_per_correct, exam_template_sections(key, question_count, optional_group)').eq('grade', 12)

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { readExamFile } from '@/lib/engine'
+import { goesToLegacy, readGeneralFile } from '@/lib/genelEngine'
+import { GenelSihirbaz, type GenelSource } from './DenemeGenel'
 import { ADAPTER_PUBLISHER, buildPayload, buildReview, pendingCount, titleCase, type Review } from '@/lib/deneme'
 import { SUBJECT } from '@/lib/analiz'
 import { useClasses, useRefresh, useStudents } from '@/lib/data'
@@ -15,14 +17,19 @@ import { Toggle } from '@/components/Tasks'
 import { useToast } from '@/components/Toast'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 
-type Step = 'drop' | 'read' | 'review' | 'done'
+type Step = 'drop' | 'read' | 'review' | 'done' | 'genel'
 interface ExamRow {
   id: string
   name: string
   publisher: string | null
   exam_date: string
   published_at: string | null
+  grade: number | null
+  exam_type: string | null
+  yks_part: string | null
+  status: 'taslak' | 'yayinda' | 'arsiv'
 }
+const STATUS_TR = { taslak: 'Taslak', yayinda: 'Yayında', arsiv: 'Arşivde' }
 
 const STEPS = ['Yükle', 'Oku', 'Kontrol', 'Yayınla']
 
@@ -36,7 +43,7 @@ export default function DenemelerPage() {
     queryKey: ['exams-list'],
     queryFn: async () => {
       const [e, r] = await Promise.all([
-        supabase.from('exams').select('id, name, publisher, exam_date, published_at').order('exam_date', { ascending: false }),
+        supabase.from('exams').select('id, name, publisher, exam_date, published_at, grade, exam_type, yks_part, status').order('exam_date', { ascending: false }),
         supabase.from('exam_results').select('exam_id'),
       ])
       if (e.error) throw e.error
@@ -60,6 +67,7 @@ export default function DenemelerPage() {
   const [done, setDone] = useState<{ name: string; count: number } | null>(null)
   const [over, setOver] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [genel, setGenel] = useState<GenelSource | null>(null)
 
   const nextName = `TG-${(exams.data?.exams.filter((e) => e.name.startsWith('TG-')).length ?? 0) + 1}`
   const examName = name ?? nextName
@@ -71,6 +79,22 @@ export default function DenemelerPage() {
     setStep('read')
     setLines([['Dosya açılıyor…', false]])
     setProgress(null)
+    // 5–7 ve 9–12 karneleri genel motorla; 8. sınıf / LGS ve tanınmayan biçim mevcut LGS motoruna gider (sonuçlar aynen)
+    if (!/\.json$/i.test(f.name)) {
+      setLines([['Biçim tanınıyor…', false]])
+      try {
+        const gp = await readGeneralFile(f, {}, (page, total) => setProgress({ page, total }))
+        if (!goesToLegacy(gp) && gp.records.length) {
+          setGenel({ kind: 'pdf', pack: gp })
+          setStep('genel')
+          return
+        }
+      } catch {
+        /* genel motor okuyamadıysa LGS motoru denenir */
+      }
+      setLines([['Dosya açılıyor…', false]])
+      setProgress(null)
+    }
     try {
       const pack = await readExamFile(f, (page, total) => setProgress({ page, total }))
       if (!pack.records.length) throw new Error(pack.failedPages?.[0]?.error ?? 'Bu dosyada öğrenci sonucu bulunamadı.')
@@ -130,20 +154,29 @@ export default function DenemelerPage() {
     setName(null)
     setDone(null)
     setErr(null)
+    setGenel(null)
+  }
+
+  async function setStatus(e: ExamRow, status: 'yayinda' | 'arsiv') {
+    const { error } = await supabase.rpc('set_exam_status', { p_exam: e.id, p_status: status, p_notify: status === 'yayinda' })
+    if (error) return toast(error.message || 'Değiştirilemedi.', 'warn')
+    toast(`${e.name} ${status === 'yayinda' ? 'yayınlandı' : 'arşive alındı'}`)
+    refresh('dataset', 'exams-list', 'exams-admin', 'reports')
   }
 
   const idx = ['drop', 'read', 'review', 'done'].indexOf(step)
   return (
     <>
       <h1 className="hd a">Denemeler</h1>
-      <ol className="steps a" style={{ ['--d' as string]: 1 }} aria-label="Adımlar">
+      {step === 'genel' && genel && <GenelSihirbaz source={genel} onCancel={reset} />}
+      {step !== 'genel' && <ol className="steps a" style={{ ['--d' as string]: 1 }} aria-label="Adımlar">
         {STEPS.map((l, i) => (
           <li key={l} className={i === idx ? 'on' : i < idx ? 'done' : ''} aria-current={i === idx ? 'step' : undefined}>
             <span>{i < idx ? <Icon name="check" size={14} stroke={3} /> : i + 1}</span>
             {l}
           </li>
         ))}
-      </ol>
+      </ol>}
 
       {step === 'drop' && (
         <div className="stack a" style={{ ['--d' as string]: 2 }}>
@@ -199,6 +232,15 @@ export default function DenemelerPage() {
               </span>
             </div>
           )}
+          <div className="btns" style={{ justifyContent: 'center' }}>
+            <span className="m" style={{ fontSize: 14, alignSelf: 'center' }}>PDF'i olmayan deneme için (5–7, 9–12):</span>
+            <button type="button" className="btn sm" onClick={() => (setGenel({ kind: 'tablo' }), setStep('genel'))}>
+              Excel / CSV ile yükle
+            </button>
+            <button type="button" className="btn sm" onClick={() => (setGenel({ kind: 'manuel' }), setStep('genel'))}>
+              Elle gir
+            </button>
+          </div>
           {(import.meta.env.DEV || import.meta.env.VITE_DEMO === '1') && (
             <button
               type="button"
@@ -221,11 +263,29 @@ export default function DenemelerPage() {
                       <tr key={e.id} data-testid="exam-row">
                         <td>
                           <b>{e.name}</b>
+                          <div className="m" style={{ fontSize: 12 }}>
+                            {e.grade ? `${e.grade}. sınıf` : ''} {e.exam_type ? `· ${e.exam_type}${e.yks_part ? ` / ${e.yks_part}` : ''}` : ''}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`chip ${e.status === 'yayinda' ? 'up' : e.status === 'taslak' ? 'gold' : 'n'}`} data-testid="exam-status">
+                            {STATUS_TR[e.status]}
+                          </span>
                         </td>
                         <td>{e.publisher ?? '—'}</td>
                         <td className="m">{trD(e.exam_date)}</td>
                         <td className="num">{exams.data?.count.get(e.id) ?? 0} öğrenci</td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          {e.status === 'taslak' && (
+                            <button className="btn sm" onClick={() => setStatus(e, 'yayinda')} aria-label={`${e.name} denemesini yayınla`}>
+                              Yayınla
+                            </button>
+                          )}
+                          {e.status === 'yayinda' && (
+                            <button className="btn sm ghost" onClick={() => setStatus(e, 'arsiv')} aria-label={`${e.name} denemesini arşive al`}>
+                              Arşivle
+                            </button>
+                          )}
                           <button className="btn sm ghost" style={{ color: 'var(--signal-ink)' }} onClick={() => setDel(e)} aria-label={`${e.name} denemesini sil`}>
                             <Icon name="trash" size={14} />
                             Sil

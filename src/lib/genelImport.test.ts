@@ -60,7 +60,7 @@ describe('kontrol modeli ve içe aktarma isteği', () => {
     expect(rv.rows[1]!.choice).toBeNull()
     expect(rv.rows[1]!.errors.join()).toMatch(/D\+Y\+B = 16/)
     expect(rv.rows[1]!.badItemSections).toEqual(['MAT'])
-    expect(rv.rows[0]!.notes.join()).toMatch(/PDF'te yok/) // SOS, DIN, ING, FEN yok
+    expect(rv.rows[0]!.notes.join()).toMatch(/sonuç yok/) // SOS, DIN, ING, FEN yok
     expect(genelPending(rv)).toBe(1)
     rv.rows[1]!.choice = { kind: 'skip' }
     expect(genelPending(rv)).toBe(0)

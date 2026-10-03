@@ -313,3 +313,8 @@ returns jsonb language sql stable security definer set search_path = public as $
 $$;
 revoke all on function import_preview(text, text, date, uuid[]) from public, anon;
 grant execute on function import_preview(text, text, date, uuid[]) to authenticated;
+
+-- ---------------------------------------------------------------- biçim durumu
+-- Hız ortaokul ve lise karneleri genel motorla 8 örnek dosyada (108 öğrenci) soru düzeyi dahil hatasız okundu: aktif.
+update exam_format_profiles set status = 'aktif'
+where school_id is null and builtin and code in ('HIZ_ORTAOKUL_KARNE_V1', 'HIZ_LISE_KARNE_V1') and status = 'test';
