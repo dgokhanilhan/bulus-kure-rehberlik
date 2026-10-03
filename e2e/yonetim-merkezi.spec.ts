@@ -46,9 +46,12 @@ test.describe.serial('Yönetim Merkezi', () => {
   test('modül kapatılınca veli ve rehber ekranından kalkar', async ({ page }) => {
     await loginAdmin(page, secret)
     await page.goto('/yonetim?sekme=moduller')
+    // Kapatma onay ister (0024)
     await page.getByRole('switch', { name: 'Yemek listesi modülü' }).click()
+    await page.getByRole('dialog', { name: 'Yemek listesi modülünü kapat' }).getByRole('button', { name: 'Modülü kapat' }).click()
     await expect(page.getByRole('switch', { name: 'Yemek listesi modülü' })).toHaveAttribute('aria-checked', 'false')
     await page.getByRole('switch', { name: 'LGS / Deneme modülü' }).click()
+    await page.getByRole('dialog', { name: 'LGS / Deneme modülünü kapat' }).getByRole('button', { name: 'Modülü kapat' }).click()
     await expect(page.getByRole('switch', { name: 'LGS / Deneme modülü' })).toHaveAttribute('aria-checked', 'false')
     await axe(page, 'modüller')
     await shot(page, 'm1-moduller')
