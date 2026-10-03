@@ -1,7 +1,7 @@
 # Cloudflare Pages güvenlik başlıkları — vite build sırasında dist/_headers olarak üretilir.
 # CSP connect-src, derleme ortamındaki VITE_SUPABASE_URL adresinden üretilir.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' %SUPABASE_ORIGIN% %SUPABASE_WS% https://*.ingest.sentry.io https://*.ingest.de.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: %SUPABASE_ORIGIN%; media-src 'self' blob: %SUPABASE_ORIGIN%; connect-src 'self' %SUPABASE_ORIGIN% %SUPABASE_WS% https://*.ingest.sentry.io https://*.ingest.de.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
