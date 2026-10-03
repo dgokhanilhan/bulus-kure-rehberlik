@@ -16,6 +16,7 @@ import { TaskList } from '@/components/Tasks'
 import { MeetingList } from '@/components/Meetings'
 import { ExamModal } from '@/components/ExamModal'
 import { useOpenReport } from '@/components/Report'
+import { GenelDenemeler } from '@/components/GenelDenemeler'
 
 /** Veli birden çok çocuğa bağlı olabilir: aktif öğrenci merkezi (AuthProvider; yalnız ekran seçimi, yetki parent_links'te). */
 function useMyStudent() {
@@ -48,6 +49,8 @@ export function OzetPage() {
   // LGS bölümü yalnız 8. sınıf (classes.grade) ve LGS modülü açıkken; değilse deneme verisi hiç sorgulanmaz.
   // 12. sınıf (YKS) için veri kaynağı yok: hiçbir sınav özeti gösterilmez. Görev, görüşme, rapor, not ve etütler herkes için.
   const lgs = mods.lgs && examTrack(s?.grade) === 'lgs'
+  // 5–7 ve 9–12: genel denemeler (Deneme Analizi / TYT / AYT / YKS); LGS bölümü ve sorgusu bunlarda yok
+  const genel = mods.lgs && !!s?.grade && s.grade !== 8 && ((s.grade >= 5 && s.grade <= 7) || (s.grade >= 9 && s.grade <= 12))
   const dsq = useDataset(lgs)
   const tasks = useTasks(s?.id)
   const meetings = useMeetings(s?.id)
@@ -131,7 +134,7 @@ export function OzetPage() {
           </Link>
         </div>
       </div>
-      <div className={lgs ? 'cols' : 'stack'}>
+      <div className={lgs || genel ? 'cols' : 'stack'}>
         {lgs && (
           <section className="card a" style={{ ['--d' as string]: 3, padding: 20, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }} aria-label="LGS gelişimi">
             <h2 className="sec">Gelişim</h2>
@@ -147,6 +150,7 @@ export function OzetPage() {
             </span>
           </section>
         )}
+        {genel && <GenelDenemeler studentId={s.id} grade={s.grade} />}
         <aside className="stack" style={{ gap: 12 }}>
           <Dropdown title="Raporlar" sub={rs.length ? `${rs.length} rapor` : 'Henüz rapor yok'} icon={<Icon name="doc" size={22} />} delay={4} right={rs.length ? <span className="chip gold">{rs.length}</span> : undefined}>
             {rs.length ? (

@@ -74,6 +74,29 @@ test.describe.serial('Okul geneli deneme (5–12)', () => {
     expect((await svc.from('exams').select('id').eq('name', 'E2E Genel CSV tekrar')).data).toEqual([])
   })
 
+  test('öğretmen: öğrenci sayfasında "Deneme Analizi" ve son deneme; Sınıflar\'da 6/A analizi; LGS ekranlarına karışmaz', async ({ page }) => {
+    const sid = (await svc.from('students').select('id').eq('school_no', 'G601').single()).data!.id
+    await login(page, ...DEMO.rehber)
+    await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
+    await page.goto(`/ogrenciler/${sid}`)
+    const box = page.getByTestId('genel-denemeler')
+    await expect(box.getByRole('heading', { name: 'Deneme Analizi' })).toBeVisible()
+    await expect(box.getByTestId('son-deneme')).toContainText('E2E Genel CSV')
+    await expect(box.getByTestId('son-deneme')).toContainText('20')
+    await expect(box.getByTestId('son-deneme')).toContainText('Karşılaştırılabilir önceki deneme yok')
+    await expect(box.getByRole('row', { name: /Sosyal Bilgiler/ })).toContainText('Sonuç yok')
+    await axe(page, 'öğrenci genel deneme')
+    await shot(page, 'g3-ogrenci-genel')
+
+    await page.getByRole('link', { name: 'Sınıflar', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Diğer sınıflar' })).toBeVisible()
+    await page.getByRole('group', { name: 'Diğer şube' }).getByRole('button', { name: '6/A' }).click()
+    await expect(page.getByTestId('genel-sinif-deneme').filter({ hasText: 'E2E Genel CSV' })).toContainText('1 öğrenci')
+    // LGS ısı haritası ve son deneme yalnız LGS denemelerinden
+    await expect(page.locator('main')).not.toContainText('E2E Genel CSV · ')
+    await axe(page, 'sınıflar genel')
+  })
+
   test('elle giriş: yalnız doldurulan öğrenci içe aktarılır; liste durum ve arşiv işlemi gösterir', async ({ page }) => {
     await login(page, ...DEMO.rehber)
     await page.getByRole('link', { name: 'Denemeler', exact: true }).click()

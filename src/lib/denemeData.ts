@@ -2,7 +2,7 @@
 // içe aktarım geçmişi, eşleşmeyen kazanımlar, kazanım kataloğu araması. Yetki veritabanında (RLS + RPC).
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
-import type { ExamTemplate, ExamType, TemplateSection, YksPart } from './denemeGenel'
+import type { ExamTemplate, ExamType, SectionResults, TemplateSection, YksPart } from './denemeGenel'
 
 export interface TemplateRow extends ExamTemplate {
   school_id: string | null
@@ -87,3 +87,25 @@ export const useExamsAdmin = () =>
     queryKey: ['exams-admin'],
     queryFn: async () => ((await supabase.from('exams').select('id, name, exam_date, grade, exam_type, yks_part, exam_code, status, publisher, academic_year, exam_template_id, published_at, archived_at').order('exam_date', { ascending: false })).data ?? []) as ExamAdminRow[],
   })
+
+// ---------------------------------------------------------------- 5–7 / 9–12 genel denemeler (öğrenci, veli, öğretmen ekranları)
+export interface GenelExam { id: string; name: string; exam_date: string; grade: number; exam_type: ExamType; yks_part: YksPart | null; exam_code: string | null; publisher: string | null; exam_template_id: string | null }
+export interface GenelResult { exam_id: string; student_id: string; score: number | null; subjects: SectionResults; total_net: number | null; success_pct: number | null }
+/** Yayındaki LGS dışı denemeler ve görülebilen sonuçlar (RLS: veli/öğrenci yalnız kendi, öğretmen kendi sınıfları). LGS: useDataset. */
+export function useGenelDataset(enabled = true) {
+  return useQuery({
+    queryKey: ['genel-dataset'],
+    enabled,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const [e, r] = await Promise.all([
+        supabase.from('exams').select('id, name, exam_date, grade, exam_type, yks_part, exam_code, publisher, exam_template_id').neq('exam_type', 'LGS').eq('status', 'yayinda').order('exam_date'),
+        supabase.from('exam_results').select('exam_id, student_id, score, subjects, total_net, success_pct, exams!inner(exam_type, status)').neq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').limit(20000),
+      ])
+      if (e.error) throw e.error
+      if (r.error) throw r.error
+      const results = (r.data as (GenelResult & { exams?: unknown })[]).map(({ exams: _e, ...x }) => ({ ...x, total_net: x.total_net === null ? null : Number(x.total_net), success_pct: x.success_pct === null ? null : Number(x.success_pct) }))
+      return { exams: e.data as GenelExam[], results }
+    },
+  })
+}

@@ -9,6 +9,7 @@ import { Icon } from '@/components/Icon'
 import { Dropdown, Seg } from '@/components/Indicator'
 import { Modal } from '@/components/Modal'
 import { useToast } from '@/components/Toast'
+import { GenelSinifAnalizi } from '@/components/GenelDenemeler'
 
 const SLOTS = [
   ['09-10', '09.00–10.00'],
@@ -209,6 +210,8 @@ export default function SiniflarPage() {
         )}
       </Dropdown>
 
+      <GenelSiniflar />
+
       {konu && <KonuStudents row={konu} cls={cls} examName={L?.name ?? ''} lastIdx={lastIdx} onClose={() => setKonu(null)} />}
       {etut && <EtutModal cls={cls} subject={sub} topics={etut} taken={(sessions.data ?? []).filter((x) => x.class_name === cls)} onClose={() => setEtut(null)} />}
     </>
@@ -375,5 +378,25 @@ function EtutModal({
         </div>
       )}
     </Modal>
+  )
+}
+
+/** 5–7 ve 9–12 şubeleri: genel deneme sınıf analizi (LGS ısı haritası yalnız 8. sınıf). */
+function GenelSiniflar() {
+  const classes = useClasses()
+  const students = useStudents()
+  const others = (classes.data ?? []).filter((c) => c.grade != null && c.grade !== DENEME_GRADE && ((c.grade >= 5 && c.grade <= 7) || (c.grade >= 9 && c.grade <= 12)))
+  const [pick, setPick] = useState<string | null>(null)
+  const c = others.find((x) => x.id === pick) ?? others[0]
+  if (!c) return null
+  const ids = (students.data ?? []).filter((s) => s.class_id === c.id).map((s) => s.id)
+  return (
+    <>
+      <div className="head a" style={{ marginTop: 12 }}>
+        <h2 className="hd" style={{ fontSize: 22 }}>Diğer sınıflar</h2>
+        <Seg label="Diğer şube" value={c.id} onChange={setPick} options={others.map((x) => [x.id, x.name] as const)} />
+      </div>
+      <GenelSinifAnalizi studentIds={ids} grade={c.grade} />
+    </>
   )
 }

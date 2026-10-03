@@ -17,6 +17,7 @@ import { useOpenReport } from '@/components/Report'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { useNavigate } from 'react-router-dom'
 import { DevamsizlikTab } from '@/components/Devamsizlik'
+import { GenelDenemeler } from '@/components/GenelDenemeler'
 
 const TABS = [
   ['gelisim', 'Gelişim'],
@@ -203,7 +204,8 @@ export default function OgrenciPage() {
         ))}
       </div>
 
-      {tab === 'gelisim' && (
+      {tab === 'gelisim' && mods.lgs && s.grade != null && s.grade !== 8 && <GenelDenemeler studentId={s.id} grade={s.grade} />}
+      {tab === 'gelisim' && (s.grade == null || s.grade === 8 || ex.length > 0) && (
         <div className="cols" style={{ ['--side' as string]: '380px' }}>
           <section className="card a" style={{ ['--d' as string]: 3, padding: 20, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
             <div className="kv">
