@@ -18,6 +18,8 @@ e2e-artifacts
 # gerçek PDFler repoya girmez
 fixtures/pdf/*
 !fixtures/pdf/.gitkeep
+fixtures/pdf-genel/*
+!fixtures/pdf-genel/.gitkeep
 
 # wrangler files
 .wrangler
@@ -26,3 +28,6 @@ fixtures/pdf/*
 
 # Vite önbelleği
 .vite
+
+# MEB program PDF önbelleği (scripts/meb-katalog; resmî dosyalar repoya girmez, hash manifestte)
+.cache

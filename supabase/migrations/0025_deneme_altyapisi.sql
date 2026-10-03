@@ -40,6 +40,12 @@ on conflict (code) do nothing;
 create or replace function norm_label(s text) returns text language sql immutable as $$
   select regexp_replace(translate(upper(coalesce(s, '')), 'ÇĞİIÖŞÜÂÎÛçğıiöşüâîû', 'CGIIOSUAIUCGIIOSUAIU'), '[^A-Z0-9]', '', 'g')
 $$;
+-- Kod normalleştirme (kontrollü): boşluk, büyük/küçük harf, Türkçe harf ve virgül→nokta farkı giderilir; NOKTALAR KALIR
+-- (T.7.3.18 ile T.7.31.8 farklı kalır), sondaki nokta atılır. Farklı gerçek kodlar birbirine dönüşmez.
+create or replace function norm_code(s text) returns text language sql immutable as $$
+  select nullif(regexp_replace(regexp_replace(translate(upper(btrim(coalesce(s, ''))), 'ÇĞİIÖŞÜ,', 'CGIIOSU.'), '\s+', '', 'g'), '\.+$', ''), '')
+$$;
+
 create table if not exists subject_aliases (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references schools(id),        -- null: herkes için
@@ -143,6 +149,7 @@ create table if not exists exam_template_sections (
   sort int not null default 0,
   optional_group text,                          -- aynı gruptan yalnız biri uygulanır (ör. Din ↔ Felsefe-2); diğeri N/A
   outcome_grades smallint[],                    -- kazanım hangi sınıfların kataloğunda aranır (null: denemenin sınıfı)
+  outcome_subject text references subjects(code), -- kazanım hangi dersin kataloğunda aranır (null: subject_code; TYT Türkçe → TDE)
   primary key (template_id, key)
 );
 
@@ -173,7 +180,7 @@ create table if not exists learning_outcomes (
   grade smallint not null,
   subject_code text not null references subjects(code),
   code text,                                    -- resmî kaynakta yoksa null (yapay kod üretilmez)
-  code_norm text generated always as (case when code is null then null else norm_label(code) end) stored,
+  code_norm text generated always as (norm_code(code)) stored,
   title text not null,
   description text,
   theme text,
@@ -407,6 +414,9 @@ begin
     (t, 'DIN', 'DIN', 'Din Kültürü', 5, 5, 'DIN_FEL2', '{9,10,11,12}'), (t, 'FEL2', 'FEL', 'Felsefe-2', 5, 6, 'DIN_FEL2', '{10,11}'),
     (t, 'MAT', 'MAT', 'Matematik', 40, 7, null, '{9,10,11,12}'), (t, 'FIZ', 'FIZ', 'Fizik', 7, 8, null, '{9,10,11,12}'),
     (t, 'KIM', 'KIM', 'Kimya', 7, 9, null, '{9,10,11,12}'), (t, 'BIY', 'BIY', 'Biyoloji', 6, 10, null, '{9,10,11,12}');
+
+  -- TYT "Türkçe" testi lise Türk Dili ve Edebiyatı programını ölçer: kazanım TDE kataloğunda aranır
+  update exam_template_sections set outcome_subject = 'TDE' where template_id = t and key = 'TUR';
 
   insert into exam_templates (name, grade, exam_types, publisher_id, format_id, wrong_per_correct, builtin, source_note)
   values ('12. Sınıf YKS · AYT (Frekans)', 12, '{YKS,AYT}', frk, fl, 4, true, 'Frekans 25-26 AYT Deneme-7 (Hız lise düzeni), 8 öğrenci') returning id into t;

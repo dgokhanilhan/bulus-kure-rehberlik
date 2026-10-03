@@ -1,0 +1,1585 @@
+{
+ "generated_by": "scripts/meb-katalog/olustur.mjs",
+ "retrieved_at": "2026-10-03",
+ "authority": "Millî Eğitim Bakanlığı (Talim ve Terbiye Kurulu Başkanlığı), mufredat.meb.gov.tr",
+ "totals": {
+  "sources": 46,
+  "versions": 123,
+  "active_versions": 89,
+  "outcomes": 4890
+ },
+ "sources": [
+  {
+   "id": "tymm-ortaokul-matematik-2026",
+   "pid": 2340,
+   "title": "Ortaokul Matematik Dersi Öğretim Programı (5-8) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202681491243620-Matematik%20(5-8)%20D%C3%96P.pdf",
+   "sha256": "75f52f93672c8991eabe102adb37ab4d16de63f35fe8488fc29cdedae9155734",
+   "bytes": 3916466,
+   "curriculum_type": "TYMM",
+   "subject": "MAT",
+   "grades": {
+    "5": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "6": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "7": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "8": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 100,
+   "checks": [
+    "5. sınıf: 23 = resmî 23",
+    "6. sınıf: 24 = resmî 24",
+    "7. sınıf: 30 = resmî 30",
+    "8. sınıf: 23 = resmî 23",
+    "çapraz başlık kontrolü: 100/100 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-fen-bilimleri-2026",
+   "pid": 2334,
+   "title": "Fen Bilimleri Dersi Öğretim Programı (3-8) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20268149031570-Fen%20Bilimleri%20(3-8)%20D%C3%96P.pdf",
+   "sha256": "a56aab9c648f8293341be3f70c0b49e644ecb1d56be9fcaa200d6419bf1eeb97",
+   "bytes": 3941657,
+   "curriculum_type": "TYMM",
+   "subject": "FEN",
+   "grades": {
+    "5": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "6": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "7": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "8": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 141,
+   "checks": [
+    "5. sınıf: 27 = resmî 27",
+    "6. sınıf: 36 = resmî 36",
+    "7. sınıf: 35 = resmî 35",
+    "8. sınıf: 43 = resmî 43",
+    "çapraz başlık kontrolü: 180/180 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-sosyal-bilgiler-2026",
+   "pid": 2347,
+   "title": "Sosyal Bilgiler Dersi Öğretim Programı (4-7) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20268149286708-Sosyal%20Bilgiler%20D%C3%96P.pdf",
+   "sha256": "3e1b956f9bfa0e561046cb10d1d3aaaecdde4a87b46bdc094297662d6558d9ca",
+   "bytes": 4176047,
+   "curriculum_type": "TYMM",
+   "subject": "SOS",
+   "grades": {
+    "5": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "6": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "7": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 54,
+   "checks": [
+    "5. sınıf: 19 = resmî 19",
+    "6. sınıf: 18 = resmî 18",
+    "7. sınıf: 17 = resmî 17",
+    "çapraz başlık kontrolü: 70/71 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-ortaokul-turkce-2026",
+   "pid": 2352,
+   "title": "Ortaokul Türkçe Dersi Öğretim Programı (5-8) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202681493819891-T%C3%BCrk%C3%A7e%20(5-8)%20D%C3%96P.pdf",
+   "sha256": "f9c44b1059a0d5a7a5aa4e0de3dce6821fce3d873c256ca86219e2347f07497a",
+   "bytes": 8913172,
+   "curriculum_type": "TYMM",
+   "subject": "TUR",
+   "grades": {
+    "5": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "6": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "7": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "8": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 365,
+   "checks": [
+    "kod dizileri boşluksuz, sayfa blokları tutarlı: evet (365 kod)",
+    "tema listesiyle başlık karşılaştırması: aynı 365, liste okuması fazla satır 0, resmî metin içi yazım farkı 0, açıklanamayan fark 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-din-kulturu-4-8-2026",
+   "pid": 2150,
+   "title": "Din Kültürü ve Ahlak Bilgisi Dersi Öğretim Programı (4-8) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202631310725635-dkab48.pdf",
+   "sha256": "6025541032f33036ffd4a8394a02587bf252fa9c4785d864cbfefa207d15997d",
+   "bytes": 2988779,
+   "curriculum_type": "TYMM",
+   "subject": "DIN",
+   "grades": {
+    "5": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "6": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "7": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "8": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 72,
+   "checks": [
+    "5. sınıf: 18 = resmî 18",
+    "6. sınıf: 18 = resmî 18",
+    "7. sınıf: 17 = resmî 17",
+    "8. sınıf: 19 = resmî 19",
+    "çapraz başlık kontrolü: 96/96 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-ingilizce-2-8-2025",
+   "pid": 1903,
+   "title": "İngilizce Dersi Öğretim Programı (2-8) (2025)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202591011405337-26-08-ekli-english-regular.pdf",
+   "sha256": "38cc26d455c178e4366fdc0abf522c7ad6eb7883ebc8a8971fea390def2c2034",
+   "bytes": 12114454,
+   "curriculum_type": "TYMM",
+   "subject": "ING",
+   "grades": {
+    "5": {
+     "from": 2025,
+     "to": null,
+     "active": true
+    },
+    "6": {
+     "from": 2025,
+     "to": null,
+     "active": true
+    },
+    "7": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "8": {
+     "from": 2025,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 728,
+   "checks": [
+    "İngilizce yapı kontrolü (her ünitede aynı beceri kümesi): 5:7ünite×23 6:8ünite×23 7:8ünite×24 8:8ünite×24; açıklanamayan sapma 0"
+   ],
+   "warnings": [
+    "ENG.7.5.W7 tanım metni kaynakta (s.826) kodsuz basılmış; kod yalnız s.841 etkinliğinde geçiyor. Metin koda bağlanmadı (çıkarım olurdu): bu kod katalogda yok."
+   ],
+   "notes": []
+  },
+  {
+   "id": "tymm-inkilap-8-2024",
+   "pid": 1974,
+   "title": "T.C. İnkılap Tarihi ve Atatürkçülük Dersi Öğretim Programı (8. Sınıf) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2025825154713595-ink%C4%B1lap%208.pdf",
+   "sha256": "e9bb195ae94919ec9bb022c718cb911d087b6e1b5e5b78ab3b433512bbfd4235",
+   "bytes": 2224731,
+   "curriculum_type": "TYMM",
+   "subject": "INK",
+   "grades": {
+    "8": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 15,
+   "checks": [
+    "8. sınıf: 15 = resmî 15",
+    "çapraz başlık kontrolü: 14/15 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [
+    "İTA.8.1.1: Programın 12. sayfasındaki ünite şemasında \"öğrenme çıktısı\" kutusunda etkinlik metni var; tanım 14. sayfadaki (\"…analiz edebilme\")."
+   ],
+   "notes": []
+  },
+  {
+   "id": "tymm-ortaokul-turkce-2024",
+   "pid": 1979,
+   "title": "Ortaokul Türkçe Dersi Öğretim Programı (5-8) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202582516532361-ortaokul%20t%C3%BCrk%C3%A7e.pdf",
+   "sha256": "7aa679b8f8f33790d99a7eca98f2712f16951b56a2ed4a608ec3ad0e5ebc0970",
+   "bytes": 10517416,
+   "curriculum_type": "TYMM",
+   "subject": "TUR",
+   "grades": {
+    "5": {
+     "from": 2024,
+     "to": 2025,
+     "active": true
+    },
+    "6": {
+     "from": 2025,
+     "to": 2025,
+     "active": true
+    },
+    "7": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    },
+    "8": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 406,
+   "checks": [
+    "kod dizileri boşluksuz, sayfa blokları tutarlı: evet (406 kod)",
+    "açıklamalar bölümü başlıkları: 406 kod, tabloda olup açıklamada olmayan 0",
+    "tema listesiyle başlık karşılaştırması: aynı 390, liste okuması fazla satır 1, resmî metin içi yazım farkı 9, açıklanamayan fark 0"
+   ],
+   "warnings": [],
+   "notes": [
+    "Resmî metin kendi içinde aynı çıktıyı iki biçimde yazıyor (9 kod): tanım bölümündeki biçim alındı, öteki biçim çıktının kaynak notunda."
+   ]
+  },
+  {
+   "id": "tymm-lise-biyoloji-2024",
+   "pid": 1983,
+   "title": "Biyoloji Dersi Öğretim Programı (9-12) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202582694327111-biyoloji.pdf",
+   "sha256": "cdead5c32e91360df121252429c0704629375ad50e68d0624266868aa76f8450",
+   "bytes": 2363784,
+   "curriculum_type": "TYMM",
+   "subject": "BIY",
+   "grades": {
+    "9": {
+     "from": 2024,
+     "to": 2025,
+     "active": true
+    },
+    "10": {
+     "from": 2025,
+     "to": 2025,
+     "active": true
+    },
+    "11": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    },
+    "12": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 78,
+   "checks": [
+    "9. sınıf: 15 = resmî 15",
+    "10. sınıf: 19 = resmî 19",
+    "11. sınıf: 22 = resmî 22",
+    "12. sınıf: 22 = resmî 22",
+    "çapraz başlık kontrolü: 77/78 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-cografya-2024",
+   "pid": 1984,
+   "title": "Coğrafya Dersi Öğretim Programı (9-12) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202582694459330-co%C4%9Frafya.pdf",
+   "sha256": "5c9d441a42ed6a1d64f3190e92e218c32a0adc262228c0371ebd7b99b07585a6",
+   "bytes": 2859271,
+   "curriculum_type": "TYMM",
+   "subject": "COG",
+   "grades": {
+    "9": {
+     "from": 2024,
+     "to": 2025,
+     "active": true
+    },
+    "10": {
+     "from": 2025,
+     "to": 2025,
+     "active": true
+    },
+    "11": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    },
+    "12": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 76,
+   "checks": [
+    "9. sınıf: 19 = resmî 19",
+    "10. sınıf: 18 = resmî 18",
+    "11. sınıf: 19 = resmî 9/19",
+    "12. sınıf: 20 = resmî 10/20",
+    "çapraz başlık kontrolü: 76/76 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-din-kulturu-9-12-2024",
+   "pid": 1985,
+   "title": "Din Kültürü ve Ahlak Bilgisi Dersi Öğretim Programı (9-12) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202582694611611-din%20k%C3%BClt%C3%BCr%C3%BC%209_12.pdf",
+   "sha256": "119fae5b432daa0e4579f5b73d90b04cd4281d833311cb95241bc1c34f4e194f",
+   "bytes": 2496663,
+   "curriculum_type": "TYMM",
+   "subject": "DIN",
+   "grades": {
+    "9": {
+     "from": 2024,
+     "to": 2025,
+     "active": true
+    },
+    "10": {
+     "from": 2025,
+     "to": 2025,
+     "active": true
+    },
+    "11": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    },
+    "12": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 73,
+   "checks": [
+    "9. sınıf: 20 = resmî 20",
+    "10. sınıf: 17 = resmî 17",
+    "11. sınıf: 16 = resmî 16",
+    "12. sınıf: 20 = resmî 20",
+    "çapraz başlık kontrolü: 71/73 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-fizik-2024",
+   "pid": 1987,
+   "title": "Fizik Dersi Öğretim Programı (9-12) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202582694751283-fizik.pdf",
+   "sha256": "8b17e6daf4385803f15eb1a4dcd4792249f0028791640ff195070b6143df7433",
+   "bytes": 2568485,
+   "curriculum_type": "TYMM",
+   "subject": "FIZ",
+   "grades": {
+    "9": {
+     "from": 2024,
+     "to": 2025,
+     "active": true
+    },
+    "10": {
+     "from": 2025,
+     "to": 2025,
+     "active": true
+    },
+    "11": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    },
+    "12": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 106,
+   "checks": [
+    "9. sınıf: 24 = resmî 24",
+    "10. sınıf: 25 = resmî 25",
+    "11. sınıf: 32 = resmî 32",
+    "12. sınıf: 25 = resmî 25",
+    "çapraz başlık kontrolü: 106/106 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-kimya-2024",
+   "pid": 1989,
+   "title": "Kimya Dersi Öğretim Programı (9-12) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20258269501949-kimya.pdf",
+   "sha256": "bbf53d598fa1c743af5de7d31d76bf5f1b960e78458a3f70ae60ca086dce4f31",
+   "bytes": 2651056,
+   "curriculum_type": "TYMM",
+   "subject": "KIM",
+   "grades": {
+    "9": {
+     "from": 2024,
+     "to": 2025,
+     "active": true
+    },
+    "10": {
+     "from": 2025,
+     "to": 2025,
+     "active": true
+    },
+    "11": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    },
+    "12": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 93,
+   "checks": [
+    "9. sınıf: 23 = resmî 23",
+    "10. sınıf: 21 = resmî 21",
+    "11. sınıf: 25 = resmî 25",
+    "12. sınıf: 24 = resmî 24",
+    "çapraz başlık kontrolü: 93/93 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-matematik-2024",
+   "pid": 1991,
+   "title": "Matematik Dersi Öğretim Programı (Hazırlık, 9-12) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202582695225533-matematik.pdf",
+   "sha256": "f5743677f675db23e6c08a4503c6c3f0a307bbdd6deb8e01256895eb5d3e452e",
+   "bytes": 4656450,
+   "curriculum_type": "TYMM",
+   "subject": "MAT",
+   "grades": {
+    "9": {
+     "from": 2024,
+     "to": 2025,
+     "active": true
+    },
+    "10": {
+     "from": 2025,
+     "to": 2025,
+     "active": true
+    },
+    "11": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    },
+    "12": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 77,
+   "checks": [
+    "9. sınıf: 20 = resmî 20",
+    "10. sınıf: 21 = resmî 21",
+    "11. sınıf: 15 = resmî 15",
+    "12. sınıf: 21 = resmî 18 (resmî tabloda TOPLAM 18 yazıyor, tema satırları toplamı 21 (okunanla aynı))",
+    "çapraz başlık kontrolü: 75/77 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": [
+    "12. sınıf: resmî tabloda TOPLAM 18 yazıyor, tema satırları toplamı 21 (okunanla aynı)"
+   ]
+  },
+  {
+   "id": "tymm-lise-felsefe-2024",
+   "pid": 1986,
+   "title": "Felsefe Dersi Öğretim Programı (10-11) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20258269475986-felsefe.pdf",
+   "sha256": "8dbb0ea3fa9e3bd250fcc9fe03afa2107f3e3b386b376171e5de0e07873b5c73",
+   "bytes": 2905432,
+   "curriculum_type": "TYMM",
+   "subject": "FEL",
+   "grades": {
+    "10": {
+     "from": 2025,
+     "to": 2025,
+     "active": true
+    },
+    "11": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 22,
+   "checks": [
+    "10. sınıf: 10 = resmî 10",
+    "11. sınıf: 12 = resmî 12",
+    "çapraz başlık kontrolü: 22/22 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-tarih-2024",
+   "pid": 1993,
+   "title": "Tarih Dersi Öğretim Programı (9-11) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202582695425908-tarih.pdf",
+   "sha256": "8efaf646a1ff9848e9da3af85a6a2b4adc976c1a0190ffa7fe6469ee99f29876",
+   "bytes": 2347844,
+   "curriculum_type": "TYMM",
+   "subject": "TAR",
+   "grades": {
+    "9": {
+     "from": 2024,
+     "to": 2025,
+     "active": true
+    },
+    "10": {
+     "from": 2025,
+     "to": 2025,
+     "active": true
+    },
+    "11": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 38,
+   "checks": [
+    "9. sınıf: 13 = resmî 13",
+    "10. sınıf: 14 = resmî 14",
+    "11. sınıf: 11 = resmî 11",
+    "çapraz başlık kontrolü: 28/38 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-tde-2024",
+   "pid": 1994,
+   "title": "Türk Dili ve Edebiyatı Dersi Öğretim Programı (Hazırlık, 9-12) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20258269564464-t%C3%BCrk%20dili%20edebiyat%C4%B1.pdf",
+   "sha256": "3202898bd5b9b02ec8569b16d293be5f0d378414288f73b3e168cdc71fdfbac7",
+   "bytes": 3326316,
+   "curriculum_type": "TYMM",
+   "subject": "TDE",
+   "grades": {
+    "9": {
+     "from": 2024,
+     "to": 2025,
+     "active": true
+    },
+    "10": {
+     "from": 2025,
+     "to": 2025,
+     "active": true
+    },
+    "11": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    },
+    "12": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 64,
+   "checks": [
+    "TDE: 16 öğrenme çıktısı, numara/bileşen bütünlüğü tam"
+   ],
+   "warnings": [],
+   "notes": [
+    "Program beceri temelli; kodda sınıf yok. Aynı öğrenme çıktıları programın kapsadığı her sınıf için ayrı kimlikle kaydedildi (sürüm + sınıf + kod)."
+   ]
+  },
+  {
+   "id": "tymm-lise-inkilap-12-2024",
+   "pid": 1988,
+   "title": "T.C. İnkılap Tarihi ve Atatürkçülük Dersi Öğretim Programı (12. Sınıf) (2024)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202582694932783-ink%C4%B1lap%2012.pdf",
+   "sha256": "16123f4bb62ed34132613634b19620ef4e6b4245c811194e8a61d0029160a129",
+   "bytes": 2171312,
+   "curriculum_type": "TYMM",
+   "subject": "INK",
+   "grades": {
+    "12": {
+     "from": 2024,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 16,
+   "checks": [
+    "12. sınıf: 16 = resmî 16",
+    "çapraz başlık kontrolü: 16/16 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-biyoloji-2026",
+   "pid": 2250,
+   "title": "Biyoloji Dersi Öğretim Programı (9-12) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202651815105221-biyolojid%C3%B6p.pdf",
+   "sha256": "758809eb508d40e0ffea01dd9b65f820d79e5a86d5c14a31e2b91b70cae60b7e",
+   "bytes": 3886397,
+   "curriculum_type": "TYMM",
+   "subject": "BIY",
+   "grades": {
+    "9": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "10": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "11": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "12": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 75,
+   "checks": [
+    "9. sınıf: 14 = resmî 14",
+    "10. sınıf: 19 = resmî 19",
+    "11. sınıf: 22 = resmî 22",
+    "12. sınıf: 20 = resmî 20",
+    "çapraz başlık kontrolü: 74/75 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-cografya-2026",
+   "pid": 2251,
+   "title": "Coğrafya Dersi Öğretim Programı (9-12) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2026518151120283-cogd%C3%B6p.pdf",
+   "sha256": "39aee8c83fb6775243ca06a67ae5c37bab7d96e0900d658bc7b8b6419f3f6773",
+   "bytes": 3298111,
+   "curriculum_type": "TYMM",
+   "subject": "COG",
+   "grades": {
+    "9": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "10": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "11": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "12": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 76,
+   "checks": [
+    "9. sınıf: 19 = resmî 19",
+    "10. sınıf: 18 = resmî 18",
+    "11. sınıf: 19 = resmî 9/19",
+    "12. sınıf: 20 = resmî 10/20",
+    "çapraz başlık kontrolü: 76/76 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-din-kulturu-9-12-2026",
+   "pid": 2153,
+   "title": "Din Kültürü ve Ahlak Bilgisi Dersi Öğretim Programı (9-12) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2026313101155916-dkab912.pdf",
+   "sha256": "c48c7083d24b106321ee5ba403ce05b54d9fc9b3a68ed1242bbf5989d5faa8c3",
+   "bytes": 2437415,
+   "curriculum_type": "TYMM",
+   "subject": "DIN",
+   "grades": {
+    "9": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "10": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "11": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "12": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 73,
+   "checks": [
+    "9. sınıf: 20 = resmî 20",
+    "10. sınıf: 17 = resmî 17",
+    "11. sınıf: 16 = resmî 16",
+    "12. sınıf: 20 = resmî 20",
+    "çapraz başlık kontrolü: 73/73 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-fizik-2026",
+   "pid": 2254,
+   "title": "Fizik Dersi Öğretim Programı (9-12) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2026518151437471-fizikd%C3%B6p.pdf",
+   "sha256": "119b158574ebc2a4b0590ca1c00a2dca69f78af76324c0fe272fd44eae3c6feb",
+   "bytes": 3062804,
+   "curriculum_type": "TYMM",
+   "subject": "FIZ",
+   "grades": {
+    "9": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "10": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "11": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "12": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 106,
+   "checks": [
+    "9. sınıf: 24 = resmî 24",
+    "10. sınıf: 22 = resmî 22",
+    "11. sınıf: 33 = resmî 33",
+    "12. sınıf: 27 = resmî 27",
+    "çapraz başlık kontrolü: 106/106 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-kimya-2026",
+   "pid": 2255,
+   "title": "Kimya Dersi Öğretim Programı (9-12) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2026518151539674-kimya.pdf",
+   "sha256": "8ebbc113d520eb118e254394ba4bde50c505bca38adafc178e553c73624a375f",
+   "bytes": 3147926,
+   "curriculum_type": "TYMM",
+   "subject": "KIM",
+   "grades": {
+    "9": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "10": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "11": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "12": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 93,
+   "checks": [
+    "9. sınıf: 23 = resmî 23",
+    "10. sınıf: 21 = resmî 21",
+    "11. sınıf: 25 = resmî 25",
+    "12. sınıf: 24 = resmî 24",
+    "çapraz başlık kontrolü: 93/93 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-matematik-2026",
+   "pid": 2256,
+   "title": "Matematik Dersi Öğretim Programı (Hazırlık, 9-12) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2026518151640408-mated%C3%B6p.pdf",
+   "sha256": "8e1b0c98f0e42b08b7ed1c01ffd03d95111153c16176a749f9e0100942f1dda1",
+   "bytes": 5297488,
+   "curriculum_type": "TYMM",
+   "subject": "MAT",
+   "grades": {
+    "9": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "10": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "11": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "12": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 77,
+   "checks": [
+    "9. sınıf: 20 = resmî 20",
+    "10. sınıf: 21 = resmî 21",
+    "11. sınıf: 15 = resmî 15",
+    "12. sınıf: 21 = resmî 21",
+    "çapraz başlık kontrolü: 75/77 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-felsefe-2026",
+   "pid": 2253,
+   "title": "Felsefe Dersi Öğretim Programı (10-11) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2026518151339111-felsefed%C3%B6p.pdf",
+   "sha256": "26ada7a42aea65c5e2b1155a0b49c4fbf9d2fa30a59df46bfeeeaaf4cbb8b55f",
+   "bytes": 2418344,
+   "curriculum_type": "TYMM",
+   "subject": "FEL",
+   "grades": {
+    "10": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "11": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 22,
+   "checks": [
+    "10. sınıf: 10 = resmî 10",
+    "11. sınıf: 12 = resmî 12",
+    "çapraz başlık kontrolü: 22/22 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-tarih-2026",
+   "pid": 2271,
+   "title": "Tarih Dersi Öğretim Programı (9-11) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2026691344767-tarihd%C3%B6p.pdf",
+   "sha256": "19340c05d40256afd3e4c6ebb73e00884485f7cd7eb60f56ecfe45bf0f896200",
+   "bytes": 2771252,
+   "curriculum_type": "TYMM",
+   "subject": "TAR",
+   "grades": {
+    "9": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "10": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "11": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 38,
+   "checks": [
+    "9. sınıf: 13 = resmî 13",
+    "10. sınıf: 14 = resmî 14",
+    "11. sınıf: 11 = resmî 11",
+    "çapraz başlık kontrolü: 28/38 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-tde-2026",
+   "pid": 2252,
+   "title": "Türk Dili ve Edebiyatı Dersi Öğretim Programı (Hazırlık, 9-12) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2026518151228236-edebiyatd%C3%B6p.pdf",
+   "sha256": "a04e1444eae5495ac9a4aef3c4644aa118381b78748c543cc64d27739dcdd13a",
+   "bytes": 3080953,
+   "curriculum_type": "TYMM",
+   "subject": "TDE",
+   "grades": {
+    "9": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "10": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "11": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "12": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 64,
+   "checks": [
+    "TDE: 16 öğrenme çıktısı, numara/bileşen bütünlüğü tam"
+   ],
+   "warnings": [],
+   "notes": [
+    "Program beceri temelli; kodda sınıf yok. Aynı öğrenme çıktıları programın kapsadığı her sınıf için ayrı kimlikle kaydedildi (sürüm + sınıf + kod)."
+   ]
+  },
+  {
+   "id": "tymm-lise-inkilap-12-2026",
+   "pid": 2270,
+   "title": "T.C. İnkılap Tarihi ve Atatürkçülük Dersi Öğretim Programı (12. Sınıf) (2026)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2026716114859749-%C4%B1nk%C4%B1laptarihi.pdf",
+   "sha256": "3b36236c47d80a05edd1e06caf97121eb22a4731f9588a71919a5fd190f8f0cc",
+   "bytes": 2748618,
+   "curriculum_type": "TYMM",
+   "subject": "INK",
+   "grades": {
+    "12": {
+     "from": 2026,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 16,
+   "checks": [
+    "12. sınıf: 16 = resmî 16",
+    "çapraz başlık kontrolü: 16/16 kod başka sayfada da geçiyor, uyuşmayan 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "tymm-lise-ingilizce-9-12-2025",
+   "pid": 1906,
+   "title": "Ortaöğretim İngilizce Dersi Öğretim Programı (9-12) (2025)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/202591214813382-ingilizce912.pdf",
+   "sha256": "aa708a0c2bd9d5e20b047838317940f6e4a511e13b93b5acdc96191c8bb104e0",
+   "bytes": 7766039,
+   "curriculum_type": "TYMM",
+   "subject": "ING",
+   "grades": {
+    "9": {
+     "from": 2025,
+     "to": null,
+     "active": true
+    },
+    "10": {
+     "from": 2025,
+     "to": null,
+     "active": true
+    },
+    "11": {
+     "from": 2026,
+     "to": null,
+     "active": true
+    },
+    "12": {
+     "from": 2025,
+     "to": null,
+     "active": false
+    }
+   },
+   "outcomes": 720,
+   "checks": [
+    "İngilizce yapı kontrolü (her ünitede aynı beceri kümesi): 9:8ünite×24 10:8ünite×24 11:8ünite×24 12:6ünite×24; açıklanamayan sapma 0"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-matematik-2018",
+   "pid": 329,
+   "title": "Matematik Dersi Öğretim Programı (2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/201813017165445-MATEMAT%C4%B0K%20%C3%96%C4%9ERET%C4%B0M%20PROGRAMI%202018v.pdf",
+   "sha256": "ca94096da33478c822772425b1384bacdbe40548b0813302257fec7e8c9f9c8b",
+   "bytes": 595703,
+   "curriculum_type": "LEGACY",
+   "subject": "MAT",
+   "grades": {
+    "7": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    }
+   },
+   "outcomes": 48,
+   "checks": [
+    "7. sınıf: 48 = resmî 48",
+    "numara bütünlüğü: 12 ünite/konu, boşluk yok",
+    "8. sınıf mevcut katalogla birebir: 52/52 (okunan 52)"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-fen-bilimleri-2018",
+   "pid": 325,
+   "title": "Fen Bilimleri Dersi Öğretim Programı (2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/201812312311937-FEN%20B%C4%B0L%C4%B0MLER%C4%B0%20%C3%96%C4%9ERET%C4%B0M%20PROGRAMI2018.pdf",
+   "sha256": "3a8aa21327083bf15c33b9c404f299ff784b11d26024522a8c24b61387c8c0c1",
+   "bytes": 473150,
+   "curriculum_type": "LEGACY",
+   "subject": "FEN",
+   "grades": {
+    "7": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    }
+   },
+   "outcomes": 67,
+   "checks": [
+    "7. sınıf: 67 = resmî 67",
+    "numara bütünlüğü: 19 ünite/konu, boşluk yok",
+    "8. sınıf mevcut katalogla birebir: 61/61 (okunan 61)"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-turkce-2019",
+   "pid": 663,
+   "title": "Türkçe Dersi Öğretim Programı (2019)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20195716392253-02-T%C3%BCrk%C3%A7e%20%C3%96%C4%9Fretim%20Program%C4%B1%202019.pdf",
+   "sha256": "10e55d403a708d35abc192710977a47df933210a0c54a15e86ea7b9d09401633",
+   "bytes": 568816,
+   "curriculum_type": "LEGACY",
+   "subject": "TUR",
+   "grades": {
+    "7": {
+     "from": 2019,
+     "to": 2025,
+     "active": true
+    }
+   },
+   "outcomes": 76,
+   "checks": [
+    "7. sınıf: 76 (resmî sayı tablosu yok/görsel; numara bütünlüğüyle doğrulandı)",
+    "numara bütünlüğü: 4 ünite/konu, boşluk yok",
+    "8. sınıf mevcut katalogla birebir: 76/76 (okunan 76)"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-din-kulturu-4-8-2018",
+   "pid": 318,
+   "title": "Din Kültürü ve Ahlak Bilgisi Dersi Öğretim Programı (4-8) (2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20221229134650712-DKAB_(4-8.%20S%C4%B1n%C4%B1f)_DOP_%202018.pdf",
+   "sha256": "baace330fd3b7c5b5dde6061bbd0af3b885382d6eb5e7049095a30db8c075608",
+   "bytes": 1548815,
+   "curriculum_type": "LEGACY",
+   "subject": "DIN",
+   "grades": {
+    "7": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    }
+   },
+   "outcomes": 25,
+   "checks": [
+    "7. sınıf: 25 = resmî 25",
+    "numara bütünlüğü: 5 ünite/konu, boşluk yok",
+    "8. sınıf mevcut katalogla birebir: 28/28 (okunan 28)"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-ingilizce-2-8-2018",
+   "pid": 327,
+   "title": "İngilizce Dersi Öğretim Programı (2-8) (2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/201812411191321-%C4%B0NG%C4%B0L%C4%B0ZCE%20%C3%96%C4%9ERET%C4%B0M%20PROGRAMI%20Klas%C3%B6r%C3%BC.pdf",
+   "sha256": "e976ae163c83bb1b3bcf79d7d77ce8cb8308dbdc97a630b941951b9b57653279",
+   "bytes": 1350275,
+   "curriculum_type": "LEGACY",
+   "subject": "ING",
+   "grades": {
+    "7": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    }
+   },
+   "outcomes": 63,
+   "checks": [
+    "7. sınıf: 63 (resmî sayı tablosu yok/görsel; numara bütünlüğüyle doğrulandı)",
+    "numara bütünlüğü: 50 ünite/konu, boşluk yok",
+    "8. sınıf mevcut katalogla birebir: 70/70 (okunan 70)"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-inkilap-8-2018",
+   "pid": 355,
+   "title": "T.C. İnkılap Tarihi ve Atatürkçülük Dersi Öğretim Programı (8) (2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/201812104016155-%C4%B0NKILAP%20TAR%C4%B0H%C4%B0%20VE%20ATAT%C3%9CRK%C3%87%C3%9CL%C3%9CK%20%C3%96%C4%9ERET%C4%B0M%20PROGRAMI.pdf",
+   "sha256": "38a24b11191f7ebca2fc85831d787e7187eca70e82f0bd36e7de5c81524357d5",
+   "bytes": 329496,
+   "curriculum_type": "LEGACY",
+   "subject": "INK",
+   "grades": {},
+   "outcomes": 0,
+   "checks": [
+    "numara bütünlüğü: 0 ünite/konu, boşluk yok",
+    "8. sınıf mevcut katalogla birebir: 39/39 (okunan 39)"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-sosyal-bilgiler-2023",
+   "pid": 1264,
+   "title": "Sosyal Bilgiler Dersi Öğretim Programı (2023-2024 eğitim öğretim yılından itibaren)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2023428142532575-2023_sosyal_bilgiler.pdf",
+   "sha256": "de0ca9aea3993041060cf6814cdf42eeb714e2fb01d4997941f67c92c6b610ff",
+   "bytes": 357603,
+   "curriculum_type": "LEGACY",
+   "subject": "SOS",
+   "grades": {
+    "7": {
+     "from": 2023,
+     "to": 2025,
+     "active": true
+    }
+   },
+   "outcomes": 31,
+   "checks": [
+    "7. sınıf: 31 = resmî 31",
+    "numara bütünlüğü: 7 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-lise-matematik-2018",
+   "pid": 343,
+   "title": "Matematik Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/201821102727101-OGM%20MATEMAT%C4%B0K%20PRG%2020.01.2018.pdf",
+   "sha256": "43f68f4e03e61ab677cac24400d3e89f18f364c72291577b4ebac603de4afbe7",
+   "bytes": 1097267,
+   "curriculum_type": "LEGACY",
+   "subject": "MAT",
+   "grades": {
+    "11": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    },
+    "12": {
+     "from": 2018,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 62,
+   "checks": [
+    "11. sınıf: 28 = resmî 28/15",
+    "12. sınıf: 34 = resmî 34/5",
+    "numara bütünlüğü: 28 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-lise-fizik-2018",
+   "pid": 351,
+   "title": "Fizik Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/201812103112910-orta%C3%B6%C4%9Fretim_fizik_son.pdf",
+   "sha256": "6f0adf395fc98c961da08cbb10fa72fda04573aab8e796049f64388117a0f051",
+   "bytes": 1802728,
+   "curriculum_type": "LEGACY",
+   "subject": "FIZ",
+   "grades": {
+    "11": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    },
+    "12": {
+     "from": 2018,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 130,
+   "checks": [
+    "11. sınıf: 62 = resmî 62",
+    "12. sınıf: 68 = resmî 68",
+    "numara bütünlüğü: 36 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-lise-kimya-2018",
+   "pid": 350,
+   "title": "Kimya Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/201812102955190-19.01.2018%20Kimya%20Dersi%20%C3%96%C4%9Fretim%20Program%C4%B1.pdf",
+   "sha256": "fb17e88c798f42670c047e7023bbbde8525a8ce253370b05f67dc89364149fc4",
+   "bytes": 2086899,
+   "curriculum_type": "LEGACY",
+   "subject": "KIM",
+   "grades": {
+    "11": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    },
+    "12": {
+     "from": 2018,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 66,
+   "checks": [
+    "11. sınıf: 35 = resmî 35",
+    "12. sınıf: 31 = resmî 31",
+    "numara bütünlüğü: 46 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-lise-biyoloji-2018",
+   "pid": 361,
+   "title": "Biyoloji Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20182215535566-Biyoloji%20d%C3%B6p.pdf",
+   "sha256": "187254fb4e173c95e767060f0c2f92f4d6abb36ab55dd47589b47a612fedf3d8",
+   "bytes": 2372217,
+   "curriculum_type": "LEGACY",
+   "subject": "BIY",
+   "grades": {
+    "11": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    },
+    "12": {
+     "from": 2018,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 63,
+   "checks": [
+    "11. sınıf: 34 = resmî 34",
+    "12. sınıf: 29 = resmî 29",
+    "numara bütünlüğü: 19 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-lise-cografya-2018",
+   "pid": 336,
+   "title": "Coğrafya Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2018120203724482-Cografya%20dop%20pdf.pdf",
+   "sha256": "074713f34edfd638dc59b99dc03350afb2f75d67c27fa4c953a7d6f8c7584df8",
+   "bytes": 1052167,
+   "curriculum_type": "LEGACY",
+   "subject": "COG",
+   "grades": {
+    "11": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    },
+    "12": {
+     "from": 2018,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 74,
+   "checks": [
+    "11. sınıf: 40 = resmî 29/40",
+    "12. sınıf: 34 = resmî 24/34",
+    "numara bütünlüğü: 8 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-lise-din-kulturu-9-12-2018",
+   "pid": 319,
+   "title": "Din Kültürü ve Ahlak Bilgisi Dersi Öğretim Programı (9-12) (2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20221229134742302-DKAB_(9-12.%20S%C4%B1n%C4%B1f)_DOP_%202018.pdf",
+   "sha256": "da31fb7e62fa40f7ef7bbdb67582557ade943dd1e562d914e7be6b56ad915594",
+   "bytes": 995296,
+   "curriculum_type": "LEGACY",
+   "subject": "DIN",
+   "grades": {
+    "11": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    },
+    "12": {
+     "from": 2018,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 39,
+   "checks": [
+    "11. sınıf: 17 = resmî 17",
+    "12. sınıf: 22 = resmî 22",
+    "numara bütünlüğü: 10 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": [
+    "12.2.1: kaynakta \"12,2.1.\" (virgül) yazıyor"
+   ]
+  },
+  {
+   "id": "eski-lise-felsefe-2018",
+   "pid": 338,
+   "title": "Felsefe Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2018122175632591-Felsefe%20d%C3%B6p%20pdf.pdf",
+   "sha256": "71f2b77e209fdc924efbb559744af8c67e91ddb1928a4888a4c07aa5d69654cb",
+   "bytes": 1849571,
+   "curriculum_type": "LEGACY",
+   "subject": "FEL",
+   "grades": {
+    "11": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    }
+   },
+   "outcomes": 21,
+   "checks": [
+    "11. sınıf: 21 = resmî 21",
+    "numara bütünlüğü: 5 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-lise-tarih-2023",
+   "pid": 1265,
+   "title": "Tarih Dersi Öğretim Programı (9-11) (2023)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2023428142759840-2023_tarih.pdf",
+   "sha256": "6b020e0e2bdbd2dda009e22125a8f7d0c650823a87ae86134c458f129d3f0c35",
+   "bytes": 4041869,
+   "curriculum_type": "LEGACY",
+   "subject": "TAR",
+   "grades": {
+    "11": {
+     "from": 2023,
+     "to": 2025,
+     "active": true
+    }
+   },
+   "outcomes": 18,
+   "checks": [
+    "11. sınıf: 18 (resmî sayı tablosu yok/görsel; numara bütünlüğüyle doğrulandı)",
+    "numara bütünlüğü: 5 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": [
+    "Resmî kazanım sayısı tablosu görsel olarak basılmış (metin katmanında yok): numara bütünlüğüyle doğrulandı."
+   ]
+  },
+  {
+   "id": "eski-lise-tde-2018",
+   "pid": 353,
+   "title": "Türk Dili ve Edebiyatı Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20221229132522794-T%C3%BCrk%20Dili%20ve%20Edebiyat%C4%B1%20Dersi%20%C3%96%C4%9Fretim%20Program%C4%B1.pdf",
+   "sha256": "26165bf1bde7c1372805b5e8bf5f5e3f1720f25bf5f1f9f969a9e0bedf0de105",
+   "bytes": 2290425,
+   "curriculum_type": "LEGACY",
+   "subject": "TDE",
+   "grades": {
+    "11": {
+     "from": 2018,
+     "to": 2025,
+     "active": true
+    },
+    "12": {
+     "from": 2018,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 190,
+   "checks": [
+    "A.1: 13 = resmî 13",
+    "A.2: 16 = resmî 16",
+    "A.3: 14 = resmî 14",
+    "A.4: 15 = resmî 15",
+    "B: 12 = resmî 12",
+    "C.1: 17 = resmî 17",
+    "C.2: 8 = resmî 8"
+   ],
+   "warnings": [],
+   "notes": [
+    "Kazanımlar sınıftan bağımsız (A Okuma, B Yazma, C Sözlü iletişim). Resmî kod \"A.1.12\" biçiminde (programda bir yerde bitişik, diğerlerinde \"A.1. 9.\" boşluklu basılmış: boşluk normalleştirildi). Her sınıf için ayrı kimlikle kaydedildi."
+   ]
+  },
+  {
+   "id": "eski-lise-inkilap-12-2018",
+   "pid": 346,
+   "title": "T.C. İnkılap Tarihi ve Atatürkçülük Dersi Öğretim Programı (Ortaöğretim 12)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20221229131923491-T.C.%20%C4%B0nk%C4%B1lap%20Tarihi%20ve%20Atat%C3%BCrk%C3%A7%C3%BCl%C3%BCk%20Dersi%20%C3%96%C4%9Fretim%20Program%C4%B1.pdf",
+   "sha256": "0eeb61d5eef4c9ff65e709ca2043e2404e05d6f0926a4c4f011677387c4ea7f2",
+   "bytes": 3110059,
+   "curriculum_type": "LEGACY",
+   "subject": "INK",
+   "grades": {
+    "12": {
+     "from": 2018,
+     "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 33,
+   "checks": [
+    "12. sınıf: 33 = resmî 33",
+    "numara bütünlüğü: 8 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  }
+ ]
+}

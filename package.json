@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "npm run tokens && tsc -b && vite build",
     "preview": "vite preview",
+    "katalog:meb": "node scripts/meb-katalog/olustur.mjs",
     "typecheck": "tsc -b --noEmit",
     "tokens": "node scripts/gen-tokens.mjs",
     "seed:gen": "node scripts/gen-seed.mjs",

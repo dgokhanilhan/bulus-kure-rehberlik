@@ -41,7 +41,8 @@ describe('Mevcut LGS kayıtları', () => {
   })
 
   it('mevcut 8. sınıf kataloğu yeni kataloğa sürümüyle aktarıldı (326 kazanım, eski tablo aynen)', async () => {
-    const { count } = await svc.from('learning_outcomes').select('id', { count: 'exact', head: true }).eq('grade', 8)
+    const { data: v8 } = await svc.from('curriculum_versions').select('id').eq('curriculum_type', 'LEGACY').eq('grade', 8).eq('year_from', 2018)
+    const { count } = await svc.from('learning_outcomes').select('id', { count: 'exact', head: true }).in('curriculum_version_id', v8!.map((v) => v.id))
     expect(count).toBe(326)
     const { data: o } = await svc.from('learning_outcomes').select('code, title, curriculum_versions(curriculum_type, year_from)').eq('code', 'M.8.1.1.1').single()
     expect(o!.title).toMatch(/pozitif tam sayıların/)
@@ -106,11 +107,12 @@ describe('Kazanım kataloğu ve müfredat sürümü', () => {
   })
 
   it('deneme tarihi doğru müfredat sürümünü seçer (2025–2026 eski / 2026–2027 TYMM ayrı)', async () => {
-    const base = { grade: 7, subject_code: 'FEN', source_title: 'test', source_url: 'https://example.invalid', retrieved_at: '2026-10-03' }
-    const { data: old } = await svc.from('curriculum_versions').insert({ ...base, name: 'Test eski 7 FEN', curriculum_type: 'LEGACY', year_from: 2090, year_to: 2091, outcome_kind: 'KAZANIM' }).select('id').single()
-    const { data: neu } = await svc.from('curriculum_versions').insert({ ...base, name: 'Test TYMM 7 FEN', curriculum_type: 'TYMM', year_from: 2092, outcome_kind: 'OGRENME_CIKTISI' }).select('id').single()
+    // Gerçek katalogda olmayan bir sınıf-ders (7. sınıf Felsefe): senaryo gerçek veriden yalıtılır
+    const base = { grade: 7, subject_code: 'FEL', source_title: 'test', source_url: 'https://example.invalid', retrieved_at: '2026-10-03' }
+    const { data: old } = await svc.from('curriculum_versions').insert({ ...base, name: 'Test eski 7 FEL', curriculum_type: 'LEGACY', year_from: 2090, year_to: 2091, outcome_kind: 'KAZANIM' }).select('id').single()
+    const { data: neu } = await svc.from('curriculum_versions').insert({ ...base, name: 'Test TYMM 7 FEL', curriculum_type: 'TYMM', year_from: 2092, outcome_kind: 'OGRENME_CIKTISI' }).select('id').single()
     made.versions.push(old!.id, neu!.id)
-    const pick = async (y: number) => (await svc.rpc('curriculum_for', { p_grade: 7, p_subject: 'FEN', p_year: y })).data
+    const pick = async (y: number) => (await svc.rpc('curriculum_for', { p_grade: 7, p_subject: 'FEL', p_year: y })).data
     expect(await pick(2091)).toBe(old!.id)
     expect(await pick(2092)).toBe(neu!.id)
     expect(await pick(2089)).toBeNull()
