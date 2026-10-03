@@ -47,6 +47,8 @@ export interface ClassRow {
   section: string
   level: 'ilkokul' | 'ortaokul' | 'lise'
   homeroom_teacher_id: string | null
+  /** 0024: pasif sınıf kayıt formunda ve yeni atamalarda seçilemez; kayıtları korunur. */
+  active?: boolean
 }
 
 export interface Notification {

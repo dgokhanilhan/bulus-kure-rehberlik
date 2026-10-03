@@ -21,11 +21,13 @@ const ACTION_TR: Record<string, string> = {
   delete: 'Sildi',
   activate: 'Hesabı açtı',
   deactivate: 'Hesabı kapattı',
+  module_toggle: 'Modül açtı/kapattı',
 }
 const ENTITY_TR: Record<string, string> = {
   profiles: 'kullanıcı', exams: 'deneme', reports: 'rapor', schools: 'okul', rehber_notlari: 'rehberlik notları', rapor: 'rapor',
   students: 'öğrenci', classes: 'sınıf', courses: 'ders', teaching_assignments: 'ders ataması', bell_times: 'ders saati',
   academic_years: 'eğitim yılı', timetable: 'ders programı', school_settings: 'okul ayarları',
+  announcements: 'duyuru', calendar_events: 'takvim etkinliği', homework: 'ödev',
 }
 
 interface Audit {

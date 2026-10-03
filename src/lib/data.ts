@@ -221,7 +221,7 @@ export function useClasses() {
   return useQuery({
     queryKey: ['classes'],
     staleTime: STALE,
-    queryFn: () => all<ClassRow>(supabase.from('classes').select('id, name, grade, section, level, homeroom_teacher_id').order('grade').order('section')),
+    queryFn: () => all<ClassRow>(supabase.from('classes').select('id, name, grade, section, level, homeroom_teacher_id, active').order('grade').order('section')),
   })
 }
 
