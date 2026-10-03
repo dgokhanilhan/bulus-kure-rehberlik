@@ -8,13 +8,14 @@ import MfaPage from '@/pages/MfaPage'
 import { ConsentPage, RolePickPage, SetPasswordPage } from '@/pages/HesapPages'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
-import { useFamilyTracks, useModules } from '@/lib/data'
+import { useFamilyTracks, useModules, useSettings } from '@/lib/data'
 
 // Sayfalar ihtiyaç anında yüklenir (ilk açılış hızlı; Lighthouse).
 const OnaylarPage = lazy(() => import('@/pages/OnaylarPage'))
 const YonetimPage = lazy(() => import('@/pages/YonetimPage'))
 const IletisimPage = lazy(() => import('@/pages/IletisimPage'))
 const DuyurularPage = lazy(() => import('@/pages/IletisimPage').then((m) => ({ default: m.DuyurularPage })))
+const GaleriPage = lazy(() => import('@/pages/GaleriPage'))
 const OdevlerPage = lazy(() => import('@/pages/OdevlerPage'))
 const PanelPage = lazy(() => import('@/pages/PanelPage'))
 const TakvimPage = lazy(() => import('@/pages/TakvimPage'))
@@ -48,6 +49,7 @@ const PAGES: Record<PageId, JSX.Element> = {
   yonetim: <YonetimPage />,
   iletisim: <IletisimPage />,
   duyurular: <DuyurularPage />,
+  galeri: <GaleriPage />,
   odevler: <OdevlerPage />,
   panel: <PanelPage />,
   takvim: <TakvimPage />,
@@ -121,9 +123,12 @@ export default function App() {
 function RoleRoutes() {
   const { role } = useAuth()
   const mods = useModules()
+  const settings = useSettings()
   const fam = useFamilyTracks(role === 'veli' || role === 'ogrenci')
   const allowed = navItems(role!, mods, fam).map((n) => n.id)
   const home = `/${allowed[0]}`
+  // Modül ayarları yüklenmeden yönlendirme kararı verilmez (varsayılanı kapalı modülün sayfasına doğrudan gelen ana sayfaya atılmasın)
+  if (settings.isLoading) return <Wait />
   return (
     <Routes>
       <Route element={<AppShell />}>
