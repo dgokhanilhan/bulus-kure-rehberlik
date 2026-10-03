@@ -1,6 +1,6 @@
 // Öğrenci silme (rehber): ad yazılarak onaylanır, listeden kalkar.
 import { test, expect } from '@playwright/test'
-import { DEMO, login, openStudent, service } from './helpers'
+import { DEMO, login, openStudent, service, ELIF } from './helpers'
 
 test('rehber öğrenciyi siler; branş öğretmeni silme düğmesini görmez', async ({ page }) => {
   const { data: st } = await service()
@@ -9,7 +9,7 @@ test('rehber öğrenciyi siler; branş öğretmeni silme düğmesini görmez', a
     .select('id')
     .single()
   await login(page, ...DEMO.matematik)
-  await openStudent(page, st!.id)
+  await openStudent(page, ELIF) // branş öğretmeni yalnız ders verdiği sınıfı (8/A) açabilir (0023)
   await expect(page.getByRole('button', { name: 'Öğrenciyi sil' })).toHaveCount(0)
   await page.getByRole('button', { name: /^Profil:/ }).click()
   await page.getByRole('menuitem', { name: 'Çıkış yap' }).click()

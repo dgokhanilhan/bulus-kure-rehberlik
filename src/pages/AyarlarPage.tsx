@@ -22,6 +22,8 @@ const ACTION_TR: Record<string, string> = {
   activate: 'Hesabı açtı',
   deactivate: 'Hesabı kapattı',
   module_toggle: 'Modül açtı/kapattı',
+  parent_link_add: 'Veli bağladı',
+  parent_link_remove: 'Veli bağlantısını kaldırdı',
 }
 const ENTITY_TR: Record<string, string> = {
   profiles: 'kullanıcı', exams: 'deneme', reports: 'rapor', schools: 'okul', rehber_notlari: 'rehberlik notları', rapor: 'rapor',

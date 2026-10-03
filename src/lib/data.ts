@@ -25,11 +25,13 @@ function useDualMode(): { uid: string; as: 'veli' | 'ogretmen' } | null {
 }
 
 export function useStudents(enabled = true) {
-  const { profile } = useAuth()
+  const { profile, switchable } = useAuth()
   // Veli olarak: yalnız bağlı çocuklar (öğretmen rolü olan velinin okulun tüm öğrencilerini görmesi ekranda istenmez)
   const parentOf = profile?.role === 'veli' ? profile.id : null
+  // İki rollü hesap öğretmen modunda: yalnız öğretmen olarak atandığı sınıflar (veli olarak gördüğü kendi çocukları listelenmez)
+  const teacherOnly = !parentOf && profile?.role === 'ogretmen' && switchable.length > 0 ? profile.id : null
   return useQuery({
-    queryKey: ['students', parentOf ? 'veli' : 'hepsi'],
+    queryKey: ['students', parentOf ? 'veli' : teacherOnly ? 'ogretmen' : 'hepsi'],
     staleTime: STALE,
     enabled,
     queryFn: async () => {
@@ -38,6 +40,11 @@ export function useStudents(enabled = true) {
         const { data, error } = await supabase.from('parent_links').select('student_id').eq('parent_id', parentOf)
         if (error) throw new Error(error.message)
         q = q.in('id', (data ?? []).map((r) => r.student_id as string))
+      } else if (teacherOnly) {
+        const { data, error } = await supabase.rpc('teacher_classes', { uid: teacherOnly })
+        if (error) throw new Error(error.message)
+        const ids = ((data ?? []) as (string | { teacher_classes: string })[]).map((x) => (typeof x === 'string' ? x : x.teacher_classes))
+        q = q.in('class_id', ids)
       }
       const rows = await all<Student & { classes?: { grade: number } | null }>(q.order('class_name').order('full_name'))
       return rows.map(({ classes, ...s }) => ({ ...s, grade: classes?.grade ?? null }))

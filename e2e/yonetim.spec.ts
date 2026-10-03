@@ -137,6 +137,10 @@ test.describe.serial('Yönetim paneli', () => {
     await card.getByRole('button', { name: 'Bağla', exact: true }).click()
     await expect(card.locator('.chip', { hasText: 'Kerem' })).toBeVisible()
     await card.getByRole('button', { name: /Kerem .* bağlantısını kaldır/ }).click()
+    // Kaldırma onay ister (0023)
+    const onay = page.getByRole('dialog', { name: 'Veli bağlantısını kaldır' })
+    await expect(onay).toContainText('Veli bu öğrencinin bilgilerini artık göremez.')
+    await onay.getByRole('button', { name: 'Bağlantıyı kaldır' }).click()
     await expect(card.locator('.chip', { hasText: 'Kerem' })).toHaveCount(0)
   })
 

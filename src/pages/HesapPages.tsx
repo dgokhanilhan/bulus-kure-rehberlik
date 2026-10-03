@@ -124,3 +124,32 @@ export function RolePickPage() {
     </AuthLayout>
   )
 }
+
+/** Çok çocuklu veli: "Hangi öğrenci için devam etmek istersiniz?" Seçim yalnız ekranı belirler; yetki veritabanında (parent_links). */
+export function StudentPickPage() {
+  const { children, switchStudent, switchable, switchRole, signOut } = useAuth()
+  return (
+    <AuthLayout>
+      <div className="stack a">
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>Hangi öğrenci için devam etmek istersiniz?</h2>
+        <p className="m">İstediğiniz zaman profil menüsündeki <b>Öğrenci değiştir</b> ile geçebilirsiniz.</p>
+        <div className="stack" role="group" aria-label="Öğrenciler" style={{ gap: 8 }}>
+          {children.map((c) => (
+            <button key={c.id} className="scard" style={{ minHeight: 60 }} onClick={() => switchStudent(c.id)}>
+              <b style={{ fontSize: 16 }}>{c.full_name}</b>
+              <span className="m">{c.class_name}</span>
+            </button>
+          ))}
+        </div>
+        {switchable.includes('ogretmen') && (
+          <button type="button" className="btn sm" onClick={() => switchRole('ogretmen')}>
+            Öğretmen olarak devam et
+          </button>
+        )}
+        <button type="button" className="btn ghost sm" onClick={() => signOut()}>
+          Çıkış yap
+        </button>
+      </div>
+    </AuthLayout>
+  )
+}
