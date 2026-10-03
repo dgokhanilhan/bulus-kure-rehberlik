@@ -1,0 +1,1259 @@
+{
+ "detection": {
+  "family": "HIZ_ORTAOKUL",
+  "format": "HIZ_ORTAOKUL_KARNE_V1",
+  "confidence": 1,
+  "grade": 5,
+  "gradeConfidence": 0.99,
+  "examType": null,
+  "yksPart": null,
+  "publisher": "Hız Yayınları",
+  "examCode": "GD-6",
+  "title": "5.SINIF GELİŞİM VE DEĞERLENDİRME-6"
+ },
+ "failedPages": 0,
+ "records": [
+  {
+   "page": 1,
+   "classGrade": 5,
+   "score": 254.844,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     3,
+     12,
+     0,
+     -1
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     3,
+     7,
+     0,
+     0.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     6,
+     4,
+     0,
+     4.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     5,
+     5,
+     0,
+     3.33
+    ],
+    "MATEMATİK": [
+     15,
+     6,
+     8,
+     1,
+     3.33
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     7,
+     8,
+     0,
+     4.33
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1322,
+   "warnings": []
+  },
+  {
+   "page": 3,
+   "classGrade": 5,
+   "score": 432.756,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     12,
+     3,
+     0,
+     11
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     8,
+     2,
+     0,
+     7.33
+    ],
+    "İNGİLİZCE": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "MATEMATİK": [
+     15,
+     11,
+     3,
+     1,
+     10
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     14,
+     1,
+     0,
+     13.67
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1322,
+   "warnings": []
+  },
+  {
+   "page": 5,
+   "classGrade": 5,
+   "score": 404.283,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     9,
+     6,
+     0,
+     7
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     7,
+     3,
+     0,
+     6
+    ],
+    "İNGİLİZCE": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "MATEMATİK": [
+     15,
+     12,
+     3,
+     0,
+     11
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     12,
+     3,
+     0,
+     11
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1323,
+   "warnings": []
+  },
+  {
+   "page": 7,
+   "classGrade": 5,
+   "score": 381.608,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     11,
+     4,
+     0,
+     9.67
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     6,
+     4,
+     0,
+     4.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     7,
+     1,
+     2,
+     6.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     6,
+     2,
+     2,
+     5.33
+    ],
+    "MATEMATİK": [
+     15,
+     10,
+     2,
+     3,
+     9.33
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     10,
+     3,
+     2,
+     9
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1314,
+   "warnings": []
+  },
+  {
+   "page": 9,
+   "classGrade": 5,
+   "score": 431.469,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     10,
+     5,
+     0,
+     8.33
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     7,
+     3,
+     0,
+     6
+    ],
+    "İNGİLİZCE": [
+     10,
+     8,
+     2,
+     0,
+     7.33
+    ],
+    "MATEMATİK": [
+     15,
+     13,
+     0,
+     2,
+     13
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     14,
+     1,
+     0,
+     13.67
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1321,
+   "warnings": []
+  },
+  {
+   "page": 11,
+   "classGrade": 5,
+   "score": 187.618,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     2,
+     13,
+     0,
+     -2.33
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     4,
+     6,
+     0,
+     2
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     2,
+     8,
+     0,
+     -0.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     3,
+     7,
+     0,
+     0.67
+    ],
+    "MATEMATİK": [
+     15,
+     5,
+     10,
+     0,
+     1.67
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     1,
+     14,
+     0,
+     -3.67
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1323,
+   "warnings": []
+  },
+  {
+   "page": 13,
+   "classGrade": 5,
+   "score": 471.491,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     13,
+     2,
+     0,
+     12.33
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "MATEMATİK": [
+     15,
+     15,
+     0,
+     0,
+     15
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     14,
+     1,
+     0,
+     13.67
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1323,
+   "warnings": []
+  },
+  {
+   "page": 15,
+   "classGrade": 5,
+   "score": 432.179,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     13,
+     2,
+     0,
+     12.33
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     7,
+     3,
+     0,
+     6
+    ],
+    "İNGİLİZCE": [
+     10,
+     10,
+     0,
+     0,
+     10
+    ],
+    "MATEMATİK": [
+     15,
+     11,
+     3,
+     1,
+     10
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     13,
+     2,
+     0,
+     12.33
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1322,
+   "warnings": []
+  },
+  {
+   "page": 17,
+   "classGrade": 5,
+   "score": 325.099,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     6,
+     9,
+     0,
+     3
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     7,
+     3,
+     0,
+     6
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     2,
+     8,
+     0,
+     -0.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     5,
+     4,
+     1,
+     3.67
+    ],
+    "MATEMATİK": [
+     15,
+     9,
+     4,
+     2,
+     7.67
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     11,
+     4,
+     0,
+     9.67
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1320,
+   "warnings": []
+  },
+  {
+   "page": 19,
+   "classGrade": 5,
+   "score": 307.394,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     6,
+     7,
+     2,
+     3.67
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     6,
+     4,
+     0,
+     4.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     3,
+     4,
+     3,
+     1.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     4,
+     5,
+     1,
+     2.33
+    ],
+    "MATEMATİK": [
+     15,
+     9,
+     6,
+     0,
+     7
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     8,
+     6,
+     1,
+     6
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1316,
+   "warnings": []
+  },
+  {
+   "page": 21,
+   "classGrade": 5,
+   "score": 398.353,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     10,
+     5,
+     0,
+     8.33
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     5,
+     5,
+     0,
+     3.33
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     7,
+     3,
+     0,
+     6
+    ],
+    "İNGİLİZCE": [
+     10,
+     8,
+     2,
+     0,
+     7.33
+    ],
+    "MATEMATİK": [
+     15,
+     12,
+     3,
+     0,
+     11
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     13,
+     2,
+     0,
+     12.33
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1323,
+   "warnings": []
+  },
+  {
+   "page": 23,
+   "classGrade": 5,
+   "score": 366.198,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     9,
+     3,
+     3,
+     8
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     6,
+     3,
+     1,
+     5
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     6,
+     2,
+     2,
+     5.33
+    ],
+    "İNGİLİZCE": [
+     10,
+     7,
+     1,
+     2,
+     6.67
+    ],
+    "MATEMATİK": [
+     15,
+     9,
+     3,
+     3,
+     8
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     10,
+     3,
+     2,
+     9
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1310,
+   "warnings": []
+  },
+  {
+   "page": 25,
+   "classGrade": 5,
+   "score": 478.72,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     14,
+     1,
+     0,
+     13.67
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     10,
+     0,
+     0,
+     10
+    ],
+    "MATEMATİK": [
+     15,
+     14,
+     1,
+     0,
+     13.67
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     15,
+     0,
+     0,
+     15
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1323,
+   "warnings": []
+  },
+  {
+   "page": 27,
+   "classGrade": 5,
+   "score": 307.437,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     5,
+     10,
+     0,
+     1.67
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     5,
+     5,
+     0,
+     3.33
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     3,
+     7,
+     0,
+     0.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     5,
+     5,
+     0,
+     3.33
+    ],
+    "MATEMATİK": [
+     15,
+     9,
+     5,
+     1,
+     7.33
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     10,
+     4,
+     1,
+     8.67
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1321,
+   "warnings": []
+  },
+  {
+   "page": 29,
+   "classGrade": 5,
+   "score": 428.241,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     12,
+     3,
+     0,
+     11
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     7,
+     3,
+     0,
+     6
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     6,
+     4,
+     0,
+     4.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     10,
+     0,
+     0,
+     10
+    ],
+    "MATEMATİK": [
+     15,
+     13,
+     2,
+     0,
+     12.33
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     13,
+     2,
+     0,
+     12.33
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1323,
+   "warnings": []
+  },
+  {
+   "page": 31,
+   "classGrade": 5,
+   "score": 327.537,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     7,
+     5,
+     3,
+     5.33
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     7,
+     3,
+     0,
+     6
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     3,
+     6,
+     1,
+     1
+    ],
+    "İNGİLİZCE": [
+     10,
+     10,
+     0,
+     0,
+     10
+    ],
+    "MATEMATİK": [
+     15,
+     9,
+     4,
+     2,
+     7.67
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     6,
+     6,
+     3,
+     4
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1314,
+   "warnings": []
+  },
+  {
+   "page": 33,
+   "classGrade": 5,
+   "score": 401.435,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     11,
+     4,
+     0,
+     9.67
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     7,
+     3,
+     0,
+     6
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     6,
+     3,
+     1,
+     5
+    ],
+    "İNGİLİZCE": [
+     10,
+     10,
+     0,
+     0,
+     10
+    ],
+    "MATEMATİK": [
+     15,
+     11,
+     4,
+     0,
+     9.67
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     12,
+     3,
+     0,
+     11
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1322,
+   "warnings": []
+  },
+  {
+   "page": 35,
+   "classGrade": 5,
+   "score": 331.454,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     8,
+     6,
+     1,
+     6
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     6,
+     4,
+     0,
+     4.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     6,
+     4,
+     0,
+     4.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     8,
+     1,
+     1,
+     7.67
+    ],
+    "MATEMATİK": [
+     15,
+     8,
+     5,
+     2,
+     6.33
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     8,
+     7,
+     0,
+     5.67
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1319,
+   "warnings": []
+  },
+  {
+   "page": 37,
+   "classGrade": 5,
+   "score": 194.852,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     2,
+     13,
+     0,
+     -2.33
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     3,
+     7,
+     0,
+     0.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     4,
+     6,
+     0,
+     2
+    ],
+    "İNGİLİZCE": [
+     10,
+     2,
+     8,
+     0,
+     -0.67
+    ],
+    "MATEMATİK": [
+     15,
+     0,
+     0,
+     15,
+     0
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     0,
+     0,
+     15,
+     0
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1293,
+   "warnings": []
+  },
+  {
+   "page": 39,
+   "classGrade": 5,
+   "score": 356.715,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     6,
+     9,
+     0,
+     3
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     8,
+     2,
+     0,
+     7.33
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     4,
+     5,
+     1,
+     2.33
+    ],
+    "İNGİLİZCE": [
+     10,
+     10,
+     0,
+     0,
+     10
+    ],
+    "MATEMATİK": [
+     15,
+     12,
+     3,
+     0,
+     11
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     9,
+     6,
+     0,
+     7
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1322,
+   "warnings": []
+  },
+  {
+   "page": 41,
+   "classGrade": 5,
+   "score": 378.105,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     8,
+     7,
+     0,
+     5.67
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     8,
+     2,
+     0,
+     7.33
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     8,
+     2,
+     0,
+     7.33
+    ],
+    "İNGİLİZCE": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "MATEMATİK": [
+     15,
+     10,
+     4,
+     1,
+     8.67
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     11,
+     4,
+     0,
+     9.67
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1322,
+   "warnings": []
+  },
+  {
+   "page": 43,
+   "classGrade": 5,
+   "score": 430.099,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     15,
+     0,
+     0,
+     15
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     6,
+     4,
+     0,
+     4.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     5,
+     4,
+     1,
+     3.67
+    ],
+    "İNGİLİZCE": [
+     10,
+     10,
+     0,
+     0,
+     10
+    ],
+    "MATEMATİK": [
+     15,
+     13,
+     2,
+     0,
+     12.33
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     11,
+     3,
+     1,
+     10
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1321,
+   "warnings": []
+  },
+  {
+   "page": 45,
+   "classGrade": 5,
+   "score": 452.521,
+   "scores": null,
+   "sections": {
+    "TÜRKÇE": [
+     15,
+     13,
+     2,
+     0,
+     12.33
+    ],
+    "SOSYAL BİLGİLER": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "DİN KÜLTÜRÜ": [
+     10,
+     8,
+     2,
+     0,
+     7.33
+    ],
+    "İNGİLİZCE": [
+     10,
+     9,
+     1,
+     0,
+     8.67
+    ],
+    "MATEMATİK": [
+     15,
+     13,
+     2,
+     0,
+     12.33
+    ],
+    "FEN BİLİMLERİ": [
+     15,
+     14,
+     1,
+     0,
+     13.67
+    ]
+   },
+   "items": 75,
+   "coded": 69,
+   "key": 1323,
+   "warnings": []
+  }
+ ]
+}

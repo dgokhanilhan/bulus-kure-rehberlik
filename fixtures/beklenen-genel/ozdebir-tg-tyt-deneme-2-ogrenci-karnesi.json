@@ -1,0 +1,16 @@
+{
+ "detection": {
+  "family": "UNKNOWN",
+  "format": null,
+  "confidence": 0,
+  "grade": null,
+  "gradeConfidence": null,
+  "examType": null,
+  "yksPart": null,
+  "publisher": null,
+  "examCode": null,
+  "title": null
+ },
+ "failedPages": 0,
+ "records": []
+}
