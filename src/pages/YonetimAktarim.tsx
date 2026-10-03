@@ -13,8 +13,8 @@ import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { CARD_TR, usePanelLayout, PANEL_DEFAULTS, type CardId, type PanelRole } from './PanelPage'
 
-const ROLE_TABS = [['veli', 'Veli'], ['ogrenci', 'Öğrenci'], ['ogretmen', 'Öğretmen']] as const
-const CARD_MOD: Partial<Record<CardId, string>> = { lgs: 'lgs', bursluluk: 'bursluluk', odev: 'odev', odev_kontrol: 'odev', takvim: 'takvim', yemek: 'yemek', mesaj: 'mesaj', duyuru: 'duyuru' }
+const ROLE_TABS = [['veli', 'Veli'], ['ogrenci', 'Öğrenci'], ['ogretmen', 'Öğretmen'], ['yonetim', 'Yönetim (Bugün)']] as const
+const CARD_MOD: Partial<Record<CardId, string>> = { deneme: 'lgs', devamsizlik: 'yoklama', yoklama: 'yoklama', lgs: 'lgs', bursluluk: 'bursluluk', odev: 'odev', odev_kontrol: 'odev', takvim: 'takvim', yemek: 'yemek', mesaj: 'mesaj', duyuru: 'duyuru' }
 
 // ---------------------------------------------------------------- Ana sayfa düzeni
 export function AnaSayfaDuzeni() {
@@ -22,8 +22,8 @@ export function AnaSayfaDuzeni() {
   return (
     <>
       <p className="m a" style={{ fontSize: 13 }}>
-        Veli, öğrenci ve öğretmenin girişte gördüğü <b>Ana sayfa</b>daki kartları seç ve sırala (sürükle bırak ya da ok düğmeleri). Kapalı modülün kartı işaretli olsa da görünmez. Yönetici ve rehberlik
-        kendi <b>Bugün</b> ekranını görür.
+        Veli, öğrenci ve öğretmenin girişte gördüğü <b>Ana sayfa</b>daki kartları seç, sırala (sürükle bırak ya da ok düğmeleri) ve genişliğini belirle. <b>Yönetim (Bugün)</b> yöneticinin Bugün
+        ekranındaki yan kartlardır (rehberliğin ekranı değişmez). Kapalı modülün kartı işaretli olsa da görünmez; LGS kartı yalnız 8. sınıflarda görünür, bu kural düzenle aşılamaz.
       </p>
       <Seg className="a" label="Kimin ana sayfası" value={role} onChange={setRole} options={ROLE_TABS} style={{ alignSelf: 'flex-start' }} />
       <LayoutEditor key={role} role={role} />
@@ -85,6 +85,17 @@ function LayoutEditor({ role }: { role: PanelRole }) {
                   {m && mods[m] === false && <span className="chip n" style={{ marginLeft: 6 }}>modül kapalı</span>}
                 </span>
               </label>
+              {role !== 'yonetim' && (
+                <select
+                  aria-label={`${CARD_TR[c.id]} genişliği`}
+                  value={c.w ?? 'dar'}
+                  onChange={(e) => setList((l) => l.map((x) => (x.id === c.id ? (e.target.value === 'genis' ? { ...x, w: 'genis' as const } : { id: x.id, on: x.on }) : x)))}
+                  style={{ width: 'auto', padding: '4px 8px', fontSize: 13 }}
+                >
+                  <option value="dar">Dar</option>
+                  <option value="genis">Geniş</option>
+                </select>
+              )}
               <button type="button" className="ib" aria-label={`${CARD_TR[c.id]} yukarı`} disabled={i === 0} onClick={() => move(i, i - 1)}>
                 ↑
               </button>
