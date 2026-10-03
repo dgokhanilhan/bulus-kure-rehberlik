@@ -44,12 +44,12 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'odevler' | 'takvim' | 'bildirimler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
-  | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler'
+  | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler' | 'galeri'
 
 export interface NavItem {
   id: PageId
   label: string
-  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega'
+  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega' | 'image'
 }
 
 const STAFF: NavItem[] = [
@@ -87,15 +87,16 @@ function navFor(r: Role): NavItem[] {
 }
 
 /** Modüller (Yönetim → Modüller). Kapalı modülün sayfası menüden kalkar; veri erişimi veritabanında da kapanır (0011). */
-export type ModuleId = 'lgs' | 'yoklama' | 'ders_programi' | 'yemek' | 'duyuru' | 'mesaj' | 'odev' | 'takvim' | 'bursluluk'
+export type ModuleId = 'lgs' | 'yoklama' | 'ders_programi' | 'yemek' | 'duyuru' | 'mesaj' | 'odev' | 'takvim' | 'bursluluk' | 'galeri'
 export type Modules = Record<ModuleId, boolean>
-export const MODULE_DEFAULTS: Modules = { lgs: true, yoklama: true, ders_programi: true, yemek: true, duyuru: true, mesaj: true, odev: true, takvim: true, bursluluk: false }
+export const MODULE_DEFAULTS: Modules = { lgs: true, yoklama: true, ders_programi: true, yemek: true, duyuru: true, mesaj: true, odev: true, takvim: true, bursluluk: false, galeri: false }
 
 /** Sayfanın bağlı olduğu modüller: hepsi kapalıysa sayfa menüden kalkar. */
 const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
   denemeler: ['lgs'],
   siniflar: ['lgs'],
   odevler: ['odev'],
+  galeri: ['galeri'],
   takvim: ['takvim'],
   raporlar: ['lgs'],
   okul: ['yoklama', 'ders_programi', 'yemek'],
@@ -103,12 +104,19 @@ const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
   iletisim: ['mesaj'],
 }
 
+/** Galeri (0022): herkes için, Takvim'den sonra; modül kapalıyken menüde yok. */
+const GALERI: NavItem = { id: 'galeri', label: 'Galeri', icon: 'image' }
+function withGallery(list: NavItem[]): NavItem[] {
+  const i = list.findIndex((n) => n.id === 'takvim')
+  return i < 0 ? [...list, GALERI] : [...list.slice(0, i + 1), GALERI, ...list.slice(i + 1)]
+}
+
 /**
  * fam.lgs: veli/öğrenci için LGS'ye uygun (8. sınıf) çocuk var mı. Yoksa ya da LGS modülü kapalıysa sayfa "Özet" adını alır
  * ve LGS bölümü gösterilmez; görevler, görüşmeler, raporlar, öğretmen notları ve etütler herkes için kalır.
  */
 export function navItems(r: Role, mods: Modules = MODULE_DEFAULTS, fam: { lgs: boolean } = { lgs: true }): NavItem[] {
-  return navFor(r)
+  return withGallery(navFor(r))
     .filter((n) => !PAGE_MODULES[n.id] || PAGE_MODULES[n.id]!.some((m) => mods[m]))
     .map((n) => (n.id === 'ozet' && !(fam.lgs && mods.lgs) ? { ...n, label: 'Özet' } : n))
 }
