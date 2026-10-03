@@ -16,8 +16,27 @@ function readChoice(uid: string): SwitchRole | null {
     return null
   }
 }
+// Aktif öğrenci (çok çocuklu veli): yalnız ekran bağlamı. Saklanan kimlik velinin gerçek çocuk listesinde (parent_links, RLS) yoksa yok sayılır.
+const CHILD_KEY = 'bk.cocuk'
+function readChild(uid: string): string | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(CHILD_KEY) ?? 'null') as { uid?: string; sid?: string } | null
+    return v?.uid === uid && typeof v.sid === 'string' ? v.sid : null
+  } catch {
+    return null
+  }
+}
+export interface Child {
+  id: string
+  full_name: string
+  class_name: string
+  grade: number | null
+}
+
+/** Çıkışta ve yeni girişte: seçili rol ve aktif öğrenci silinir (önceki kullanıcının seçimi kullanılmaz). */
 export function clearRoleChoice() {
   try {
+    localStorage.removeItem(CHILD_KEY)
     localStorage.removeItem(ROLE_KEY)
   } catch {
     /* yok say */
@@ -37,6 +56,13 @@ interface AuthState {
   /** İki rollü hesapta henüz rol seçilmedi (giriş sonrası seçim ekranı). */
   needRole: boolean
   switchRole: (r: SwitchRole) => void
+  /** Veli modunda bağlı çocuklar (parent_links); veli değilse boş. */
+  children: Child[]
+  /** Veli modunda aktif öğrenci: tek çocukta o; çok çocukta seçilen (seçilmemişse null). */
+  activeStudent: Child | null
+  /** Çok çocuklu veli henüz öğrenci seçmedi (seçim ekranı). */
+  needStudent: boolean
+  switchStudent: (id: string) => void
   /** Oturumun mevcut güvence seviyesi: aal2 = TOTP doğrulandı. */
   aal: 'aal1' | 'aal2' | null
   /** Davet/sıfırlama bağlantısıyla gelindi: önce şifre belirlenir. */
@@ -118,8 +144,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const choice = uid ? (picked?.uid === uid ? picked.role : readChoice(uid)) : null
   const active = switchable.length && choice && switchable.includes(choice) ? choice : null
   const profile = base && active ? { ...base, role: active } : base
+  // Veli modunda bağlı çocuklar: yetki parent_links + RLS'te; burada yalnız seçim ekranı ve doğrulama için okunur
+  const asParent = profile?.role === 'veli' && profile.status === 'approved'
+  const kids = useQuery({
+    queryKey: ['my-children', uid],
+    enabled: !!uid && asParent,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('parent_links')
+        .select('student_id, students!inner(id, full_name, class_name, archived_at, classes(grade))')
+        .eq('parent_id', uid!)
+      if (error) throw error
+      type Row = { students: { id: string; full_name: string; class_name: string; archived_at: string | null; classes: { grade: number } | null } }
+      return ((data ?? []) as unknown as Row[])
+        .map((r) => r.students)
+        .filter((x) => x && !x.archived_at)
+        .map((x) => ({ id: x.id, full_name: x.full_name, class_name: x.class_name, grade: x.classes?.grade ?? null }))
+        .sort((a, b) => a.class_name.localeCompare(b.class_name, 'tr') || a.full_name.localeCompare(b.full_name, 'tr'))
+    },
+  })
+  const kidList = asParent ? (kids.data ?? []) : []
+  const [pickedChild, setPickedChild] = useState<{ uid: string; sid: string } | null>(null)
+  const childChoice = uid ? (pickedChild?.uid === uid ? pickedChild.sid : readChild(uid)) : null
+  const activeStudent = kidList.length === 1 ? kidList[0]! : (kidList.find((c) => c.id === childChoice) ?? null)
+
   const value: AuthState = {
-    ready: loaded && (!uid || me.data !== undefined || me.isError),
+    ready: loaded && (!uid || me.data !== undefined || me.isError) && (!asParent || kids.data !== undefined || kids.isError),
+    children: kidList,
+    activeStudent,
+    needStudent: asParent && kidList.length > 1 && !activeStudent,
+    switchStudent: (id) => {
+      if (!uid || !kidList.some((c) => c.id === id)) return // bağlı olmayan öğrenci seçilemez
+      try {
+        localStorage.setItem(CHILD_KEY, JSON.stringify({ uid, sid: id }))
+      } catch {
+        /* yalnız bu oturum için geçerli olur */
+      }
+      // Önceki öğrencinin verisi ekranda kalmasın
+      qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' && q.queryKey[0] !== 'my-children' })
+      setPickedChild({ uid, sid: id })
+    },
     session,
     profile,
     role: profile ? roleOf(profile) : null,
@@ -134,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         /* yalnız bu oturum için geçerli olur */
       }
       // Önceki rolün ekran verisi karışmasın: oturum dışındaki önbelleği sıfırla
-      qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' })
+      qc.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' && q.queryKey[0] !== 'my-children' })
       setPicked({ uid, role: r })
     },
     aal: me.data?.aal ?? null,
@@ -157,7 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 /** Oturumun nereye gitmesi gerektiği: tek yerde karar verilir. */
-export type Gate = 'loading' | 'login' | 'password' | 'consent' | 'mfa' | 'pending' | 'rol' | 'app'
+export type Gate = 'loading' | 'login' | 'password' | 'consent' | 'mfa' | 'pending' | 'rol' | 'cocuk' | 'app'
 export function gateOf(a: AuthState): Gate {
   if (!a.ready) return 'loading'
   if (!a.session) return 'login'
@@ -168,5 +233,6 @@ export function gateOf(a: AuthState): Gate {
   if (a.profile.invited_at && !a.profile.consent_version) return 'consent'
   if (a.profile.role === 'admin' && a.aal !== 'aal2') return 'mfa'
   if (a.needRole) return 'rol'
+  if (a.needStudent) return 'cocuk'
   return 'app'
 }

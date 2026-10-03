@@ -63,7 +63,7 @@ export function useLogout() {
 
 /** Profil kartı: tıklanınca kişi bilgisi ve "Çıkış yap" açılır. */
 function ProfileMenu() {
-  const { profile, role, session, switchable, switchRole } = useAuth()
+  const { profile, role, session, switchable, switchRole, children, activeStudent, switchStudent } = useAuth()
   const logout = useLogout()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -102,6 +102,11 @@ function ProfileMenu() {
             <span className="m" style={{ fontSize: 13, display: 'block' }}>
               {roleText}
             </span>
+            {activeStudent && (
+              <span style={{ fontSize: 13, display: 'block' }} data-testid="aktif-ogrenci">
+                Aktif öğrenci: <b>{activeStudent.full_name}</b> · {activeStudent.class_name}
+              </span>
+            )}
             <span className="m" style={{ fontSize: 12 }}>
               {session?.user.email}
             </span>
@@ -111,6 +116,35 @@ function ProfileMenu() {
               <Icon name="shield" size={18} />
               Okul ayarları
             </Link>
+          )}
+          {children.length > 1 && (
+            <>
+              <span className="label" style={{ padding: '10px 16px 0', display: 'block' }}>
+                Öğrenci değiştir
+              </span>
+              {children.map((c) => (
+                <button
+                  key={c.id}
+                  className="pitem"
+                  role="menuitemradio"
+                  aria-checked={activeStudent?.id === c.id}
+                  style={{ color: 'var(--ink)' }}
+                  onClick={() => {
+                    setOpen(false)
+                    if (activeStudent?.id !== c.id) {
+                      switchStudent(c.id)
+                      navigate('/')
+                    }
+                  }}
+                >
+                  <Icon name="user" size={18} />
+                  <span style={{ flex: 1 }}>
+                    {c.full_name} <span className="m" style={{ fontWeight: 400 }}>· {c.class_name}</span>
+                  </span>
+                  {activeStudent?.id === c.id && <Icon name="check" size={16} stroke={2.4} />}
+                </button>
+              ))}
+            </>
           )}
           {switchable.length > 0 && (
             <span className="label" style={{ padding: '10px 16px 0', display: 'block' }}>

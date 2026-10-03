@@ -116,9 +116,10 @@ describe('Branş öğretmeni', () => {
   let mat: SupabaseClient
   beforeAll(async () => (mat = await signIn('matematik')))
 
-  it('öğrencileri görür', async () => {
-    const { data } = await mat.from('students').select('id')
-    expect(data).toHaveLength(22)
+  it('yalnız atandığı sınıfın öğrencilerini görür (0023)', async () => {
+    const { data } = await mat.from('students').select('id, class_name')
+    expect(data).toHaveLength(7)
+    expect(new Set(data!.map((s) => s.class_name))).toEqual(new Set(['8/A']))
   })
 
   it('rehber-gizli notu okuyamaz', async () => {
@@ -265,8 +266,8 @@ describe('Admin: iki adımlı doğrulama (aal2) olmadan admin işlemi yok', () =
 
     // işlenmiş kayıt ikinci kez onaylanamaz; audit log yazıldı
     expect((await admin.rpc('approve_registration', { p_profile: vp!.id, p_student: KEREM })).error).not.toBeNull()
-    const { data: log } = await admin.from('audit_log').select('action').eq('entity_id', vp!.id)
-    expect(log).toEqual([{ action: 'approve' }])
+    const { data: log } = await admin.from('audit_log').select('action').eq('entity_id', vp!.id).order('id')
+    expect((log ?? []).map((l) => l.action).sort()).toEqual(['approve', 'parent_link_add']) // bağlantı da kaydedilir (0023)
   })
 
   it('bir öğrenci kaydına ikinci öğrenci hesabı bağlanamaz', async () => {

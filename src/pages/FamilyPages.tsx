@@ -1,7 +1,7 @@
 // Veli ve öğrenci ekranları: yalnız bağlı öğrencinin verisi (RLS). Sınıf sıralaması yok (CLAUDE.md §3).
 // Hitap: öğrenciye "sen", veliye "siz".
 import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { SUBJECT, fmt, indexResults, studentExams, totalNet } from '@/lib/analiz'
 import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useModules, useDataset, useMeals, useMeetings, useNotes, useReports, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
@@ -17,14 +17,13 @@ import { MeetingList } from '@/components/Meetings'
 import { ExamModal } from '@/components/ExamModal'
 import { useOpenReport } from '@/components/Report'
 
-/** Veli birden çok çocuğa bağlı olabilir: ?cocuk= ile seçilir. */
+/** Veli birden çok çocuğa bağlı olabilir: aktif öğrenci merkezi (AuthProvider; yalnız ekran seçimi, yetki parent_links'te). */
 function useMyStudent() {
-  const { profile } = useAuth()
+  const { profile, activeStudent, switchStudent } = useAuth()
   const students = useStudents()
-  const [sp, setSp] = useSearchParams()
   const list = students.data ?? []
-  const s = profile?.role === 'ogrenci' ? list.find((x) => x.id === profile.student_id) : (list.find((x) => x.id === sp.get('cocuk')) ?? list[0])
-  return { s, list, loading: students.isLoading, choose: (id: string) => setSp({ cocuk: id }, { replace: true }), veli: profile?.role === 'veli' }
+  const s = profile?.role === 'ogrenci' ? list.find((x) => x.id === profile.student_id) : (list.find((x) => x.id === activeStudent?.id) ?? list[0])
+  return { s, list, loading: students.isLoading, choose: switchStudent, veli: profile?.role === 'veli' }
 }
 
 function ChildPicker({ list, s, choose }: { list: Student[]; s: Student; choose: (id: string) => void }) {
@@ -127,7 +126,7 @@ export function OzetPage() {
           <span className="big" style={{ fontSize: 27 }}>
             {openT.length}
           </span>
-          <Link className="btn ghost sm" style={{ alignSelf: 'flex-start', padding: 0 }} to={`/gorevler${veli && list.length > 1 ? `?cocuk=${s.id}` : ''}`}>
+          <Link className="btn ghost sm" style={{ alignSelf: 'flex-start', padding: 0 }} to="/gorevler">
             Görevlere git →
           </Link>
         </div>

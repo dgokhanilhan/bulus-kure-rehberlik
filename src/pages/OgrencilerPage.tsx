@@ -4,8 +4,12 @@ import { fmt, indexResults, repeats, totalNet } from '@/lib/analiz'
 import { useClasses, useDataset, useStudents } from '@/lib/data'
 import { fold, initials } from '@/lib/format'
 import { LEVEL_TR, LEVELS } from '@/lib/roles'
+import { useAuth } from '@/auth/AuthProvider'
 
 export default function OgrencilerPage() {
+  const { role } = useAuth()
+  // Branş öğretmeni yalnız atandığı sınıfların öğrencilerini görür (RLS, 0023); sınıf filtresi de yalnız o sınıflardan oluşur
+  const scoped = role === 'brans'
   const students = useStudents()
   const dsq = useDataset()
   const classes = useClasses()
@@ -27,6 +31,7 @@ export default function OgrencilerPage() {
     })
   }, [dsq.data, students.data])
 
+  const visible = new Set((students.data ?? []).map((s) => s.class_name))
   const needle = fold(q)
   const list = rows.filter(({ s }) => (cls === 'all' || s.class_name === cls) && (!needle || fold(s.full_name).includes(needle) || (s.school_no ?? '').includes(needle)))
 
@@ -36,9 +41,9 @@ export default function OgrencilerPage() {
         <h1 className="hd">Öğrenciler</h1>
         <label className="field" style={{ minWidth: 160 }}>
           <select aria-label="Sınıf" value={cls} onChange={(e) => setCls(e.target.value)}>
-            <option value="all">Tüm sınıflar</option>
+            <option value="all">{scoped ? 'Tüm öğrencilerim' : 'Tüm sınıflar'}</option>
             {LEVELS.map((lv) => {
-              const cs = (classes.data ?? []).filter((c) => c.level === lv)
+              const cs = (classes.data ?? []).filter((c) => c.level === lv && (!scoped || visible.has(c.name)))
               return cs.length ? (
                 <optgroup key={lv} label={LEVEL_TR[lv]}>
                   {cs.map((c) => (
@@ -50,6 +55,11 @@ export default function OgrencilerPage() {
           </select>
         </label>
       </div>
+      {scoped && (
+        <p className="m a" style={{ fontSize: 13, margin: 0 }}>
+          Yalnız ders verdiğin ya da sınıf öğretmeni olduğun sınıfların öğrencileri listelenir. Sınıf ataması Yönetim Merkezi'nden yapılır.
+        </p>
+      )}
       <label className="field a" style={{ ['--d' as string]: 1, maxWidth: 420 }} htmlFor="qStu">
         <span className="m" style={{ fontWeight: 500 }}>
           Ara
@@ -113,7 +123,7 @@ export default function OgrencilerPage() {
         )}
         {!students.isLoading && !list.length && (
           <div className="empty" style={{ margin: 16 }}>
-            Aramaya uyan öğrenci yok.
+            {(students.data ?? []).length ? 'Aramaya uyan öğrenci yok.' : scoped ? 'Henüz sana atanmış bir sınıf yok; öğrenci listesi atama yapılınca görünür.' : 'Öğrenci yok.'}
           </div>
         )}
       </section>
