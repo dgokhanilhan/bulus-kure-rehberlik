@@ -394,10 +394,13 @@ export function useDataset(enabled = true) {
     staleTime: STALE,
     queryFn: async () => {
       const [exams, questions, outcomes, results] = await Promise.all([
-        all<Exam>(supabase.from('exams').select('id, name, publisher, exam_date').not('published_at', 'is', null).order('exam_date')),
+        // Yalnız yayındaki LGS denemeleri: 5–7 / 9–12 genel denemeleri ve arşiv LGS Atlas'a karışmaz (genel denemeler: useGenelDataset)
+        all<Exam>(supabase.from('exams').select('id, name, publisher, exam_date').not('published_at', 'is', null).eq('exam_type', 'LGS').eq('status', 'yayinda').order('exam_date')),
         all<Question>(supabase.from('exam_questions').select('exam_id, subject, q_no, correct_answer, outcome_code, match').limit(20000)),
         all<Outcome>(supabase.from('outcomes').select('code, subject, title').order('code')),
-        all<Result>(supabase.from('exam_results').select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim').limit(20000)),
+        all<Result & { exams?: unknown }>(
+          supabase.from('exam_results').select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim, exams!inner(exam_type, status)').eq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').limit(20000),
+        ).then((rows) => rows.map(({ exams: _e, ...r }) => r as Result)),
       ])
       const questionsByExam = new Map<string, Question[]>()
       for (const x of questions) {

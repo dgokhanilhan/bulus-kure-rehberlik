@@ -20,6 +20,7 @@ import { GaleriAyarlari } from './YonetimGaleri'
 import { AnaSayfaDuzeni, TopluAktarim } from './YonetimAktarim'
 import { InviteChip, InviteParentModal, InviteTeacherModal } from './YonetimDavet'
 import { RolesSection } from './YonetimRoller'
+import { DenemeMerkezi } from './DenemeMerkezi'
 import { DenemeBilgi, DuyuruListesi, EtkinlikListesi, GuvenlikOzeti, MesajAyarlari } from './YonetimIcerik'
 import { BildirimAyarlari, YoklamaAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari, OgretmenAtamalari } from './YonetimMerkezi'
 
@@ -56,7 +57,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['yemek', 'Yemek listesi', 'yemek'],
       ['odev', 'Ödev ayarları', 'odev'],
       ['takvim', 'Takvim ayarları', 'takvim'],
-      ['denemeler', 'Denemeler / LGS', 'lgs'],
+      ['denemeler', 'Denemeler / Tanıma Merkezi', 'lgs'],
     ],
   },
   { title: 'İletişim', items: [['mesaj', 'Mesajlaşma', 'mesaj'], ['duyurular', 'Duyurular', 'duyuru'], ['etkinlikler', 'Takvim etkinlikleri', 'takvim']] },
@@ -221,7 +222,12 @@ export default function YonetimPage() {
               {tab === 'anasayfa' && <AnaSayfaDuzeni />}
               {tab === 'aktarim' && <TopluAktarim />}
               {tab === 'guvenlik' && <GuvenlikOzeti />}
-              {tab === 'denemeler' && <DenemeBilgi />}
+              {tab === 'denemeler' && (
+                <>
+                  <DenemeBilgi />
+                  <DenemeMerkezi />
+                </>
+              )}
               {tab === 'mesaj' && <MesajAyarlari />}
               {tab === 'duyurular' && <DuyuruListesi />}
               {tab === 'etkinlikler' && <EtkinlikListesi />}

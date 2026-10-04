@@ -231,7 +231,7 @@ export function DenemeBilgi() {
     queryFn: async () => {
       const [all, pub] = await Promise.all([
         supabase.from('exams').select('id', { count: 'exact', head: true }),
-        supabase.from('exams').select('id', { count: 'exact', head: true }).not('published_at', 'is', null),
+        supabase.from('exams').select('id', { count: 'exact', head: true }).eq('status', 'yayinda'),
       ])
       return { all: all.count ?? 0, pub: pub.count ?? 0 }
     },
@@ -247,9 +247,9 @@ export function DenemeBilgi() {
         </Link>
       </div>
       <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <li>Deneme yükleme, okuma, kontrol ve yayınlama Denemeler sayfasındadır; okuma kuralları bu ekrandan değiştirilmez.</li>
-        <li>LGS kartı ve deneme sonuçları yalnız 8. sınıflarda, YKS 12. sınıflarda görünür; bu kural ana sayfa düzeninden de kapatılamaz.</li>
-        <li>Deneme özelliklerinin tümü “LGS / Deneme” modülüyle açılıp kapanır.</li>
+        <li>Deneme yükleme, kontrol ve yayınlama Denemeler sayfasındadır. 5–7 ve 9–12 denemeleri önce taslak kaydedilir; yayınlanınca veli ve öğrenci görür.</li>
+        <li>Sınıfa göre: 5–7 Deneme Analizi, 8 LGS Atlas, 9–10 TYT, 11 AYT, 12 YKS (TYT/AYT). Ana sayfadaki LGS kartı yalnız 8. sınıflarda görünür.</li>
+        <li>Yayınlar, biçimler, şablonlar ve kazanım kataloğu aşağıdaki Deneme Tanıma Merkezi'nden yönetilir. Deneme özelliklerinin tümü “LGS / Deneme” modülüyle açılıp kapanır.</li>
       </ul>
     </section>
   )

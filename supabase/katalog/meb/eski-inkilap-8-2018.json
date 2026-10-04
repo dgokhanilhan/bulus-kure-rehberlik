@@ -1,0 +1,30 @@
+{
+ "source": {
+  "id": "eski-inkilap-8-2018",
+  "authority": "Millî Eğitim Bakanlığı (Talim ve Terbiye Kurulu Başkanlığı)",
+  "title": "T.C. İnkılap Tarihi ve Atatürkçülük Dersi Öğretim Programı (8) (2018)",
+  "pid": 355,
+  "url": "https://mufredat.meb.gov.tr/Dosyalar/201812104016155-%C4%B0NKILAP%20TAR%C4%B0H%C4%B0%20VE%20ATAT%C3%9CRK%C3%87%C3%9CL%C3%9CK%20%C3%96%C4%9ERET%C4%B0M%20PROGRAMI.pdf",
+  "sha256": "38a24b11191f7ebca2fc85831d787e7187eca70e82f0bd36e7de5c81524357d5",
+  "bytes": 329496,
+  "retrieved_at": "2026-10-03",
+  "curriculum_type": "LEGACY",
+  "subject": "INK"
+ },
+ "validation": {
+  "checks": [
+   {
+    "ok": true,
+    "m": "numara bütünlüğü: 0 ünite/konu, boşluk yok"
+   },
+   {
+    "ok": true,
+    "m": "8. sınıf mevcut katalogla birebir: 39/39 (okunan 39)"
+   }
+  ],
+  "warnings": [],
+  "notes": []
+ },
+ "versions": [],
+ "outcomes": []
+}

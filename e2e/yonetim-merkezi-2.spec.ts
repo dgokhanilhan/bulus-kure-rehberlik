@@ -43,7 +43,7 @@ test.describe.serial('Yönetim Merkezi genişletme', () => {
     await page.getByLabel('Yönetimde ara').fill('xyzxyz')
     await expect(page.getByText('Eşleşen bölüm yok.')).toBeVisible()
     await page.getByLabel('Yönetimde ara').fill('')
-    for (const n of ['Mesajlaşma', 'Duyurular', 'Takvim etkinlikleri', 'Denemeler / LGS', 'Güvenlik ve erişim']) await expect(menuGroup(page).getByRole('button', { name: n })).toBeVisible()
+    for (const n of ['Mesajlaşma', 'Duyurular', 'Takvim etkinlikleri', 'Denemeler / Tanıma Merkezi', 'Güvenlik ve erişim']) await expect(menuGroup(page).getByRole('button', { name: n })).toBeVisible()
 
     await menuGroup(page).getByRole('button', { name: 'Güvenlik ve erişim' }).click()
     await expect(page.getByRole('region', { name: 'Kim neyi görür' })).toContainText('Yalnız atandığı sınıfların')
