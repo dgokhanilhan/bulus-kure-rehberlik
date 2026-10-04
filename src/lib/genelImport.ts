@@ -10,7 +10,7 @@ export interface GenelRecord {
   page: number
   pages: number[]
   student: { name: string | null; number: string | null; class: string | null; classGrade: number | null }
-  exam: { title: string | null }
+  exam: { title: string | null; date?: string | null }
   score: number | null
   scores?: Record<string, number | null>
   sections: GenelSection[]

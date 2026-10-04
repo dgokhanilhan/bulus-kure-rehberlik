@@ -5,7 +5,7 @@
 import mupdf from './mupdf/mupdf.js'
 import { sha256 } from './hashes/sha2.js'
 
-export const ENGINE = 'genel-1.0.0'
+export const ENGINE = 'genel-1.1.0'
 const num = (s) => { const t = String(s ?? '').trim().replace(',', '.'); if (!/^-?\d+(\.\d+)?$/.test(t)) return null; return Number(t) }
 const clean = (t) => t.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim()
 
@@ -106,6 +106,38 @@ export const FAMILIES = {
       return { recs, failed }
     },
   },
+  AKBIM: {
+    format: 'AKBIM_SONUC_BELGESI_V1', publisher: null, wrongPerCorrect: 3, inferWrongPerCorrect: true,
+    title: (p) => akbimHeader(p)?.title ?? null,
+    student: (p) => akbimHeader(p),
+    detect(pages) {
+      const p0 = pages[0], ev = []
+      if (!akbimPage(p0)) return { score: 0, evidence: [] }
+      ev.push('"SINAV SONUÇ BELGESİ" + DERSLER / SORU SAYISI / NET SAYISI tablosu')
+      if (/AKBİM|Akbim ODS/.test(p0.text)) ev.push('Akbim ODS optik okuma yazılımı izi')
+      const h = akbimHeader(p0)
+      if (h) ev.push('MEB KODU · ŞUBE · SOYADI - ADI · SINAV ADI başlığı')
+      const n = pages.filter(akbimPage).length
+      ev.push(`${n}/${pages.length} sayfa aynı düzende (öğrenci başına tek sayfa)`)
+      return { score: 0.5 + (/AKBİM|Akbim ODS/.test(p0.text) ? 0.25 : 0) + (h ? 0.15 : 0) + (n === pages.length ? 0.1 : 0), evidence: ev }
+    },
+    parse(pages) {
+      const recs = [], failed = []
+      for (const p of pages) {
+        if (!akbimPage(p)) { failed.push({ page: p.n, error: 'Sayfa sonuç belgesi düzeninde değil.' }); continue }
+        const h = akbimHeader(p)
+        const { secs } = akbimSections(p, h?.classGrade ?? null)
+        if (!h || !secs.length) { failed.push({ page: p.n, error: 'Öğrenci veya ders tablosu okunamadı.' }); continue }
+        const nos = p.lines.find((l) => /\*+\s*-\s*\d+$/.test(l.t) || /^\d*\**\s*-\s*\d+$/.test(l.t))
+        const number = nos ? String(+nos.t.split('-').at(-1).trim()) : null
+        const pu = p.lines.find((l) => l.t === 'PUANI'), sc = pu ? p.lines.find((l) => Math.abs(l.y - pu.y) < 6 && l.x > pu.x + 40 && /^\d{2,3}[,.]\d+$/.test(l.t)) : null
+        const date = (() => { const t = p.lines.find((l) => l.t === 'SINAV TARİHİ'); const v = t && p.lines.find((l) => Math.abs(l.y - t.y) < 3 && /^\d{2}\.\d{2}\.\d{4}$/.test(l.t)); return v ? v.t.split('.').reverse().join('-') : null })()
+        recs.push({ page: p.n, pages: [p.n], student: { name: h.name, number, class: h.class, classGrade: h.classGrade }, exam: { title: h.title, date },
+          score: sc ? num(sc.t) : null, sections: secs.map(({ raw, x, ...s }) => s), items: akbimItems(p, secs), warnings: [] })
+      }
+      return { recs, failed }
+    },
+  },
   HIZ_LISE: {
     format: 'HIZ_LISE_KARNE_V1', publisher: 'Hız Yayınları', wrongPerCorrect: 4,
     detect(pages) {
@@ -136,6 +168,79 @@ export const FAMILIES = {
       return { recs, failed }
     },
   },
+}
+
+// ---------------------------------------------------------------- Akbim ODS sonuç belgesi (yazılım biçimi; yayından bağımsız)
+// Öğrenci başına tek sayfa: üstte MEB KODU | ŞUBE | SOYADI - ADI | SINAV ADI, ders tablosu (SORU SAYISI, DOĞRU CEVAP, YANLIŞ CEVAP,
+// NET SAYISI…), PUANI, ders başına "X CEV. ANAH." ve "ÖĞRENCİ CEVABI" satırları (büyük harf doğru, küçük harf yanlış, boşluk boş).
+// TÖDER ve Sinan Kuzucu gibi farklı yayınların karneleri bu düzende basılır (kurumun optik okuma yazılımı).
+const AKBIM_LABEL = [[/^TÜRKÇE/, 'TÜRKÇE'], [/^MATEMAT/, 'MATEMATİK'], [/^DİN/, 'DİN KÜLTÜRÜ'], [/^FEN/, 'FEN BİLİMLERİ'], [/^(SOS|T\.?C\.?|İNKILAP)/, 'SOS'], [/^(YAB|İNGİLİZCE|INGILIZCE)/, 'YAB']]
+const ENGLISH_TOPICS = /ADVENTURES|CHORES|TEEN ?LIFE|ON THE PHONE|KITCHEN|COOKING|TOURIS|INTERNET|FRIENDSH|SCIENCE|ACCEPTING|REFUSING|CHART|NATURAL FORCES/i
+const akbimPage = (p) => /SINAV SONUÇ BELGESİ/.test(p.text) && /^SORU SAYISI$/m.test(p.text) && /^NET SAYISI$/m.test(p.text) && /^DERSLER$/m.test(p.text)
+function akbimHeader(p) {
+  const L = (t) => p.lines.find((l) => l.t === t)
+  const labs = ['MEB KODU', 'ŞUBE', 'SOYADI - ADI', 'SINAV ADI'].map((t) => ({ t, l: L(t) }))
+  if (labs.some((x) => !x.l)) return null
+  const y = labs[0].l.y, row = p.lines.filter((l) => l.y > y + 6 && l.y < y + 20)
+  const cut = labs.slice(0, -1).map((x, i) => (x.l.x + labs[i + 1].l.x) / 2)
+  const col = (x) => cut.filter((c) => x >= c).length
+  const v = ['', '', '', '']
+  for (const l of row.sort((a, b) => a.x - b.x)) v[col(l.x)] = (v[col(l.x)] + ' ' + l.t).trim()
+  const cls = v[1].replace(/\s+/g, '').replace(/\/$/, '') || null
+  const g = cls?.match(/^(\d{1,2})/)
+  return { title: v[3] || null, name: v[2] || null, class: cls ? v[1].replace(/\s*\/\s*$/, '').trim() : null, classGrade: g ? +g[1] : null }
+}
+function akbimSections(p, grade) {
+  const d = p.lines.find((l) => l.t === 'DERSLER'), tc = p.lines.find((l) => /^TC VE ÖĞRENCİ/.test(l.t))
+  if (!d) return { secs: [], english: false }
+  const right = tc ? tc.x - 5 : 400
+  // Ders başlıkları: DERSLER satırının ±9 birim bandı; iki satıra bölünmüş başlık ("SOSYAL" / "BİLGİLER") aynı sütunda birleşir
+  const heads = []
+  for (const l of p.lines.filter((l) => Math.abs(l.y - d.y) < 9 && l.x > d.x + 30 && l.x < right).sort((a, b) => a.y - b.y)) {
+    const h = heads.find((z) => Math.abs(z.x - l.x) < 14)
+    if (h) h.t += ' ' + l.t; else heads.push({ x: l.x, t: l.t })
+  }
+  heads.sort((a, b) => a.x - b.x)
+  const rowOf = (label) => { const r = p.lines.find((l) => l.t === label); return r ? p.lines.filter((l) => Math.abs(l.y - r.y) < 3 && l.x > d.x + 30 && l.x < right).sort((a, b) => a.x - b.x) : [] }
+  const R = { n: rowOf('SORU SAYISI'), d: rowOf('DOĞRU CEVAP'), y: rowOf('YANLIŞ CEVAP'), net: rowOf('NET SAYISI') }
+  const at = (row, x) => { const c = row.filter((l) => Math.abs(l.x + 8 - x) < 22).sort((a, b) => Math.abs(a.x + 8 - x) - Math.abs(b.x + 8 - x))[0]; return c ? num(c.t) : null }
+  const english = ENGLISH_TOPICS.test(p.text)
+  const secs = []
+  for (const h of heads) {
+    if (/^TOPLAM/.test(h.t)) continue
+    // Ortaokul başlıkları kısaltmalı basılır ("SOS BİL", "YAB. DİL"): sınıfa göre yorumlanır. Lisede (TYT/AYT) "FEN BİLİMLERİ",
+    // "SOSYAL BİLİMLER" toplu testlerdir: başlık olduğu gibi kalır, şablona eşleme kontrol ekranında yapılır (tahmin yok).
+    const k = grade !== null && grade >= 9 ? null : AKBIM_LABEL.find(([re]) => re.test(h.t.toLocaleUpperCase('tr')))
+    const label = !k ? clean(h.t) : k[1] === 'SOS' ? (grade === 8 ? 'T.C. İNKILAP TARİHİ' : 'SOSYAL BİLGİLER') : k[1] === 'YAB' ? (english ? 'İNGİLİZCE' : 'YABANCI DİL') : k[1]
+    const cx = h.x + 10
+    const n = at(R.n, cx), dd = at(R.d, cx), yy = at(R.y, cx), net = at(R.net, cx)
+    secs.push({ label, raw: clean(h.t), x: cx, n, d: dd, y: yy, b: n !== null && dd !== null && yy !== null ? n - dd - yy : null, net })
+  }
+  return { secs, english }
+}
+function akbimItems(p, secs) {
+  const items = []
+  const ys = p.lines.filter((l) => /CEV\.?$|CEV\. ANAH\.$|ANAH\.$/.test(l.t) || /CEV\. ANAH\./.test(l.t))
+  const students = p.lines.filter((l) => l.t === 'ÖĞRENCİ CEVABI')
+  for (const lab of ys) {
+    const raw = lab.t.replace(/\s*CEV\.?\s*ANAH\.?$/, '').replace(/\s*CEV\.$/, '').trim()
+    const sec = secs.find((s) => nl(s.raw).startsWith(nl(raw)) || nl(raw).startsWith(nl(s.raw)))
+    if (!sec) continue
+    const st = students.filter((l) => Math.abs(l.x - lab.x) < 6 && l.y > lab.y + 4).sort((a, b) => a.y - b.y)[0]
+    if (!st) continue
+    const x0 = lab.x + 60, x1 = lab.x + 280
+    const rowChars = (y) => p.cs.filter((c) => Math.abs((c.y0 + c.y1) / 2 - (y + 4)) < 4.5 && c.x0 >= x0 && c.x1 <= x1 && /[A-Za-zİ]/.test(c.c)).sort((a, b) => a.x0 - b.x0)
+    const key = rowChars(lab.y), ans = rowChars(st.y)
+    if (key.length !== sec.n) continue // sayı tutmazsa soru düzeyi bağlanmaz (check ITEM_COVERAGE uyarır)
+    key.forEach((k, i) => {
+      const a = ans.find((c) => Math.abs(c.x0 - k.x0) < 2.5)
+      const kc = k.c.toUpperCase(), cancelled = !/^[A-E]$/.test(kc)
+      // İptal edilen soru (anahtarda A–E dışı harf, ör. "T"): karne herkese doğru sayar
+      const mark = cancelled ? '+' : !a ? null : a.c === a.c.toUpperCase() ? '+' : '-'
+      items.push({ label: sec.label, section: sec.label, booklet: null, q: i + 1, testQ: i + 1, key: cancelled ? null : kc, answer: a ? a.c.toUpperCase() : null, mark, rawCode: null, rawText: null })
+    })
+  }
+  return items
 }
 
 // Ortaokul KAZANIMLAR sayfası: 3 sütun; satır = Sr | kod+metin (93 birim) | DC | ÖC | +-. Başlık "TÜRKÇE(B)".
@@ -214,12 +319,12 @@ export function detect(pages, hints = {}) {
   const fam = Object.entries(FAMILIES).map(([k, f]) => ({ key: k, ...f.detect(pages) })).sort((a, b) => b.score - a.score)
   const best = fam[0]
   if (!best || best.score < 0.6) return { family: 'UNKNOWN', format: null, confidence: best?.score ?? 0, evidence: best?.evidence ?? [], message: 'Bu PDF biçimi henüz desteklenmiyor.' }
-  const F = FAMILIES[best.key], p0 = pages[0], title = titleOf(p0) || '', st = student(p0)
+  const F = FAMILIES[best.key], p0 = pages[0], who = F.student ?? student, title = (F.title ? F.title(p0) : titleOf(p0)) || ''
   // Sınıf: başlıktaki "N.SINIF", öğrenci sınıf alanı, kazanım kodlarındaki sınıf (ilk kayıtlardan)
   const gEv = [], votes = new Map()
   const vote = (g, w, why) => { if (!g || g < 1 || g > 12) return; votes.set(g, (votes.get(g) || 0) + w); gEv.push(`${why}: ${g}`) }
   const tm = title.match(/(\d{1,2})\s*\.\s*SINIF/i); if (tm) vote(+tm[1], 0.5, 'başlıkta sınıf')
-  const classGrades = pages.slice(0, 12).map(student).filter((s) => s?.classGrade).map((s) => s.classGrade)
+  const classGrades = pages.slice(0, 12).map(who).filter((s) => s?.classGrade).map((s) => s.classGrade)
   if (classGrades.length) { const g = mode(classGrades), agree = classGrades.filter((x) => x === g).length; vote(g, agree >= 3 && agree === classGrades.length ? 0.9 : 0.35, `öğrenci sınıf alanı (${agree}/${classGrades.length} kayıt)`) }
   // TYT/AYT soruları 9–12'nin kazanımlarını ölçer: kod sınıfı denemenin sınıfı için kanıt sayılmaz
   if (!/\b(TYT|AYT)\b/.test(title)) {
@@ -237,9 +342,9 @@ export function detect(pages, hints = {}) {
   else if (/\bAYT\b/.test(title)) { examType = grade === 12 ? 'YKS' : 'AYT'; yksPart = grade === 12 ? 'AYT' : null; tConf = 0.95; tEv.push('başlıkta "AYT"') }
   else if (/\bLGS\b/.test(title)) { examType = 'LGS'; tConf = 0.95; tEv.push('başlıkta "LGS"') }
   // Yayın: başlıkta yayın adı varsa o; yoksa biçimin varsayılan yayını (düşük güven)
-  let publisher = F.publisher, pConf = 0.6, pEv = [`biçim varsayılanı (${F.publisher})`]
-  if (/FREKANS/i.test(title)) { publisher = 'Frekans Yayınları'; pConf = 0.95; pEv = ['başlıkta "FREKANS"'] }
-  else if (/\bHIZ\b/i.test(title)) { pConf = 0.95; pEv = ['başlıkta "HIZ"'] }
+  let publisher = F.publisher, pConf = F.publisher ? 0.6 : 0, pEv = F.publisher ? [`biçim varsayılanı (${F.publisher})`] : ['biçim birden çok yayında kullanılıyor; başlıkta yayın adı yok']
+  const named = TITLE_PUBLISHERS.find(([re]) => re.test(title))
+  if (named) { publisher = named[1]; pConf = 0.95; pEv = [`başlıkta "${title.match(named[0])[0]}"`] }
   return {
     family: best.key, format: F.format, confidence: Math.round(best.score * 100) / 100, evidence: best.evidence,
     others: fam.slice(1).filter((f) => f.score > 0).map((f) => ({ family: f.key, confidence: f.score })),
@@ -250,6 +355,8 @@ export function detect(pages, hints = {}) {
     wrongPerCorrect: F.wrongPerCorrect,
   }
 }
+const TITLE_PUBLISHERS = [[/FREKANS/i, 'Frekans Yayınları'], [/\bHIZ\b/i, 'Hız Yayınları'], [/TÖDER/i, 'TÖDER'], [/SİNAN\s*KUZUCU/i, 'Sinan Kuzucu Yayınları'],
+  [/BENİM\s*HOCAM/i, 'Benim Hocam Yayınları'], [/KAFA\s*DENGİ/i, 'Kafa Dengi Yayınları'], [/HİPER\s*ZEKA/i, 'Hiper Zeka Yayınları'], [/NARTEST/i, 'Nartest Yayınları'], [/ÇANTA/i, 'Çanta Yayınları'], [/\bATA\b/i, 'ATA Yayınları'], [/ANKARA/i, 'Ankara Yayıncılık']]
 function mode(a) { const m = new Map(); for (const x of a) m.set(x, (m.get(x) || 0) + 1); return [...m].sort((x, y) => y[1] - x[1])[0][0] }
 
 // ---------------------------------------------------------------- doğrulama (motor içi; kural doğrulaması sunucuda tekrarlanır)
@@ -261,11 +368,20 @@ export function check(rec, wrongPerCorrect) {
     if (Math.abs(s.net - (s.d - s.y / wrongPerCorrect)) > 0.011) w.push(`NET:${s.label}`)
     const qs = rec.items.filter((q) => q.section === s.label)
     if (!rec.items.length) continue
+    if (!qs.length && s.d === 0 && s.y === 0) continue // teste girmemiş öğrenci: karne anahtarı da basmaz
     if (qs.length !== s.n) { w.push(`ITEM_COVERAGE:${s.label}:${qs.length}/${s.n}`); continue }
     const c = { d: qs.filter((q) => q.mark === '+').length, y: qs.filter((q) => q.mark === '-').length }
     if (c.d !== s.d || c.y !== s.y) w.push(`ITEM_COUNTS:${s.label}`)
   }
   return w
+}
+
+/** Net kuralı karneden: bütün derslerin neti hangi kurala (3 ya da 4 yanlış bir doğruyu götürür) uyuyorsa o; ikisi de uymuyorsa null. */
+export function inferWrongPerCorrect(recs) {
+  const secs = recs.flatMap((r) => r.sections).filter((s) => [s.d, s.y, s.net].every((v) => v !== null && Number.isFinite(v)))
+  const fits = [3, 4].filter((w) => secs.length && secs.every((s) => Math.abs(s.net - (s.d - s.y / w)) <= 0.011))
+  if (fits.length === 1) return fits[0]
+  return fits.length > 1 ? (recs.some((r) => (r.student?.classGrade ?? 0) >= 9) ? 4 : 3) : null // hiç yanlış yoksa ikisi de uyar: sınıf belirler
 }
 
 export async function parseGeneral(bytes, name, hints = {}, onProgress = () => {}) {
@@ -276,10 +392,16 @@ export async function parseGeneral(bytes, name, hints = {}, onProgress = () => {
   const det = detect(pages, hints)
   if (det.family === 'UNKNOWN') return { engine: ENGINE, sha256: sha, filename: name, detection: det, records: [], failedPages: [] }
   const F = FAMILIES[det.family], { recs, failed } = F.parse(pages)
+  const wpc = F.inferWrongPerCorrect ? inferWrongPerCorrect(recs) : F.wrongPerCorrect
+  if (F.inferWrongPerCorrect) {
+    det.wrongPerCorrect = wpc ?? undefined
+    det.evidence.push(wpc ? `net kuralı karneden: ${wpc} yanlış 1 doğruyu götürür` : 'netler 3 ya da 4 yanlış kuralına uymuyor')
+  }
   for (const r of recs) {
     r.items = bindItems(r.sections, r.items)
     const loose = r.items.filter((q) => !q.section).length
-    r.warnings = check(r, F.wrongPerCorrect)
+    r.warnings = check(r, wpc ?? F.wrongPerCorrect)
+    if (!wpc && F.inferWrongPerCorrect) r.warnings.push('NET_RULE_UNKNOWN')
     if (loose) r.warnings.push(`ITEM_UNBOUND:${loose}`)
   }
   return { engine: ENGINE, sha256: sha, filename: name, pageCount: pages.length, detection: det, records: recs, failedPages: failed }

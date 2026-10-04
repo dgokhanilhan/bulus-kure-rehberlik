@@ -45,7 +45,7 @@ export function GenelSihirbaz({ source, onCancel }: { source: GenelSource; onCan
     publisherId: '',
     templateId: '',
     name: det?.exam?.title ?? '',
-    date: todayISO(),
+    date: (source.kind === 'pdf' && source.pack.records[0]?.exam.date && source.pack.records[0].exam.date <= todayISO() ? source.pack.records[0].exam.date : null) ?? todayISO(),
     code: det?.exam?.code ?? '',
     targets: [],
     status: 'taslak',
@@ -146,14 +146,14 @@ export function GenelSihirbaz({ source, onCancel }: { source: GenelSource; onCan
             Sınıf {det?.grade && <Guven c={det.grade.confidence} />}
             <select id="gGrade" value={meta.grade ?? ''} disabled={!!rv} onChange={(e) => set({ grade: e.target.value ? Number(e.target.value) : null, templateId: '', targets: [], examType: meta.examType && det?.examType && det.examType.confidence >= SURE ? meta.examType : null })}>
               <option value="">Seç</option>
-              {GENEL_GRADES.map((g) => <option key={g} value={g}>{g}. sınıf</option>)}
+              {(det?.grade?.value === 8 ? [5, 6, 7, 8, 9, 10, 11, 12] : GENEL_GRADES).map((g) => <option key={g} value={g}>{g}. sınıf{g === 8 ? ' (LGS)' : ''}</option>)}
             </select>
           </label>
           <label className="field" htmlFor="gType">
             Sınav türü {det?.examType?.value && <Guven c={det.examType.confidence} />}
             <select id="gType" value={examType ?? ''} disabled={!!rv || !meta.grade} onChange={(e) => set({ examType: (e.target.value || null) as ExamType | null, templateId: '' })}>
               <option value="">Seç</option>
-              {(['GENEL', 'KURUMSAL', 'TYT', 'AYT', 'YKS', 'BRANS', 'DIGER'] as ExamType[]).map((t) => <option key={t} value={t}>{EXAM_TYPE_TR[t]}{def?.exam_type === t ? ' (sınıfın varsayılanı)' : ''}</option>)}
+              {((meta.grade === 8 ? ['LGS', 'GENEL', 'KURUMSAL', 'BRANS', 'DIGER'] : ['GENEL', 'KURUMSAL', 'TYT', 'AYT', 'YKS', 'BRANS', 'DIGER']) as ExamType[]).map((t) => <option key={t} value={t}>{EXAM_TYPE_TR[t]}{def?.exam_type === t ? ' (sınıfın varsayılanı)' : ''}</option>)}
             </select>
           </label>
           {examType === 'YKS' && (
