@@ -82,3 +82,10 @@ describe('bağlam ve karşılaştırma', () => {
     expect(onlyAyt.deltaNet).toBeNull()
   })
 })
+
+describe('öğrenci grubu yılı', () => {
+  it('12. sınıf 9. sınıf konusu 3 yıl önce; aynı sınıf konusu denemenin yılı', async () => {
+    const { cohortYear } = await import('./denemeGenel')
+    expect([cohortYear(2026, 12, 9), cohortYear(2026, 11, 9), cohortYear(2026, 9, 9), cohortYear(2026, null, 9)]).toEqual([2023, 2024, 2026, 2026])
+  })
+})

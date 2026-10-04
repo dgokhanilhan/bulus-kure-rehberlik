@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { Modal } from '@/components/Modal'
 import { useToast } from '@/components/Toast'
-import { EXAM_TYPE_TR, academicYear, type ExamType } from '@/lib/denemeGenel'
+import { EXAM_TYPE_TR, academicYear, cohortYear, type ExamType } from '@/lib/denemeGenel'
 import { searchOutcomes, useCurriculumVersions, useExamTemplates, useSubjects, useUnresolved, versionFor, type OutcomeRow, type TemplateRow, type UnresolvedRow } from '@/lib/denemeData'
 import { readGeneralFile } from '@/lib/genelEngine'
 import { mapSections, type GenelPack } from '@/lib/genelImport'
@@ -291,7 +291,8 @@ function Esle({ row, onClose }: { row: UnresolvedRow; onClose: () => void }) {
   // TYT/AYT soruları 9–12 kataloğunda aranır; diğerleri denemenin sınıfında
   const grades = ['TYT', 'AYT', 'YKS'].includes(row.exam_type) ? [9, 10, 11, 12] : [row.grade]
   const year = exam.data ? Number(academicYear(exam.data.exam_date).slice(0, 4)) : null
-  const vids = year === null ? [] : grades.map((g) => versionFor(cv.data ?? [], g, row.subject_code, year)?.id).filter((x): x is string => !!x)
+  // Öğrenci grubu kuralı: konu sınıfının programı, öğrencilerin o sınıfı okuduğu yılınki (sunucu da aynı kuralla denetler)
+  const vids = year === null ? [] : grades.map((g) => versionFor(cv.data ?? [], g, row.subject_code, cohortYear(year, row.grade, g))?.id).filter((x): x is string => !!x)
   const res = useQuery({ queryKey: ['outcomes', vids.join(), q], enabled: vids.length > 0, queryFn: () => searchOutcomes({ versionIds: vids, q, limit: 50 }) })
   async function save() {
     if (!sel) return

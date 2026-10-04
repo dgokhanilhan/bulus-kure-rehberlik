@@ -154,6 +154,10 @@ export function defaultExamType(grade: number, defaults: { school_id: string | n
   return rows.find((d) => d.school_id) ?? rows.find((d) => !d.school_id) ?? null
 }
 
+/** Öğrenci grubu kuralı (veritabanındaki cohort_year ile aynı): konu sınıfının programı, öğrencinin o sınıfı okuduğu yılınkidir.
+ *  2026–2027'de 12. sınıf + 9. sınıf konusu → 2023 (eski program); 11. sınıf + 9. sınıf konusu → 2024 (TYMM). */
+export const cohortYear = (year: number, studentGrade: number | null | undefined, contentGrade: number) => year - Math.max((studentGrade ?? contentGrade) - contentGrade, 0)
+
 /** Eğitim yılı (Eylül ve sonrası o yılın başlangıcı): 2026-03-10 → "2025-2026". */
 export function academicYear(date: string): string {
   const [y, m] = date.split('-').map(Number) as [number, number]
