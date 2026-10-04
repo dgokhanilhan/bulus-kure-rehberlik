@@ -33,3 +33,12 @@ export async function readGeneralFile(file: File, hints: { grade?: number } = {}
 
 /** 8. sınıf / LGS ve tanınmayan biçim mevcut LGS motoruna gider (LGS sonuçları birebir korunur). */
 export const goesToLegacy = (p: GenelPack) => p.detection.family === 'UNKNOWN' || p.detection.grade?.value === 8 || p.detection.examType?.value === 'LGS'
+
+/** LGS motorunun okuduğu karnede sınıf alanları çoğunlukla 8 dışı bir sınıfı gösteriyorsa (ör. 6/A) o sınıf düzeyi döner:
+ *  LGS akışı yalnız 8. sınıf içindir; tanınmayan 5–7 karnesi sessizce LGS denemesi olarak kaydedilmemeli. */
+export function nonLgsGrade(classes: (string | null | undefined)[]): number | null {
+  const gs = classes.map((c) => (c ?? '').match(/^\s*(\d{1,2})\s*[/\-. ]?\s*[A-ZÇĞİÖŞÜ]?/i)?.[1]).filter((g): g is string => !!g).map(Number)
+  if (!gs.length || gs.length < classes.length / 2) return null
+  const top = [...new Set(gs)].map((g) => [g, gs.filter((x) => x === g).length] as const).sort((a, b) => b[1] - a[1])[0]!
+  return top[0] !== 8 && top[1] > gs.length / 2 ? top[0] : null
+}

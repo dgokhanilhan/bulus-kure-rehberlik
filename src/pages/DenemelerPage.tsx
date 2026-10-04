@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { readExamFile } from '@/lib/engine'
-import { goesToLegacy, readGeneralFile } from '@/lib/genelEngine'
+import { goesToLegacy, nonLgsGrade, readGeneralFile } from '@/lib/genelEngine'
 import { GenelSihirbaz, type GenelSource } from './DenemeGenel'
 import { ADAPTER_PUBLISHER, buildPayload, buildReview, pendingCount, titleCase, type Review } from '@/lib/deneme'
 import { SUBJECT } from '@/lib/analiz'
@@ -98,6 +98,9 @@ export default function DenemelerPage() {
     try {
       const pack = await readExamFile(f, (page, total) => setProgress({ page, total }))
       if (!pack.records.length) throw new Error(pack.failedPages?.[0]?.error ?? 'Bu dosyada öğrenci sonucu bulunamadı.')
+      const other = nonLgsGrade(pack.records.map((r) => r.student.class))
+      if (other)
+        throw new Error(`Bu karne ${other}. sınıf öğrencilerine ait; bu yayının ${other}. sınıf karne biçimi henüz tanınmıyor. LGS akışı yalnız 8. sınıf içindir. Sonuçları "Excel / CSV ile yükle" ya da "Elle gir" ile ekleyebilirsin.`)
       const roster = students.data ?? (await students.refetch()).data ?? []
       const review = buildReview(pack, roster)
       const adapter = review.adapter ?? ''
