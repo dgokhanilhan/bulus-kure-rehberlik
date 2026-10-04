@@ -184,3 +184,68 @@ export function lastExamDelta<E extends { id: string; exam_date: string; exam_ty
     deltaPct: P && L.successPct !== null && P.successPct !== null ? round2(L.successPct - P.successPct) : null,
   }
 }
+
+// ---------------------------------------------------------------- deneme profili (0030): alt test sırası, "ölçülmedi", terim
+export type ExamStage = 'SCHOOL' | 'LGS' | 'TYT' | 'AYT'
+export interface Subtest { sort: number; exam_stage: ExamStage; display_name: string; canonical_subject: string; section_subjects: string[]; language_code: string | null }
+export interface Profile { academic_year: number; student_grade: number; school_type: string; program_family: 'TYMM' | 'LEGACY'; outcome_term: 'OGRENME_CIKTISI' | 'KAZANIM'; subtests: Subtest[] }
+
+/** TYMM profillerinde "Öğrenme Çıktısı Analizi", eski programda "Kazanım Analizi"; profil yoksa tarafsız "Öğrenme Hedefleri". */
+export const outcomeTerm = (p: Pick<Profile, 'outcome_term'> | null | undefined, kind: 'analiz' | 'tekil' | 'cogul' = 'analiz') => {
+  if (!p) return kind === 'analiz' ? 'Öğrenme Hedefleri Analizi' : kind === 'tekil' ? 'öğrenme hedefi' : 'öğrenme hedefleri'
+  const t = p.outcome_term === 'KAZANIM' ? ['Kazanım Analizi', 'kazanım', 'kazanımlar'] : ['Öğrenme Çıktısı Analizi', 'öğrenme çıktısı', 'öğrenme çıktıları']
+  return t[kind === 'analiz' ? 0 : kind === 'tekil' ? 1 : 2]!
+}
+
+/** Denemenin aşaması: 8/LGS → LGS; TYT/AYT (YKS alt türü dahil) → TYT/AYT; diğerleri okul denemesi. */
+export const examStage = (e: { exam_type: ExamType | null; yks_part?: YksPart | null }): ExamStage =>
+  e.exam_type === 'LGS' ? 'LGS' : e.exam_type === 'YKS' ? (e.yks_part ?? 'TYT') : e.exam_type === 'TYT' || e.exam_type === 'AYT' ? e.exam_type : 'SCHOOL'
+
+export interface ProfileRow { subtest: Subtest | null; section: TemplateSection | null; value: SectionValue; status: 'olculdu' | 'uygulanmadi' | 'olculmedi' | 'profil_disi' }
+/** Profil sırasıyla bölümler. Çok aşamalı profilde (11–12) yalnız denemenin aşaması (TYT ya da AYT) gösterilir: TYT ve AYT
+ *  netleri birleşmez. Denemede olmayan alt test "ölçülmedi" (başarısız sayılmaz); profilde olmayan bölüm sonda "profil dışı". */
+export function profileRows(p: Profile | null, e: { exam_type: ExamType | null; yks_part?: YksPart | null }, sections: TemplateSection[], r: SectionResults): ProfileRow[] {
+  const st = (v: SectionValue): ProfileRow['status'] => (isNA(v) ? 'uygulanmadi' : v === null ? 'olculmedi' : 'olculdu')
+  if (!p) return sections.map((s) => ({ subtest: null, section: s, value: r[s.key] ?? null, status: st(r[s.key] ?? null) }))
+  const stage = examStage(e), multi = new Set(p.subtests.map((s) => s.exam_stage)).size > 1
+  const subs = p.subtests.filter((s) => !multi || s.exam_stage === stage).sort((a, b) => a.sort - b.sort)
+  const used = new Set<string>()
+  const rows: ProfileRow[] = subs.map((sub) => {
+    // önce kodu dersle aynı bölüm (FEL ↔ Felsefe; FEL2 değil), sonra izinli derslerden ilki
+    const sec = sections.find((s) => !used.has(s.key) && s.key === sub.canonical_subject) ?? sections.find((s) => !used.has(s.key) && sub.section_subjects.includes(s.subject_code) && !/\d$/.test(s.key))
+    if (sec) used.add(sec.key)
+    const v = sec ? (r[sec.key] ?? null) : null
+    return { subtest: sub, section: sec ?? null, value: v, status: sec ? st(v) : 'olculmedi' }
+  })
+  for (const s of sections) if (!used.has(s.key) && (r[s.key] ?? null) !== null) rows.push({ subtest: null, section: s, value: r[s.key] ?? null, status: 'profil_disi' })
+  return rows
+}
+
+// ---------------------------------------------------------------- öğrenme çıktısı / kazanım analizi (yalnız ölçülmüş soru kanıtı)
+export interface OutcomeItem { section_key: string; q_no: number; learning_outcome_id: string | null; learning_outcomes: { code: string | null; title: string } | null }
+export interface OutcomeStat { id: string; code: string | null; title: string; sections: string[]; n: number; d: number; y: number; b: number }
+/** Öğrencinin soru cevapları (answers: bölüm başına soru sırasıyla; büyük harf/"?" doğru, küçük harf yanlış, "_" boş) + denemenin
+ *  soru-kazanım eşleşmeleri → kazanım başına D/Y/B. Soru verisi yoksa ya da sayı tutmuyorsa o bölüm hesaplanmaz (toplamdan türetilmez);
+ *  eşleşmeyen soru sayılmaz; listede olmayan kazanım ölçülmemiştir (başarısız değil). Bir soru tek kazanıma bağlıdır (çift sayım yok). */
+export function outcomeAnalysis(items: OutcomeItem[], answers: Record<string, string> | null | undefined) {
+  const by = new Map<string, OutcomeStat>(), skipped: string[] = []
+  let unresolved = 0
+  const secs = [...new Set(items.map((i) => i.section_key))]
+  for (const key of secs) {
+    const qs = items.filter((i) => i.section_key === key).sort((a, b) => a.q_no - b.q_no)
+    const s = answers?.[key] ?? ''
+    if (!s || s.length !== qs.length) { skipped.push(key); continue }
+    qs.forEach((q, k) => {
+      if (!q.learning_outcome_id || !q.learning_outcomes) { unresolved++; return }
+      const ch = s[k]!
+      const st = by.get(q.learning_outcome_id) ?? { id: q.learning_outcome_id, code: q.learning_outcomes.code, title: q.learning_outcomes.title, sections: [], n: 0, d: 0, y: 0, b: 0 }
+      if (!st.sections.includes(key)) st.sections.push(key)
+      st.n++
+      if (ch === '_' || ch === ' ') st.b++
+      else if (ch === '?' || (ch >= 'A' && ch <= 'Z')) st.d++
+      else st.y++
+      by.set(q.learning_outcome_id, st)
+    })
+  }
+  return { rows: [...by.values()].sort((a, b) => a.d / a.n - b.d / b.n || (a.code ?? '').localeCompare(b.code ?? '')), unresolved, skipped }
+}

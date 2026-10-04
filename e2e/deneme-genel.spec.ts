@@ -77,6 +77,12 @@ test.describe.serial('Okul geneli deneme (5–12)', () => {
 
   test('öğretmen: öğrenci sayfasında "Deneme Analizi" ve son deneme; Sınıflar\'da 6/A analizi; LGS ekranlarına karışmaz', async ({ page }) => {
     const sid = (await svc.from('students').select('id').eq('school_no', 'G601').single()).data!.id
+    // Soru düzeyi: Matematik 1. soru → TYMM 6. sınıf öğrenme çıktısı, öğrenci doğru yapmış (kazanım analizi bu kanıtla)
+    const ex = (await svc.from('exams').select('id').eq('name', 'E2E Genel CSV').single()).data!
+    const lo = (await svc.from('learning_outcomes').select('id, curriculum_versions!inner(curriculum_type, year_from)').eq('grade', 6).eq('subject_code', 'MAT').eq('code', 'MAT.6.1.1')
+      .eq('curriculum_versions.curriculum_type', 'TYMM').eq('curriculum_versions.year_from', 2026).single()).data!
+    expect((await svc.from('exam_items').insert({ exam_id: ex.id, section_key: 'MAT', q_no: 1, subject_code: 'MAT', correct_answer: 'B', learning_outcome_id: lo.id, match_method: 'MANUAL', match_confidence: 1 })).error).toBeNull()
+    expect((await svc.from('exam_results').update({ answers: { MAT: 'B' } }).eq('exam_id', ex.id).eq('student_id', sid)).error).toBeNull()
     await login(page, ...DEMO.rehber)
     await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
     await page.goto(`/ogrenciler/${sid}`)
@@ -85,7 +91,13 @@ test.describe.serial('Okul geneli deneme (5–12)', () => {
     await expect(box.getByTestId('son-deneme')).toContainText('E2E Genel CSV')
     await expect(box.getByTestId('son-deneme')).toContainText('20')
     await expect(box.getByTestId('son-deneme')).toContainText('Karşılaştırılabilir önceki deneme yok')
-    await expect(box.getByRole('row', { name: /Sosyal Bilgiler/ })).toContainText('Sonuç yok')
+    // profil sırası (6. sınıf: Türkçe, Matematik, Fen, Sosyal, Din, Yabancı Dil); CSV'de olmayanlar "ölçülmedi"
+    await expect(box.getByTestId('bolum-satiri')).toHaveCount(6)
+    await expect(box.getByTestId('bolum-satiri').nth(5)).toContainText('Yabancı Dil')
+    await expect(box.getByRole('row', { name: /Sosyal Bilgiler/ })).toContainText('Ölçülmedi')
+    const an = box.getByTestId('kazanim-analizi')
+    await expect(an.getByRole('heading', { name: 'Öğrenme Çıktısı Analizi' })).toBeVisible()
+    await expect(an).toContainText('MAT.6.1.1')
     await axe(page, 'öğrenci genel deneme')
     await shot(page, 'g3-ogrenci-genel')
 
@@ -141,12 +153,17 @@ test.describe.serial('Okul geneli deneme (5–12)', () => {
     await tab('Şablonlar')
     await expect(page.getByTestId('sablon-karti').filter({ hasText: '12. Sınıf YKS · TYT' })).toHaveCount(1)
     await axe(page, 'şablonlar')
-    await tab('Kazanım kataloğu')
+    await tab('Profiller')
+    await expect(page.getByTestId('profil-karti')).toHaveCount(8)
+    await expect(page.getByTestId('profil-karti').filter({ hasText: '12. sınıf' })).toContainText('Kazanım Analizi')
+    await expect(page.getByTestId('profil-karti').filter({ hasText: '11. sınıf' })).toContainText('AYT İleri Matematik')
+    await axe(page, 'profiller')
+    await tab('Öğrenme hedefleri')
     await page.locator('#katGrade').selectOption('7')
     await page.locator('#katQ').fill('T.7')
     await expect(page.getByTestId('kazanim-satiri').first()).toBeVisible()
     await axe(page, 'katalog')
-    await tab('Eşleşmeyen kazanımlar')
+    await tab('Eşleşmeyen hedefler')
     await axe(page, 'eşleşmeyen')
     await tab('İçe aktarım geçmişi')
     await expect(page.getByTestId('aktarim-satiri').filter({ hasText: 'E2E Genel Elle' })).toHaveCount(1)

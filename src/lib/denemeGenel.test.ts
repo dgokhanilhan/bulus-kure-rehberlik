@@ -89,3 +89,41 @@ describe('öğrenci grubu yılı', () => {
     expect([cohortYear(2026, 12, 9), cohortYear(2026, 11, 9), cohortYear(2026, 9, 9), cohortYear(2026, null, 9)]).toEqual([2023, 2024, 2026, 2026])
   })
 })
+
+describe('deneme profili', () => {
+  const S = (key: string, subject_code: string, label: string, question_count: number, sort: number, optional_group: string | null = null) => ({ key, subject_code, label, question_count, sort, optional_group, outcome_grades: null })
+  const sub = (sort: number, exam_stage: 'SCHOOL' | 'TYT' | 'AYT', display_name: string, canonical_subject: string, section_subjects = [canonical_subject]) => ({ sort, exam_stage, display_name, canonical_subject, section_subjects, language_code: canonical_subject === 'ING' ? 'en' : null })
+  const P9 = { academic_year: 2026, student_grade: 9, school_type: 'ANADOLU_LISESI', program_family: 'TYMM' as const, outcome_term: 'OGRENME_CIKTISI' as const,
+    subtests: [sub(1, 'SCHOOL', 'Türk Dili ve Edebiyatı', 'TDE'), sub(2, 'SCHOOL', 'Matematik', 'MAT'), sub(3, 'SCHOOL', 'Yabancı Dil', 'ING')] }
+  const P12 = { ...P9, student_grade: 12, program_family: 'LEGACY' as const, outcome_term: 'KAZANIM' as const,
+    subtests: [sub(1, 'TYT', 'TYT Türkçe', 'TUR', ['TUR', 'TDE']), sub(2, 'TYT', 'TYT Temel Matematik', 'MAT'), sub(3, 'TYT', 'TYT Felsefe', 'FEL'), sub(4, 'TYT', 'TYT Din Kültürü ve Ahlak Bilgisi', 'DIN'), sub(5, 'AYT', 'AYT Matematik', 'MAT')] }
+  it('profil sırası; denemede olmayan alt test "ölçülmedi"; profil dışı bölüm sonda', async () => {
+    const { profileRows } = await import('./denemeGenel')
+    const rows = profileRows(P9, { exam_type: 'TYT' }, [S('MAT', 'MAT', 'Matematik', 30, 1), S('TDE', 'TDE', 'Türk Dili', 30, 2), S('COG', 'COG', 'Coğrafya', 12, 3)],
+      { MAT: { d: 20, y: 4, b: 6, net: 19 }, TDE: { d: 25, y: 4, b: 1, net: 24 }, COG: { d: 6, y: 2, b: 4, net: 5.5 } })
+    expect(rows.map((r) => [r.subtest?.display_name ?? r.section!.label, r.status])).toEqual([['Türk Dili ve Edebiyatı', 'olculdu'], ['Matematik', 'olculdu'], ['Yabancı Dil', 'olculmedi'], ['Coğrafya', 'profil_disi']])
+  })
+  it('12 TYT: yalnız TYT alt testleri (AYT Matematik ayrı), Felsefe-2 profil dışı, seçmeli Din "uygulanmadı"', async () => {
+    const { profileRows } = await import('./denemeGenel')
+    const secs = [S('TUR', 'TUR', 'Türkçe', 40, 1), S('FEL', 'FEL', 'Felsefe', 5, 2), S('DIN', 'DIN', 'Din', 5, 3, 'G'), S('FEL2', 'FEL', 'Felsefe-2', 5, 4, 'G'), S('MAT', 'MAT', 'Matematik', 40, 5)]
+    const rows = profileRows(P12, { exam_type: 'YKS', yks_part: 'TYT' }, secs, { TUR: { d: 30, y: 4, b: 6, net: 29 }, FEL: { d: 4, y: 0, b: 1, net: 4 }, DIN: { na: true }, FEL2: { d: 3, y: 0, b: 2, net: 3 }, MAT: { d: 20, y: 8, b: 12, net: 18 } })
+    expect(rows.map((r) => [r.subtest?.display_name ?? r.section!.label, r.status])).toEqual([
+      ['TYT Türkçe', 'olculdu'], ['TYT Temel Matematik', 'olculdu'], ['TYT Felsefe', 'olculdu'], ['TYT Din Kültürü ve Ahlak Bilgisi', 'uygulanmadi'], ['Felsefe-2', 'profil_disi']])
+  })
+  it('terim profile göre', async () => {
+    const { outcomeTerm } = await import('./denemeGenel')
+    expect([outcomeTerm(P9), outcomeTerm(P12), outcomeTerm(null), outcomeTerm(P12, 'cogul')]).toEqual(['Öğrenme Çıktısı Analizi', 'Kazanım Analizi', 'Öğrenme Hedefleri Analizi', 'kazanımlar'])
+  })
+})
+
+describe('kazanım analizi', () => {
+  const it2 = (section_key: string, q_no: number, id: string | null, code = id) => ({ section_key, q_no, learning_outcome_id: id, learning_outcomes: id ? { code, title: `Başlık ${id}` } : null })
+  it('yalnız ölçülen sorular; eşleşmeyen sayılmaz; tutarsız bölüm hesaplanmaz', async () => {
+    const { outcomeAnalysis } = await import('./denemeGenel')
+    const items = [it2('MAT', 1, 'k1'), it2('MAT', 2, 'k1'), it2('MAT', 3, 'k2'), it2('MAT', 4, null), it2('TUR', 1, 'k3'), it2('TUR', 2, 'k3')]
+    const r = outcomeAnalysis(items, { MAT: 'Ab_C', TUR: 'A' })
+    expect(r.rows.map((x) => [x.id, x.n, x.d, x.y, x.b])).toEqual([['k2', 1, 0, 0, 1], ['k1', 2, 1, 1, 0]]) // en zayıf önce
+    expect([r.unresolved, r.skipped]).toEqual([1, ['TUR']])
+    expect(outcomeAnalysis(items, null).rows).toEqual([])
+  })
+})

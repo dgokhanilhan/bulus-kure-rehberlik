@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { Modal } from '@/components/Modal'
 import { useToast } from '@/components/Toast'
-import { EXAM_TYPE_TR, academicYear, cohortYear, type ExamType } from '@/lib/denemeGenel'
-import { searchOutcomes, useCurriculumVersions, useExamTemplates, useSubjects, useUnresolved, versionFor, type OutcomeRow, type TemplateRow, type UnresolvedRow } from '@/lib/denemeData'
+import { EXAM_TYPE_TR, academicYear, cohortYear, outcomeTerm, type ExamType } from '@/lib/denemeGenel'
+import { searchOutcomes, useCurriculumVersions, useExamProfiles, useExamTemplates, useSubjects, useUnresolved, versionFor, type OutcomeRow, type TemplateRow, type UnresolvedRow } from '@/lib/denemeData'
 import { readGeneralFile } from '@/lib/genelEngine'
 import { mapSections, type GenelPack } from '@/lib/genelImport'
 
@@ -397,6 +397,36 @@ export function TestLaboratuvari() {
           </details>
         </section>
       )}
+    </>
+  )
+}
+
+// ---------------------------------------------------------------- deneme profilleri (0030): okulun analiz ettiği alt testler
+const STAGE_TR: Record<string, string> = { SCHOOL: 'Okul', LGS: 'LGS', TYT: 'TYT', AYT: 'AYT' }
+export function ProfilBolumu() {
+  const ps = useExamProfiles()
+  return (
+    <>
+      <p className="m a" style={{ fontSize: 13 }}>
+        Profil, her sınıfta hangi alt testlerin hangi adla ve sırayla analiz edileceğini belirler; soru sayısı ve net kuralı şablondadır. Denemede olmayan alt test
+        öğrenciye "ölçülmedi" görünür (başarısız sayılmaz); TYT ve AYT ayrı tutulur. TYMM profillerinde "Öğrenme Çıktısı Analizi", eski programda "Kazanım Analizi" yazar.
+      </p>
+      {(ps.data ?? []).map((p) => (
+        <section key={p.id} className="card a" style={{ padding: 16 }} data-testid="profil-karti" aria-label={`${p.student_grade}. sınıf profili`}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
+            <b>{p.student_grade}. sınıf</b>
+            <span className="m" style={{ fontSize: 13 }}>{p.academic_year}–{p.academic_year + 1} · {p.school_type === 'ANADOLU_LISESI' ? 'Anadolu lisesi' : p.school_type === 'ORTAOKUL' ? 'Ortaokul' : p.school_type} · {p.program_family === 'TYMM' ? 'TYMM' : 'Önceki program'}</span>
+            <span className={`chip ${p.outcome_term === 'KAZANIM' ? 'n' : 'up'}`}>{outcomeTerm(p)}</span>
+            {!p.school_id && <span className="chip n">yerleşik</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+            {p.subtests.map((s) => (
+              <span key={s.sort} className="chip n" title={`${STAGE_TR[s.exam_stage]} · ${s.canonical_subject}${s.language_code ? ` · ${s.language_code}` : ''}`}>{s.sort}. {s.display_name}</span>
+            ))}
+          </div>
+        </section>
+      ))}
+      {!ps.data?.length && <div className="empty a">{ps.isLoading ? 'Yükleniyor…' : 'Profil yok.'}</div>}
     </>
   )
 }

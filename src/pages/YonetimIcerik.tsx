@@ -249,7 +249,7 @@ export function DenemeBilgi() {
       <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
         <li>Deneme yükleme, kontrol ve yayınlama Denemeler sayfasındadır. 5–7 ve 9–12 denemeleri önce taslak kaydedilir; yayınlanınca veli ve öğrenci görür.</li>
         <li>Sınıfa göre: 5–7 Deneme Analizi, 8 LGS Atlas, 9–10 TYT, 11 AYT, 12 YKS (TYT/AYT). Ana sayfadaki LGS kartı yalnız 8. sınıflarda görünür.</li>
-        <li>Yayınlar, biçimler, şablonlar ve kazanım kataloğu aşağıdaki Deneme Tanıma Merkezi'nden yönetilir. Deneme özelliklerinin tümü “LGS / Deneme” modülüyle açılıp kapanır.</li>
+        <li>Yayınlar, biçimler, şablonlar, profiller ve öğrenme hedefleri kataloğu aşağıdaki Deneme Tanıma Merkezi'nden yönetilir. Deneme özelliklerinin tümü “LGS / Deneme” modülüyle açılıp kapanır.</li>
       </ul>
     </section>
   )

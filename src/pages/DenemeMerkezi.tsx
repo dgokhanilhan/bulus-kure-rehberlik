@@ -11,12 +11,12 @@ import { useToast } from '@/components/Toast'
 import { EXAM_TYPE_TR, academicYear } from '@/lib/denemeGenel'
 import { useCurriculumVersions, useExamImports, useExamTemplates, useExamsAdmin, useFormats, usePublishers, useTypeDefaults, versionFor, type ExamAdminRow } from '@/lib/denemeData'
 import { trD } from '@/lib/format'
-import { KatalogBolumu, EslesmeyenBolumu, SablonBolumu, TestLaboratuvari } from './DenemeMerkeziKatalog'
+import { KatalogBolumu, EslesmeyenBolumu, ProfilBolumu, SablonBolumu, TestLaboratuvari } from './DenemeMerkeziKatalog'
 
-type Tab = 'genel' | 'yayinlar' | 'bicimler' | 'sablonlar' | 'katalog' | 'eslesmeyen' | 'gecmis' | 'test' | 'arsiv'
+type Tab = 'genel' | 'yayinlar' | 'bicimler' | 'sablonlar' | 'profiller' | 'katalog' | 'eslesmeyen' | 'gecmis' | 'test' | 'arsiv'
 const TABS: [Tab, string][] = [
-  ['genel', 'Genel bakış'], ['yayinlar', 'Yayınlar'], ['bicimler', 'Biçimler'], ['sablonlar', 'Şablonlar'], ['katalog', 'Kazanım kataloğu'],
-  ['eslesmeyen', 'Eşleşmeyen kazanımlar'], ['gecmis', 'İçe aktarım geçmişi'], ['test', 'Test laboratuvarı'], ['arsiv', 'Arşiv'],
+  ['genel', 'Genel bakış'], ['yayinlar', 'Yayınlar'], ['bicimler', 'Biçimler'], ['sablonlar', 'Şablonlar'], ['profiller', 'Profiller'], ['katalog', 'Öğrenme hedefleri'],
+  ['eslesmeyen', 'Eşleşmeyen hedefler'], ['gecmis', 'İçe aktarım geçmişi'], ['test', 'Test laboratuvarı'], ['arsiv', 'Arşiv'],
 ]
 const FAMILY_TR: Record<string, string> = { LEGACY_DK: 'LGS motoru (mevcut)', HIZ_ORTAOKUL: 'Hız ortaokul karnesi', HIZ_LISE: 'Hız lise karnesi (TYT/AYT)', UNKNOWN: 'Ayrıştırıcı yok (yalnız tanır)' }
 const SUBJECTS_BY_GRADE: Record<number, string[]> = {
@@ -39,6 +39,7 @@ export function DenemeMerkezi() {
       {tab === 'yayinlar' && <Yayinlar />}
       {tab === 'bicimler' && <Bicimler />}
       {tab === 'sablonlar' && <SablonBolumu />}
+      {tab === 'profiller' && <ProfilBolumu />}
       {tab === 'katalog' && <KatalogBolumu />}
       {tab === 'eslesmeyen' && <EslesmeyenBolumu />}
       {tab === 'gecmis' && <Gecmis />}
@@ -63,7 +64,7 @@ function GenelBakis() {
               <th>Varsayılan tür</th>
               <th>Biçim</th>
               <th>Şablon</th>
-              <th>Kazanım kataloğu ({year}–{year + 1})</th>
+              <th>Öğrenme hedefleri kataloğu ({year}–{year + 1})</th>
             </tr>
           </thead>
           <tbody>
@@ -96,7 +97,7 @@ function GenelBakis() {
       </div>
       <p className="m" style={{ fontSize: 12, padding: '0 16px 14px' }}>
         Katalogdaki "eksik" ders: o eğitim yılı için resmî program kaynağı bulunamadı (ör. ortaokul Matematik/Fen/Sosyal/Din TYMM 2024 sürümü yayında değil). Kazanım uydurulmaz; sorular
-        "Eşleşmeyen kazanımlar"a düşer. Ayrıntı: docs/meb-katalog-raporu.md.
+        "Eşleşmeyen hedefler"e düşer. Ayrıntı: docs/meb-katalog-raporu.md.
       </p>
     </section>
   )

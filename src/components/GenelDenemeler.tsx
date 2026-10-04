@@ -1,8 +1,8 @@
 // 5–7 Deneme Analizi · 9–10 TYT · 11 AYT · 12 YKS (TYT/AYT sekmeleri). 8. sınıf LGS Atlas'ı ayrı ve değişmeden kalır.
 // Son deneme kartı yalnız karşılaştırılabilir önceki denemeyle kıyaslar (TYT ↔ AYT, Genel ↔ TYT kıyaslanmaz).
 import { useMemo, useState } from 'react'
-import { useExamTemplates, useGenelDataset, type GenelExam, type GenelResult } from '@/lib/denemeData'
-import { contextTitle, examFamily, isNA, isScore, lastExamDelta, reportTitle, yksTabs, type YksPart } from '@/lib/denemeGenel'
+import { profileFor, useExamItems, useExamProfiles, useExamTemplates, useGenelDataset, type GenelExam, type GenelResult } from '@/lib/denemeData'
+import { academicYear, contextTitle, examFamily, isScore, lastExamDelta, outcomeAnalysis, outcomeTerm, profileRows, reportTitle, yksTabs, type Profile, type TemplateSection, type YksPart } from '@/lib/denemeGenel'
 import { trD } from '@/lib/format'
 import { Seg } from './Indicator'
 import { LineChart } from './LineChart'
@@ -14,6 +14,7 @@ const sign = (x: number) => (x > 0 ? `+${n2(x)}` : n2(x))
 export function GenelDenemeler({ studentId, grade, delay = 3 }: { studentId: string; grade: number | null | undefined; delay?: number }) {
   const ds = useGenelDataset()
   const tpls = useExamTemplates()
+  const profiles = useExamProfiles()
   const tabs = yksTabs(grade)
   const [part, setPart] = useState<YksPart>('TYT')
   const title = contextTitle(grade)
@@ -63,38 +64,91 @@ export function GenelDenemeler({ studentId, grade, delay = 3 }: { studentId: str
               </div>
             </div>
           )}
-          {shown && <Bolumler exam={shown} result={mine.res.get(shown.id)!} sections={tpls.data?.find((t) => t.id === shown.exam_template_id)?.sections ?? []} />}
+          {shown && (
+            <Bolumler
+              exam={shown}
+              result={mine.res.get(shown.id)!}
+              sections={tpls.data?.find((t) => t.id === shown.exam_template_id)?.sections ?? []}
+              profile={profileFor(profiles.data ?? [], grade, Number(academicYear(shown.exam_date).slice(0, 4)))}
+            />
+          )}
         </>
       )}
     </section>
   )
 }
 
-function Bolumler({ exam, result, sections }: { exam: GenelExam; result: GenelResult; sections: { key: string; label: string; question_count: number }[] }) {
-  const keys = sections.length ? sections : Object.keys(result.subjects).map((k) => ({ key: k, label: k, question_count: 0 }))
+const STATUS_TR = { olculmedi: 'Ölçülmedi (bu denemede yok)', uygulanmadi: 'Uygulanmadı (seçmeli)', profil_disi: '', olculdu: '' }
+
+function Bolumler({ exam, result, sections, profile }: { exam: GenelExam; result: GenelResult; sections: TemplateSection[]; profile: Profile | null }) {
+  const rows = profileRows(profile, exam, sections, result.subjects)
   return (
-    <div>
-      <div className="m" style={{ fontSize: 13, marginBottom: 4 }}>{reportTitle(exam)} · {exam.name}{exam.publisher ? ` · ${exam.publisher}` : ''}</div>
-      <div className="tbl" tabIndex={0} role="region" aria-label={`${exam.name} bölüm sonuçları`}>
-        <table>
-          <thead><tr><th>Bölüm</th><th className="num">D</th><th className="num">Y</th><th className="num">B</th><th className="num">Net</th></tr></thead>
-          <tbody>
-            {keys.map((s) => {
-              const v = result.subjects[s.key] ?? null
-              return (
-                <tr key={s.key}>
-                  <td>{s.label}{s.question_count ? <span className="m" style={{ fontSize: 12 }}> · {s.question_count} soru</span> : null}</td>
-                  {isScore(v) ? (
-                    <><td className="num">{v.d}</td><td className="num">{v.y}</td><td className="num">{v.b}</td><td className="num"><b>{n2(v.net)}</b></td></>
-                  ) : (
-                    <td colSpan={4} className="m" style={{ fontSize: 13 }}>{isNA(v) ? 'Uygulanmadı (seçmeli)' : 'Sonuç yok'}</td>
-                  )}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+    <div className="stack" style={{ gap: 12 }}>
+      <div>
+        <div className="m" style={{ fontSize: 13, marginBottom: 4 }}>{reportTitle(exam)} · {exam.name}{exam.publisher ? ` · ${exam.publisher}` : ''}</div>
+        <div className="tbl" tabIndex={0} role="region" aria-label={`${exam.name} bölüm sonuçları`}>
+          <table>
+            <thead><tr><th>Bölüm</th><th className="num">D</th><th className="num">Y</th><th className="num">B</th><th className="num">Net</th></tr></thead>
+            <tbody>
+              {rows.map((r, i) => {
+                const v = r.value
+                const label = r.subtest?.display_name ?? r.section?.label ?? ''
+                return (
+                  <tr key={i} data-testid="bolum-satiri">
+                    <td>
+                      {label}
+                      {r.section?.question_count ? <span className="m" style={{ fontSize: 12 }}> · {r.section.question_count} soru</span> : null}
+                      {r.subtest?.language_code === 'en' && <span className="m" style={{ fontSize: 12 }}> · İngilizce</span>}
+                      {r.status === 'profil_disi' && <span className="chip n" style={{ marginLeft: 6, fontSize: 11 }}>profil dışı</span>}
+                    </td>
+                    {isScore(v) ? (
+                      <><td className="num">{v.d}</td><td className="num">{v.y}</td><td className="num">{v.b}</td><td className="num"><b>{n2(v.net)}</b></td></>
+                    ) : (
+                      <td colSpan={4} className="m" style={{ fontSize: 13 }}>{STATUS_TR[r.status] || 'Sonuç yok'}</td>
+                    )}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
+      <Analiz exam={exam} result={result} profile={profile} sections={sections} />
+    </div>
+  )
+}
+
+/** Öğrenme Çıktısı Analizi (TYMM) / Kazanım Analizi (eski program): yalnız soru düzeyinde ölçülmüş ve eşleşmiş sorular. */
+function Analiz({ exam, result, profile, sections }: { exam: GenelExam; result: GenelResult; profile: Profile | null; sections: TemplateSection[] }) {
+  const items = useExamItems(exam.id)
+  if (items.isLoading || !items.data?.length) return null
+  const a = outcomeAnalysis(items.data, result.answers)
+  const label = (k: string) => sections.find((s) => s.key === k)?.label ?? k
+  return (
+    <div data-testid="kazanim-analizi">
+      <h3 className="sec" style={{ fontSize: 15 }}>{outcomeTerm(profile)}</h3>
+      {a.rows.length ? (
+        <div className="tbl" tabIndex={0} role="region" aria-label={outcomeTerm(profile)}>
+          <table>
+            <thead><tr><th>{outcomeTerm(profile, 'tekil').replace(/^./, (c) => c.toLocaleUpperCase('tr'))}</th><th className="num">Soru</th><th className="num">D</th><th className="num">Y</th><th className="num">B</th></tr></thead>
+            <tbody>
+              {a.rows.map((r) => (
+                <tr key={r.id}>
+                  <td style={{ fontSize: 13 }}><span className="mono">{r.code ?? ''}</span> {r.title} <span className="m">· {r.sections.map(label).join(', ')}</span></td>
+                  <td className="num">{r.n}</td><td className="num">{r.d}</td><td className="num">{r.y}</td><td className="num">{r.b}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="m" style={{ fontSize: 13 }}>Bu denemede {outcomeTerm(profile, 'tekil')} ile eşleşmiş soru verisi yok.</p>
+      )}
+      <p className="m" style={{ fontSize: 12 }}>
+        Yalnız bu denemede ölçülen ve resmî {outcomeTerm(profile, 'cogul')} ile eşleşen sorular gösterilir; listede olmayan {outcomeTerm(profile, 'tekil')} ölçülmemiştir, eksik sayılmaz.
+        {a.unresolved ? ` ${a.unresolved} soru henüz eşleşmediği için analiz dışı.` : ''}
+        {a.skipped.length ? ` ${a.skipped.map(label).join(', ')}: soru verisi sonuçla tutmadığı için hesaplanmadı.` : ''}
+      </p>
     </div>
   )
 }
