@@ -31,8 +31,11 @@ export async function readGeneralFile(file: File, hints: { grade?: number } = {}
   })
 }
 
-/** 8. sınıf / LGS ve tanınmayan biçim mevcut LGS motoruna gider (LGS sonuçları birebir korunur). */
-export const goesToLegacy = (p: GenelPack) => p.detection.family === 'UNKNOWN' || p.detection.grade?.value === 8 || p.detection.examType?.value === 'LGS'
+/** Mevcut LGS motorunun okuduğu biçimler 8. sınıf / LGS'de oraya gider (LGS sonuçları birebir korunur); tanınmayan biçim de.
+ *  LGS motorunun okuyamadığı biçimin 8. sınıf karnesi (ör. Akbim: TÖDER, Sinan Kuzucu) genel akıştan LGS türünde içe aktarılır. */
+const LEGACY_8 = new Set(['HIZ_ORTAOKUL'])
+export const goesToLegacy = (p: GenelPack) =>
+  p.detection.family === 'UNKNOWN' || (LEGACY_8.has(p.detection.family) && (p.detection.grade?.value === 8 || p.detection.examType?.value === 'LGS'))
 
 /** LGS motorunun okuduğu karnede sınıf alanları çoğunlukla 8 dışı bir sınıfı gösteriyorsa (ör. 6/A) o sınıf düzeyi döner:
  *  LGS akışı yalnız 8. sınıf içindir; tanınmayan 5–7 karnesi sessizce LGS denemesi olarak kaydedilmemeli. */

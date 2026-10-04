@@ -18,7 +18,7 @@ const TABS: [Tab, string][] = [
   ['genel', 'Genel bakış'], ['yayinlar', 'Yayınlar'], ['bicimler', 'Biçimler'], ['sablonlar', 'Şablonlar'], ['profiller', 'Profiller'], ['katalog', 'Öğrenme hedefleri'],
   ['eslesmeyen', 'Eşleşmeyen hedefler'], ['gecmis', 'İçe aktarım geçmişi'], ['test', 'Test laboratuvarı'], ['arsiv', 'Arşiv'],
 ]
-const FAMILY_TR: Record<string, string> = { LEGACY_DK: 'LGS motoru (mevcut)', HIZ_ORTAOKUL: 'Hız ortaokul karnesi', HIZ_LISE: 'Hız lise karnesi (TYT/AYT)', UNKNOWN: 'Ayrıştırıcı yok (yalnız tanır)' }
+const FAMILY_TR: Record<string, string> = { LEGACY_DK: 'LGS motoru (mevcut)', HIZ_ORTAOKUL: 'Hız ortaokul karnesi', HIZ_LISE: 'Hız lise karnesi (TYT/AYT)', AKBIM: 'Akbim ODS sonuç belgesi (yayından bağımsız)', UNKNOWN: 'Ayrıştırıcı yok (yalnız tanır)' }
 const SUBJECTS_BY_GRADE: Record<number, string[]> = {
   5: ['TUR', 'MAT', 'FEN', 'SOS', 'DIN', 'ING'], 6: ['TUR', 'MAT', 'FEN', 'SOS', 'DIN', 'ING'], 7: ['TUR', 'MAT', 'FEN', 'SOS', 'DIN', 'ING'], 8: ['TUR', 'MAT', 'FEN', 'INK', 'DIN', 'ING'],
   9: ['TDE', 'MAT', 'FIZ', 'KIM', 'BIY', 'TAR', 'COG', 'DIN'], 10: ['TDE', 'MAT', 'FIZ', 'KIM', 'BIY', 'TAR', 'COG', 'FEL', 'DIN'], 11: ['TDE', 'MAT', 'FIZ', 'KIM', 'BIY', 'TAR', 'COG', 'FEL', 'DIN'], 12: ['TDE', 'MAT', 'FIZ', 'KIM', 'BIY', 'COG', 'DIN', 'INK'],
