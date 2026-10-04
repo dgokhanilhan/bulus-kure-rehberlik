@@ -2,6 +2,7 @@
 // içe aktarım geçmişi, eşleşmeyen kazanımlar, kazanım kataloğu araması. Yetki veritabanında (RLS + RPC).
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
+import { pages } from './sayfali'
 import type { ExamTemplate, ExamType, Profile, SectionResults, Subtest, TemplateSection, YksPart } from './denemeGenel'
 
 export interface TemplateRow extends ExamTemplate {
@@ -100,11 +101,11 @@ export function useGenelDataset(enabled = true) {
     queryFn: async () => {
       const [e, r] = await Promise.all([
         supabase.from('exams').select('id, name, exam_date, grade, exam_type, yks_part, exam_code, publisher, exam_template_id').neq('exam_type', 'LGS').eq('status', 'yayinda').order('exam_date'),
-        supabase.from('exam_results').select('exam_id, student_id, score, subjects, answers, total_net, success_pct, exams!inner(exam_type, status)').neq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').limit(20000),
+        pages<GenelResult & { exams?: unknown }>((a, b) =>
+          supabase.from('exam_results').select('exam_id, student_id, score, subjects, answers, total_net, success_pct, exams!inner(exam_type, status)').neq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').order('exam_id').order('student_id').range(a, b)),
       ])
       if (e.error) throw e.error
-      if (r.error) throw r.error
-      const results = (r.data as (GenelResult & { exams?: unknown })[]).map(({ exams: _e, ...x }) => ({ ...x, total_net: x.total_net === null ? null : Number(x.total_net), success_pct: x.success_pct === null ? null : Number(x.success_pct) }))
+      const results = r.map(({ exams: _e, ...x }) => ({ ...x, total_net: x.total_net === null ? null : Number(x.total_net), success_pct: x.success_pct === null ? null : Number(x.success_pct) }))
       return { exams: e.data as GenelExam[], results }
     },
   })

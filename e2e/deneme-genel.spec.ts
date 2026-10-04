@@ -103,11 +103,9 @@ test.describe.serial('Okul geneli deneme (5–12)', () => {
     await shot(page, 'g3-ogrenci-genel')
 
     await page.getByRole('link', { name: 'Sınıflar', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Diğer sınıflar' })).toBeVisible()
-    await page.getByRole('group', { name: 'Diğer şube' }).getByRole('button', { name: '6/A' }).click()
-    await expect(page.getByTestId('genel-sinif-deneme').filter({ hasText: 'E2E Genel CSV' })).toContainText('1 öğrenci')
-    // LGS ısı haritası ve son deneme yalnız LGS denemelerinden
-    await expect(page.locator('main')).not.toContainText('E2E Genel CSV · ')
+    await page.locator('#clsPick').selectOption('6/A')
+    await expect(page.getByTestId('sinav-baglami')).toContainText('Deneme Özeti')
+    await expect(page.getByRole('columnheader', { name: 'E2E Genel CSV' })).toBeVisible()
     await axe(page, 'sınıflar genel')
   })
 

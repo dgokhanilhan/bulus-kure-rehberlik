@@ -6,8 +6,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { isFullAccess, isTeacherP, ROLE_TR, roleOf } from '@/lib/roles'
-import { SUBJECTS, fmt, totalNet, type Dataset } from '@/lib/analiz'
-import { useDataset, useNotes, usePeople, useRefresh, useStudents, useTasks, useParentLinks } from '@/lib/data'
+import { SUBJECTS, fmt, outcomeCode, totalNet, type Dataset } from '@/lib/analiz'
+import { useDatasetForExam } from '@/lib/sinavBaglami'
+import { useNotes, usePeople, useRefresh, useStudents, useTasks, useParentLinks } from '@/lib/data'
 import { aiPayload, genVeli, reportData, type OgretmenBody, type VeliBody } from '@/lib/rapor'
 import { fold, todayISO, trD } from '@/lib/format'
 import type { Student } from '@/lib/types'
@@ -55,8 +56,11 @@ function ReportLoader({ target, onClose }: { target: Target; onClose: () => void
       return data as Row | null
     },
   })
-  const ds = useDataset()
   const students = useStudents()
+  const sid0 = q.data?.student_id ?? ('sid' in target ? target.sid : null)
+  const eid0 = q.data?.exam_id ?? ('eid' in target ? target.eid : null)
+  // Denemenin veri seti: LGS ya da 5–7 / 9–12 genel bağlam (aynı rapor mantığı, ders listesi veri setinden)
+  const ds = useDatasetForExam(eid0, students.data?.find((x) => x.id === sid0)?.grade)
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', k)
@@ -186,7 +190,8 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
   // ---------- görünüm verisi ----------
   const x = R.cur
   const P = R.prev
-  const subjRows = SUBJECTS.map((d) => {
+  // Genel bağlamda bu denemede olmayan bölüm satırı gösterilmez (ör. 5. sınıf şablonunda olmayan ders)
+  const subjRows = R.subjects.filter((d) => R.subjects === SUBJECTS || R.exams.some((e) => e.result.subjects[d.code])).map((d) => {
     const q = x.subjects[d.code]
     const p = P?.subjects[d.code]
     const df = q && p ? q.net - p.net : 0
@@ -225,10 +230,10 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
           kind: 'ogretmen',
           history: {
             exams: R!.exams.map((e) => e.name),
-            rows: SUBJECTS.map((d) => ({ ad: d.ad, nets: R!.exams.map((e) => (e.result.subjects[d.code] ? fmt(e.result.subjects[d.code]!.net, 2) : '—')) })),
+            rows: subjRows.map(({ d }) => ({ ad: d.ad, nets: R!.exams.map((e) => (e.result.subjects[d.code] ? fmt(e.result.subjects[d.code]!.net, 2) : '—')) })),
             totals: R!.exams.map((e) => fmt(totalNet(e.result), 2)),
           },
-          repeats: R!.kzMissing ? [] : R!.rep.map((r) => ({ konu: r.outcome.title, kod: r.outcome.code, ders: SUBJECTS.find((q) => q.code === r.outcome.subject)!.ad, denemeler: r.examNames.join(', ') })),
+          repeats: R!.kzMissing ? [] : R!.rep.map((r) => ({ konu: r.outcome.title, kod: outcomeCode(r.outcome), ders: R!.subjects.find((q) => q.code === r.outcome.subject)?.ad ?? r.outcome.subject, denemeler: r.examNames.join(', ') })),
           repeatsNote: R!.kzMissing ? 'Konu bilgisi okunamadığı için tekrar eden hata analizi yapılamadı.' : 'Tekrar eden hata yok.',
           tasks: myTasks.map((t) => ({ konu: t.topic, son: trD(t.due_date), ilerleme: `${t.solved}/${t.question_count}`, durum: t.completed_at ? 'Tamamlandı' : t.due_date < today ? 'Gecikti' : 'Devam ediyor' })),
           notes: teacherNotes.map((n) => ({ yazar: `${name(n.author_id)?.full_name ?? 'Öğretmen'}${name(n.author_id)?.branch ? ` (${name(n.author_id)!.branch})` : ''}`, metin: n.body ?? '' })),
@@ -396,7 +401,7 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
                 </tr>
               </thead>
               <tbody>
-                {SUBJECTS.map((d) => (
+                {subjRows.map(({ d }) => (
                   <tr key={d.code}>
                     <td>{d.ad}</td>
                     {R.exams.map((e) => (
@@ -517,8 +522,8 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
                     {R.rep.map((r) => (
                       <tr key={r.outcome.code}>
                         <td>{r.outcome.title}</td>
-                        <td style={{ fontFamily: 'var(--font-mono)' }}>{r.outcome.code}</td>
-                        <td>{SUBJECTS.find((q) => q.code === r.outcome.subject)!.ad}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)' }}>{outcomeCode(r.outcome)}</td>
+                        <td>{R.subjects.find((q) => q.code === r.outcome.subject)?.ad ?? r.outcome.subject}</td>
                         <td>{r.examNames.join(', ')}</td>
                       </tr>
                     ))}

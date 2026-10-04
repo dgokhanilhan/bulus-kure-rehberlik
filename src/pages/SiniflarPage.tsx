@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
-import { SUBJECT, SUBJECTS, classHeat, fmt, indexResults, repeats, type HeatRow, type Subject } from '@/lib/analiz'
-import { useClasses, useDataset, useRefresh, useStudents, useStudySessions } from '@/lib/data'
+import { classHeat, fmt, indexResults, outcomeCode, repeats, subjectOf, type Dataset, type HeatRow, type Subject } from '@/lib/analiz'
+import { useClasses, useRefresh, useStudents, useStudySessions } from '@/lib/data'
 import { addDays, initials, nextDow, todayISO, trDW } from '@/lib/format'
 import { DENEME_GRADE } from '@/lib/roles'
 import { Icon } from '@/components/Icon'
 import { Dropdown, Seg } from '@/components/Indicator'
 import { Modal } from '@/components/Modal'
 import { useToast } from '@/components/Toast'
-import { GenelSinifAnalizi } from '@/components/GenelDenemeler'
+import { SUBJECT_SHORT } from '@/components/Tasks'
+import { useExamContext } from '@/lib/sinavBaglami'
 
 const SLOTS = [
   ['09-10', '09.00–10.00'],
@@ -31,25 +32,32 @@ const heatStyle = (p: number | null): React.CSSProperties =>
           : { background: 'var(--heat-4)', color: '#fff' }
 
 export default function SiniflarPage() {
-  const dsq = useDataset()
   const students = useStudents()
   const sessions = useStudySessions()
   const toast = useToast()
   const refresh = useRefresh()
   const classes = useClasses()
-  const eighth = (classes.data ?? []).filter((c) => c.grade === DENEME_GRADE).map((c) => c.name)
+  // Şube listesi gerçek sınıf tablosundan (denemesi olmayan şube de seçilebilir); ilk açılış 8. sınıf (mevcut davranış)
+  const all = (classes.data ?? []).filter((c) => c.name)
   const [pick, setCls] = useState<string | null>(null)
-  const cls = pick ?? eighth[0] ?? ''
-  const [sub, setSub] = useState<Subject>('MAT')
+  const cls = pick ?? all.find((c) => c.grade === DENEME_GRADE)?.name ?? all[0]?.name ?? ''
+  const cg = all.find((c) => c.name === cls)?.grade ?? null
+  // Seçilen şubenin bağlamı: 8 → LGS veri seti (değişmedi); 5–7 okul denemeleri; 9–12 seçili TYT / AYT
+  const dsq = useExamContext(cg, !!classes.data)
+  const [pickSub, setSub] = useState<Subject>('MAT')
+  const subs = dsq.data?.subjects ?? []
+  const sub = subs.some((x) => x.code === pickSub) ? pickSub : (subs.find((x) => x.code === 'MAT') ?? subs[0])?.code ?? pickSub
   const [konu, setKonu] = useState<HeatRow | null>(null)
   const [etut, setEtut] = useState<string[] | null>(null)
 
   const data = useMemo(() => {
     const ds = dsq.data
     if (!ds || !students.data) return null
-    const ex = ds.exams.slice(-5)
     const inClass = students.data.filter((s) => s.class_name === cls)
     const ids = inClass.map((s) => s.id)
+    // LGS: son 5 deneme (mevcut). Genel: bu şubenin sonucu olan son 5 deneme (başka sınıf düzeyinin denemesi sütun olmaz)
+    const mine = new Set(ds.results.filter((r) => ids.includes(r.student_id)).map((r) => r.exam_id))
+    const ex = (dsq.kind === 'LGS' ? ds.exams : ds.exams.filter((e) => mine.has(e.id))).slice(-5)
     const rows = classHeat(ds, ids, sub, ex)
     const lastIdx = ex.length - 1
     const worst = rows
@@ -59,16 +67,27 @@ export default function SiniflarPage() {
     const idx = indexResults(ds.results)
     const L = ex.at(-1)
     const nets = L ? ids.map((id) => idx.get(`${L.id}|${id}`)?.subjects[sub]?.net).filter((n): n is number => n != null) : []
-    return { ex, rows, worst, L, inClass, avg: nets.length ? nets.reduce((a, b) => a + b, 0) / nets.length : null, lastIdx, idx }
-  }, [dsq.data, students.data, cls, sub])
+    return { ds, ex, rows, worst, L, inClass, avg: nets.length ? nets.reduce((a, b) => a + b, 0) / nets.length : null, lastIdx, idx }
+  }, [dsq.data, dsq.kind, students.data, cls, sub])
 
-  if (!data)
+  if (!data && (dsq.isLoading || !classes.data || !students.data))
     return (
       <p className="m">
         <span className="spinner" aria-hidden="true" /> Yükleniyor…
       </p>
     )
-  const { ex, rows, worst, L, inClass, avg, lastIdx } = data
+  if (!data)
+    return (
+      <>
+        <div className="head a">
+          <h1 className="hd">Sınıflar</h1>
+          <ClassPicker value={cls} onChange={setCls} options={all.map((c) => c.name)} />
+        </div>
+        <div className="empty a">Bu şube için deneme analizi yok (yalnız 5–12. sınıflarda deneme analizi yapılır).</div>
+      </>
+    )
+  const { ds, ex, rows, worst, L, inClass, avg, lastIdx } = data
+  const sd = subjectOf(ds, sub)
   const today = todayISO()
   const et = (sessions.data ?? []).filter((x) => x.class_name === cls && x.session_date >= today)
 
@@ -84,9 +103,19 @@ export default function SiniflarPage() {
     <>
       <div className="head a">
         <h1 className="hd">Sınıflar</h1>
-        <Seg label="Şube" value={cls} onChange={setCls} options={eighth.map((c) => [c, c] as const)} />
+        <ClassPicker value={cls} onChange={setCls} options={all.map((c) => c.name)} />
       </div>
-      <Seg className="a" style={{ ['--d' as string]: 1, alignSelf: 'flex-start' }} label="Ders" value={sub} onChange={setSub} options={SUBJECTS.map((s) => [s.code, s.short] as const)} />
+      {dsq.kind !== 'LGS' && (
+        <div className="kv a" style={{ ['--d' as string]: 1, alignItems: 'center' }} data-testid="sinav-baglami">
+          <h2 className="sec">{dsq.title}</h2>
+          {dsq.kind === 'YKS' && <Seg label="YKS oturumu" value={dsq.fam} onChange={dsq.setFam} options={[['TYT', 'TYT'], ['AYT', 'AYT']] as const} />}
+        </div>
+      )}
+      {ds.subjects.length > 0 && (
+        <div className="a" style={{ ['--d' as string]: 1, overflowX: 'auto', alignSelf: 'flex-start', maxWidth: '100%' }}>
+          <Seg label="Ders" value={sub} onChange={setSub} options={ds.subjects.map((s) => [s.code, s.short] as const)} />
+        </div>
+      )}
       <section className="card a" style={{ ['--d' as string]: 2, padding: '16px 20px', display: 'flex', gap: 26, alignItems: 'center', flexWrap: 'wrap' }}>
         <div>
           <div className="m" style={{ fontSize: 13 }}>
@@ -96,7 +125,7 @@ export default function SiniflarPage() {
             {avg != null ? fmt(avg) : '—'}
             <span className="m" style={{ fontSize: 16 }}>
               {' '}
-              / {SUBJECT[sub].q}
+              / {sd.q}
             </span>
           </div>
         </div>
@@ -116,7 +145,7 @@ export default function SiniflarPage() {
 
       <section className="card a" style={{ ['--d' as string]: 3, padding: 20, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
         {rows.length ? (
-          <div style={{ overflowX: 'auto', padding: '4px 2px' }} role="table" aria-label={`${cls} ${SUBJECT[sub].ad} konu doğru oranları`}>
+          <div style={{ overflowX: 'auto', padding: '4px 2px' }} role="table" aria-label={`${cls} ${sd.ad} konu doğru oranları`}>
             <div className="heat" role="row" style={{ ['--n' as string]: ex.length, fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)' }}>
               <span role="columnheader">KONU</span>
               {ex.map((e) => (
@@ -129,7 +158,7 @@ export default function SiniflarPage() {
               <div key={r.outcome.code} className="heat" role="row" style={{ ['--n' as string]: ex.length, marginTop: 6 }}>
                 <div style={{ minWidth: 0 }} role="rowheader">
                   <div className="mono m" style={{ fontSize: 11 }}>
-                    {r.outcome.code}
+                    {outcomeCode(r.outcome)}
                   </div>
                   <div style={{ fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.outcome.title}>
                     {r.outcome.title}
@@ -144,7 +173,7 @@ export default function SiniflarPage() {
             ))}
           </div>
         ) : (
-          <div className="empty">Bu ders için güvenilir konu bilgisi olan deneme yok.</div>
+          <div className="empty">{ex.length ? 'Bu ders için güvenilir konu bilgisi olan deneme yok.' : dsq.kind === 'YKS' ? `Bu şubede yayınlanmış ${dsq.fam} denemesi yok.` : 'Bu şubede yayınlanmış deneme yok.'}</div>
         )}
         <div className="legend" style={{ marginTop: 8 }}>
           <span>Doğru oranı</span>
@@ -197,7 +226,7 @@ export default function SiniflarPage() {
                   {trDW(x.session_date)} · {slotTr(x.slot)}
                 </b>
                 <span className="m" style={{ display: 'block', fontSize: 13 }}>
-                  {SUBJECT[x.subject].short} · {x.topics.join(', ')}
+                  {SUBJECT_SHORT[x.subject] ?? x.subject} · {x.topics.join(', ')}
                 </span>
               </span>
               <button className="btn sm ghost" style={{ color: 'var(--signal)' }} onClick={() => cancel(x.id)}>
@@ -210,18 +239,15 @@ export default function SiniflarPage() {
         )}
       </Dropdown>
 
-      <GenelSiniflar />
-
-      {konu && <KonuStudents row={konu} cls={cls} examName={L?.name ?? ''} lastIdx={lastIdx} onClose={() => setKonu(null)} />}
-      {etut && <EtutModal cls={cls} subject={sub} topics={etut} taken={(sessions.data ?? []).filter((x) => x.class_name === cls)} onClose={() => setEtut(null)} />}
+      {konu && <KonuStudents ds={ds} row={konu} cls={cls} examName={L?.name ?? ''} lastIdx={lastIdx} onClose={() => setKonu(null)} />}
+      {etut && <EtutModal cls={cls} subject={sd.base ?? sub} topics={etut} taken={(sessions.data ?? []).filter((x) => x.class_name === cls)} onClose={() => setEtut(null)} />}
     </>
   )
 }
 
-function KonuStudents({ row, cls, examName, lastIdx, onClose }: { row: HeatRow; cls: string; examName: string; lastIdx: number; onClose: () => void }) {
+function KonuStudents({ ds, row, cls, examName, lastIdx, onClose }: { ds: Dataset; row: HeatRow; cls: string; examName: string; lastIdx: number; onClose: () => void }) {
   const nav = useNavigate()
   const students = useStudents()
-  const dsq = useDataset()
   const wrong = row.cells[lastIdx]?.wrong ?? []
   return (
     <Modal
@@ -238,7 +264,7 @@ function KonuStudents({ row, cls, examName, lastIdx, onClose }: { row: HeatRow; 
         {wrong.length ? (
           wrong.map((sid) => {
             const s = students.data?.find((x) => x.id === sid)
-            const rp = dsq.data ? repeats(dsq.data, sid).find((r) => r.outcome.code === row.outcome.code) : undefined
+            const rp = repeats(ds, sid).find((r) => r.outcome.code === row.outcome.code)
             return (
               <button key={sid} className="srow" onClick={() => nav(`/ogrenciler/${sid}?sekme=konular`)} data-testid="konu-student">
                 <span className="av s">{s ? initials(s.full_name) : ''}</span>
@@ -313,7 +339,7 @@ function EtutModal({
   return (
     <Modal
       title="Etüt planla"
-      sub={`${cls} · ${SUBJECT[subject].short}`}
+      sub={`${cls} · ${SUBJECT_SHORT[subject] ?? subject}`}
       onClose={onClose}
       footer={
         <>
@@ -381,22 +407,15 @@ function EtutModal({
   )
 }
 
-/** 5–7 ve 9–12 şubeleri: genel deneme sınıf analizi (LGS ısı haritası yalnız 8. sınıf). */
-function GenelSiniflar() {
-  const classes = useClasses()
-  const students = useStudents()
-  const others = (classes.data ?? []).filter((c) => c.grade != null && c.grade !== DENEME_GRADE && ((c.grade >= 5 && c.grade <= 7) || (c.grade >= 9 && c.grade <= 12)))
-  const [pick, setPick] = useState<string | null>(null)
-  const c = others.find((x) => x.id === pick) ?? others[0]
-  if (!c) return null
-  const ids = (students.data ?? []).filter((s) => s.class_id === c.id).map((s) => s.id)
+/** Şube seçici: az şubede düğmeler (mevcut görünüm), çok şubede açılır liste. */
+function ClassPicker({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+  if (options.length <= 6) return <Seg label="Şube" value={value} onChange={onChange} options={options.map((c) => [c, c] as const)} />
   return (
-    <>
-      <div className="head a" style={{ marginTop: 12 }}>
-        <h2 className="hd" style={{ fontSize: 22 }}>Diğer sınıflar</h2>
-        <Seg label="Diğer şube" value={c.id} onChange={setPick} options={others.map((x) => [x.id, x.name] as const)} />
-      </div>
-      <GenelSinifAnalizi studentIds={ids} grade={c.grade} />
-    </>
+    <label className="field" htmlFor="clsPick" style={{ minWidth: 140 }}>
+      <span className="label">Şube</span>
+      <select id="clsPick" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((c) => <option key={c} value={c}>{c}</option>)}
+      </select>
+    </label>
   )
 }
