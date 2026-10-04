@@ -3,10 +3,10 @@
  "retrieved_at": "2026-10-03",
  "authority": "Millî Eğitim Bakanlığı (Talim ve Terbiye Kurulu Başkanlığı), mufredat.meb.gov.tr",
  "totals": {
-  "sources": 46,
-  "versions": 123,
-  "active_versions": 89,
-  "outcomes": 4890
+  "sources": 55,
+  "versions": 140,
+  "active_versions": 106,
+  "outcomes": 5500
  },
  "sources": [
   {
@@ -1320,6 +1320,38 @@
    "notes": []
   },
   {
+   "id": "eski-lise-matematik-2018-9-10",
+   "pid": 343,
+   "title": "Matematik Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/201821102727101-OGM%20MATEMAT%C4%B0K%20PRG%2020.01.2018.pdf",
+   "sha256": "43f68f4e03e61ab677cac24400d3e89f18f364c72291577b4ebac603de4afbe7",
+   "bytes": 1097267,
+   "curriculum_type": "LEGACY",
+   "subject": "MAT",
+   "grades": {
+    "9": {
+     "from": 2018,
+     "to": 2023,
+     "active": true
+    },
+    "10": {
+     "from": 2018,
+     "to": 2024,
+     "active": true
+    }
+   },
+   "outcomes": 68,
+   "checks": [
+    "9. sınıf: 41 = resmî 41",
+    "10. sınıf: 27 = resmî 27",
+    "numara bütünlüğü: 26 ünite/konu, boşluk yok"
+   ],
+   "warnings": [
+    "Cümlesi noktayla bitmeyen 1 kazanım (kaynak biçimi; metin olduğu gibi alındı): 9.3.3.3"
+   ],
+   "notes": []
+  },
+  {
    "id": "eski-lise-fizik-2018",
    "pid": 351,
    "title": "Fizik Dersi Öğretim Programı (Ortaöğretim, 2018)",
@@ -1345,6 +1377,36 @@
     "11. sınıf: 62 = resmî 62",
     "12. sınıf: 68 = resmî 68",
     "numara bütünlüğü: 36 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-lise-fizik-2018-9-10",
+   "pid": 351,
+   "title": "Fizik Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/201812103112910-orta%C3%B6%C4%9Fretim_fizik_son.pdf",
+   "sha256": "6f0adf395fc98c961da08cbb10fa72fda04573aab8e796049f64388117a0f051",
+   "bytes": 1802728,
+   "curriculum_type": "LEGACY",
+   "subject": "FIZ",
+   "grades": {
+    "9": {
+     "from": 2018,
+     "to": 2023,
+     "active": true
+    },
+    "10": {
+     "from": 2018,
+     "to": 2024,
+     "active": true
+    }
+   },
+   "outcomes": 83,
+   "checks": [
+    "9. sınıf: 44 = resmî 44",
+    "10. sınıf: 39 = resmî 39",
+    "numara bütünlüğü: 42 ünite/konu, boşluk yok"
    ],
    "warnings": [],
    "notes": []
@@ -1380,6 +1442,36 @@
    "notes": []
   },
   {
+   "id": "eski-lise-kimya-2018-9-10",
+   "pid": 350,
+   "title": "Kimya Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/201812102955190-19.01.2018%20Kimya%20Dersi%20%C3%96%C4%9Fretim%20Program%C4%B1.pdf",
+   "sha256": "fb17e88c798f42670c047e7023bbbde8525a8ce253370b05f67dc89364149fc4",
+   "bytes": 2086899,
+   "curriculum_type": "LEGACY",
+   "subject": "KIM",
+   "grades": {
+    "9": {
+     "from": 2018,
+     "to": 2023,
+     "active": true
+    },
+    "10": {
+     "from": 2018,
+     "to": 2024,
+     "active": true
+    }
+   },
+   "outcomes": 61,
+   "checks": [
+    "9. sınıf: 38 = resmî 38",
+    "10. sınıf: 23 = resmî 23",
+    "numara bütünlüğü: 31 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
    "id": "eski-lise-biyoloji-2018",
    "pid": 361,
    "title": "Biyoloji Dersi Öğretim Programı (Ortaöğretim, 2018)",
@@ -1410,6 +1502,36 @@
    "notes": []
   },
   {
+   "id": "eski-lise-biyoloji-2018-9-10",
+   "pid": 361,
+   "title": "Biyoloji Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20182215535566-Biyoloji%20d%C3%B6p.pdf",
+   "sha256": "187254fb4e173c95e767060f0c2f92f4d6abb36ab55dd47589b47a612fedf3d8",
+   "bytes": 2372217,
+   "curriculum_type": "LEGACY",
+   "subject": "BIY",
+   "grades": {
+    "9": {
+     "from": 2018,
+     "to": 2023,
+     "active": true
+    },
+    "10": {
+     "from": 2018,
+     "to": 2024,
+     "active": true
+    }
+   },
+   "outcomes": 28,
+   "checks": [
+    "9. sınıf: 11 = resmî 11",
+    "10. sınıf: 17 = resmî 17",
+    "numara bütünlüğü: 11 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
    "id": "eski-lise-cografya-2018",
    "pid": 336,
    "title": "Coğrafya Dersi Öğretim Programı (Ortaöğretim, 2018)",
@@ -1434,6 +1556,36 @@
    "checks": [
     "11. sınıf: 40 = resmî 29/40",
     "12. sınıf: 34 = resmî 24/34",
+    "numara bütünlüğü: 8 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-lise-cografya-2018-9-10",
+   "pid": 336,
+   "title": "Coğrafya Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2018120203724482-Cografya%20dop%20pdf.pdf",
+   "sha256": "074713f34edfd638dc59b99dc03350afb2f75d67c27fa4c953a7d6f8c7584df8",
+   "bytes": 1052167,
+   "curriculum_type": "LEGACY",
+   "subject": "COG",
+   "grades": {
+    "9": {
+     "from": 2018,
+     "to": 2023,
+     "active": true
+    },
+    "10": {
+     "from": 2018,
+     "to": 2024,
+     "active": true
+    }
+   },
+   "outcomes": 56,
+   "checks": [
+    "9. sınıf: 22 = resmî 22",
+    "10. sınıf: 34 = resmî 34",
     "numara bütünlüğü: 8 ünite/konu, boşluk yok"
    ],
    "warnings": [],
@@ -1472,6 +1624,36 @@
    ]
   },
   {
+   "id": "eski-lise-din-kulturu-9-12-2018-9-10",
+   "pid": 319,
+   "title": "Din Kültürü ve Ahlak Bilgisi Dersi Öğretim Programı (9-12) (2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20221229134742302-DKAB_(9-12.%20S%C4%B1n%C4%B1f)_DOP_%202018.pdf",
+   "sha256": "da31fb7e62fa40f7ef7bbdb67582557ade943dd1e562d914e7be6b56ad915594",
+   "bytes": 995296,
+   "curriculum_type": "LEGACY",
+   "subject": "DIN",
+   "grades": {
+    "9": {
+     "from": 2018,
+     "to": 2023,
+     "active": true
+    },
+    "10": {
+     "from": 2018,
+     "to": 2024,
+     "active": true
+    }
+   },
+   "outcomes": 50,
+   "checks": [
+    "9. sınıf: 21 = resmî 21",
+    "10. sınıf: 29 = resmî 29",
+    "numara bütünlüğü: 10 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
    "id": "eski-lise-felsefe-2018",
    "pid": 338,
    "title": "Felsefe Dersi Öğretim Programı (Ortaöğretim, 2018)",
@@ -1491,6 +1673,30 @@
    "checks": [
     "11. sınıf: 21 = resmî 21",
     "numara bütünlüğü: 5 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": []
+  },
+  {
+   "id": "eski-lise-felsefe-2018-10",
+   "pid": 338,
+   "title": "Felsefe Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2018122175632591-Felsefe%20d%C3%B6p%20pdf.pdf",
+   "sha256": "71f2b77e209fdc924efbb559744af8c67e91ddb1928a4888a4c07aa5d69654cb",
+   "bytes": 1849571,
+   "curriculum_type": "LEGACY",
+   "subject": "FEL",
+   "grades": {
+    "10": {
+     "from": 2018,
+     "to": 2024,
+     "active": true
+    }
+   },
+   "outcomes": 18,
+   "checks": [
+    "10. sınıf: 18 = resmî 18",
+    "numara bütünlüğü: 4 ünite/konu, boşluk yok"
    ],
    "warnings": [],
    "notes": []
@@ -1522,6 +1728,38 @@
    ]
   },
   {
+   "id": "eski-lise-tarih-2023-9-10",
+   "pid": 1265,
+   "title": "Tarih Dersi Öğretim Programı (9-11) (2023)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/2023428142759840-2023_tarih.pdf",
+   "sha256": "6b020e0e2bdbd2dda009e22125a8f7d0c650823a87ae86134c458f129d3f0c35",
+   "bytes": 4041869,
+   "curriculum_type": "LEGACY",
+   "subject": "TAR",
+   "grades": {
+    "9": {
+     "from": 2023,
+     "to": 2023,
+     "active": true
+    },
+    "10": {
+     "from": 2023,
+     "to": 2024,
+     "active": true
+    }
+   },
+   "outcomes": 56,
+   "checks": [
+    "9. sınıf: 27 (resmî sayı tablosu yok/görsel; numara bütünlüğüyle doğrulandı)",
+    "10. sınıf: 29 (resmî sayı tablosu yok/görsel; numara bütünlüğüyle doğrulandı)",
+    "numara bütünlüğü: 13 ünite/konu, boşluk yok"
+   ],
+   "warnings": [],
+   "notes": [
+    "Resmî kazanım sayısı tablosu görsel olarak basılmış (metin katmanında yok): numara bütünlüğüyle doğrulandı."
+   ]
+  },
+  {
    "id": "eski-lise-tde-2018",
    "pid": 353,
    "title": "Türk Dili ve Edebiyatı Dersi Öğretim Programı (Ortaöğretim, 2018)",
@@ -1539,6 +1777,42 @@
     "12": {
      "from": 2018,
      "to": null,
+     "active": true
+    }
+   },
+   "outcomes": 190,
+   "checks": [
+    "A.1: 13 = resmî 13",
+    "A.2: 16 = resmî 16",
+    "A.3: 14 = resmî 14",
+    "A.4: 15 = resmî 15",
+    "B: 12 = resmî 12",
+    "C.1: 17 = resmî 17",
+    "C.2: 8 = resmî 8"
+   ],
+   "warnings": [],
+   "notes": [
+    "Kazanımlar sınıftan bağımsız (A Okuma, B Yazma, C Sözlü iletişim). Resmî kod \"A.1.12\" biçiminde (programda bir yerde bitişik, diğerlerinde \"A.1. 9.\" boşluklu basılmış: boşluk normalleştirildi). Her sınıf için ayrı kimlikle kaydedildi."
+   ]
+  },
+  {
+   "id": "eski-lise-tde-2018-9-10",
+   "pid": 353,
+   "title": "Türk Dili ve Edebiyatı Dersi Öğretim Programı (Ortaöğretim, 2018)",
+   "url": "https://mufredat.meb.gov.tr/Dosyalar/20221229132522794-T%C3%BCrk%20Dili%20ve%20Edebiyat%C4%B1%20Dersi%20%C3%96%C4%9Fretim%20Program%C4%B1.pdf",
+   "sha256": "26165bf1bde7c1372805b5e8bf5f5e3f1720f25bf5f1f9f969a9e0bedf0de105",
+   "bytes": 2290425,
+   "curriculum_type": "LEGACY",
+   "subject": "TDE",
+   "grades": {
+    "9": {
+     "from": 2018,
+     "to": 2023,
+     "active": true
+    },
+    "10": {
+     "from": 2018,
+     "to": 2024,
      "active": true
     }
    },

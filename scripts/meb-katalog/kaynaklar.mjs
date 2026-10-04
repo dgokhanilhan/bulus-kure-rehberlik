@@ -14,6 +14,8 @@
 const BASE = 'https://mufredat.meb.gov.tr/'
 const T = (from, to = null, active = true) => ({ from, to, active })
 const OFF = (from) => ({ from, to: null, active: false })
+// 0028 ile eklenen sınıf: aynı resmî dosyadan ayrı türetilmiş kaynak olarak çıkarılır (0026 birebir aynı kalır)
+const N = (from, to) => ({ from, to, active: true, m: '0028' })
 
 export const SOURCES = [
   // ---------------- TYMM · ortaokul · 2026 sürümü (2026–2027'den itibaren 5–7) ----------------
@@ -78,13 +80,19 @@ export const SOURCES = [
   ].map(([n, pid, subject, title, path, sha256, depth]) => ({
     id: `eski-lise-${n}`, pid, type: 'LEGACY', subject, title, path, sha256,
     extractor: { kind: 'legacy', re: depth === 4 ? '((\\d{1,2})\\.\\d{1,2}\\.\\d{1,2}\\.\\d{1,2})' : '((\\d{1,2})\\.\\d{1,2}\\.\\d{1,2})' },
-    grades: { 11: T(2018, 2025), 12: T(2018) },
+    grades: { 9: N(2018, 2023), 10: N(2018, 2024), 11: T(2018, 2025), 12: T(2018) },
   })),
-  { id: 'eski-lise-felsefe-2018', pid: 338, type: 'LEGACY', subject: 'FEL', title: 'Felsefe Dersi Öğretim Programı (Ortaöğretim, 2018)', path: 'Dosyalar/2018122175632591-Felsefe döp pdf.pdf', sha256: '71f2b77e209fdc924efbb559744af8c67e91ddb1928a4888a4c07aa5d69654cb', extractor: { kind: 'legacy', re: '((\\d{1,2})\\.\\d{1,2}\\.\\d{1,2})' }, grades: { 11: T(2018, 2025) } },
-  { id: 'eski-lise-tarih-2023', pid: 1265, type: 'LEGACY', subject: 'TAR', title: 'Tarih Dersi Öğretim Programı (9-11) (2023)', path: 'Dosyalar/2023428142759840-2023_tarih.pdf', sha256: '6b020e0e2bdbd2dda009e22125a8f7d0c650823a87ae86134c458f129d3f0c35', extractor: { kind: 'legacy', re: '((\\d{1,2})\\.\\d{1,2}\\.\\d{1,2})' }, grades: { 11: T(2023, 2025) }, note: 'Resmî kazanım sayısı tablosu görsel olarak basılmış (metin katmanında yok): numara bütünlüğüyle doğrulandı.' },
-  { id: 'eski-lise-tde-2018', pid: 353, type: 'LEGACY', subject: 'TDE', title: 'Türk Dili ve Edebiyatı Dersi Öğretim Programı (Ortaöğretim, 2018)', path: 'Dosyalar/20221229132522794-Türk Dili ve Edebiyatı Dersi Öğretim Programı.pdf', sha256: '26165bf1bde7c1372805b5e8bf5f5e3f1720f25bf5f1f9f969a9e0bedf0de105', extractor: { kind: 'tde2018' }, grades: { 11: T(2018, 2025), 12: T(2018) } },
+  { id: 'eski-lise-felsefe-2018', pid: 338, type: 'LEGACY', subject: 'FEL', title: 'Felsefe Dersi Öğretim Programı (Ortaöğretim, 2018)', path: 'Dosyalar/2018122175632591-Felsefe döp pdf.pdf', sha256: '71f2b77e209fdc924efbb559744af8c67e91ddb1928a4888a4c07aa5d69654cb', extractor: { kind: 'legacy', re: '((\\d{1,2})\\.\\d{1,2}\\.\\d{1,2})' }, grades: { 10: N(2018, 2024), 11: T(2018, 2025) } },
+  { id: 'eski-lise-tarih-2023', pid: 1265, type: 'LEGACY', subject: 'TAR', title: 'Tarih Dersi Öğretim Programı (9-11) (2023)', path: 'Dosyalar/2023428142759840-2023_tarih.pdf', sha256: '6b020e0e2bdbd2dda009e22125a8f7d0c650823a87ae86134c458f129d3f0c35', extractor: { kind: 'legacy', re: '((\\d{1,2})\\.\\d{1,2}\\.\\d{1,2})' }, grades: { 9: N(2023, 2023), 10: N(2023, 2024), 11: T(2023, 2025) }, note: 'Resmî kazanım sayısı tablosu görsel olarak basılmış (metin katmanında yok): numara bütünlüğüyle doğrulandı.' },
+  { id: 'eski-lise-tde-2018', pid: 353, type: 'LEGACY', subject: 'TDE', title: 'Türk Dili ve Edebiyatı Dersi Öğretim Programı (Ortaöğretim, 2018)', path: 'Dosyalar/20221229132522794-Türk Dili ve Edebiyatı Dersi Öğretim Programı.pdf', sha256: '26165bf1bde7c1372805b5e8bf5f5e3f1720f25bf5f1f9f969a9e0bedf0de105', extractor: { kind: 'tde2018' }, grades: { 9: N(2018, 2023), 10: N(2018, 2024), 11: T(2018, 2025), 12: T(2018) } },
   { id: 'eski-lise-inkilap-12-2018', pid: 346, type: 'LEGACY', subject: 'INK', title: 'T.C. İnkılap Tarihi ve Atatürkçülük Dersi Öğretim Programı (Ortaöğretim 12)', path: 'Dosyalar/20221229131923491-T.C. İnkılap Tarihi ve Atatürkçülük Dersi Öğretim Programı.pdf', sha256: '0eeb61d5eef4c9ff65e709ca2043e2404e05d6f0926a4c4f011677387c4ea7f2', extractor: { kind: 'legacy', re: '((\\d{1,2})\\.\\d{1,2})', fixedGrade: 12, from: 21 }, grades: { 12: T(2018) } },
 ].map((s) => ({ ...s, url: BASE + encodeURI(s.path) }))
+  .flatMap((s) => {
+    const base = Object.fromEntries(Object.entries(s.grades).filter(([, g]) => !g.m))
+    const add = Object.fromEntries(Object.entries(s.grades).filter(([, g]) => g.m).map(([k, { m, ...g }]) => [k, g]))
+    if (!Object.keys(add).length) return [s]
+    return [{ ...s, grades: base }, { ...s, id: `${s.id}-${Object.keys(add).join('-')}`, base: s.id, grades: add, migration: '0028' }]
+  })
 
 // Resmî sayı tablosuyla doğrulanan kaynaklarda okunan = resmî olmalı; aşağıdakiler farklı yolla doğrulanır (rapor yazar).
 export const OFFICIAL_COUNTS = {

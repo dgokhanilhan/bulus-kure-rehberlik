@@ -115,7 +115,7 @@ function run(src, file) {
     const os = fn(file, x.re, x.fixedGrade ? null : [...grades, ...(src.verify8 ? [8] : [])], x.from || 1).map((o) => (x.fixedGrade ? { ...o, grade: x.fixedGrade } : o))
     const tot = T.gradeTotals(file)
     for (const g of grades) {
-      const n = os.filter((o) => o.grade === g).length, off = (OFFICIAL_COUNTS[src.id] || {})[g] ? [OFFICIAL_COUNTS[src.id][g]] : tot.get(g) || []
+      const n = os.filter((o) => o.grade === g).length, off = (OFFICIAL_COUNTS[src.base ?? src.id] || {})[g] ? [OFFICIAL_COUNTS[src.base ?? src.id][g]] : tot.get(g) || []
       if (off.length) (off.includes(n) ? pass : fail)(`${g}. sınıf: ${n} ${off.includes(n) ? '=' : '≠'} resmî ${off.join('/')}`)
       else v.checks.push({ ok: true, m: `${g}. sınıf: ${n} (resmî sayı tablosu yok/görsel; numara bütünlüğüyle doğrulandı)` })
     }
@@ -135,7 +135,7 @@ function run(src, file) {
     for (const o of os.filter((o) => o.note)) v.notes.push(`${o.code}: ${o.note}`)
     outs = os.filter((o) => grades.includes(o.grade)).map((o) => ({ grade: o.grade, code: o.code, title: o.text, description: null, theme: null, unit: o.code.split('.').slice(0, -1).join('.'), page: o.page, note: o.note || null }))
   } else if (x.kind === 'tde2018') {
-    const os = E.extractTDE2018(file), want = OFFICIAL_COUNTS[src.id]
+    const os = E.extractTDE2018(file), want = OFFICIAL_COUNTS[src.base ?? src.id]
     const by = new Map(); for (const o of os) by.set(o.konu, (by.get(o.konu) || 0) + 1)
     for (const [k, n] of Object.entries(want)) ((by.get(k) || 0) === n ? pass : fail)(`${k}: ${by.get(k) || 0} ${(by.get(k) || 0) === n ? '=' : '≠'} resmî ${n}`)
     v.notes.push('Kazanımlar sınıftan bağımsız (A Okuma, B Yazma, C Sözlü iletişim). Resmî kod "A.1.12" biçiminde (programda bir yerde bitişik, diğerlerinde "A.1. 9." boşluklu basılmış: boşluk normalleştirildi). Her sınıf için ayrı kimlikle kaydedildi.')
@@ -173,7 +173,7 @@ const versions = [], rows = []
 for (const { src, bytes, outs, v } of results) {
   const vs = Object.entries(src.grades).map(([g, gv]) => {
     const grade = +g, key = `${src.type}|${grade}|${src.subject}|${gv.from}`
-    return { id: uuid(key), key, name: `${src.title} · ${grade}. sınıf`, curriculum_type: src.type, grade, subject_code: src.subject, year_from: gv.from, year_to: gv.to, active: gv.active,
+    return { id: uuid(key), key, src: src.id, name: `${src.title} · ${grade}. sınıf`, curriculum_type: src.type, grade, subject_code: src.subject, year_from: gv.from, year_to: gv.to, active: gv.active,
       outcome_kind: src.type === 'TYMM' ? 'OGRENME_CIKTISI' : 'KAZANIM', source_title: src.title, source_url: src.url, source_sha256: src.sha256, retrieved_at: RETRIEVED,
       notes: [...v.notes, ...v.warnings].join(' ') || null }
   })
@@ -184,7 +184,7 @@ for (const { src, bytes, outs, v } of results) {
   })
   versions.push(...vs); rows.push(...os)
   writeFileSync(`${OUT}${src.id}.json`, JSON.stringify({ source: { id: src.id, authority: 'Millî Eğitim Bakanlığı (Talim ve Terbiye Kurulu Başkanlığı)', title: src.title, pid: src.pid, url: src.url, sha256: src.sha256, bytes, retrieved_at: RETRIEVED, curriculum_type: src.type, subject: src.subject },
-    validation: v, versions: vs.map(({ key, ...x }) => x), outcomes: os }, null, 1) + '\n')
+    validation: v, versions: vs.map(({ key, src: _s, ...x }) => x), outcomes: os }, null, 1) + '\n')
 }
 
 const manifest = { generated_by: 'scripts/meb-katalog/olustur.mjs', retrieved_at: RETRIEVED, authority: 'Millî Eğitim Bakanlığı (Talim ve Terbiye Kurulu Başkanlığı), mufredat.meb.gov.tr',
@@ -196,26 +196,45 @@ writeFileSync(`${OUT}manifest.json`, JSON.stringify(manifest, null, 1) + '\n')
 // ---------------------------------------------------------------- migration
 const vcols = ['id', 'name', 'curriculum_type', 'grade', 'subject_code', 'year_from', 'year_to', 'active', 'outcome_kind', 'source_title', 'source_url', 'source_sha256', 'retrieved_at', 'notes']
 const ocols = ['id', 'curriculum_version_id', 'grade', 'subject_code', 'code', 'title', 'description', 'theme', 'unit', 'outcome_type', 'sort_order', 'source_page', 'source_note']
+function block(list) {
+  let out = ''
+  for (const { src } of list) {
+    const vs = versions.filter((v) => v.src === src.id)
+    const os = rows.filter((r) => vs.some((v) => v.id === r.curriculum_version_id))
+    if (src.verify8) out += `-- 8. sınıf eski kataloğu (0025) bu dosyadan birebir üretildi (araç doğruladı): kaynak hash'i tamamlanır\nupdate curriculum_versions set source_sha256 = ${q(src.sha256)} where curriculum_type = 'LEGACY' and grade = 8 and subject_code = ${q(src.verify8)} and year_from = 2018 and source_sha256 is null;\n`
+    if (!vs.length) { out += `-- ${src.id}: yalnız doğrulama kaynağı (8. sınıf kataloğu 0025'te), sürüm eklenmez\n\n`; continue }
+    out += `-- ${src.id} · ${src.title} (PID ${src.pid}) · ${os.length} çıktı\n`
+    out += `insert into curriculum_versions (${vcols.join(', ')}) values\n  ${vs.map((v) => `(${vcols.map((c) => q(v[c])).join(', ')})`).join(',\n  ')}\non conflict do nothing;\n`
+    if (os.length) out += `insert into learning_outcomes (${ocols.join(', ')}) values\n  ${os.map((o) => `(${ocols.map((c) => q(o[c])).join(', ')})`).join(',\n  ')}\non conflict do nothing;\n\n`
+  }
+  return out
+}
+const part = (m) => {
+  const rs = results.filter((r) => (r.src.migration ?? '0026') === m), ids = new Set(rs.map((r) => r.src.id))
+  const vs = versions.filter((v) => ids.has(v.src)), vids = new Set(vs.map((v) => v.id))
+  return { rs, vs, os: rows.filter((r) => vids.has(r.curriculum_version_id)) }
+}
+const A = part('0026')
 let sql = `-- MEB kazanım / öğrenme çıktısı kataloğu (5–12; 2025–2026 ve 2026–2027).
 -- OTOMATİK ÜRETİLDİ — scripts/meb-katalog/olustur.mjs. Elle değiştirmeyin; kaynak ve doğrulama: supabase/katalog/meb/manifest.json,
 -- docs/meb-katalog-raporu.md. Kaynak: mufredat.meb.gov.tr resmî program PDF'leri (SHA-256 manifestte). ${RETRIEVED} tarihinde alındı.
 -- YALNIZ EKLEME, tekrar çalıştırılabilir (deterministik kimlikler, on conflict do nothing). Mevcut 8. sınıf kataloğuna dokunmaz.
--- Toplam: ${results.length} kaynak, ${versions.length} müfredat sürümü (${versions.filter((v) => v.active).length} etkin), ${rows.length} kazanım / öğrenme çıktısı.
+-- Toplam: ${A.rs.length} kaynak, ${A.vs.length} müfredat sürümü (${A.vs.filter((v) => v.active).length} etkin), ${A.os.length} kazanım / öğrenme çıktısı.
 
 alter table curriculum_versions add column if not exists notes text;
 alter table learning_outcomes add column if not exists source_note text;
 
-`
-for (const { src } of results) {
-  const vs = versions.filter((v) => v.source_title === src.title && v.source_sha256 === src.sha256)
-  const os = rows.filter((r) => vs.some((v) => v.id === r.curriculum_version_id))
-  if (src.verify8) sql += `-- 8. sınıf eski kataloğu (0025) bu dosyadan birebir üretildi (araç doğruladı): kaynak hash'i tamamlanır\nupdate curriculum_versions set source_sha256 = ${q(src.sha256)} where curriculum_type = 'LEGACY' and grade = 8 and subject_code = ${q(src.verify8)} and year_from = 2018 and source_sha256 is null;\n`
-  if (!vs.length) { sql += `-- ${src.id}: yalnız doğrulama kaynağı (8. sınıf kataloğu 0025'te), sürüm eklenmez\n\n`; continue }
-  sql += `-- ${src.id} · ${src.title} (PID ${src.pid}) · ${os.length} çıktı\n`
-  sql += `insert into curriculum_versions (${vcols.join(', ')}) values\n  ${vs.map((v) => `(${vcols.map((c) => q(v[c])).join(', ')})`).join(',\n  ')}\non conflict do nothing;\n`
-  if (os.length) sql += `insert into learning_outcomes (${ocols.join(', ')}) values\n  ${os.map((o) => `(${ocols.map((c) => q(o[c])).join(', ')})`).join(',\n  ')}\non conflict do nothing;\n\n`
-}
+` + block(A.rs)
 writeFileSync(ROOT + 'supabase/migrations/0026_meb_katalog.sql', sql)
+const B = part('0028')
+writeFileSync(ROOT + 'supabase/migrations/0028_meb_katalog_eski_lise_9_10.sql', `-- MEB kataloğu eki: eski (2018/2023) lise programlarının 9 ve 10. sınıf kazanımları.
+-- OTOMATİK ÜRETİLDİ — scripts/meb-katalog/olustur.mjs (0026 ile aynı resmî dosyalar, aynı doğrulama). Elle değiştirmeyin.
+-- Neden: 2026–2027'de 12. sınıfta olan öğrenciler 9. sınıfı 2023–2024'te, 10. sınıfı 2024–2025'te eski programla okudu;
+-- TYT sorularındaki 9–10. sınıf konuları bu öğrenci grubu için eski programa bağlanır (0029'daki öğrenci grubu kuralı).
+-- Sürümler o yıllarla sınırlı (9: –2023, 10: –2024): güncel 9–10. sınıf denemeleri TYMM'de kalır.
+-- YALNIZ EKLEME, tekrar çalıştırılabilir. Toplam: ${B.rs.length} kaynak, ${B.vs.length} sürüm, ${B.os.length} kazanım.
+
+` + block(B.rs))
 
 // ---------------------------------------------------------------- rapor
 const SUBJ = { TUR: 'Türkçe', TDE: 'Türk Dili ve Edebiyatı', SOS: 'Sosyal Bilgiler', INK: 'İnkılap Tarihi', TAR: 'Tarih', COG: 'Coğrafya', FEL: 'Felsefe', DIN: 'Din Kültürü', ING: 'İngilizce', MAT: 'Matematik', FEN: 'Fen Bilimleri', FIZ: 'Fizik', KIM: 'Kimya', BIY: 'Biyoloji' }

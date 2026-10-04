@@ -111,7 +111,7 @@ export function GenelSihirbaz({ source, onCancel }: { source: GenelSource; onCan
         {!done.duplicate && (
           <p className="m" style={{ fontSize: 15 }}>
             {done.results} öğrencinin sonucu {meta.status === 'yayinda' ? 'yayınlandı' : <><b>taslak</b> olarak kaydedildi; veliler ve öğrenciler yayınlayana kadar görmez</>}.
-            {done.items > 0 && ` ${done.items} sorunun ${done.resolved} tanesi kazanımla eşleşti${done.unresolved ? `; ${done.unresolved} soru Yönetim → Deneme Tanıma Merkezi → Eşleşmeyen kazanımlar'da bekliyor` : ''}.`}
+            {done.items > 0 && ` ${done.items} sorunun ${done.resolved} tanesi resmî öğrenme hedefiyle eşleşti${done.unresolved ? `; ${done.unresolved} soru Yönetim → Denemeler / Tanıma Merkezi → Eşleşmeyen hedefler'de bekliyor` : ''}.`}
           </p>
         )}
         <div className="btns">

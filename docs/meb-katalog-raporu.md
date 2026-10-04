@@ -3,7 +3,7 @@
 Otomatik üretildi (`scripts/meb-katalog/olustur.mjs`, 2026-10-03). Kaynak yalnız **mufredat.meb.gov.tr** resmî öğretim programı PDF'leri; üçüncü taraf site kullanılmadı.
 Her dosyanın SHA-256'sı `supabase/katalog/meb/manifest.json`'da. Program değişirse araç durur; yeni program **yeni sürüm** olarak eklenir, eski sürümün üzerine yazılmaz.
 
-**Toplam:** 46 kaynak · 123 müfredat sürümü (89 etkin, 34 pasif: 8 ve 12'nin TYMM bölümleri) · **4890** kazanım / öğrenme çıktısı (+ 0025'teki 8. sınıf eski kataloğu 326).
+**Toplam:** 55 kaynak · 140 müfredat sürümü (106 etkin, 34 pasif: 8 ve 12'nin TYMM bölümleri) · **5500** kazanım / öğrenme çıktısı (+ 0025'teki 8. sınıf eski kataloğu 326).
 
 ## Kapsam (deneme dersleri)
 
@@ -362,12 +362,27 @@ PID 343 · Eski program · 62 çıktı · SHA-256 `43f68f4e03e61ab6…`
 - ✓ 12. sınıf: 34 = resmî 34/5
 - ✓ numara bütünlüğü: 28 ünite/konu, boşluk yok
 
+### Matematik Dersi Öğretim Programı (Ortaöğretim, 2018)
+PID 343 · Eski program · 68 çıktı · SHA-256 `43f68f4e03e61ab6…`
+
+- ✓ 9. sınıf: 41 = resmî 41
+- ✓ 10. sınıf: 27 = resmî 27
+- ✓ numara bütünlüğü: 26 ünite/konu, boşluk yok
+- ⚠︎ Cümlesi noktayla bitmeyen 1 kazanım (kaynak biçimi; metin olduğu gibi alındı): 9.3.3.3
+
 ### Fizik Dersi Öğretim Programı (Ortaöğretim, 2018)
 PID 351 · Eski program · 130 çıktı · SHA-256 `6f0adf395fc98c96…`
 
 - ✓ 11. sınıf: 62 = resmî 62
 - ✓ 12. sınıf: 68 = resmî 68
 - ✓ numara bütünlüğü: 36 ünite/konu, boşluk yok
+
+### Fizik Dersi Öğretim Programı (Ortaöğretim, 2018)
+PID 351 · Eski program · 83 çıktı · SHA-256 `6f0adf395fc98c96…`
+
+- ✓ 9. sınıf: 44 = resmî 44
+- ✓ 10. sınıf: 39 = resmî 39
+- ✓ numara bütünlüğü: 42 ünite/konu, boşluk yok
 
 ### Kimya Dersi Öğretim Programı (Ortaöğretim, 2018)
 PID 350 · Eski program · 66 çıktı · SHA-256 `fb17e88c798f4267…`
@@ -376,6 +391,13 @@ PID 350 · Eski program · 66 çıktı · SHA-256 `fb17e88c798f4267…`
 - ✓ 12. sınıf: 31 = resmî 31
 - ✓ numara bütünlüğü: 46 ünite/konu, boşluk yok
 
+### Kimya Dersi Öğretim Programı (Ortaöğretim, 2018)
+PID 350 · Eski program · 61 çıktı · SHA-256 `fb17e88c798f4267…`
+
+- ✓ 9. sınıf: 38 = resmî 38
+- ✓ 10. sınıf: 23 = resmî 23
+- ✓ numara bütünlüğü: 31 ünite/konu, boşluk yok
+
 ### Biyoloji Dersi Öğretim Programı (Ortaöğretim, 2018)
 PID 361 · Eski program · 63 çıktı · SHA-256 `187254fb4e173c95…`
 
@@ -383,11 +405,25 @@ PID 361 · Eski program · 63 çıktı · SHA-256 `187254fb4e173c95…`
 - ✓ 12. sınıf: 29 = resmî 29
 - ✓ numara bütünlüğü: 19 ünite/konu, boşluk yok
 
+### Biyoloji Dersi Öğretim Programı (Ortaöğretim, 2018)
+PID 361 · Eski program · 28 çıktı · SHA-256 `187254fb4e173c95…`
+
+- ✓ 9. sınıf: 11 = resmî 11
+- ✓ 10. sınıf: 17 = resmî 17
+- ✓ numara bütünlüğü: 11 ünite/konu, boşluk yok
+
 ### Coğrafya Dersi Öğretim Programı (Ortaöğretim, 2018)
 PID 336 · Eski program · 74 çıktı · SHA-256 `074713f34edfd638…`
 
 - ✓ 11. sınıf: 40 = resmî 29/40
 - ✓ 12. sınıf: 34 = resmî 24/34
+- ✓ numara bütünlüğü: 8 ünite/konu, boşluk yok
+
+### Coğrafya Dersi Öğretim Programı (Ortaöğretim, 2018)
+PID 336 · Eski program · 56 çıktı · SHA-256 `074713f34edfd638…`
+
+- ✓ 9. sınıf: 22 = resmî 22
+- ✓ 10. sınıf: 34 = resmî 34
 - ✓ numara bütünlüğü: 8 ünite/konu, boşluk yok
 
 ### Din Kültürü ve Ahlak Bilgisi Dersi Öğretim Programı (9-12) (2018)
@@ -398,11 +434,24 @@ PID 319 · Eski program · 39 çıktı · SHA-256 `da31fb7e62fa40f7…`
 - ✓ numara bütünlüğü: 10 ünite/konu, boşluk yok
 - Not: 12.2.1: kaynakta "12,2.1." (virgül) yazıyor
 
+### Din Kültürü ve Ahlak Bilgisi Dersi Öğretim Programı (9-12) (2018)
+PID 319 · Eski program · 50 çıktı · SHA-256 `da31fb7e62fa40f7…`
+
+- ✓ 9. sınıf: 21 = resmî 21
+- ✓ 10. sınıf: 29 = resmî 29
+- ✓ numara bütünlüğü: 10 ünite/konu, boşluk yok
+
 ### Felsefe Dersi Öğretim Programı (Ortaöğretim, 2018)
 PID 338 · Eski program · 21 çıktı · SHA-256 `71f2b77e209fdc92…`
 
 - ✓ 11. sınıf: 21 = resmî 21
 - ✓ numara bütünlüğü: 5 ünite/konu, boşluk yok
+
+### Felsefe Dersi Öğretim Programı (Ortaöğretim, 2018)
+PID 338 · Eski program · 18 çıktı · SHA-256 `71f2b77e209fdc92…`
+
+- ✓ 10. sınıf: 18 = resmî 18
+- ✓ numara bütünlüğü: 4 ünite/konu, boşluk yok
 
 ### Tarih Dersi Öğretim Programı (9-11) (2023)
 PID 1265 · Eski program · 18 çıktı · SHA-256 `6b020e0e2bdbd2dd…`
@@ -410,6 +459,26 @@ PID 1265 · Eski program · 18 çıktı · SHA-256 `6b020e0e2bdbd2dd…`
 - ✓ 11. sınıf: 18 (resmî sayı tablosu yok/görsel; numara bütünlüğüyle doğrulandı)
 - ✓ numara bütünlüğü: 5 ünite/konu, boşluk yok
 - Not: Resmî kazanım sayısı tablosu görsel olarak basılmış (metin katmanında yok): numara bütünlüğüyle doğrulandı.
+
+### Tarih Dersi Öğretim Programı (9-11) (2023)
+PID 1265 · Eski program · 56 çıktı · SHA-256 `6b020e0e2bdbd2dd…`
+
+- ✓ 9. sınıf: 27 (resmî sayı tablosu yok/görsel; numara bütünlüğüyle doğrulandı)
+- ✓ 10. sınıf: 29 (resmî sayı tablosu yok/görsel; numara bütünlüğüyle doğrulandı)
+- ✓ numara bütünlüğü: 13 ünite/konu, boşluk yok
+- Not: Resmî kazanım sayısı tablosu görsel olarak basılmış (metin katmanında yok): numara bütünlüğüyle doğrulandı.
+
+### Türk Dili ve Edebiyatı Dersi Öğretim Programı (Ortaöğretim, 2018)
+PID 353 · Eski program · 190 çıktı · SHA-256 `26165bf1bde7c137…`
+
+- ✓ A.1: 13 = resmî 13
+- ✓ A.2: 16 = resmî 16
+- ✓ A.3: 14 = resmî 14
+- ✓ A.4: 15 = resmî 15
+- ✓ B: 12 = resmî 12
+- ✓ C.1: 17 = resmî 17
+- ✓ C.2: 8 = resmî 8
+- Not: Kazanımlar sınıftan bağımsız (A Okuma, B Yazma, C Sözlü iletişim). Resmî kod "A.1.12" biçiminde (programda bir yerde bitişik, diğerlerinde "A.1. 9." boşluklu basılmış: boşluk normalleştirildi). Her sınıf için ayrı kimlikle kaydedildi.
 
 ### Türk Dili ve Edebiyatı Dersi Öğretim Programı (Ortaöğretim, 2018)
 PID 353 · Eski program · 190 çıktı · SHA-256 `26165bf1bde7c137…`

@@ -2,7 +2,7 @@
 // içe aktarım geçmişi, eşleşmeyen kazanımlar, kazanım kataloğu araması. Yetki veritabanında (RLS + RPC).
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
-import type { ExamTemplate, ExamType, SectionResults, TemplateSection, YksPart } from './denemeGenel'
+import type { ExamTemplate, ExamType, Profile, SectionResults, Subtest, TemplateSection, YksPart } from './denemeGenel'
 
 export interface TemplateRow extends ExamTemplate {
   school_id: string | null
@@ -90,7 +90,7 @@ export const useExamsAdmin = () =>
 
 // ---------------------------------------------------------------- 5–7 / 9–12 genel denemeler (öğrenci, veli, öğretmen ekranları)
 export interface GenelExam { id: string; name: string; exam_date: string; grade: number; exam_type: ExamType; yks_part: YksPart | null; exam_code: string | null; publisher: string | null; exam_template_id: string | null }
-export interface GenelResult { exam_id: string; student_id: string; score: number | null; subjects: SectionResults; total_net: number | null; success_pct: number | null }
+export interface GenelResult { exam_id: string; student_id: string; score: number | null; subjects: SectionResults; answers: Record<string, string> | null; total_net: number | null; success_pct: number | null }
 /** Yayındaki LGS dışı denemeler ve görülebilen sonuçlar (RLS: veli/öğrenci yalnız kendi, öğretmen kendi sınıfları). LGS: useDataset. */
 export function useGenelDataset(enabled = true) {
   return useQuery({
@@ -100,7 +100,7 @@ export function useGenelDataset(enabled = true) {
     queryFn: async () => {
       const [e, r] = await Promise.all([
         supabase.from('exams').select('id, name, exam_date, grade, exam_type, yks_part, exam_code, publisher, exam_template_id').neq('exam_type', 'LGS').eq('status', 'yayinda').order('exam_date'),
-        supabase.from('exam_results').select('exam_id, student_id, score, subjects, total_net, success_pct, exams!inner(exam_type, status)').neq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').limit(20000),
+        supabase.from('exam_results').select('exam_id, student_id, score, subjects, answers, total_net, success_pct, exams!inner(exam_type, status)').neq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').limit(20000),
       ])
       if (e.error) throw e.error
       if (r.error) throw r.error
@@ -109,3 +109,30 @@ export function useGenelDataset(enabled = true) {
     },
   })
 }
+
+// ---------------------------------------------------------------- deneme profilleri (0030) ve soru düzeyi
+export const useExamProfiles = () =>
+  useQuery({
+    queryKey: ['exam_profiles'],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('exam_profiles').select('*, exam_subtests(*)').order('student_grade')
+      if (error) throw error
+      return (data as (Omit<Profile, 'subtests'> & { id: string; school_id: string | null; exam_subtests: Subtest[] })[]).map(({ exam_subtests, ...p }) => ({ ...p, subtests: [...exam_subtests].sort((a, b) => a.sort - b.sort) }))
+    },
+  })
+/** Öğrencinin sınıfı ve denemenin eğitim yılı için profil: okulun kendi profili önce, sonra yerleşik; o yıl yoksa en yakın önceki yıl. */
+export function profileFor<P extends Profile & { school_id: string | null }>(ps: P[], grade: number | null | undefined, year: number) {
+  if (!grade) return null
+  const type = grade <= 8 ? 'ORTAOKUL' : 'ANADOLU_LISESI'
+  return ps.filter((p) => p.student_grade === grade && p.school_type === type && p.academic_year <= year)
+    .sort((a, b) => b.academic_year - a.academic_year || Number(!!b.school_id) - Number(!!a.school_id))[0] ?? null
+}
+
+export interface ItemRow { section_key: string; q_no: number; correct_answer: string | null; learning_outcome_id: string | null; match_method: string; learning_outcomes: { code: string | null; title: string } | null }
+export const useExamItems = (examId: string | null) =>
+  useQuery({
+    queryKey: ['exam_items', examId],
+    enabled: !!examId,
+    queryFn: async () => ((await supabase.from('exam_items').select('section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title)').eq('exam_id', examId!).order('section_key').order('q_no')).data ?? []) as unknown as ItemRow[],
+  })
