@@ -107,7 +107,7 @@ export const FAMILIES = {
     },
   },
   AKBIM: {
-    format: 'AKBIM_SONUC_BELGESI_V1', publisher: null, wrongPerCorrect: 3,
+    format: 'AKBIM_SONUC_BELGESI_V1', publisher: null, wrongPerCorrect: 3, inferWrongPerCorrect: true,
     title: (p) => akbimHeader(p)?.title ?? null,
     student: (p) => akbimHeader(p),
     detect(pages) {
@@ -208,7 +208,9 @@ function akbimSections(p, grade) {
   const secs = []
   for (const h of heads) {
     if (/^TOPLAM/.test(h.t)) continue
-    const k = AKBIM_LABEL.find(([re]) => re.test(h.t.toLocaleUpperCase('tr')))
+    // Ortaokul başlıkları kısaltmalı basılır ("SOS BİL", "YAB. DİL"): sınıfa göre yorumlanır. Lisede (TYT/AYT) "FEN BİLİMLERİ",
+    // "SOSYAL BİLİMLER" toplu testlerdir: başlık olduğu gibi kalır, şablona eşleme kontrol ekranında yapılır (tahmin yok).
+    const k = grade !== null && grade >= 9 ? null : AKBIM_LABEL.find(([re]) => re.test(h.t.toLocaleUpperCase('tr')))
     const label = !k ? clean(h.t) : k[1] === 'SOS' ? (grade === 8 ? 'T.C. İNKILAP TARİHİ' : 'SOSYAL BİLGİLER') : k[1] === 'YAB' ? (english ? 'İNGİLİZCE' : 'YABANCI DİL') : k[1]
     const cx = h.x + 10
     const n = at(R.n, cx), dd = at(R.d, cx), yy = at(R.y, cx), net = at(R.net, cx)
@@ -374,6 +376,14 @@ export function check(rec, wrongPerCorrect) {
   return w
 }
 
+/** Net kuralı karneden: bütün derslerin neti hangi kurala (3 ya da 4 yanlış bir doğruyu götürür) uyuyorsa o; ikisi de uymuyorsa null. */
+export function inferWrongPerCorrect(recs) {
+  const secs = recs.flatMap((r) => r.sections).filter((s) => [s.d, s.y, s.net].every((v) => v !== null && Number.isFinite(v)))
+  const fits = [3, 4].filter((w) => secs.length && secs.every((s) => Math.abs(s.net - (s.d - s.y / w)) <= 0.011))
+  if (fits.length === 1) return fits[0]
+  return fits.length > 1 ? (recs.some((r) => (r.student?.classGrade ?? 0) >= 9) ? 4 : 3) : null // hiç yanlış yoksa ikisi de uyar: sınıf belirler
+}
+
 export async function parseGeneral(bytes, name, hints = {}, onProgress = () => {}) {
   const sha = [...sha256(bytes)].map((x) => x.toString(16).padStart(2, '0')).join('')
   const pages = readPages(bytes)
@@ -382,10 +392,16 @@ export async function parseGeneral(bytes, name, hints = {}, onProgress = () => {
   const det = detect(pages, hints)
   if (det.family === 'UNKNOWN') return { engine: ENGINE, sha256: sha, filename: name, detection: det, records: [], failedPages: [] }
   const F = FAMILIES[det.family], { recs, failed } = F.parse(pages)
+  const wpc = F.inferWrongPerCorrect ? inferWrongPerCorrect(recs) : F.wrongPerCorrect
+  if (F.inferWrongPerCorrect) {
+    det.wrongPerCorrect = wpc ?? undefined
+    det.evidence.push(wpc ? `net kuralı karneden: ${wpc} yanlış 1 doğruyu götürür` : 'netler 3 ya da 4 yanlış kuralına uymuyor')
+  }
   for (const r of recs) {
     r.items = bindItems(r.sections, r.items)
     const loose = r.items.filter((q) => !q.section).length
-    r.warnings = check(r, F.wrongPerCorrect)
+    r.warnings = check(r, wpc ?? F.wrongPerCorrect)
+    if (!wpc && F.inferWrongPerCorrect) r.warnings.push('NET_RULE_UNKNOWN')
     if (loose) r.warnings.push(`ITEM_UNBOUND:${loose}`)
   }
   return { engine: ENGINE, sha256: sha, filename: name, pageCount: pages.length, detection: det, records: recs, failedPages: failed }

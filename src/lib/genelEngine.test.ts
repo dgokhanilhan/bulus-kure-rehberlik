@@ -22,3 +22,16 @@ describe('yönlendirme', () => {
     expect(goesToLegacy(pack('AKBIM', 6))).toBe(false)
   })
 })
+
+describe('Akbim net kuralı karneden', () => {
+  it('ortaokul/LGS 3, TYT/AYT 4; uymazsa null; yanlışsız karnede sınıf belirler', async () => {
+    // @ts-expect-error — motor saf JS
+    const { inferWrongPerCorrect } = await import('../../public/engine/genel.mjs')
+    const r = (g: number, ...s: [number, number, number][]) => ({ student: { classGrade: g }, sections: s.map(([d, y, net]) => ({ d, y, net })) })
+    expect(inferWrongPerCorrect([r(8, [17, 3, 16], [4, 3, 3])])).toBe(3)
+    expect(inferWrongPerCorrect([r(12, [30, 8, 28], [20, 4, 19])])).toBe(4)
+    expect(inferWrongPerCorrect([r(12, [30, 8, 27.5])])).toBeNull()
+    expect(inferWrongPerCorrect([r(11, [30, 0, 30])])).toBe(4)
+    expect(inferWrongPerCorrect([r(7, [15, 0, 15])])).toBe(3)
+  })
+})
