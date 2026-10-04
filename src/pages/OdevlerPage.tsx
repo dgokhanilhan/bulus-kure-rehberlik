@@ -38,7 +38,7 @@ const CHIP: Record<HwStatus, string> = { bekliyor: 'n', yapti: 'up', yapmadi: 'd
 export function useHwSettings() {
   const s = useSettings()
   const g = <T,>(k: string, d: T) => ((s.data?.[`odev.${k}`] as T | undefined) ?? d)
-  return { dueRequired: g('son_tarih_zorunlu', true), parentSees: g('veli_durum_gorur', true), lateRed: g('geciken_kirmizi', true) }
+  return { dueRequired: g('son_tarih_zorunlu', true), parentSees: g('veli_durum_gorur', true), lateRed: g('geciken_kirmizi', true), teacherCan: g('ogretmen_verebilir', true) }
 }
 
 export default function OdevlerPage() {
@@ -52,8 +52,10 @@ function useAssignable(classes: ClassRow[]) {
   const { profile } = useAuth()
   const courses = useCourses()
   const asg = useAssignments()
+  const { teacherCan } = useHwSettings()
   const admin = profile?.role === 'admin'
   return useMemo(() => {
+    if (!admin && !teacherCan) return new Map<string, Set<string>>()
     const act = (courses.data ?? []).filter((c) => c.active)
     const fits = (cl: ClassRow, lv: string[]) => !lv.length || lv.includes(cl.level)
     const pairs = new Map<string, Set<string>>()
@@ -63,7 +65,7 @@ function useAssignable(classes: ClassRow[]) {
     }
     for (const a of asg.data ?? []) if (a.teacher_id === profile?.id) add(a.class_id, a.course_id)
     return pairs
-  }, [classes, courses.data, asg.data, admin, profile?.id])
+  }, [classes, courses.data, asg.data, admin, teacherCan, profile?.id])
 }
 
 function OgretmenOdev() {
@@ -98,7 +100,7 @@ function OgretmenOdev() {
     <>
       <div className="head a">
         <h1 className="hd">Ödevler</h1>
-        <button className="btn pri" onClick={() => setEdit('new')} disabled={!assignable.size} title={assignable.size ? undefined : 'Ders atamanız yok'}>
+        <button className="btn pri" onClick={() => setEdit('new')} disabled={!assignable.size} title={assignable.size ? undefined : settings.teacherCan ? 'Ders atamanız yok' : 'Ödev verme yönetim tarafından kapatıldı'}>
           <Icon name="plus" size={18} stroke={2} /> Ödev ver
         </button>
       </div>
@@ -127,7 +129,11 @@ function OgretmenOdev() {
           ]}
         />
       </div>
-      {!assignable.size && profile?.role !== 'admin' && (
+      {!settings.teacherCan && profile?.role !== 'admin' ? (
+        <p className="m a" style={{ fontSize: 13 }}>
+          Okul yönetimi öğretmenlerin ödev vermesini şimdilik kapattı. Verilmiş ödevleri görmeye ve kontrol etmeye devam edebilirsin.
+        </p>
+      ) : !assignable.size && profile?.role !== 'admin' && (
         <p className="m a" style={{ fontSize: 13 }}>
           Ödev verebilmen için yönetimin seni bir sınıf ve derse ataması (Yönetim → Ders atamaları) ya da sınıf öğretmeni yapması gerekir.
         </p>
@@ -360,7 +366,8 @@ function HomeworkDetail({
   const [draft, setDraft] = useState<Record<string, { status: HwStatus; note: string }>>({})
   const [busy, setBusy] = useState(false)
   const [del, setDel] = useState(false)
-  const canEdit = profile?.role === 'admin' || h.teacher_id === profile?.id
+  // Ayar kapalıyken öğretmen kendi ödevini düzenleyemez (veritabanında hw_update de reddeder); durum işaretlemeye devam eder.
+  const canEdit = profile?.role === 'admin' || (h.teacher_id === profile?.id && settings.teacherCan)
   const atts = useAttachments({ kind: 'homework', ids: [h.id] })
   const subs = useAttachments({ kind: 'submission', ids: [h.id] })
   async function delFile(a: Attachment) {

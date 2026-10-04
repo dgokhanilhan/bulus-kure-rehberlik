@@ -9,8 +9,24 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   Cross-Origin-Opener-Policy: same-origin
 
+# Önbellek politikası (yayın sonrası "sonsuz açılış ekranı" düzeltmesi):
+# Pages, bulunamayan HER yol için index.html'i 200 ile döndürür (SPA). Yayın sırasında bir an eksik kalan
+# /assets/x.js isteğine de index.html döner; burada uzun/immutable önbellek olursa bu yanlış yanıt
+# Cloudflare kenarında ve tarayıcıda bir yıl kalır, site açılmaz. Bu yüzden:
+# - HTML hiç önbelleğe alınmaz;
+# - asset'ler her açılışta doğrulanır (ETag ile 304; dosya değişmediyse yeniden indirilmez), yanlış yanıt kalıcı olmaz.
+# Uzun önbelleğe dönmek için önce eksik asset'in 404 dönmesi sağlanmalı (docs/yayin-onbellek.md).
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/boot-check.js
+  Cache-Control: no-cache, must-revalidate
+
 /assets/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=0, must-revalidate
 
 /engine/*
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=0, must-revalidate

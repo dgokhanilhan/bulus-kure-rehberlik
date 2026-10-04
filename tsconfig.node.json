@@ -18,10 +18,12 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "noUncheckedIndexedAccess": true
   },
   "include": [
     "vite.config.ts",
+    "deploy/*.ts",
     "vitest.config.ts",
     "playwright.config.ts",
     "tests",

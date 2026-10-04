@@ -141,6 +141,7 @@ test.describe.serial('Galeri', () => {
 
     await page.goto('/yonetim?sekme=moduller')
     await page.getByRole('switch', { name: 'Galeri modülü' }).click()
+    await page.getByRole('dialog', { name: 'Galeri modülünü kapat' }).getByRole('button', { name: 'Modülü kapat' }).click()
     await expect(page.getByRole('switch', { name: 'Galeri modülü' })).toHaveAttribute('aria-checked', 'false')
     await logout(page)
     await login(page, ...DEMO.veli)

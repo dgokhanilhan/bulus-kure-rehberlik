@@ -18,5 +18,7 @@ jobs:
       - run: npm run functions &
       - run: npx playwright install --with-deps chromium
       - run: npm run typecheck
+      # Üretim derlemesi + dist bütünlük kontrolü (eksik asset, _headers, önbellek kuralları; deploy/dist-kontrol.ts)
+      - run: npm run build
       - run: npm run test
       - run: npm run e2e

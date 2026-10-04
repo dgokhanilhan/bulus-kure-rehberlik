@@ -1,6 +1,6 @@
 // Ana sayfa (Faz H · 0019): rol başına kartlar; hangi kartın görüneceği ve sırası Yönetim Merkezi → Ana sayfa düzeni'nden.
 // Kapalı modülün kartı gösterilmez. Veriler RLS'ten geçer: kişi yalnız görebildiğini görür.
-import { useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase, SCHOOL_SLUG } from '@/lib/supabase'
@@ -34,8 +34,18 @@ import { Seg } from '@/components/Indicator'
 import { Icon } from '@/components/Icon'
 import { examTrack } from '@/lib/roles'
 
-export type PanelRole = 'veli' | 'ogrenci' | 'ogretmen'
-export type CardId = 'duyuru' | 'odev' | 'yoklama' | 'program' | 'yemek' | 'takvim' | 'mesaj' | 'lgs' | 'bursluluk' | 'derslerim' | 'odev_kontrol' | 'devamsizlik'
+/** 'yonetim': yöneticinin Bugün ekranındaki yan kartlar (0024). */
+export type PanelRole = 'veli' | 'ogrenci' | 'ogretmen' | 'yonetim'
+export type CardId =
+  | 'duyuru' | 'odev' | 'yoklama' | 'program' | 'yemek' | 'takvim' | 'mesaj' | 'lgs' | 'bursluluk' | 'derslerim' | 'odev_kontrol' | 'devamsizlik'
+  | 'deneme' | 'gorusmeler' | 'gorevler'
+/** Kart genişliği (0024): geniş kart ana sayfa ızgarasında iki sütun kaplar. Yoksa dar. */
+export type CardWidth = 'dar' | 'genis'
+export interface LayoutItem {
+  id: CardId
+  on: boolean
+  w?: CardWidth
+}
 export const CARD_TR: Record<CardId, string> = {
   duyuru: 'Duyurular',
   odev: 'Ödevler',
@@ -49,14 +59,17 @@ export const CARD_TR: Record<CardId, string> = {
   derslerim: 'Bugünkü derslerim',
   odev_kontrol: 'Kontrol bekleyen ödevler',
   devamsizlik: 'Devamsızlık sınırına yaklaşanlar',
+  deneme: 'Son deneme',
+  gorusmeler: 'Görüşmeler',
+  gorevler: 'Görevler',
 }
 /** Kartın bağlı olduğu modül: kapalıysa kart gösterilmez. */
 const CARD_MODULE: Partial<Record<CardId, keyof Modules>> = {
   duyuru: 'duyuru', odev: 'odev', odev_kontrol: 'odev', yoklama: 'yoklama', devamsizlik: 'yoklama', program: 'ders_programi', derslerim: 'ders_programi',
-  yemek: 'yemek', takvim: 'takvim', mesaj: 'mesaj', lgs: 'lgs', bursluluk: 'bursluluk',
+  yemek: 'yemek', takvim: 'takvim', mesaj: 'mesaj', lgs: 'lgs', bursluluk: 'bursluluk', deneme: 'lgs',
 }
 /** Veritabanı varsayılanlarıyla aynı (setting_spec, 0019). */
-export const PANEL_DEFAULTS: Record<PanelRole, { id: CardId; on: boolean }[]> = {
+export const PANEL_DEFAULTS: Record<PanelRole, LayoutItem[]> = {
   veli: [
     { id: 'duyuru', on: true }, { id: 'odev', on: true }, { id: 'program', on: true }, { id: 'yemek', on: true }, { id: 'yoklama', on: true },
     { id: 'takvim', on: true }, { id: 'mesaj', on: true }, { id: 'lgs', on: true }, { id: 'bursluluk', on: false },
@@ -69,22 +82,26 @@ export const PANEL_DEFAULTS: Record<PanelRole, { id: CardId; on: boolean }[]> = 
     { id: 'derslerim', on: true }, { id: 'odev_kontrol', on: true }, { id: 'duyuru', on: true }, { id: 'takvim', on: true }, { id: 'mesaj', on: true },
     { id: 'devamsizlik', on: true }, { id: 'yemek', on: false },
   ],
+  yonetim: [{ id: 'deneme', on: true }, { id: 'devamsizlik', on: true }, { id: 'gorusmeler', on: true }, { id: 'gorevler', on: true }],
 }
 
 /** Kaydedilmiş düzen + sonradan eklenen kartlar (kayıtta yoksa varsayılan konumuyla, kapalı). */
 export function usePanelLayout(role: PanelRole) {
   const s = useSettings()
   return useMemo(() => {
-    const saved = s.data?.[`panel.${role}`] as { id: CardId; on: boolean }[] | undefined
+    const saved = s.data?.[`panel.${role}`] as LayoutItem[] | undefined
     if (!saved) return PANEL_DEFAULTS[role]
     const known = new Set(saved.map((x) => x.id))
     return [...saved, ...PANEL_DEFAULTS[role].filter((x) => !known.has(x.id)).map((x) => ({ ...x, on: false }))]
   }, [s.data, role])
 }
 
+const WideCtx = createContext(false)
+
 function Card({ id, title, to, children, d }: { id: CardId; title: string; to?: string; children: ReactNode; d: number }) {
+  const wide = useContext(WideCtx)
   return (
-    <section className="card a pcard" style={{ ['--d' as string]: d }} aria-label={title} data-card={id}>
+    <section className={`card a pcard${wide ? ' wide' : ''}`} style={{ ['--d' as string]: d }} aria-label={title} data-card={id}>
       <div className="kv">
         <h2 style={{ fontSize: 16 }}>{title}</h2>
         {to && (
@@ -128,7 +145,9 @@ export default function PanelPage() {
       ) : cards.length ? (
         <div className="pgrid">
           {cards.map((c, i) => (
-            <CardBody key={c.id} id={c.id} s={s} role={role} d={Math.min(i + 1, 8)} />
+            <WideCtx.Provider key={c.id} value={c.w === 'genis'}>
+              <CardBody id={c.id} s={s} role={role} d={Math.min(i + 1, 8)} />
+            </WideCtx.Provider>
           ))}
         </div>
       ) : (

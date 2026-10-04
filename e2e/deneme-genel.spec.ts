@@ -126,7 +126,7 @@ test.describe.serial('Okul geneli deneme (5–12)', () => {
   test('Deneme Tanıma Merkezi: 5–12 durumu, yayınlar, şablonlar, katalog, geçmiş, arşivden geri alma', async ({ page }) => {
     secret = await loginAdmin(page)
     await page.goto('/yonetim?sekme=denemeler')
-    await expect(page.getByRole('heading', { name: 'Deneme Tanıma Merkezi' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Denemeler / Tanıma Merkezi' })).toBeVisible()
     await expect(page.getByTestId('destek-satiri')).toHaveCount(8)
     await axe(page, 'genel bakış')
     await shot(page, 'g2-tanima-merkezi')

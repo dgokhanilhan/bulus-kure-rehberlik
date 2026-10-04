@@ -10,6 +10,7 @@ import { trD } from '@/lib/format'
 import type { ClassRow, Profile } from '@/lib/types'
 import { Modal } from '@/components/Modal'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
+import { Confirm } from '@/components/Confirm'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { SchoolLogo } from '@/components/Icon'
@@ -114,13 +115,16 @@ export function Moduller() {
   const toast = useToast()
   const inv = useInvalidate()
   const [busy, setBusy] = useState<ModuleId | null>(null)
+  const [ask, setAsk] = useState<[ModuleId, string] | null>(null)
   async function toggle(m: ModuleId, label: string) {
     setBusy(m)
     const { error } = await supabase.rpc('set_settings', { p: { [`modul.${m}`]: !mods[m] } })
     setBusy(null)
-    if (error) return toast(errText(error)!, 'warn')
+    if (error) return errText(error)
     inv('school_settings')
     toast(`${label} ${mods[m] ? 'kapatıldı' : 'açıldı'}`)
+    setAsk(null)
+    return null
   }
   return (
     <>
@@ -145,7 +149,7 @@ export function Moduller() {
               className={`btn sm ${mods[m] ? 'pri' : ''}`}
               style={{ minWidth: 86 }}
               disabled={busy === m}
-              onClick={() => toggle(m, label)}
+              onClick={() => (mods[m] ? setAsk([m, label]) : toggle(m, label).then((e) => e && toast(e, 'warn')))}
             >
               {mods[m] ? 'Açık' : 'Kapalı'}
             </button>
@@ -153,8 +157,13 @@ export function Moduller() {
         ))}
       </section>
       <p className="m" style={{ fontSize: 12 }}>
-        Varsayılanlar: bursluluk dışında hepsi açık. Ödeme takibi, kulüpler ve anketler ileride bu listeye eklenecek.
+        Varsayılanlar: bursluluk dışında hepsi açık. Ödeme takibi, kulüpler ve anketler ileride bu listeye eklenecek. Her açma/kapama işlem geçmişine yazılır.
       </p>
+      {ask && (
+        <Confirm title={`${ask[1]} modülünü kapat`} action="Modülü kapat" warn onClose={() => setAsk(null)} onConfirm={() => toggle(ask[0], ask[1])}>
+          <b>{ask[1]}</b> menülerden ve ekranlardan kalkar; yönetici dışında kimse bu modülün verisini göremez ve yazamaz (veritabanında da kapatılır). Veri silinmez; modülü yeniden açınca her şey geri gelir.
+        </Confirm>
+      )}
     </>
   )
 }
@@ -164,13 +173,17 @@ export { MODULE_DEFAULTS }
 export function EgitimYillari() {
   const years = useAcademicYears()
   const [edit, setEdit] = useState<AcademicYear | 'new' | null>(null)
+  const [act, setAct] = useState<AcademicYear | null>(null)
   const toast = useToast()
   const inv = useInvalidate()
+  const cur = years.data?.find((y) => y.is_active)
   async function activate(y: AcademicYear) {
     const { error } = await supabase.from('academic_years').update({ is_active: true }).eq('id', y.id)
-    if (error) return toast(errText(error)!, 'warn')
+    if (error) return errText(error)
     inv('academic_years')
     toast(`${y.name} aktif eğitim yılı yapıldı`)
+    setAct(null)
+    return null
   }
   return (
     <>
@@ -210,7 +223,7 @@ export function EgitimYillari() {
                   <td>
                     <div className="btns" style={{ justifyContent: 'flex-end' }}>
                       {!y.is_active && (
-                        <button className="btn sm" onClick={() => activate(y)}>
+                        <button className="btn sm" onClick={() => setAct(y)} aria-label={`${y.name} aktif yap`}>
                           Aktif yap
                         </button>
                       )}
@@ -226,6 +239,11 @@ export function EgitimYillari() {
         </div>
       </section>
       {edit && <YearModal y={edit === 'new' ? null : edit} onClose={() => setEdit(null)} />}
+      {act && (
+        <Confirm title="Aktif eğitim yılını değiştir" action={`${act.name} aktif yap`} warn onClose={() => setAct(null)} onConfirm={() => activate(act)}>
+          Aktif yıl <b>{cur?.name ?? '—'}</b> → <b>{act.name}</b> olacak. Devamsızlık sınırları, dönem raporları ve takvim yeni yılın tarihlerine göre hesaplanır. Eski yılın kayıtları silinmez.
+        </Confirm>
+      )}
     </>
   )
 }
@@ -306,7 +324,26 @@ export function Dersler() {
   const [lv, setLv] = useState<'all' | Level>('all')
   const toast = useToast()
   const inv = useInvalidate()
+  const [moving, setMoving] = useState(false)
   const list = (courses.data ?? []).filter((c) => lv === 'all' || !c.levels.length || c.levels.includes(lv))
+  /** Dersi listede bir yukarı/aşağı taşır: bütün katalog 10'ar aralıkla yeniden numaralanır, yalnız değişenler yazılır. */
+  async function move(c: Course, up: boolean) {
+    const allC = [...(courses.data ?? [])]
+    const i = allC.findIndex((x) => x.id === c.id)
+    const vis = list.map((x) => x.id)
+    const vi = vis.indexOf(c.id)
+    const other = vis[up ? vi - 1 : vi + 1]
+    const j = allC.findIndex((x) => x.id === other)
+    if (i < 0 || j < 0) return
+    ;[allC[i], allC[j]] = [allC[j]!, allC[i]!]
+    const changed = allC.map((x, k) => ({ id: x.id, sort: (k + 1) * 10, old: x.sort })).filter((x) => x.sort !== x.old)
+    setMoving(true)
+    const res = await Promise.all(changed.map((x) => supabase.from('courses').update({ sort: x.sort }).eq('id', x.id)))
+    setMoving(false)
+    const e = res.find((r) => r.error)?.error
+    if (e) return toast(errText(e)!, 'warn')
+    inv('courses')
+  }
   return (
     <>
       <div className="kv a" style={{ alignItems: 'flex-end' }}>
@@ -338,7 +375,7 @@ export function Dersler() {
               </tr>
             </thead>
             <tbody>
-              {list.map((c) => (
+              {list.map((c, idx) => (
                 <tr key={c.id} data-testid="course-row">
                   <td>
                     <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -351,6 +388,12 @@ export function Dersler() {
                   <td>{c.active ? <span className="chip up">Aktif</span> : <span className="chip n">Pasif</span>}</td>
                   <td>
                     <div className="btns" style={{ justifyContent: 'flex-end' }}>
+                      <button className="btn sm" disabled={moving || idx === 0} onClick={() => move(c, true)} aria-label={`${c.name} yukarı taşı`}>
+                        ↑
+                      </button>
+                      <button className="btn sm" disabled={moving || idx === list.length - 1} onClick={() => move(c, false)} aria-label={`${c.name} aşağı taşı`}>
+                        ↓
+                      </button>
                       <button className="btn sm" onClick={() => setEdit(c)} aria-label={`${c.name} dersini düzenle`}>
                         <Icon name="pen" size={15} /> Düzenle
                       </button>
@@ -646,6 +689,7 @@ export function DersAtamalari({ classes, profiles }: { classes: ClassRow[]; prof
   const [view, setView] = useState<'sinif' | 'ogretmen'>('sinif')
   const [cls, setCls] = useState(classes[0]?.id ?? '')
   const [f, setF] = useState({ course: '', teacher: '' })
+  const [rm, setRm] = useState<{ id: string; label: string } | null>(null)
   const teachers = profiles.filter((p) => p.status === 'approved' && isTeacherP(p))
   const cur = classes.find((c) => c.id === cls)
   const activeCourses = (courses.data ?? []).filter((c) => c.active && (!cur || !c.levels.length || c.levels.includes(cur.level)))
@@ -665,9 +709,11 @@ export function DersAtamalari({ classes, profiles }: { classes: ClassRow[]; prof
   }
   async function remove(id: string) {
     const { error } = await supabase.from('teaching_assignments').delete().eq('id', id)
-    if (error) return toast(errText(error)!, 'warn')
+    if (error) return errText(error)
     inv('teaching_assignments')
     toast('Atama kaldırıldı')
+    setRm(null)
+    return null
   }
 
   return (
@@ -690,12 +736,13 @@ export function DersAtamalari({ classes, profiles }: { classes: ClassRow[]; prof
               Sınıf
               <select id="aCls" value={cls} onChange={(e) => setCls(e.target.value)}>
                 {LEVELS.map((lv) => {
-                  const cs = classes.filter((c) => c.level === lv)
+                  const cs = classes.filter((c) => c.level === lv && (c.active !== false || c.id === cls))
                   return cs.length ? (
                     <optgroup key={lv} label={LEVEL_TR[lv]}>
                       {cs.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
+                          {c.active === false ? ' (pasif)' : ''}
                         </option>
                       ))}
                     </optgroup>
@@ -748,7 +795,7 @@ export function DersAtamalari({ classes, profiles }: { classes: ClassRow[]; prof
                         <td>{tName(a.teacher_id)}</td>
                         <td>
                           <div className="btns" style={{ justifyContent: 'flex-end' }}>
-                            <button className="btn sm" onClick={() => remove(a.id)} aria-label={`${cName(a.course_id)} – ${tName(a.teacher_id)} atamasını kaldır`}>
+                            <button className="btn sm" onClick={() => setRm({ id: a.id, label: `${cur?.name} · ${cName(a.course_id)} – ${tName(a.teacher_id)}` })} aria-label={`${cName(a.course_id)} – ${tName(a.teacher_id)} atamasını kaldır`}>
                               <Icon name="trash" size={15} />
                             </button>
                           </div>
@@ -808,12 +855,115 @@ export function DersAtamalari({ classes, profiles }: { classes: ClassRow[]; prof
           </div>
         </section>
       )}
+      {rm && (
+        <Confirm title="Ders atamasını kaldır" action="Kaldır" warn onClose={() => setRm(null)} onConfirm={() => remove(rm.id)}>
+          <b>{rm.label}</b> ataması kalkacak. Öğretmen bu sınıfı başka bir yoldan (sınıf öğretmenliği ya da ders programı) görmüyorsa sınıfın öğrencilerini, ödevlerini ve yoklamasını artık göremez. Geçmiş kayıtlar silinmez.
+        </Confirm>
+      )}
     </>
+  )
+}
+
+/** Öğretmen düzenleme penceresindeki ders atamaları: ekle / kaldır (kaldırmada satır içi onay). Yetki veritabanında (yalnız yönetici). */
+export function OgretmenAtamalari({ teacherId, classes }: { teacherId: string; classes: ClassRow[] }) {
+  const courses = useCourses()
+  const asg = useAssignments()
+  const { profile } = useAuth()
+  const toast = useToast()
+  const inv = useInvalidate()
+  const open = classes.filter((c) => c.active !== false)
+  const [cls, setCls] = useState(open[0]?.id ?? '')
+  const [course, setCourse] = useState('')
+  const [ask, setAsk] = useState<string | null>(null)
+  const cur = classes.find((c) => c.id === cls)
+  const fit = (courses.data ?? []).filter((c) => c.active && (!cur || !c.levels.length || c.levels.includes(cur.level)))
+  const mine = (asg.data ?? []).filter((a) => a.teacher_id === teacherId)
+  const cName = (id: string) => courses.data?.find((c) => c.id === id)?.name ?? '—'
+  const clName = (id: string) => classes.find((c) => c.id === id)?.name ?? '—'
+  async function add() {
+    const c = course || fit[0]?.id
+    if (!cls || !c) return toast('Sınıf ve ders seç.', 'warn')
+    const { error } = await supabase.from('teaching_assignments').insert({ school_id: profile!.school_id, class_id: cls, course_id: c, teacher_id: teacherId })
+    if (error) return toast(errText(error, 'Bu atama zaten var.')!, 'warn')
+    inv('teaching_assignments')
+    toast(`${clName(cls)} · ${cName(c)} atandı`)
+    setCourse('')
+  }
+  async function remove(id: string) {
+    const { error } = await supabase.from('teaching_assignments').delete().eq('id', id)
+    if (error) return toast(errText(error)!, 'warn')
+    inv('teaching_assignments')
+    setAsk(null)
+    toast('Atama kaldırıldı')
+  }
+  return (
+    <section className="stack" style={{ gap: 8 }} aria-label="Ders atamaları">
+      <span className="label">Ders atamaları</span>
+      <span className="m" style={{ fontSize: 12 }}>
+        Öğretmen yalnız atandığı sınıfların (ve sınıf öğretmeni olduğu sınıfın) öğrencilerini görür.
+      </span>
+      {mine.length ? (
+        <ul className="stack" style={{ gap: 4, listStyle: 'none', padding: 0, margin: 0 }}>
+          {mine.map((a) => (
+            <li key={a.id} className="kv" data-testid="teacher-assignment" style={{ gap: 8, flexWrap: 'wrap' }}>
+              <span className="chip n">
+                {clName(a.class_id)} · {cName(a.course_id)}
+              </span>
+              {ask === a.id ? (
+                <span className="btns" style={{ gap: 4 }}>
+                  <span style={{ fontSize: 13 }}>Kaldırılsın mı?</span>
+                  <button type="button" className="btn sm warn" onClick={() => remove(a.id)}>
+                    Kaldır
+                  </button>
+                  <button type="button" className="btn sm" onClick={() => setAsk(null)}>
+                    Vazgeç
+                  </button>
+                </span>
+              ) : (
+                <button type="button" className="btn sm" onClick={() => setAsk(a.id)} aria-label={`${clName(a.class_id)} ${cName(a.course_id)} atamasını kaldır`}>
+                  <Icon name="trash" size={15} />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <span className="m" style={{ fontSize: 13 }}>
+          Ders ataması yok.
+        </span>
+      )}
+      <div className="btns" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <label className="field" htmlFor="taCls" style={{ minWidth: 100 }}>
+          Sınıf
+          <select id="taCls" value={cls} onChange={(e) => setCls(e.target.value)}>
+            {open.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field" htmlFor="taCourse" style={{ minWidth: 150 }}>
+          Ders
+          <select id="taCourse" value={course || fit[0]?.id || ''} onChange={(e) => setCourse(e.target.value)}>
+            {fit.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" className="btn" onClick={add}>
+          <Icon name="plus" size={16} stroke={2} /> Ata
+        </button>
+      </div>
+    </section>
   )
 }
 
 // ---------------------------------------------------------------- Ödev ayarları
 const HW_BOOLS: [string, string, string, boolean][] = [
+  ['odev.ogretmen_verebilir', 'Öğretmenler ödev verebilir', 'Kapalıysa yalnız yönetici ödev verir; veritabanında da zorlanır. Verilmiş ödevler ve kontrolleri etkilenmez.', true],
   ['odev.son_tarih_zorunlu', 'Son teslim tarihi zorunlu', 'Kapalıysa öğretmen tarihsiz ödev verebilir.', true],
   ['odev.veli_durum_gorur', 'Veli ödev durumunu görür', 'Yaptı / Yapmadı / Eksik ve öğretmen notu veliye görünür, bildirimi gider.', true],
   ['odev.geciken_kirmizi', 'Geciken ödev kırmızı gösterilir', 'Veli ve öğrenci ekranında süresi geçmiş, yapılmamış ödevler.', true],
