@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
-import { SUBJECT, fmt, indexResults, studentExams, totalNet } from '@/lib/analiz'
+import { fmt, indexResults, studentExams, totalNet } from '@/lib/analiz'
+import { SUBJECT_SHORT } from '@/components/Tasks'
 import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useModules, useDataset, useMeals, useMeetings, useNotes, useReports, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
 import { GUN, addDays, ago, gen, isoDow, localDate, localHM, todayISO, trD, trDW, weekStart } from '@/lib/format'
 import type { Student } from '@/lib/types'
@@ -188,7 +189,7 @@ export function OzetPage() {
                     {trDW(x.session_date)} · {x.slot.replace('-', '.00–')}.00
                   </b>
                   <span className="m" style={{ display: 'block', fontSize: 13 }}>
-                    {SUBJECT[x.subject].short} · {x.topics.join(', ')}
+                    {SUBJECT_SHORT[x.subject] ?? x.subject} · {x.topics.join(', ')}
                   </span>
                 </div>
               ))

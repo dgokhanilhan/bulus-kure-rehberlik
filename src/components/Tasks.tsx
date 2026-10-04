@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { supabase } from '@/lib/supabase'
-import { SUBJECT, SUBJECTS, type Outcome, type Repeat, type Subject } from '@/lib/analiz'
+import { SUBJECTS, type Outcome, type Repeat, type Subject, type SubjectDef } from '@/lib/analiz'
 import type { Task } from '@/lib/data'
 import { useRefresh } from '@/lib/data'
 import { addDays, nextDow, todayISO, trD, trDShort, trDW } from '@/lib/format'
@@ -78,7 +78,7 @@ export function TaskList({ tasks, mode, onEdit }: { tasks: Task[]; mode: Mode; o
             </div>
             <b style={{ fontSize: 16 }}>{t.topic}</b>
             <span className="m" style={{ fontSize: 13 }}>
-              {SUBJECT[t.subject]?.short} · {t.question_count} soru{t.parent_visible && mode !== 'view' ? ' · veli görüyor' : ''}
+              {SUBJECT_SHORT[t.subject] ?? t.subject} · {t.question_count} soru{t.parent_visible && mode !== 'view' ? ' · veli görüyor' : ''}
             </span>
             <div className="prog" role="progressbar" aria-valuemin={0} aria-valuemax={t.question_count} aria-valuenow={t.solved} aria-label={`${t.topic} ilerlemesi`}>
               <i className="bar-g" style={{ width: `${Math.min(100, (t.solved / t.question_count) * 100)}%`, ...(done ? { background: '#7cc2b5' } : {}) }} />
@@ -120,6 +120,12 @@ export function TaskList({ tasks, mode, onEdit }: { tasks: Task[]; mode: Mode; o
   )
 }
 
+/** Görev/etüt ders kodu (subject_code enum) → kısa ad (LGS + 0032 ile eklenen 5–12 dersleri). */
+export const SUBJECT_SHORT: Record<string, string> = {
+  TUR: 'Türkçe', MAT: 'Matematik', FEN: 'Fen', INK: 'İnkılap', DIN: 'Din', ING: 'İngilizce',
+  SOS: 'Sosyal', TDE: 'Edebiyat', TAR: 'Tarih', COG: 'Coğrafya', FEL: 'Felsefe', FIZ: 'Fizik', KIM: 'Kimya', BIY: 'Biyoloji',
+}
+
 interface TaskForm {
   subject: Subject
   konu: string | null // listeden seçilen kazanım kodu
@@ -140,9 +146,12 @@ export function TaskModal({
   edit,
   preset,
   usedCodes,
+  subjects = SUBJECTS,
   onClose,
 }: {
   usedCodes?: Set<string>
+  /** Profil bağlamının dersleri (LGS: 6 ders; genel: şablon bölümleri). */
+  subjects?: SubjectDef[]
   student: Student
   outcomes: Outcome[]
   repeats: Repeat[]
@@ -156,11 +165,13 @@ export function TaskModal({
   const today = todayISO()
   const init = (): TaskForm => {
     if (edit) {
-      const std = outcomes.find((o) => o.subject === edit.subject && (o.code === edit.outcome_code || o.title === edit.topic))
-      return { subject: edit.subject, konu: std?.code ?? null, konuOther: std ? '' : edit.topic, adet: String(edit.question_count), due: edit.due_date, weekly: edit.weekly, veli: edit.parent_visible, note: edit.note ?? '' }
+      const sd = subjects.find((x) => x.code === edit.subject) ?? subjects.find((x) => x.base === edit.subject)
+      const subj = sd?.code ?? edit.subject
+      const std = outcomes.find((o) => o.subject === subj && ((edit.learning_outcome_id && o.outcomeId === edit.learning_outcome_id) || o.code === edit.outcome_code || o.title === edit.topic))
+      return { subject: subj, konu: std?.code ?? null, konuOther: std ? '' : edit.topic, adet: String(edit.question_count), due: edit.due_date, weekly: edit.weekly, veli: edit.parent_visible, note: edit.note ?? '' }
     }
     const top = repeats[0]
-    const subject = preset?.subject ?? top?.outcome.subject ?? 'MAT'
+    const subject = preset?.subject ?? top?.outcome.subject ?? (subjects.find((x) => x.code === 'MAT') ?? subjects[0])?.code ?? 'MAT'
     const konu = preset ? (preset.code ?? null) : (top?.outcome.code ?? null)
     return { subject, konu, konuOther: '', adet: '20', due: nextDow(5), weekly: false, veli: true, note: '' }
   }
@@ -187,11 +198,17 @@ export function TaskModal({
     if (!topic) return setErr('Bir konu seç ya da yaz.')
     if (!(adet > 0) || adet > 500) return setErr('Soru sayısı 1 ile 500 arasında olmalı.')
     if (!m.due || m.due < today) return setErr('Son gün bugünden önce olamaz.')
+    const sd = subjects.find((x) => x.code === m.subject)
+    const own = m.konuOther.trim() ? null : chosen
     const row = {
       student_id: student.id,
-      subject: m.subject,
+      // ders: veritabanı ders kodu (bölüm anahtarı FEL2 → FEL); LGS'de aynı
+      subject: sd?.base ?? m.subject,
       topic,
-      outcome_code: m.konuOther.trim() ? null : (chosen?.code ?? null),
+      // LGS kazanımı eski kataloğa (outcome_code), genel kazanım yeni kataloğa (learning_outcome_id)
+      outcome_code: own && !own.outcomeId ? own.code : null,
+      // yalnız genel kazanımda gönderilir: LGS görevi eskisiyle birebir aynı satırı yazar (0032 uygulanmadan da çalışır)
+      ...(own?.outcomeId ? { learning_outcome_id: own.outcomeId } : edit?.learning_outcome_id ? { learning_outcome_id: null } : {}),
       question_count: adet,
       due_date: m.due,
       weekly: m.weekly,
@@ -254,7 +271,7 @@ export function TaskModal({
       >
         <div className="stack" style={{ gap: 6 }}>
           <span className="label">Ders</span>
-          <Seg label="Ders" value={m.subject} onChange={(subject) => set({ subject, konu: null })} options={SUBJECTS.map((s) => [s.code, s.short] as const)} />
+          <Seg label="Ders" value={m.subject} onChange={(subject) => set({ subject, konu: null })} options={subjects.map((s) => [s.code, s.short] as const)} />
         </div>
         <div className="stack" style={{ gap: 6 }}>
           <span className="label">Konu</span>

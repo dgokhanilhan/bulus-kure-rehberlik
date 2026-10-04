@@ -1,7 +1,7 @@
 // Deneme Köprüsü (legacy motor) çıktısı → kontrol ekranı → yayın verisi.
 // Kurallar: sonuç (D/Y/B/net/puan) 1. sayfadaki resmî değerden gelir ve kazanım okumasından bağımsızdır;
 // okunamayan alan boş/okunamadı kalır, uydurulmaz (CLAUDE.md §1–§2).
-import type { MatchLevel, Subject } from './analiz'
+import type { MatchLevel, LgsSubject as Subject } from './analiz'
 import { matchStudent, type MatchResult, type RosterStudent } from './isim'
 
 export const SUBJECT_ORDER: Subject[] = ['TUR', 'MAT', 'FEN', 'INK', 'DIN', 'ING']

@@ -1,6 +1,6 @@
 // Veli raporu: kural tabanlı taslak + yapay zekâ için anonim veri (docs/veli-raporu-kurallari.md).
 // Regresyon kilidi: yalnız metin üretir; D/Y/B, net, puan ve eşleştirmeleri değiştirmez.
-import { SUBJECTS, indexResults, repeats, studentExams, totalNet, wrongOutcomes, fmt, type Dataset, type Repeat, type Result, type Subject } from './analiz'
+import { indexResults, repeats, studentExams, totalNet, wrongOutcomes, fmt, type Dataset, type Repeat, type Result, type Subject, type SubjectDef } from './analiz'
 import { gen } from './format'
 import { FORBIDDEN, findForbidden } from '../../supabase/functions/_shared/rapor-ai'
 
@@ -19,7 +19,12 @@ export interface OgretmenBody {
   toplanti: string
 }
 
-const LOC: Record<Subject, string> = { TUR: 'Türkçede', MAT: 'Matematikte', FEN: 'Fen Bilimlerinde', INK: 'İnkılap Tarihinde', DIN: 'Din Kültüründe', ING: 'İngilizcede' }
+const LOC_TR: Record<string, string> = {
+  TUR: 'Türkçede', MAT: 'Matematikte', FEN: 'Fen Bilimlerinde', INK: 'İnkılap Tarihinde', DIN: 'Din Kültüründe', ING: 'İngilizcede',
+  TDE: 'Türk Dili ve Edebiyatında', SOS: 'Sosyal Bilgilerde', TAR: 'Tarihte', COG: 'Coğrafyada', FEL: 'Felsefede', FIZ: 'Fizikte', KIM: 'Kimyada', BIY: 'Biyolojide',
+}
+/** "Matematikte" gibi bulunma hâli: LGS ve genel dersler; bölüm anahtarı farklıysa (FEL2) ders kodundan, yoksa "X dersinde". */
+const loc = (s: SubjectDef) => LOC_TR[s.code] ?? (s.base ? LOC_TR[s.base] : undefined) ?? `${s.ad} dersinde`
 const lj = (a: string[]) => (a.length < 2 ? a.join('') : `${a.slice(0, -1).join(', ')} ve ${a.at(-1)}`)
 const dz = (a: string[]) => lj(a) + (a.length > 1 ? ' derslerinde' : ' dersinde')
 /** Konu adını cümle içine alır: ilk harf küçülür, "DNA" gibi kısaltmalar korunur. */
@@ -27,6 +32,8 @@ const lc = (t: string) => t.split(' ').map((w) => (w.length > 1 && w === w.toLoc
 const hash = (s: string) => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0
 
 export interface ReportData {
+  /** Veri setinin dersleri (LGS: 6 sabit ders; genel: şablon bölümleri). */
+  subjects: SubjectDef[]
   exams: { name: string; date: string; result: Result }[] // bu denemeye kadar, eskiden yeniye
   cur: Result
   prev?: Result
@@ -48,6 +55,7 @@ export function reportData(ds: Dataset, sid: string, eid: string): ReportData | 
     (!!cur.result.kazanim && Object.keys(cur.result.kazanim.g).length > 0) ||
     (cur.result.outcomes_ok && qs.some((q) => q.outcome_code && ['code_exact', 'code_inferred', 'text_exact', 'text_match'].includes(q.match)))
   return {
+    subjects: ds.subjects,
     exams: ex.map((x) => ({ name: x.exam.name, date: x.exam.exam_date, result: x.result })),
     cur: cur.result,
     prev: ex.at(-2)?.result,
@@ -61,9 +69,11 @@ type Level = 'high' | 'mid' | 'low'
 function analyse(R: ReportData) {
   const x = R.cur
   const net = totalNet(x)
-  const level: Level = net >= 78 ? 'high' : net >= 55 ? 'mid' : 'low'
+  // Eşikler LGS'nin 90 sorusunda 78 / 55 net; genel denemede aynı oranlar o denemenin soru toplamına göre (LGS'de toplam 90: birebir aynı)
+  const max = R.subjects.reduce((a, s) => a + s.q, 0) || 90
+  const level: Level = net >= (78 / 90) * max - 1e-9 ? 'high' : net >= (55 / 90) * max - 1e-9 ? 'mid' : 'low'
   const dn = R.prev ? net - totalNet(R.prev) : 0
-  const dd = SUBJECTS.map((s) => {
+  const dd = R.subjects.map((s) => {
     const q = x.subjects[s.code]
     return {
       s,
@@ -106,7 +116,7 @@ export function genVeli(R: ReportData, fullName: string, seed: string): VeliBody
         : strong.length
           ? `${dz(strong.map((q) => q.s.ad).slice(0, 2))}ki istikrar bu yükselişe katkı sağlamış.`
           : 'Artış birkaç farklı dersteki küçük gelişmelerden geliyor.'
-    }${falling.length ? ` ${LOC[falling[0]!.s.code]} ise bir miktar gerileme var; bunu aşağıda ayrıca ele aldık.` : ''}`
+    }${falling.length ? ` ${loc(falling[0]!.s)} ise bir miktar gerileme var; bunu aşağıda ayrıca ele aldık.` : ''}`
   else if (kind === 'down')
     genel = `${pick(openers.down)} ${gen(first)} toplam netinde önceki sınava göre ${fmt(-dn)} netlik bir düşüş görülüyor. Ancak bu düşüş tüm derslere yayılmış değil; ${
       falling.length ? `özellikle ${dz(falling.slice(0, 2).map((q) => q.s.ad))} yoğunlaşıyor.` : 'birkaç dersteki küçük kayıpların toplamından oluşuyor.'
@@ -135,7 +145,7 @@ export function genVeli(R: ReportData, fullName: string, seed: string): VeliBody
   if (R.kzMissing) {
     const w = falling[0] ?? dd.slice().sort((a, b) => a.r - b.r)[0]
     gelisim = w
-      ? `${LOC[w.s.code]} yanlış sayısı dikkat çekiyor. Bu denemede konu bilgisi net okunamadığı için belirli bir konu hakkında kesin yorum yapmak yerine yanlış soruların ${first} ile birlikte yeniden incelenmesi daha doğru olacaktır.`
+      ? `${loc(w.s)} yanlış sayısı dikkat çekiyor. Bu denemede konu bilgisi net okunamadığı için belirli bir konu hakkında kesin yorum yapmak yerine yanlış soruların ${first} ile birlikte yeniden incelenmesi daha doğru olacaktır.`
       : `Bu denemede konu bilgisi net okunamadığı için yanlış soruların ${first} ile birlikte yeniden incelenmesi daha doğru olacaktır.`
   } else if (relRep.length) {
     const byD = new Map<Subject, Repeat[]>()
@@ -144,7 +154,8 @@ export function genVeli(R: ReportData, fullName: string, seed: string): VeliBody
       .map(([code, rs]) => {
         const f = falling.find((q) => q.s.code === code)
         const three = rs.filter((r) => r.count >= 3)
-        return `${f ? `${LOC[code]} bu denemede önceki sınava göre bir miktar düşüş var ve` : LOC[code]} yanlışların ${lj(rs.slice(0, 2).map((r) => lc(r.outcome.title)))} çevresinde toplandığını görüyoruz. ${
+        const sd = R.subjects.find((x) => x.code === code) ?? { code, ad: code, short: code, q: 0 }
+        return `${f ? `${loc(sd)} bu denemede önceki sınava göre bir miktar düşüş var ve` : loc(sd)} yanlışların ${lj(rs.slice(0, 2).map((r) => lc(r.outcome.title)))} çevresinde toplandığını görüyoruz. ${
           three.length ? `${rs.length > 1 ? 'Bu konular' : 'Bu konu'} artık tek bir sınava özgü bir hata gibi görünmüyor; farklı denemelerde tekrar ediyor.` : 'Hata iki farklı denemede tekrar etmiş; takip etmekte fayda var.'
         }`
       })
@@ -152,9 +163,9 @@ export function genVeli(R: ReportData, fullName: string, seed: string): VeliBody
     // Genel değerlendirmede anılan gerileme burada da tek paragrafta ele alınır (§13).
     const f0 = falling[0]
     if (f0 && !byD.has(f0.s.code))
-      gelisim += ` ${LOC[f0.s.code]} bu denemede bir miktar gerileme var; yanlışlar belirli bir konuda toplanmıyor, bu yüzden benzer sorulardaki performansı takip etmek daha sağlıklı olacaktır.`
+      gelisim += ` ${loc(f0.s)} bu denemede bir miktar gerileme var; yanlışlar belirli bir konuda toplanmıyor, bu yüzden benzer sorulardaki performansı takip etmek daha sağlıklı olacaktır.`
   } else if (falling.length)
-    gelisim = `${LOC[falling[0]!.s.code]} bu denemede bir miktar gerileme var. Yanlışlar belirli bir konuda toplanmıyor; tek sorudan hareketle konu eksiği demek doğru olmaz. Benzer sorulardaki performansı takip etmek daha sağlıklı olacaktır.`
+    gelisim = `${loc(falling[0]!.s)} bu denemede bir miktar gerileme var. Yanlışlar belirli bir konuda toplanmıyor; tek sorudan hareketle konu eksiği demek doğru olmaz. Benzer sorulardaki performansı takip etmek daha sağlıklı olacaktır.`
   else
     gelisim =
       level === 'high'
@@ -167,7 +178,7 @@ export function genVeli(R: ReportData, fullName: string, seed: string): VeliBody
   relRep.slice(0, 2).forEach((r) => oneriler.push(`${r.outcome.title} ile ilgili yanlış sorular yeniden çözülmeli; ardından bu konudan kısa bir tarama testi uygulanabilir.`))
   if (R.kzMissing) oneriler.push('Bu denemedeki yanlış sorular öğretmenle birlikte tek tek incelenmeli; hangi soru türünde zorlanıldığı böylece netleşir.')
   if (blanks.length) oneriler.push(`${blanks[0]!.s.ad} için bu hafta süre tutarak kısa çalışmalar yapılabilir; boş bırakma nedenini anlamamıza yardım eder.`)
-  if (rising.length) oneriler.push(`${LOC[rising[0]!.s.code]} son denemelerdeki yükseliş korunuyor; çalışma düzenini değiştirmek yerine yanlış çıkan birkaç soruya kısa tekrar yeterli.`)
+  if (rising.length) oneriler.push(`${loc(rising[0]!.s)} son denemelerdeki yükseliş korunuyor; çalışma düzenini değiştirmek yerine yanlış çıkan birkaç soruya kısa tekrar yeterli.`)
   if (level === 'high') oneriler.push('Soruyu bitirdikten sonra şıkları bir kez daha okuma alışkanlığı, kalan dikkat kaynaklı yanlışları azaltabilir.')
   if (level === 'low') oneriler.push('Önce en hızlı net artışı gelebilecek bir iki alana odaklanmak, ilerlemeyi görmeyi kolaylaştırır.')
   if (oneriler.length < 3) oneriler.push('Her denemeden sonra yanlış soruların bir deftere yazılıp hafta içinde tekrar çözülmesi faydalı olacaktır.')
@@ -192,14 +203,14 @@ export function aiPayload(R: ReportData) {
     sonDeneme: `Deneme ${n}`,
     puan: R.cur.score != null ? r2(R.cur.score) : null,
     toplamNet: r2(totalNet(R.cur)),
-    dersler: SUBJECTS.map((s) => {
+    dersler: R.subjects.map((s) => {
       const q = R.cur.subjects[s.code]
       const p = R.prev?.subjects[s.code]
       return { ders: s.ad, soru: s.q, dogru: q?.d ?? null, yanlis: q?.y ?? null, bos: q?.b ?? null, net: q ? r2(q.net) : null, oncekiNet: p ? r2(p.net) : null }
     }),
-    gecmis: R.exams.map((e, i) => ({ deneme: `Deneme ${i + 1}`, toplamNet: r2(totalNet(e.result)), dersNetleri: Object.fromEntries(SUBJECTS.map((s) => [s.ad, e.result.subjects[s.code] ? r2(e.result.subjects[s.code]!.net) : null])) })),
-    guvenilirTekrarEdenHatalar: R.kzMissing ? [] : R.rep.map((r) => ({ ders: SUBJECTS.find((s) => s.code === r.outcome.subject)!.ad, konu: r.outcome.title, kacDenemedeYanlis: r.count })),
-    buDenemedeYanlisKonular: R.kzMissing ? [] : R.lastWrong.map((w) => ({ ders: SUBJECTS.find((s) => s.code === w.subject)!.ad, konu: w.title })),
+    gecmis: R.exams.map((e, i) => ({ deneme: `Deneme ${i + 1}`, toplamNet: r2(totalNet(e.result)), dersNetleri: Object.fromEntries(R.subjects.map((s) => [s.ad, e.result.subjects[s.code] ? r2(e.result.subjects[s.code]!.net) : null])) })),
+    guvenilirTekrarEdenHatalar: R.kzMissing ? [] : R.rep.map((r) => ({ ders: (R.subjects.find((s) => s.code === r.outcome.subject)?.ad ?? r.outcome.subject), konu: r.outcome.title, kacDenemedeYanlis: r.count })),
+    buDenemedeYanlisKonular: R.kzMissing ? [] : R.lastWrong.map((w) => ({ ders: (R.subjects.find((s) => s.code === w.subject)?.ad ?? w.subject), konu: w.title })),
     konuBilgisiOkunamadi: R.kzMissing,
   }
 }

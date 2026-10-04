@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { attention, fmt, konuStatus, repeats, totalNet, wrongOutcomes, type Dataset, type Question, type Result } from './analiz'
+import { SUBJECTS } from './analiz'
 
 const q = (exam_id: string, q_no: number, code: string | null, match: Question['match'] = 'code_exact', correct = 'A'): Question => ({
   exam_id,
@@ -46,6 +47,7 @@ const ds = (): Dataset => {
   const exams = ['e1', 'e2', 'e3'].map((id, i) => ({ id, name: `TG-${i + 1}`, publisher: null, exam_date: `2026-09-0${i + 1}` }))
   const questionsByExam = new Map(exams.map((e) => [e.id, [q(e.id, 1, 'M.1'), q(e.id, 2, 'M.2')]]))
   return {
+    subjects: SUBJECTS,
     exams,
     questionsByExam,
     outcomes: [

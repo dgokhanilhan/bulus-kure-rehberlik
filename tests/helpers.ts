@@ -85,7 +85,7 @@ export const inDays = (n: number) => {
   return d.toISOString().slice(0, 10)
 }
 
-import type { Dataset, Exam, Outcome, Question, Result } from '../src/lib/analiz'
+import { SUBJECTS, type Dataset, type Exam, type Outcome, type Question, type Result } from '../src/lib/analiz'
 /** Uygulamanın useDataset() sorgusuyla aynı veri (service_role ile). */
 export async function loadDataset(): Promise<Dataset> {
   const svc = service()
@@ -97,7 +97,7 @@ export async function loadDataset(): Promise<Dataset> {
   ])
   const questionsByExam = new Map<string, Question[]>()
   for (const x of (q.data ?? []) as Question[]) questionsByExam.set(x.exam_id, [...(questionsByExam.get(x.exam_id) ?? []), x])
-  return { exams: e.data as Exam[], questionsByExam, outcomes: o.data as Outcome[], results: r.data as Result[] }
+  return { subjects: SUBJECTS, exams: e.data as Exam[], questionsByExam, outcomes: o.data as Outcome[], results: r.data as Result[] }
 }
 
 export const MOCK = `http://localhost:${process.env.SAHTE_DEEPSEEK_PORT ?? 54399}`

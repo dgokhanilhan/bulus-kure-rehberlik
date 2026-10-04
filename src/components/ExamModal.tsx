@@ -1,4 +1,4 @@
-import { SUBJECT, SUBJECTS, fmt, totalNet, wrongOutcomes, type Dataset, type Exam, type Result } from '@/lib/analiz'
+import { SUBJECTS, fmt, subjectOf, totalNet, wrongOutcomes, type Dataset, type Exam, type Result } from '@/lib/analiz'
 import { trD } from '@/lib/format'
 import { Modal } from './Modal'
 
@@ -43,7 +43,7 @@ export function ExamModal({ ds, exam, result, prev, studentName, onClose, onRepo
             </tr>
           </thead>
           <tbody>
-            {SUBJECTS.map((s) => {
+            {ds.subjects.filter((s) => ds.subjects === SUBJECTS || result.subjects[s.code] || prev?.subjects[s.code]).map((s) => {
               const q = result.subjects[s.code]
               const p = prev?.subjects[s.code]
               return (
@@ -68,7 +68,7 @@ export function ExamModal({ ds, exam, result, prev, studentName, onClose, onRepo
           <div className="btns">
             {wrong.map((o) => (
               <span className="chip down" key={o.code}>
-                {SUBJECT[o.subject].short} · {o.title}
+                {subjectOf(ds, o.subject).short} · {o.title}
               </span>
             ))}
           </div>

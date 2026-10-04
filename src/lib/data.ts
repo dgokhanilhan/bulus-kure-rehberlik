@@ -2,7 +2,8 @@
 import { useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
-import type { Dataset, Exam, Outcome, Question, Result, Subject } from './analiz'
+import { pages } from './sayfali'
+import { SUBJECTS, type Dataset, type Exam, type Outcome, type Question, type Result, type Subject } from './analiz'
 import type { ClassRow, Student } from './types'
 import { examTrack, MODULE_DEFAULTS, type Modules } from './roles'
 import { useAuth } from '@/auth/AuthProvider'
@@ -396,10 +397,11 @@ export function useDataset(enabled = true) {
       const [exams, questions, outcomes, results] = await Promise.all([
         // Yalnız yayındaki LGS denemeleri: 5–7 / 9–12 genel denemeleri ve arşiv LGS Atlas'a karışmaz (genel denemeler: useGenelDataset)
         all<Exam>(supabase.from('exams').select('id, name, publisher, exam_date').not('published_at', 'is', null).eq('exam_type', 'LGS').eq('status', 'yayinda').order('exam_date')),
-        all<Question>(supabase.from('exam_questions').select('exam_id, subject, q_no, correct_answer, outcome_code, match').limit(20000)),
+        // Sayfalı: tek istek en çok 1000 satır döner (önceki .limit(20000) sessizce 1000'de kesiliyordu); sıra sabit
+        pages<Question>((a, b) => supabase.from('exam_questions').select('exam_id, subject, q_no, correct_answer, outcome_code, match').order('exam_id').order('subject').order('q_no').range(a, b)),
         all<Outcome>(supabase.from('outcomes').select('code, subject, title').order('code')),
-        all<Result & { exams?: unknown }>(
-          supabase.from('exam_results').select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim, exams!inner(exam_type, status)').eq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').limit(20000),
+        pages<Result & { exams?: unknown }>(
+          (a, b) => supabase.from('exam_results').select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim, exams!inner(exam_type, status)').eq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').order('exam_id').order('student_id').range(a, b),
         ).then((rows) => rows.map(({ exams: _e, ...r }) => r as Result)),
       ])
       const questionsByExam = new Map<string, Question[]>()
@@ -408,7 +410,7 @@ export function useDataset(enabled = true) {
         if (l) l.push(x)
         else questionsByExam.set(x.exam_id, [x])
       }
-      return { exams, questionsByExam, outcomes, results } satisfies Dataset
+      return { subjects: SUBJECTS, exams, questionsByExam, outcomes, results } satisfies Dataset
     },
   })
   return q
@@ -420,6 +422,8 @@ export interface Task {
   subject: Subject
   topic: string
   outcome_code: string | null
+  /** Yeni katalog (0032): genel deneme kazanımı / öğrenme çıktısı. */
+  learning_outcome_id?: string | null
   question_count: number
   solved: number
   due_date: string

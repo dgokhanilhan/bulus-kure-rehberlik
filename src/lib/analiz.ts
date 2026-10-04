@@ -4,10 +4,15 @@
 //  - Kazanım eşleşmesi güvenilir değilse (semantic/none) analize girmez.
 //  - Okunamayan cevap ('?') boş ('_') değildir; tahmin edilmez.
 
-export type Subject = 'TUR' | 'MAT' | 'FEN' | 'INK' | 'DIN' | 'ING'
+/** Ders anahtarı. LGS'de 6 sabit ders; genel denemelerde şablon bölümü anahtarı (ör. TDE, FEL2, TAR1). */
+export type Subject = string
+export type LgsSubject = 'TUR' | 'MAT' | 'FEN' | 'INK' | 'DIN' | 'ING'
 export type MatchLevel = 'code_exact' | 'code_inferred' | 'text_exact' | 'text_match' | 'semantic' | 'none'
 
-export const SUBJECTS: { code: Subject; ad: string; short: string; q: number }[] = [
+/** base: görev/etüt için ders kodu (subject_code); bölüm anahtarı dersle aynı değilse (FEL2 → FEL). */
+export interface SubjectDef { code: Subject; ad: string; short: string; q: number; base?: string }
+
+export const SUBJECTS: SubjectDef[] = [
   { code: 'TUR', ad: 'Türkçe', short: 'Türkçe', q: 20 },
   { code: 'MAT', ad: 'Matematik', short: 'Matematik', q: 20 },
   { code: 'FEN', ad: 'Fen Bilimleri', short: 'Fen', q: 20 },
@@ -15,7 +20,9 @@ export const SUBJECTS: { code: Subject; ad: string; short: string; q: number }[]
   { code: 'DIN', ad: 'Din Kültürü', short: 'Din', q: 10 },
   { code: 'ING', ad: 'İngilizce', short: 'İngilizce', q: 10 },
 ]
-export const SUBJECT = Object.fromEntries(SUBJECTS.map((s) => [s.code, s])) as Record<Subject, (typeof SUBJECTS)[number]>
+export const SUBJECT = Object.fromEntries(SUBJECTS.map((s) => [s.code, s])) as Record<LgsSubject, SubjectDef>
+/** Veri setinin dersi (LGS: 6 sabit ders; genel: şablon bölümleri). */
+export const subjectOf = (ds: Pick<Dataset, 'subjects'>, code: Subject): SubjectDef => ds.subjects.find((s) => s.code === code) ?? { code, ad: code, short: code, q: 0 }
 
 export interface Exam {
   id: string
@@ -48,15 +55,21 @@ export interface Question {
   match: MatchLevel
 }
 export interface Outcome {
+  /** Veri seti içinde tekil anahtar. LGS: resmî kod; genel: bölüm + katalog kimliği (resmî kod tek başına tekil değildir). */
   code: string
   subject: Subject
   title: string
+  /** Gösterilen resmî kod (genel); yoksa code gösterilir. */
+  display?: string | null
+  /** Yeni katalogdaki kazanım kimliği (genel; görev bağlantısı). */
+  outcomeId?: string
 }
+export const outcomeCode = (o: Outcome) => o.display ?? o.code
 
 export const RELIABLE: MatchLevel[] = ['code_exact', 'code_inferred', 'text_exact', 'text_match']
 
-/** Toplam net: derslerin netlerinin toplamı (1. sayfadaki resmî sonuçtan). */
-export const totalNet = (r: Result) => SUBJECTS.reduce((a, s) => a + (r.subjects[s.code]?.net ?? 0), 0)
+/** Toplam net: okunan derslerin netlerinin toplamı (1. sayfadaki resmî sonuçtan). "Uygulanmadı" ve okunamayan ders katılmaz. */
+export const totalNet = (r: Result) => Object.values(r.subjects).reduce((a, v) => a + (v && typeof v.net === 'number' ? v.net : 0), 0)
 export const subjectNet = (r: Result | undefined, s: Subject) => r?.subjects[s]?.net ?? null
 
 /**
@@ -104,6 +117,8 @@ export interface Repeat {
 }
 
 export interface Dataset {
+  /** Bu veri setinin dersleri (sıra = gösterim sırası). */
+  subjects: SubjectDef[]
   exams: Exam[] // tarihe göre artan
   questionsByExam: Map<string, Question[]>
   outcomes: Outcome[]
@@ -151,7 +166,7 @@ export function wrongOutcomes(ds: Dataset, r: Result) {
     if (st === 'y') wrong.push(o)
     if (st === 'o') unreadable = true
   }
-  const order = (o: Outcome) => SUBJECTS.findIndex((x) => x.code === o.subject)
+  const order = (o: Outcome) => ds.subjects.findIndex((x) => x.code === o.subject)
   wrong.sort((a, b) => order(a) - order(b))
   return { wrong, unreadable }
 }
@@ -211,9 +226,9 @@ export function attention(
     }
     const d = b ? totalNet(a) - totalNet(b) : 0
     if (b && d <= -st.netDrop) {
-      let worst = SUBJECTS[0]!
+      let worst = ds.subjects[0]!
       let wd = Infinity
-      for (const sub of SUBJECTS) {
+      for (const sub of ds.subjects) {
         const dd = (subjectNet(a, sub.code) ?? 0) - (subjectNet(b, sub.code) ?? 0)
         if (dd < wd) {
           wd = dd

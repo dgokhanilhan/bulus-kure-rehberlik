@@ -200,3 +200,20 @@ export function GenelSinifAnalizi({ studentIds, grade }: { studentIds: string[];
     </section>
   )
 }
+
+/** Profil Gelişim: genel denemenin (5–7 / 9–12) son sonucu — profil sırasıyla bölümler ("ölçülmedi" dahil) ve Öğrenme Çıktısı / Kazanım Analizi. */
+export function SonDenemeAnalizi({ examId, studentId, grade }: { examId: string; studentId: string; grade: number | null | undefined }) {
+  const ds = useGenelDataset()
+  const tpls = useExamTemplates()
+  const profiles = useExamProfiles()
+  const exam = ds.data?.exams.find((e) => e.id === examId)
+  const result = ds.data?.results.find((r) => r.exam_id === examId && r.student_id === studentId)
+  if (!exam || !result) return null
+  return (
+    <section className="card a" style={{ ['--d' as string]: 5, padding: 20, minWidth: 0 }} aria-label="Son deneme ayrıntısı" data-testid="son-deneme-analizi">
+      <h2 className="sec" style={{ marginBottom: 8 }}>Son deneme · bölümler</h2>
+      <Bolumler exam={exam} result={result} sections={tpls.data?.find((t) => t.id === exam.exam_template_id)?.sections ?? []}
+        profile={profileFor(profiles.data ?? [], grade, Number(academicYear(exam.exam_date).slice(0, 4)))} />
+    </section>
+  )
+}
