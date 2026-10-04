@@ -13,6 +13,7 @@ async function axe(page: Page, label: string) {
   expect(bad.map((v) => `${label}: ${v.id} (${v.nodes.length}) ${v.nodes[0]?.target}`)).toEqual([])
 }
 const svc = service()
+const LGS8 = new URL('../fixtures/pdf/hiz-tg9-2.pdf', import.meta.url)
 const PDF6 = new URL('../fixtures/pdf-genel/6-sinif-kurumsal-tg-6-ogrenci-karnesi.pdf', import.meta.url)
 const CSV = ['Ad soyad;Okul no;Sınıf;TUR D;TUR Y;MAT D;MAT Y', 'E2E Genel Bir;G601;6/A;10;3;12;3', 'Bilinmeyen Kişi;999;6/A;5;5;5;5'].join('\r\n')
 
@@ -175,6 +176,18 @@ test.describe.serial('Okul geneli deneme (5–12)', () => {
     await expect(page.locator('#gGrade')).toHaveValue('6')
     await page.getByRole('button', { name: 'Sonuçları kontrol et' }).click()
     await expect(page.getByTestId('genel-satir')).toHaveCount(24)
+    await page.getByRole('button', { name: 'Vazgeç' }).click()
+    expect((await svc.from('exams').select('id', { count: 'exact', head: true })).count).toBe(before)
+  })
+
+  test('8. sınıf LGS karnesi genel akışa değil, mevcut LGS akışına gider (kaydetmeden)', async ({ page }) => {
+    test.skip(!existsSync(LGS8), 'fixtures/pdf boş (LGS altın PDF\'leri git\'e girmez)')
+    const before = (await svc.from('exams').select('id', { count: 'exact', head: true })).count
+    await login(page, ...DEMO.rehber)
+    await page.getByRole('link', { name: 'Denemeler', exact: true }).click()
+    await page.locator('#upFile').setInputFiles({ name: 'lgs.pdf', mimeType: 'application/pdf', buffer: readFileSync(LGS8) })
+    await expect(page.getByTestId('pending-chip')).toBeVisible({ timeout: 90_000 })
+    await expect(page.getByTestId('tanima-karti')).toHaveCount(0)
     await page.getByRole('button', { name: 'Vazgeç' }).click()
     expect((await svc.from('exams').select('id', { count: 'exact', head: true })).count).toBe(before)
   })
