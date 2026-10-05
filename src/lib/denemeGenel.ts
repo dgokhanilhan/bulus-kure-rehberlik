@@ -143,9 +143,9 @@ export function reportTitle(e: { exam_type: ExamType | null; yks_part?: YksPart 
   if (f === 'TYT' || f === 'AYT') return `${f} Deneme Analizi`
   return 'Deneme Analizi'
 }
-/** 12. sınıfta YKS alt sekmeleri; diğer sınıflarda tek liste. */
+/** 9–12. sınıflarda YKS alt sekmeleri: TYT ve AYT ayrı gösterilir. */
 export const yksTabs = (grade: number | null | undefined): YksPart[] =>
-  grade != null && grade >= 9 && grade <= 12 ? ['TYT', 'AYT'] : [])
+  grade != null && grade >= 9 && grade <= 12 ? ['TYT', 'AYT'] : []
 
 /** Sınıfın varsayılan sınav türü (okul satırı varsa o, yoksa genel; kodda sabit değil, exam_type_defaults'tan). */
 export function defaultExamType(grade: number, defaults: { school_id: string | null; grade: number; exam_type: ExamType; yks_part: YksPart | null }[]) {

@@ -56,10 +56,23 @@ describe('bağlam ve karşılaştırma', () => {
     expect(comparable({ exam_type: 'YKS', yks_part: 'TYT' }, { exam_type: 'TYT' })).toBe(true)
     expect(examFamily({ exam_type: null })).toBe('LGS') // eski kayıtlar
   })
-  it('sınıfa göre başlıklar: 5–7 Deneme Analizi, 8 LGS Atlas, 9–10 TYT, 11 AYT, 12 YKS (TYT/AYT sekmeleri)', () => {
-    expect([5, 6, 7, 8, 9, 10, 11, 12].map(contextTitle)).toEqual(['Deneme Analizi', 'Deneme Analizi', 'Deneme Analizi', 'LGS Atlas', 'TYT Denemeleri', 'TYT Denemeleri', 'AYT Denemeleri', 'YKS'])
-    expect(yksTabs(12)).toEqual(['TYT', 'AYT'])
-    expect(yksTabs(11)).toEqual([])
+  it('sınıfa göre başlıklar: 5–7 Deneme Özeti, 8 LGS Özeti, 9–12 YKS Özeti ve TYT/AYT sekmeleri', () => {
+    expect([5, 6, 7, 8, 9, 10, 11, 12].map(contextTitle)).toEqual([
+  'Deneme Özeti',
+  'Deneme Özeti',
+  'Deneme Özeti',
+  'LGS Özeti',
+  'YKS Özeti',
+  'YKS Özeti',
+  'YKS Özeti',
+  'YKS Özeti',
+])
+
+expect(yksTabs(8)).toEqual([])
+expect(yksTabs(9)).toEqual(['TYT', 'AYT'])
+expect(yksTabs(10)).toEqual(['TYT', 'AYT'])
+expect(yksTabs(11)).toEqual(['TYT', 'AYT'])
+expect(yksTabs(12)).toEqual(['TYT', 'AYT'])
     expect(reportTitle({ exam_type: 'YKS', yks_part: 'AYT' })).toBe('YKS – AYT Deneme Analizi')
     expect(reportTitle({ exam_type: 'GENEL' })).toBe('Deneme Analizi')
     expect(reportTitle({ exam_type: 'LGS' })).toBe('LGS Deneme Analizi')
