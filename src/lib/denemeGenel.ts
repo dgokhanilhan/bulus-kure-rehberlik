@@ -131,11 +131,9 @@ export const comparable = (a: { exam_type: ExamType | null; yks_part?: YksPart |
 
 /** Öğrencinin sınıfına göre deneme bölümünün başlığı (öğrenci/veli/öğretmen ekranları ve rapor). */
 export function contextTitle(grade: number | null | undefined): string {
-  if (grade === 8) return 'LGS Atlas'
-  if (grade === 9 || grade === 10) return 'TYT Denemeleri'
-  if (grade === 11) return 'AYT Denemeleri'
-  if (grade === 12) return 'YKS'
-  return 'Deneme Analizi'
+  if (grade === 8) return 'LGS Özeti'
+  if (grade != null && grade >= 9 && grade <= 12) return 'YKS Özeti'
+  return 'Deneme Özeti'
 }
 /** Rapor başlığı: 5–7 Deneme Analizi · 8 LGS · 9–10 TYT · 11 AYT · 12 YKS – TYT/AYT. Türü sınıftan değil denemeden alır. */
 export function reportTitle(e: { exam_type: ExamType | null; yks_part?: YksPart | null }): string {
@@ -146,7 +144,8 @@ export function reportTitle(e: { exam_type: ExamType | null; yks_part?: YksPart 
   return 'Deneme Analizi'
 }
 /** 12. sınıfta YKS alt sekmeleri; diğer sınıflarda tek liste. */
-export const yksTabs = (grade: number | null | undefined): YksPart[] => (grade === 12 ? ['TYT', 'AYT'] : [])
+export const yksTabs = (grade: number | null | undefined): YksPart[] =>
+  grade != null && grade >= 9 && grade <= 12 ? ['TYT', 'AYT'] : [])
 
 /** Sınıfın varsayılan sınav türü (okul satırı varsa o, yoksa genel; kodda sabit değil, exam_type_defaults'tan). */
 export function defaultExamType(grade: number, defaults: { school_id: string | null; grade: number; exam_type: ExamType; yks_part: YksPart | null }[]) {
