@@ -77,7 +77,7 @@ test.describe.serial('Profil · genel deneme entegrasyonu', () => {
     await expect(page.locator('.stats')).toContainText('20,00') // toplam net: Türkçe 9 + Matematik 11 (yalnız okunan dersler)
     await expect(page.getByRole('button', { name: 'Veli raporu' })).toBeEnabled()
     await expect(page.getByText('Dersler · son deneme')).toBeVisible()
-    await expect(page.getByTestId('son-deneme-analizi')).toContainText('Öğrenme Çıktısı Analizi')
+    await expect(page.getByTestId('son-deneme-analizi')).toHaveCount(0)
     await axe(page, '6 gelişim')
     await shot(page, 'p1-6-gelisim')
 
