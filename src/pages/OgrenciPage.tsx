@@ -17,7 +17,6 @@ import { useOpenReport } from '@/components/Report'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { useNavigate } from 'react-router-dom'
 import { DevamsizlikTab } from '@/components/Devamsizlik'
-import { SonDenemeAnalizi } from '@/components/GenelDenemeler'
 import { useExamContext } from '@/lib/sinavBaglami'
 
 const TABS = [
@@ -264,7 +263,6 @@ export default function OgrenciPage() {
           </section>
         </div>
       )}
-      {tab === 'gelisim' && dsq.kind !== 'LGS' && L && <SonDenemeAnalizi examId={L.exam.id} studentId={s.id} grade={s.grade} />}
 
       {tab === 'denemeler' && (
         <section className="card a" style={{ ['--d' as string]: 3, overflow: 'hidden' }}>
