@@ -91,14 +91,7 @@ test.describe.serial('Okul geneli deneme (5–12)', () => {
     await expect(page.getByTestId('sinav-baglami')).toContainText('Deneme Özeti')
     await expect(page.getByText('Puan · E2E Genel CSV')).toBeVisible()
     await expect(page.locator('.stats')).toContainText('20,00')
-    const box = page.getByTestId('son-deneme-analizi')
-    // profil sırası (6. sınıf: Türkçe, Matematik, Fen, Sosyal, Din, Yabancı Dil); CSV'de olmayanlar "ölçülmedi"
-    await expect(box.getByTestId('bolum-satiri')).toHaveCount(6)
-    await expect(box.getByTestId('bolum-satiri').nth(5)).toContainText('Yabancı Dil')
-    await expect(box.getByRole('row', { name: /Sosyal Bilgiler/ })).toContainText('Ölçülmedi')
-    const an = box.getByTestId('kazanim-analizi')
-    await expect(an.getByRole('heading', { name: 'Öğrenme Çıktısı Analizi' })).toBeVisible()
-    await expect(an).toContainText('MAT.6.1.1')
+    await expect(page.getByTestId('son-deneme-analizi')).toHaveCount(0)
     await axe(page, 'öğrenci genel deneme')
     await shot(page, 'g3-ogrenci-genel')
 

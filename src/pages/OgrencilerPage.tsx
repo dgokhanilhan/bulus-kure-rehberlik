@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fmt, indexResults, repeats, totalNet } from '@/lib/analiz'
 import { useClasses, useDataset, useStudents } from '@/lib/data'
+import { useGenelDataset } from '@/lib/denemeData'
+import { lastExamDelta } from '@/lib/denemeGenel'
 import { fold, initials } from '@/lib/format'
 import { LEVEL_TR, LEVELS } from '@/lib/roles'
 import { useAuth } from '@/auth/AuthProvider'
@@ -12,24 +14,61 @@ export default function OgrencilerPage() {
   const scoped = role === 'brans'
   const students = useStudents()
   const dsq = useDataset()
+const genel = useGenelDataset()
   const classes = useClasses()
   const nav = useNavigate()
   const [cls, setCls] = useState<string>('all')
   const [q, setQ] = useState('')
 
   const rows = useMemo(() => {
-    const ds = dsq.data
-    if (!ds || !students.data) return []
-    const idx = indexResults(ds.results)
-    const L = ds.exams.at(-1)
-    const P = ds.exams.at(-2)
-    return students.data.map((s) => {
+  const ds = dsq.data
+  const gd = genel.data
+  if (!ds || !students.data) return []
+
+  const idx = indexResults(ds.results)
+
+  return students.data.map((s) => {
+    const grade = Number.parseInt(String(s.class_name ?? '').split('/')[0] ?? '', 10)
+
+    // 8. sınıf LGS mevcut motoruyla aynen devam eder.
+    if (grade === 8) {
+      const L = ds.exams.at(-1)
+      const P = ds.exams.at(-2)
       const a = L ? idx.get(`${L.id}|${s.id}`) : undefined
       const b = P ? idx.get(`${P.id}|${s.id}`) : undefined
       const d = a && b ? totalNet(a) - totalNet(b) : null
-      return { s, net: a ? totalNet(a) : null, d, rep: repeats(ds, s.id, undefined, idx).filter((r) => r.count >= 3).length }
-    })
-  }, [dsq.data, students.data])
+
+      return {
+        s,
+        net: a ? totalNet(a) : null,
+        d,
+        rep: repeats(ds, s.id, undefined, idx).filter((r) => r.count >= 3).length,
+      }
+    }
+
+    // 5–7 ve 9–12 yeni genel deneme altyapısını kullanır.
+    const studentResults = new Map(
+      (gd?.results ?? [])
+        .filter((r) => r.student_id === s.id)
+        .map((r) => [
+          r.exam_id,
+          {
+            totalNet: r.total_net ?? 0,
+            successPct: r.success_pct,
+          },
+        ]),
+    )
+
+    const delta = lastExamDelta(gd?.exams ?? [], studentResults)
+
+    return {
+      s,
+      net: delta?.totalNet ?? null,
+      d: delta?.deltaNet ?? null,
+      rep: 0,
+    }
+  })
+}, [dsq.data, genel.data, students.data])
 
   const visible = new Set((students.data ?? []).map((s) => s.class_name))
   const needle = fold(q)
@@ -67,7 +106,7 @@ export default function OgrencilerPage() {
         <input id="qStu" placeholder="İsim veya okul no" value={q} onChange={(e) => setQ(e.target.value)} />
       </label>
       <section className="card a" style={{ ['--d' as string]: 2, overflow: 'hidden' }}>
-        {students.isLoading || dsq.isLoading ? (
+        {students.isLoading || dsq.isLoading || genel.isLoading ? (
           <p className="m" style={{ padding: 16 }}>
             <span className="spinner" aria-hidden="true" /> Yükleniyor…
           </p>
