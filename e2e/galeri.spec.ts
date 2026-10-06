@@ -58,12 +58,21 @@ test.describe.serial('Galeri', () => {
     albumUrl = page.url()
     await expect(page.getByText('Taslak', { exact: true })).toBeVisible()
 
+    // Safari gibi WebP kodlamayan cihaz: PNG dönüşü önizleme olarak kaydedilmez;
+    // orijinaller albüm ızgarasında, son eklenenlerde ve kapakta yine görünmeli.
+    await page.evaluate(() => {
+      const encode = HTMLCanvasElement.prototype.toBlob
+      HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+        return encode.call(this, callback, type === 'image/webp' ? 'image/png' : type, quality)
+      }
+    })
     // Çoklu yükleme: sahte dosya reddedilir, diğerleri devam eder
     await page.getByLabel('Fotoğraf ya da video seç').setInputFiles([F('gezi-1.jpg'), F('gezi-2.jpg'), F('sahte.jpg'), F('renk.png'), F('kisa.webm'), F('kisa.mp4')])
     await expect(page.getByRole('alert')).toContainText('sahte.jpg: Dosya içeriği uzantısıyla uyuşmuyor.')
     await expect(page.getByText('5 dosya yüklendi')).toBeVisible()
     await expect(page.getByTestId('media')).toHaveCount(5)
     await expect(page.getByTestId('media').first().locator('img')).toBeVisible() // küçük önizleme (imzalı bağlantı)
+    await expect.poll(() => page.getByTestId('media').locator('img').evaluateAll((imgs) => imgs.length === 3 && imgs.every((img) => (img as HTMLImageElement).naturalWidth > 0))).toBe(true)
     await axe(page, 'albüm (yönetici)')
     await shot(page, 'gal1-album-yonetici')
 
@@ -95,6 +104,13 @@ test.describe.serial('Galeri', () => {
     await expectNotification(page, `Galeri: ${TITLE} albümü eklendi`)
     await page.goto('/galeri')
     await expect(page.getByTestId('album-card').filter({ hasText: TITLE })).toContainText('5 medya')
+    await expect.poll(() => page.getByTestId('album-card').filter({ hasText: TITLE }).locator('img').evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+    const recentPhotos = page.getByRole('region', { name: 'Son eklenenler' }).getByRole('button', { name: `${TITLE} albümünü aç`, exact: true }).locator('img')
+    await expect(recentPhotos).toHaveCount(3)
+    for (const img of await recentPhotos.all()) {
+      await img.scrollIntoViewIfNeeded()
+      await expect.poll(() => img.evaluate((i) => (i as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+    }
     await page.getByTestId('album-card').filter({ hasText: TITLE }).click()
     await expect(page.getByTestId('media')).toHaveCount(5)
     await expect(page.getByRole('button', { name: 'Albümü kalıcı sil' })).toHaveCount(0)

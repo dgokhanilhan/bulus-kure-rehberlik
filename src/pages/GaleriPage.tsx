@@ -1,5 +1,5 @@
 // Galeri (0022): okulun özel fotoğraf/video albümleri. Kim neyi görür veritabanında (RLS + Storage); bu ekran yalnız arayüzdür.
-// Dosyalar kısa süreli imzalı bağlantıyla açılır; herkese açık kalıcı bağlantı yok. Izgarada yalnız küçük önizlemeler yüklenir.
+// Dosyalar kısa süreli imzalı bağlantıyla açılır; herkese açık kalıcı bağlantı yok. Izgarada küçük önizleme tercih edilir; yoksa görüntüleme dosyası veya orijinal kullanılır.
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -64,7 +64,7 @@ function GaleriHome() {
       (!cls || a.audience === 'okul' || (a.audience === 'sinif' && a.class_ids.includes(cls)) || (a.audience === 'kademe' && a.level === level)),
   )
   const covers = useCoverThumbs(list)
-  const signed = useSigned([...(recent.data ?? []).map((m) => m.thumb_path), ...Object.values(covers)])
+  const signed = useSigned([...(recent.data ?? []).flatMap(previewPaths), ...Object.values(covers).flatMap(previewPaths)])
   const open = (id: string) => setSp({ album: id })
 
   return (
@@ -127,7 +127,7 @@ function GaleriHome() {
           <div className="gstrip">
             {recent.data!.map((m) => (
               <button key={m.id} type="button" className="gthumb" onClick={() => open(m.album_id)} aria-label={`${m.gallery_albums.title} albümünü aç`}>
-                <Thumb url={m.thumb_path ? signed.data?.[m.thumb_path] : undefined} kind={m.kind} />
+                <Thumb media={m} signed={signed.data} />
               </button>
             ))}
           </div>
@@ -145,7 +145,7 @@ function GaleriHome() {
             {list.map((a) => (
               <button key={a.id} type="button" className="galbum card" onClick={() => open(a.id)} data-testid="album-card">
                 <span className="gcover">
-                  <Thumb url={covers[a.id] ? signed.data?.[covers[a.id]!] : undefined} kind="foto" />
+                  {covers[a.id] ? <Thumb media={covers[a.id]!} signed={signed.data} /> : <span className="gimg"><Icon name="image" size={28} /></span>}
                 </span>
                 <span className="stack" style={{ gap: 2, padding: '10px 12px', alignItems: 'flex-start' }}>
                   <b style={{ fontSize: 15, textAlign: 'left' }}>{a.title}</b>
@@ -170,8 +170,8 @@ function GaleriHome() {
 
 /** Albüm kapakları: seçilen kapak, yoksa albümün ilk fotoğrafının küçük önizlemesi. */
 function useCoverThumbs(list: Album[]) {
-  const [map, setMap] = useState<Record<string, string>>({})
-  const key = list.map((a) => `${a.id}:${a.cover_media_id ?? ''}`).join(',')
+  const [map, setMap] = useState<Record<string, PreviewMedia>>({})
+  const key = list.map((a) => `${a.id}:${a.cover_media_id ?? ''}:${a.media_count ?? 0}`).join(',')
   useEffect(() => {
     if (!list.length) return
     let off = false
@@ -179,16 +179,15 @@ function useCoverThumbs(list: Album[]) {
       const ids = list.map((a) => a.id)
       const { data } = await supabase
         .from('gallery_media')
-        .select('id, album_id, thumb_path, kind, sort_order')
+        .select('id, album_id, path, view_path, thumb_path, kind, sort_order')
         .in('album_id', ids)
         .eq('uploaded', true)
-        .not('thumb_path', 'is', null)
         .order('sort_order')
-      const out: Record<string, string> = {}
+      const out: Record<string, PreviewMedia> = {}
       for (const a of list) {
         const rows = (data ?? []).filter((m) => m.album_id === a.id)
         const pick = rows.find((m) => m.id === a.cover_media_id) ?? rows.find((m) => m.kind === 'foto') ?? rows[0]
-        if (pick?.thumb_path) out[a.id] = pick.thumb_path
+        if (pick) out[a.id] = pick
       }
       if (!off) setMap(out)
     })()
@@ -200,14 +199,25 @@ function useCoverThumbs(list: Album[]) {
   return map
 }
 
-function Thumb({ url, kind }: { url?: string; kind: 'foto' | 'video' }) {
+type PreviewMedia = Pick<Media, 'path' | 'view_path' | 'thumb_path' | 'kind'>
+function previewPaths(m: PreviewMedia) {
+  return [...new Set([m.thumb_path, ...(m.kind === 'foto' ? [m.view_path] : []), m.path].filter(Boolean) as string[])]
+}
+
+/** Eski yüklemelerde önizleme yoksa veya bozuksa erişim kontrollü orijinale geç. */
+function Thumb({ media, signed }: { media: PreviewMedia; signed?: Record<string, string> }) {
+  const [failed, setFailed] = useState<Set<string>>(new Set())
+  const paths = previewPaths(media)
+  const path = paths.find((p) => signed?.[p] && !failed.has(signed[p]!))
+  const url = path ? signed?.[path] : undefined
+  const fail = () => { if (url) setFailed((s) => new Set([...s, url])) }
   return (
     <span className="gimg">
-      {url ? <img src={url} alt="" loading="lazy" decoding="async" /> : <Icon name={kind === 'video' ? 'play' : 'image'} size={28} />}
-      {kind === 'video' && url && (
-        <span className="gplay" aria-hidden="true">
-          <Icon name="play" size={18} />
-        </span>
+      {url ? media.kind === 'video' && path === media.path ? (
+        <video src={`${url}#t=0.001`} muted playsInline preload="metadata" aria-hidden="true" onError={fail} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : <img src={url} alt="" loading="lazy" decoding="async" onError={fail} /> : <Icon name={media.kind === 'video' ? 'play' : 'image'} size={28} />}
+      {media.kind === 'video' && url && (
+        <span className="gplay" aria-hidden="true"><Icon name="play" size={18} /></span>
       )}
     </span>
   )
@@ -227,7 +237,7 @@ function AlbumView({ id }: { id: string }) {
   const a = album.data
   const items = media.data?.items ?? []
   const total = media.data?.total ?? 0
-  const signed = useSigned(items.map((m) => m.thumb_path))
+  const signed = useSigned(items.flatMap(previewPaths))
   const [light, setLight] = useState<{ i: number; show: boolean } | null>(null)
   const [edit, setEdit] = useState(false)
   const [pub, setPub] = useState(false)
@@ -441,7 +451,7 @@ function AlbumView({ id }: { id: string }) {
               aria-label={`${m.title ?? (m.kind === 'video' ? 'Video' : 'Fotoğraf')} ${i + 1}`}
               data-testid="media"
             >
-              <Thumb url={m.thumb_path ? signed.data?.[m.thumb_path] : undefined} kind={m.kind} />
+              <Thumb media={m} signed={signed.data} />
               {!m.approved && <span className="chip gold gbadge">Onay bekliyor</span>}
               {a.cover_media_id === m.id && <span className="chip up gbadge">Kapak</span>}
             </button>
