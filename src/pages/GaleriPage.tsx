@@ -145,7 +145,7 @@ function GaleriHome() {
             {list.map((a) => (
               <button key={a.id} type="button" className="galbum card" onClick={() => open(a.id)} data-testid="album-card">
                 <span className="gcover">
-                  {covers[a.id] ? <Thumb media={covers[a.id]!} signed={signed.data} /> : <Icon name="image" size={28} />}
+                  {covers[a.id] ? <Thumb media={covers[a.id]!} signed={signed.data} /> : <span className="gimg"><Icon name="image" size={28} /></span>}
                 </span>
                 <span className="stack" style={{ gap: 2, padding: '10px 12px', alignItems: 'flex-start' }}>
                   <b style={{ fontSize: 15, textAlign: 'left' }}>{a.title}</b>
