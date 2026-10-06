@@ -54,7 +54,15 @@ export interface UnresolvedRow {
   exam_id: string; exam_name: string; grade: number; exam_type: string; section_key: string; subject_code: string; q_no: number; raw_code: string | null; raw_text: string | null; outcome_grade: number | null
 }
 export const useUnresolved = () =>
-  useQuery({ queryKey: ['unresolved_outcomes'], queryFn: async () => ((await supabase.from('unresolved_outcomes').select('*').order('exam_name').order('section_key').order('q_no').limit(1000)).data ?? []) as UnresolvedRow[] })
+  useQuery({ queryKey: ['unresolved_outcomes'], queryFn: async () => {
+    const rows: UnresolvedRow[] = []
+    for (let start = 0; ; start += 1000) {
+      const { data, error } = await supabase.from('unresolved_outcomes').select('*').order('exam_name').order('exam_id').order('section_key').order('q_no').range(start, start + 999)
+      if (error) throw error
+      rows.push(...(data as UnresolvedRow[]))
+      if (data.length < 1000) return rows
+    }
+  } })
 
 export interface CurriculumVersion { id: string; name: string; curriculum_type: 'LEGACY' | 'TYMM'; grade: number; subject_code: string; year_from: number; year_to: number | null; active: boolean; source_title: string; source_url: string; notes: string | null }
 export const useCurriculumVersions = () =>
