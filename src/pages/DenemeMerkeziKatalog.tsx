@@ -364,6 +364,10 @@ function TopluEsle({ rows, onClose }: { rows: UnresolvedRow[]; onClose: () => vo
       {proposals.isError && <div className="err" role="alert">Katalog taranamadı. Kayıt yapılmadı. <button className="btn sm" onClick={() => proposals.refetch()}>Tekrar dene</button></div>}
       {proposals.data && <>
         <p>{proposals.data.filter((r) => r.proposal.certain).length} kesin eşleşme · {proposals.data.filter((r) => r.proposal.outcome && !r.proposal.certain).length} kontrol edilecek öneri · {proposals.data.filter((r) => !r.proposal.outcome).length} eşleşmeyen soru</p>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <button className="btn sm" disabled={busy || proposals.isFetching} onClick={() => setSelected(new Set(proposals.data!.filter((r) => r.proposal.outcome).map((r) => key(r.row))))}>Eşlenebilir tümünü seç</button>
+          <button className="btn sm" disabled={busy} onClick={() => setSelected(new Set())}>Seçimi temizle</button>
+        </div>
         <div className="tbl" tabIndex={0} role="region" aria-label="Toplu eşleme önerileri" style={{ maxHeight: 420, overflow: 'auto' }}>
           <table><thead><tr><th>Seç</th><th>Soru / PDF</th><th>Önerilen hedef</th><th>Durum</th></tr></thead><tbody>
             {proposals.data.map(({ row, proposal }) => {
