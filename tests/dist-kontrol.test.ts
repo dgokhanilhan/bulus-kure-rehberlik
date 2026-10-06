@@ -64,7 +64,7 @@ describe('dist bütünlük kontrolü', () => {
   })
 
   it('HTML önbelleğe alınabilir olursa yakalanır', () => {
-    writeFileSync(join(dist, '_headers'), HEADERS.replace(/(\n\/\n\s+Cache-Control: )[^\n]+/, '$1public, max-age=600'))
+    writeFileSync(join(dist, '_headers'), HEADERS.replace(/(\r?\n\/\r?\n\s+Cache-Control: )[^\r\n]+/, '$1public, max-age=600'))
     expect(checkDist(dist).join('\n')).toMatch(/"\/" için Cache-Control no-store değil/)
   })
 

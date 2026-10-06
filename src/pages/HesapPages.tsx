@@ -78,13 +78,13 @@ export function ConsentPage() {
           Kişisel veriler
         </div>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>Hoş geldin{profile ? `, ${profile.full_name.split(' ')[0]}` : ''}</h2>
-        <p className="m">Hesabın okul yönetimi tarafından açıldı. Devam etmeden önce kişisel verilerin nasıl işlendiğini anlatan aydınlatma metnini okuyup onaylaman gerekiyor.</p>
+        <p className="m">Hesabın okul yönetimi tarafından açıldı. Devam etmeden önce kişisel verilerin nasıl işlendiğini anlatan aydınlatma metnini okuman ve bilgi edindiğini belirtmen gerekiyor.</p>
         <Link to="/kvkk" target="_blank" rel="noreferrer">
           Aydınlatma metnini oku
         </Link>
         <button type="button" className="check" role="checkbox" aria-checked={ok} onClick={() => setOk((x) => !x)}>
           <span className={`box ${ok ? 'on' : ''}`}>{ok && <Icon name="check" size={13} stroke={3} />}</span>
-          <span style={{ flex: 1, fontSize: 14 }}>Aydınlatma metnini okudum; kişisel verilerimin bu kapsamda işlenmesini kabul ediyorum.</span>
+          <span style={{ flex: 1, fontSize: 14 }}>Kişisel Verilerin Korunması Hakkında Aydınlatma Metni’ni okudum ve kişisel verilerimin işlenmesi hakkında bilgi edindim.</span>
         </button>
         {err && (
           <div className="err" role="alert">
@@ -92,7 +92,7 @@ export function ConsentPage() {
           </div>
         )}
         <button className="btn pri" style={{ minHeight: 50, fontSize: 16 }} disabled={!ok || busy} onClick={accept}>
-          {busy && <span className="spinner" aria-hidden="true" />} Onayla ve devam et
+          {busy && <span className="spinner" aria-hidden="true" />} Devam et
         </button>
         <button type="button" className="btn ghost sm" onClick={() => signOut()}>
           Çıkış yap
