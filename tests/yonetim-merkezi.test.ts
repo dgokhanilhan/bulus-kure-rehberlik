@@ -24,6 +24,8 @@ describe('Ayarlar', () => {
     expect((await rehber.rpc('set_settings', { p: { 'genel.telefon': '0212' } })).error?.code).toBe('42501')
     expect((await admin.rpc('set_settings', { p: { 'bilinmeyen.ayar': 1 } })).error?.message).toMatch(/Bilinmeyen ayar/)
     expect((await admin.rpc('set_settings', { p: { 'modul.yemek': 'evet' } })).error?.message).toMatch(/açık\/kapalı/)
+    // Aynı değer yeniden yazılırsa işlem kaydı oluşmaz; önceki yerel testten bağımsız bir değişiklik yap.
+    expect((await admin.rpc('set_settings', { p: { 'genel.telefon': '0212 111 11 11' } })).error).toBeNull()
     expect((await admin.rpc('set_settings', { p: { 'genel.telefon': '0212 000 00 00' } })).error).toBeNull()
     const { data } = await svc.from('audit_log').select('meta').eq('action', 'settings').order('id', { ascending: false }).limit(1).single()
     expect(data!.meta).toMatchObject({ 'genel.telefon': { yeni: '0212 000 00 00' } })

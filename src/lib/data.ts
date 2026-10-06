@@ -540,6 +540,21 @@ export function useReports(sid?: string) {
   })
 }
 
+/** Yalnız görülebilen raporların sınav adları; LGS/genel analiz verisine ihtiyaç duymaz. */
+export function useReportExamNames(examIds: string[]) {
+  const ids = [...new Set(examIds)].sort()
+  return useQuery({
+    queryKey: ['report-exam-names', ids],
+    enabled: ids.length > 0,
+    staleTime: STALE,
+    queryFn: async (): Promise<Record<string, string>> => {
+      const { data, error } = await supabase.from('exams').select('id, name').in('id', ids)
+      if (error) throw error
+      return Object.fromEntries((data ?? []).map((exam) => [exam.id, exam.name]))
+    },
+  })
+}
+
 /** Okul ayarları (Bugün kuralları eşikleri). */
 export function useSchoolSettings() {
   return useQuery({

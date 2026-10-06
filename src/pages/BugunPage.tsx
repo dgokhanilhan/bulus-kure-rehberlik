@@ -33,7 +33,9 @@ export default function BugunPage() {
     const ds = dsq.data
     if (!ds || !students.data || !tasks.data) return null
     const st = { ...DEFAULT_TODAY, ...((settings.data?.bugun as object) ?? {}) }
-    const all = attention(ds, students.data, tasks.data, today, st)
+    // Bu veri kümesi yalnız LGS sınavlarını içerir. Görev gecikmeleri tüm sınıflarda izlenir.
+    const lgsStudents = students.data.filter((s) => s.grade === 8)
+    const all = attention(ds, lgsStudents, tasks.data, today, st)
     const idx = indexResults(ds.results)
     const L = ds.exams.at(-1)
     const P = ds.exams.at(-2)
@@ -43,7 +45,7 @@ export default function BugunPage() {
       sum = 0,
       c = 0
     if (L && P)
-      for (const s of students.data) {
+      for (const s of lgsStudents) {
         const a = idx.get(`${L.id}|${s.id}`)
         const b = idx.get(`${P.id}|${s.id}`)
         if (a && b) {

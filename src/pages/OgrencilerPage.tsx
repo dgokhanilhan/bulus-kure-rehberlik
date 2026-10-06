@@ -151,7 +151,7 @@ const genel = useGenelDataset()
                         {d == null ? '—' : `${d > 0 ? '↑ ' : d < 0 ? '↓ ' : ''}${fmt(Math.abs(d))}`}
                       </td>
                       <td>
-                        {net == null ? <span className="chip n">Girmedi</span> : rep ? <span className="chip down">{rep} tekrar eden hata</span> : <span className="chip up">Takipte</span>}
+                        {net == null ? <span className="chip n">{s.grade === 8 && dsq.data?.exams.length ? 'Girmedi' : 'Henüz sonuç yok'}</span> : rep ? <span className="chip down">{rep} tekrar eden hata</span> : <span className="chip up">Takipte</span>}
                       </td>
                     </tr>
                   )
