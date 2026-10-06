@@ -28,6 +28,17 @@ const give = (c: SupabaseClient, uid: string, extra: Record<string, unknown>) =>
   c.from('homework').insert({ school_id: SCHOOL, teacher_id: uid, title: 'Test ödev', due_on: plus(3), ...extra }).select('id').single()
 
 describe('Ödev verme yetkisi', () => {
+  it('toplu ödevde bir sınıf yetkisizse hiçbir sınıfa kayıt yapılmaz', async () => {
+    const t = await signIn('matematik')
+    const title = 'Test toplu yetki kontrolü'
+    const result = await t.from('homework').insert([c8A, c8B].map((class_id) => ({
+      school_id: SCHOOL, teacher_id: matId, class_id, course_id: mat, title, due_on: plus(3),
+    })))
+    expect(result.error).not.toBeNull()
+    const stored = await svc.from('homework').select('id').eq('title', title)
+    expect(stored.error).toBeNull()
+    expect(stored.data).toEqual([])
+  })
   it('öğretmen yalnız ders verdiği sınıf + derse ödev verir; veli ve öğrenci veremez', async () => {
     const t = await signIn('matematik')
     expect((await give(t, matId, { class_id: c8B, course_id: mat })).error).not.toBeNull() // 8/B'de dersi yok

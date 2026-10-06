@@ -1,6 +1,6 @@
 // Ödevler (Faz B · 0013). Öğretmen: ödev ver, kontrol et (Yaptı / Yapmadı / Eksik / Gelmedi / İzinli + not).
 // Veli ve öğrenci: bekleyen / geciken / tamamlanan ödevler. Yetki veritabanında (RLS + fonksiyonlar) zorlanır.
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -198,19 +198,22 @@ function HomeworkModal({
   const qc = useQueryClient()
   const toast = useToast()
   const clsOpts = classes.filter((c) => assignable.has(c.id) || c.id === h?.class_id)
-  const [cls, setCls] = useState(h?.class_id ?? clsOpts[0]?.id ?? '')
-  const coOpts = (courses.data ?? []).filter((c) => assignable.get(cls)?.has(c.id) || c.id === h?.course_id)
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([h?.class_id ?? clsOpts[0]?.id ?? ''].filter(Boolean))
+  const [multiple, setMultiple] = useState(false)
+  const cls = selectedClasses[0] ?? ''
+  const coOpts = (courses.data ?? []).filter((c) => (selectedClasses.length > 0 && selectedClasses.every((id) => assignable.get(id)?.has(c.id))) || c.id === h?.course_id)
   const [course, setCourse] = useState(h?.course_id ?? '')
   const courseId = coOpts.some((c) => c.id === course) ? course : (coOpts[0]?.id ?? '')
   const tt = useTimetable(cls)
   const [f, setF] = useState({ title: h?.title ?? '', description: h?.description ?? '', assigned_on: h?.assigned_on ?? todayISO(), due_on: h?.due_on ?? '' })
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const close = useCallback(() => { if (!busy) onClose() }, [busy, onClose])
   const [files, setFiles] = useState<File[]>([])
   const rules = useFileRules()
   // Yeni ödevde bu sınıfta bu dersin haftadaki bir sonraki günü önerilir
   useEffect(() => {
-    if (h || f.due_on || !tt.data || !courseId) return
+    if (h || selectedClasses.length !== 1 || f.due_on || !tt.data || !courseId) return
     const days = [...new Set(tt.data.filter((l) => l.course_id === courseId).map((l) => l.weekday))].sort()
     if (!days.length) return
     for (let i = 1; i <= 7; i++) {
@@ -218,41 +221,52 @@ function HomeworkModal({
       const dow = d.getUTCDay() || 7
       if (days.includes(dow)) return setF((x) => ({ ...x, due_on: d.toISOString().slice(0, 10) }))
     }
-  }, [tt.data, courseId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tt.data, courseId, selectedClasses.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function save() {
+    if (busy) return
+    if (!selectedClasses.length) return setErr('En az bir sınıf seç.')
+    if (!courseId) return setErr('Seçilen sınıflarda ödev verebileceğin ortak bir ders yok. Sınıf seçimini değiştir.')
     if (f.title.trim().length < 3) return setErr('Başlık en az 3 harf olmalı.')
     if (dueRequired && !f.due_on) return setErr('Son teslim tarihini seç.')
     if (f.due_on && f.due_on < f.assigned_on) return setErr('Son teslim, veriliş tarihinden önce olamaz.')
     setBusy(true)
     const row = { title: f.title.trim(), description: f.description.trim() || null, assigned_on: f.assigned_on, due_on: f.due_on || null, course_id: courseId }
     const res = h
-      ? await supabase.from('homework').update(row).eq('id', h.id).select('id').single()
-      : await supabase.from('homework').insert({ ...row, class_id: cls, school_id: profile!.school_id, teacher_id: profile!.id }).select('id').single()
+      ? await supabase.from('homework').update(row).eq('id', h.id).select('id, class_id')
+      : await supabase.from('homework').insert(selectedClasses.map((class_id) => ({ ...row, class_id, school_id: profile!.school_id, teacher_id: profile!.id }))).select('id, class_id')
     if (res.error) {
       setBusy(false)
       return setErr(errText(res.error))
     }
-    const upErr = files.length ? await uploadFiles('homework', res.data.id as string, files) : null
+    const saved = res.data ?? []
+    if (!saved.length) {
+      setBusy(false)
+      return setErr('Ödev kaydedilemedi. Sayfayı yenileyip tekrar dene.')
+    }
+    // Tek INSERT tüm sınıfları birlikte kaydeder; her ödevin eki ve öğrenci takibi ayrıdır.
+    for (const item of saved) {
+      const upErr = files.length ? await uploadFiles('homework', item.id, files).catch(() => 'Dosya yüklenemedi.') : null
+      if (upErr) toast(`${classes.find((c) => c.id === item.class_id)?.name ?? 'Sınıf'}: Ödev kaydedildi ama bir dosya yüklenemedi: ${upErr}`, 'warn')
+    }
     setBusy(false)
-    if (upErr) toast(`Ödev kaydedildi ama bir dosya yüklenemedi: ${upErr}`, 'warn')
     qc.invalidateQueries({ queryKey: ['attachments'] })
     qc.invalidateQueries({ queryKey: ['homework'] })
     qc.invalidateQueries({ queryKey: ['homework_students'] })
-    toast(h ? 'Ödev güncellendi' : 'Ödev verildi; öğrencilere ve velilere bildirim gitti')
+    toast(h ? 'Ödev güncellendi' : saved.length > 1 ? `${saved.length} sınıfa ödev verildi; öğrencilere ve velilere bildirim gitti` : 'Ödev verildi; öğrencilere ve velilere bildirim gitti')
     onClose()
-    if (!h) onSaved(res.data.id as string)
+    if (!h && saved.length === 1) onSaved(saved[0]!.id)
   }
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((x) => ({ ...x, [k]: e.target.value }))
   return (
     <Modal
       title={h ? 'Ödevi düzenle' : 'Ödev ver'}
-      sub={h ? undefined : 'Sınıftaki bütün öğrenciler ödevden sorumlu olur.'}
+      sub={h ? undefined : 'Seçilen sınıflardaki bütün öğrenciler ödevden sorumlu olur.'}
       width={620}
-      onClose={onClose}
+      onClose={close}
       footer={
         <>
-          <button className="btn" onClick={onClose}>
+          <button className="btn" onClick={onClose} disabled={busy}>
             Vazgeç
           </button>
           <button className="btn pri" onClick={save} disabled={busy}>
@@ -261,10 +275,38 @@ function HomeworkModal({
         </>
       }
     >
+      <fieldset disabled={busy} className="stack" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+      {!h && (
+        <label className="check" style={{ minHeight: 44 }}>
+          <input type="checkbox" style={{ width: 18, height: 18, flexShrink: 0, accentColor: 'var(--primary)' }} checked={multiple} onChange={(e) => {
+            setMultiple(e.target.checked)
+            if (!e.target.checked) setSelectedClasses((ids) => ids.length ? ids.slice(0, 1) : clsOpts[0] ? [clsOpts[0].id] : [])
+            setErr(null)
+          }} />
+          Birden fazla sınıf seç
+        </label>
+      )}
       <div className="grid2">
+        {multiple ? (
+          <fieldset className="field" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+            <legend style={{ fontWeight: 600 }}>Sınıflar</legend>
+            <div className="stack" style={{ gap: 4, maxHeight: 200, overflowY: 'auto' }}>
+              {clsOpts.map((c) => (
+                <label className="check" key={c.id} style={{ minHeight: 44 }}>
+                  <input type="checkbox" style={{ width: 18, height: 18, minHeight: 18, padding: 0, flexShrink: 0, accentColor: 'var(--primary)' }} checked={selectedClasses.includes(c.id)} onChange={(e) => {
+                    setSelectedClasses((ids) => e.target.checked ? [...ids, c.id] : ids.filter((id) => id !== c.id))
+                    setErr(null)
+                  }} />
+                  {c.name}
+                </label>
+              ))}
+            </div>
+            <span className="m" style={{ fontSize: 12 }}>{selectedClasses.length} sınıf seçildi</span>
+          </fieldset>
+        ) : (
         <label className="field" htmlFor="hCls">
           Sınıf
-          <select id="hCls" value={cls} disabled={!!h} onChange={(e) => setCls(e.target.value)}>
+          <select id="hCls" value={cls} disabled={!!h} onChange={(e) => setSelectedClasses([e.target.value])}>
             {LEVELS.map((lv) => {
               const cs = clsOpts.filter((c) => c.level === lv)
               return cs.length ? (
@@ -279,6 +321,7 @@ function HomeworkModal({
             })}
           </select>
         </label>
+        )}
         <label className="field" htmlFor="hCourse">
           Ders
           <select id="hCourse" value={courseId} onChange={(e) => setCourse(e.target.value)}>
@@ -288,6 +331,8 @@ function HomeworkModal({
               </option>
             ))}
           </select>
+          {multiple && <span className="m" style={{ fontSize: 12 }}>Seçilen sınıflarda ortak olan dersler gösterilir.</span>}
+          {multiple && selectedClasses.length > 0 && !coOpts.length && <span className="err" role="status">Bu sınıflarda ortak ders yetkin yok.</span>}
         </label>
       </div>
       <label className="field" htmlFor="hTitle">
@@ -324,6 +369,7 @@ function HomeworkModal({
           {err}
         </div>
       )}
+      </fieldset>
     </Modal>
   )
 }
