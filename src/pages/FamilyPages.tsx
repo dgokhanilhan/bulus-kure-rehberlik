@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { fmt, indexResults, studentExams, totalNet } from '@/lib/analiz'
 import { SUBJECT_SHORT } from '@/components/Tasks'
-import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useModules, useDataset, useMeals, useMeetings, useNotes, useReports, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
+import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useModules, useDataset, useMeals, useMeetings, useNotes, useReports, useReportExamNames, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
 import { GUN, addDays, ago, gen, isoDow, localDate, localHM, todayISO, trD, trDW, weekStart } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { examTrack } from '@/lib/roles'
@@ -48,7 +48,7 @@ export function OzetPage() {
   const { s, list, loading, choose, veli } = useMyStudent()
   const mods = useModules()
   // LGS bölümü yalnız 8. sınıf (classes.grade) ve LGS modülü açıkken; değilse deneme verisi hiç sorgulanmaz.
-  // 12. sınıf (YKS) için veri kaynağı yok: hiçbir sınav özeti gösterilmez. Görev, görüşme, rapor, not ve etütler herkes için.
+  // Görev, görüşme, rapor, not ve etütler herkes için.
   const lgs = mods.lgs && examTrack(s?.grade) === 'lgs'
   // 5–7 ve 9–12: genel denemeler (Deneme Analizi / TYT / AYT / YKS); LGS bölümü ve sorgusu bunlarda yok
   const genel = mods.lgs && !!s?.grade && s.grade !== 8 && ((s.grade >= 5 && s.grade <= 7) || (s.grade >= 9 && s.grade <= 12))
@@ -56,6 +56,7 @@ export function OzetPage() {
   const tasks = useTasks(s?.id)
   const meetings = useMeetings(s?.id)
   const reports = useReports(s?.id)
+  const reportExamNames = useReportExamNames((reports.data ?? []).map((r) => r.exam_id))
   const openReport = useOpenReport()
   const sessions = useStudySessions()
   const notes = useNotes(s?.id)
@@ -157,7 +158,7 @@ export function OzetPage() {
             {rs.length ? (
               rs.map((r) => (
                 <button key={r.id} className="btn sm" style={{ justifyContent: 'space-between' }} onClick={() => openReport({ id: r.id })}>
-                  <span>{dsq.data!.exams.find((e) => e.id === r.exam_id)?.name} raporu</span>
+                  <span>{reportExamNames.data?.[r.exam_id] ? `${reportExamNames.data[r.exam_id]} raporu` : 'Gelişim raporu'}</span>
                   <span className="m">{r.sent_at ? ago(r.sent_at) : ''}</span>
                 </button>
               ))
@@ -252,7 +253,7 @@ export function GorusmelerPage() {
 export function RaporlarPage() {
   const { s, loading } = useMyStudent()
   const reports = useReports(s?.id)
-  const dsq = useDataset()
+  const reportExamNames = useReportExamNames((reports.data ?? []).map((r) => r.exam_id))
   const openReport = useOpenReport()
   if (!s) return <Wait loading={loading} />
   return (
@@ -266,7 +267,7 @@ export function RaporlarPage() {
                 <Icon name="doc" size={22} />
               </span>
               <span style={{ flex: 1 }}>
-                <b style={{ display: 'block' }}>{dsq.data?.exams.find((e) => e.id === x.exam_id)?.name} · Gelişim raporu</b>
+                <b style={{ display: 'block' }}>{reportExamNames.data?.[x.exam_id] ? `${reportExamNames.data[x.exam_id]} · ` : ''}Gelişim raporu</b>
                 <span className="m" style={{ fontSize: 13 }}>
                   {x.sent_at ? ago(x.sent_at) : ''}
                 </span>
