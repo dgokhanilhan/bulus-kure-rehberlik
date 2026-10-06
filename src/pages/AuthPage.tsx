@@ -235,7 +235,7 @@ export function validateRegistration(f: RegForm): string[] {
   if (f.role === 'ogretmen' && !f.brans) err.push('Branşını seç.')
   if (f.role === 'ogrenci' && !f.cls) err.push('Sınıfını seç.')
   if (f.role === 'veli' && (!f.childName.trim() || !f.childCls)) err.push('Öğrencinin adını ve sınıfını yaz.')
-  if (!f.consent) err.push('Aydınlatma metnini onayla.')
+  if (!f.consent) err.push('Aydınlatma Metni’ni okuduğunu ve bilgi edindiğini belirt.')
   return err
 }
 
@@ -382,7 +382,7 @@ function RegisterForm({ onStep }: { onStep: (s: Step) => void }) {
         <div className="stack" style={{ gap: 2 }}>
           <button type="button" className="check" role="checkbox" aria-checked={f.consent} onClick={() => setF((x) => ({ ...x, consent: !x.consent }))}>
             <span className={`box ${f.consent ? 'on' : ''}`}>{f.consent && <Icon name="check" size={13} stroke={3} />}</span>
-            <span style={{ flex: 1, fontSize: 14 }}>Aydınlatma metnini okudum; kişisel verilerimin bu kapsamda işlenmesini kabul ediyorum.</span>
+            <span style={{ flex: 1, fontSize: 14 }}>Kişisel Verilerin Korunması Hakkında Aydınlatma Metni’ni okudum ve kişisel verilerimin işlenmesi hakkında bilgi edindim.</span>
           </button>
           <a href="/kvkk" target="_blank" rel="noreferrer" style={{ fontSize: 13, marginLeft: 34 }}>
             Aydınlatma metnini oku
