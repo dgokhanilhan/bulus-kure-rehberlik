@@ -200,12 +200,32 @@ async function drawTo(src: CanvasImageSource, w: number, h: number, max: number,
 export async function previews(file: File, kind: 'foto' | 'video') {
   try {
     if (kind === 'foto') {
-      const bmp = await createImageBitmap(file)
-      const thumb = await drawTo(bmp, bmp.width, bmp.height, 480, 0.8)
-      const view = Math.max(bmp.width, bmp.height) > 1600 || file.size > 1.5 * 1048576 ? await drawTo(bmp, bmp.width, bmp.height, 1600, 0.85) : null
-      const r = { thumb, view, width: bmp.width, height: bmp.height, duration: null as number | null }
-      bmp.close()
-      return r
+      let source: CanvasImageSource
+      let width: number, height: number
+      let release: () => void
+      try {
+        const bmp = await createImageBitmap(file)
+        source = bmp; width = bmp.width; height = bmp.height
+        release = () => bmp.close()
+      } catch {
+        // Eski Safari veya ImageBitmap ile açılamayan, <img> ile okunabilen fotoğraflar.
+        const url = URL.createObjectURL(file)
+        const img = new Image()
+        try {
+          await new Promise<void>((ok, bad) => {
+            img.onload = () => ok()
+            img.onerror = () => bad(new Error('fotoğraf'))
+            img.src = url
+          })
+        } catch (e) { URL.revokeObjectURL(url); throw e }
+        source = img; width = img.naturalWidth; height = img.naturalHeight
+        release = () => URL.revokeObjectURL(url)
+      }
+      try {
+        const thumb = await drawTo(source, width, height, 480, 0.8)
+        const view = Math.max(width, height) > 1600 || file.size > 1.5 * 1048576 ? await drawTo(source, width, height, 1600, 0.85) : null
+        return { thumb, view, width, height, duration: null as number | null }
+      } finally { release() }
     }
     const url = URL.createObjectURL(file)
     try {
