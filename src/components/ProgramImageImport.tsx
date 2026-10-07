@@ -134,5 +134,3 @@ export function ProgramImageImport({ classId, className, level, lessons, onClose
     </div>
   </Modal>
 }
-
-

@@ -74,6 +74,9 @@ test('gerçek yerel metin tanıma: görsel, kısaltma eşleme, yeni ders ve öni
   await expect(modal.getByRole('heading',{name:'Program önizlemesi'})).toBeVisible({timeout:120_000})
   await expect(modal.getByLabel('M karşılığı',{exact:true})).not.toHaveValue('')
   await expect(modal.getByLabel('MU karşılığı',{exact:true})).toHaveValue(await modal.getByLabel('M karşılığı',{exact:true}).inputValue())
+  // Fotoğraf çizgileri boş hücreye harf gibi okunabilir; kullanıcı önizlemede düzeltebilir.
+  for(const day of ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma']) await modal.getByLabel(`${day} 2. ders metni`,{exact:true}).fill('')
+  for(const day of ['Perşembe','Cuma']) await modal.getByLabel(`${day} 3. ders metni`,{exact:true}).fill('')
   // SD bazen SO okunabilir: hücre düzeltmesi aynı kodun eşleşmesini yeniler.
   await modal.getByLabel('Çarşamba 3. ders metni',{exact:true}).fill('SD')
   await expect(modal.getByLabel('SD karşılığı',{exact:true})).not.toHaveValue('')
