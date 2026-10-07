@@ -64,16 +64,15 @@ export const useUnresolved = () =>
     }
   } })
 
-export interface CurriculumVersion { id: string; name: string; curriculum_type: 'LEGACY' | 'TYMM'; grade: number; subject_code: string; year_from: number; year_to: number | null; active: boolean; source_title: string; source_url: string; notes: string | null }
+export interface CurriculumVersion { id: string; name: string; curriculum_type: 'LEGACY' | 'TYMM' | 'PDF'; publisher_id?: string | null; grade: number; subject_code: string; year_from: number; year_to: number | null; active: boolean; source_title: string; source_url: string; notes: string | null }
 export const useCurriculumVersions = () =>
-  useQuery({ queryKey: ['curriculum_versions'], staleTime: 10 * 60_000, queryFn: async () => ((await supabase.from('curriculum_versions').select('id, name, curriculum_type, grade, subject_code, year_from, year_to, active, source_title, source_url, notes').order('grade').order('subject_code')).data ?? []) as CurriculumVersion[] })
+  useQuery({ queryKey: ['curriculum_versions'], staleTime: 10 * 60_000, queryFn: async () => ((await supabase.from('curriculum_versions').select('id, name, curriculum_type, publisher_id, grade, subject_code, year_from, year_to, active, source_title, source_url, notes').order('grade').order('subject_code')).data ?? []) as CurriculumVersion[] })
 
 export interface Subject { code: string; name: string; short_name: string; levels: string[]; sort: number }
 export const useSubjects = () => useQuery({ queryKey: ['subjects'], staleTime: 60 * 60_000, queryFn: async () => ((await supabase.from('subjects').select('*').order('sort')).data ?? []) as Subject[] })
 
 /** Eğitim yılında geçerli sürüm (veritabanındaki curriculum_for ile aynı kural). */
-export const versionFor = (vs: CurriculumVersion[], grade: number, subject: string, year: number) =>
-  vs.filter((v) => v.active && v.grade === grade && v.subject_code === subject && v.year_from <= year && (v.year_to === null || v.year_to >= year)).sort((a, b) => b.year_from - a.year_from)[0] ?? null
+export {versionFor} from './curriculumVersions'
 
 export interface OutcomeRow { id: string; code: string | null; title: string; theme: string | null; unit: string | null; grade: number; subject_code: string; outcome_type: string; curriculum_version_id: string; source_note: string | null }
 /** Katalog araması: tüm katalog istemciye çekilmez; sürüm(ler) + metin/kod ile en çok 200 kayıt. */

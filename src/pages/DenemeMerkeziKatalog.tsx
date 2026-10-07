@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { Modal } from '@/components/Modal'
+import { PdfHedefEkle } from '@/components/PdfHedefEkle'
+import { pdfVersionsFor } from '@/lib/pdfOutcomes'
 import { useToast } from '@/components/Toast'
 import { EXAM_TYPE_TR, academicYear, cohortYear, outcomeTerm, type ExamType } from '@/lib/denemeGenel'
 import { searchOutcomes, useCurriculumVersions, useExamProfiles, useExamTemplates, useSubjects, useUnresolved, versionFor, type OutcomeRow, type TemplateRow, type UnresolvedRow } from '@/lib/denemeData'
@@ -174,7 +176,8 @@ export function KatalogBolumu() {
     if (subjOfGrade.length && !subjOfGrade.includes(subject)) setSubject(subjOfGrade[0]!)
   }, [subjOfGrade, subject])
   const v = versionFor(cv.data ?? [], grade, subject, year)
-  const res = useQuery({ queryKey: ['outcomes', v?.id, dq], enabled: !!v, queryFn: () => searchOutcomes({ versionIds: [v!.id], q: dq }) })
+  const vids=[...(v ? [v.id] : []),...pdfVersionsFor(cv.data??[],[grade],subject)]
+  const res = useQuery({ queryKey: ['outcomes', vids.join(), dq], enabled: !!vids.length, queryFn: () => searchOutcomes({ versionIds: vids, q: dq }) })
   const sname = (c: string) => subjects.data?.find((s) => s.code === c)?.name ?? c
   return (
     <>
@@ -202,13 +205,13 @@ export function KatalogBolumu() {
           <input id="katQ" value={q} onChange={(e) => setQ(e.target.value)} placeholder="ör. T.7.3 ya da oran" />
         </label>
       </section>
-      {v ? (
+      {vids.length ? (
         <section className="card a" style={{ overflow: 'hidden' }} aria-label="Kazanımlar">
           <div style={{ padding: '12px 16px', fontSize: 13 }}>
-            <b>{v.name}</b> <span className={`chip ${v.curriculum_type === 'TYMM' ? 'up' : 'n'}`}>{v.curriculum_type === 'TYMM' ? 'Türkiye Yüzyılı Maarif Modeli' : 'Önceki program'}</span>
+            <b>{v?.name ?? 'Okulun PDF yayın hedefleri'}</b> <span className={`chip ${v?.curriculum_type === 'TYMM' ? 'up' : 'n'}`}>{v ? v.curriculum_type === 'TYMM' ? 'Türkiye Yüzyılı Maarif Modeli' : 'Önceki program' : 'PDF yayın hedefleri'}</span>
             <div className="m">
-              Kaynak: <a href={v.source_url} target="_blank" rel="noreferrer noopener">{v.source_title}</a>
-              {v.notes ? ` · ${v.notes}` : ''}
+              Kaynak: {v?.source_url ? <a href={v.source_url} target="_blank" rel="noreferrer noopener">{v.source_title}</a> : 'Yönetici tarafından PDF metninden eklendi'}
+              {v?.notes ? ` · ${v.notes}` : ''}
             </div>
           </div>
           <div className="tbl" tabIndex={0} role="region" aria-label="Tablo (yana kaydırılabilir)">
@@ -239,9 +242,11 @@ export function KatalogBolumu() {
 
 // ---------------------------------------------------------------- eşleşmeyen kazanımlar
 export function EslesmeyenBolumu() {
+  const {role}=useAuth()
   const un = useUnresolved()
   const [pick, setPick] = useState<UnresolvedRow | null>(null)
   const [bulk, setBulk] = useState<UnresolvedRow[] | null>(null)
+  const [adding,setAdding]=useState<UnresolvedRow[] | null>(null)
   const groups = useMemo(() => {
     const m = new Map<string, UnresolvedRow[]>()
     for (const r of un.data ?? []) m.set(r.exam_id, [...(m.get(r.exam_id) ?? []), r])
@@ -253,13 +258,14 @@ export function EslesmeyenBolumu() {
         PDF'teki kazanım kodu ya da metni katalogla güvenle eşleşmediyse soru burada bekler; kazanım analizi bu sorular olmadan yapılır (sonuç ve net etkilenmez). Doğru kazanımı seçip eşle;
         yönetici "takma ad olarak kaydet" derse aynı yayının sonraki denemelerinde bu kod kendiliğinden eşleşir.
       </p>
-      {!!un.data?.length && <div className="btns a"><button className="btn pri" onClick={() => setBulk(un.data!)}>Tümünü otomatik eşle</button></div>}
+      {!!un.data?.length && <div className="btns a"><button className="btn pri" onClick={() => setBulk(un.data!)}>Tümünü otomatik eşle</button>{role==='admin'&&<button className="btn" onClick={()=>setAdding(un.data!)}>Tümünü ekle</button>}</div>}
       {un.isError && <div className="err" role="alert">Eşleşmeyen hedefler yüklenemedi. Sayfayı yenileyip tekrar dene.</div>}
       {groups.map((g) => (
         <section key={g[0]!.exam_id} className="card a" style={{ overflow: 'hidden' }} aria-label={g[0]!.exam_name}>
           <div style={{ padding: '12px 16px' }}>
             <b>{g[0]!.exam_name}</b> <span className="m" style={{ fontSize: 13 }}>{g[0]!.grade}. sınıf · {g[0]!.exam_type} · {g.length} soru</span>
             <button className="btn sm" style={{ marginLeft: 12 }} onClick={() => setBulk(g)}>Bu denemeyi otomatik eşle</button>
+            {role==='admin'&&<button className="btn sm" style={{marginLeft:8}} onClick={()=>setAdding(g)}>Bu denemede tümünü ekle</button>}
           </div>
           <div className="tbl" tabIndex={0} role="region" aria-label="Tablo (yana kaydırılabilir)">
             <table>
@@ -271,7 +277,7 @@ export function EslesmeyenBolumu() {
                     <td className="num">{r.q_no}</td>
                     <td className="mono">{r.raw_code ?? '—'}</td>
                     <td style={{ fontSize: 13 }}>{r.raw_text ?? '—'}</td>
-                    <td><button className="btn sm" onClick={() => setPick(r)} aria-label={`${r.section_key} ${r.q_no}. soruyu eşle`}>Eşle</button></td>
+                    <td><div className="btns"><button className="btn sm" onClick={() => setPick(r)} aria-label={`${r.section_key} ${r.q_no}. soruyu eşle`}>Eşle</button>{role==='admin'&&<button className="btn sm" disabled={!r.raw_text?.trim()} onClick={()=>setAdding([r])} aria-label={`${r.section_key} ${r.q_no}. hedefi ekle`}>Ekle</button>}</div></td>
                   </tr>
                 ))}
               </tbody>
@@ -281,14 +287,15 @@ export function EslesmeyenBolumu() {
       ))}
       {!groups.length && <div className="empty a">{un.isLoading ? 'Yükleniyor…' : 'Eşleşmeyen kazanım yok.'}</div>}
       {pick && <Esle row={pick} onClose={() => setPick(null)} />}
-      {bulk && <TopluEsle rows={bulk} onClose={() => setBulk(null)} />}
+      {bulk && <TopluEsle rows={bulk} onClose={() => setBulk(null)} onAdd={role==='admin' ? ()=>{setAdding(bulk);setBulk(null)} : undefined} />}
+      {adding&&<PdfHedefEkle rows={adding} onClose={()=>setAdding(null)} />}
     </>
   )
 }
 
 
 /** Katalog/sürüm sınırlaması sunucudaki set_item_outcome kuralıyla aynıdır. */
-function TopluEsle({ rows, onClose }: { rows: UnresolvedRow[]; onClose: () => void }) {
+function TopluEsle({ rows, onClose, onAdd }: { rows: UnresolvedRow[]; onClose: () => void; onAdd?:()=>void }) {
   const qc = useQueryClient()
   const [selected, setSelected] = useState<Set<string> | null>(null)
   const [busy, setBusy] = useState(false)
@@ -299,12 +306,12 @@ function TopluEsle({ rows, onClose }: { rows: UnresolvedRow[]; onClose: () => vo
   const proposals = useQuery({
     queryKey: ['bulk-outcome-proposals', rows.map(key).join('|')],
     queryFn: async () => {
-      const versions = await supabase.from('curriculum_versions').select('id, name, curriculum_type, grade, subject_code, year_from, year_to, active, source_title, source_url, notes').eq('active', true)
+      const versions = await supabase.from('curriculum_versions').select('id, name, curriculum_type, publisher_id, grade, subject_code, year_from, year_to, active, source_title, source_url, notes').eq('active', true)
       if (versions.error) throw versions.error
       const result: { row: UnresolvedRow; proposal: OutcomeProposal }[] = []
       const catalogs = new Map<string, OutcomeRow[]>()
       for (const examId of [...new Set(rows.map((r) => r.exam_id))]) {
-        const exam = await supabase.from('exams').select('exam_date, exam_template_id').eq('id', examId).single()
+        const exam = await supabase.from('exams').select('exam_date, exam_template_id, publisher_id').eq('id', examId).single()
         if (exam.error) throw exam.error
         const sections = exam.data.exam_template_id ? await supabase.from('exam_template_sections').select('key, outcome_grades').eq('template_id', exam.data.exam_template_id) : { data: [], error: null }
         if (sections.error) throw sections.error
@@ -312,6 +319,7 @@ function TopluEsle({ rows, onClose }: { rows: UnresolvedRow[]; onClose: () => vo
         for (const row of rows.filter((r) => r.exam_id === examId)) {
           const grades: number[] = sections.data?.find((s) => s.key === row.section_key)?.outcome_grades ?? [row.grade]
           const ids = grades.map((g) => versionFor(versions.data, g, row.subject_code, cohortYear(year, row.grade, g))?.id).filter((id): id is string => !!id)
+          ids.push(...pdfVersionsFor(versions.data,grades,row.subject_code,exam.data.publisher_id))
           const catalogKey = [...ids].sort().join(',')
           if (!catalogs.has(catalogKey)) {
             const catalog: OutcomeRow[] = []
@@ -358,7 +366,7 @@ function TopluEsle({ rows, onClose }: { rows: UnresolvedRow[]; onClose: () => vo
   }
   return (
     <Modal title="Toplu otomatik eşleme" width={940} onClose={close}
-      footer={<><button className="btn" disabled={busy} onClick={onClose}>Kapat</button><button className="btn pri" disabled={busy || !ready.length || proposals.isFetching} onClick={save}>Seçilen {ready.length} soruyu eşle</button></>}>
+      footer={<><button className="btn" disabled={busy} onClick={onClose}>Kapat</button>{onAdd&&<button className="btn" disabled={busy} onClick={onAdd}>Tümünü ekle</button>}<button className="btn pri" disabled={busy || !ready.length || proposals.isFetching} onClick={save}>Seçilen {ready.length} soruyu eşle</button></>}>
       <p className="m">Tam kod/metin eşleşmeleri seçili gelir. Eksik kod önerilerini kontrol ederek seçebilirsin. Belirsiz hedefler bekler; sonuç, net ve puan değişmez.</p>
       {proposals.isFetching && <p role="status"><span className="spinner" /> {rows.length} soru için uygun müfredat taranıyor…</p>}
       {proposals.isError && <div className="err" role="alert">Katalog taranamadı. Kayıt yapılmadı. <button className="btn sm" onClick={() => proposals.refetch()}>Tekrar dene</button></div>}
@@ -394,7 +402,7 @@ function Esle({ row, onClose }: { row: UnresolvedRow; onClose: () => void }) {
   const { role } = useAuth()
   const cv = useCurriculumVersions()
   const qc = useQueryClient(), toast = useToast()
-  const exam = useQuery({ queryKey: ['exam-date', row.exam_id], queryFn: async () => (await supabase.from('exams').select('exam_date').eq('id', row.exam_id).single()).data as { exam_date: string } })
+  const exam = useQuery({ queryKey: ['exam-date', row.exam_id], queryFn: async () => (await supabase.from('exams').select('exam_date,publisher_id').eq('id', row.exam_id).single()).data as { exam_date: string;publisher_id:string|null } })
   const [q, setQ] = useState((row.raw_code && outcomeCode(row.raw_code, row.subject_code)) || row.raw_text?.slice(0, 30) || '')
   const [alias, setAlias] = useState(false)
   const [sel, setSel] = useState<OutcomeRow | null>(null)
@@ -402,7 +410,7 @@ function Esle({ row, onClose }: { row: UnresolvedRow; onClose: () => void }) {
   const grades = ['TYT', 'AYT', 'YKS'].includes(row.exam_type) ? [9, 10, 11, 12] : [row.grade]
   const year = exam.data ? Number(academicYear(exam.data.exam_date).slice(0, 4)) : null
   // Öğrenci grubu kuralı: konu sınıfının programı, öğrencilerin o sınıfı okuduğu yılınki (sunucu da aynı kuralla denetler)
-  const vids = year === null ? [] : grades.map((g) => versionFor(cv.data ?? [], g, row.subject_code, cohortYear(year, row.grade, g))?.id).filter((x): x is string => !!x)
+  const vids = year === null ? [] : [...grades.map((g) => versionFor(cv.data ?? [], g, row.subject_code, cohortYear(year, row.grade, g))?.id).filter((x): x is string => !!x),...pdfVersionsFor(cv.data??[],grades,row.subject_code,exam.data!.publisher_id)]
   const res = useQuery({ queryKey: ['outcomes', vids.join(), q], enabled: vids.length > 0, queryFn: () => searchOutcomes({ versionIds: vids, q, limit: 50 }) })
   async function save() {
     if (!sel) return

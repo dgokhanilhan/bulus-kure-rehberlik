@@ -15,7 +15,7 @@ test('toplu kazanım eşleme: müfredat, seçim, belirsizlik ve kısmi hata sonr
     const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
     if (path.endsWith('/unresolved_outcomes')) return json(rows.filter(r => !saved.has(r.q_no)))
     if (path.endsWith('/curriculum_versions')) return json([{ id: version, name: 'Eski program', curriculum_type: 'LEGACY', grade: 9, subject_code: 'MAT', year_from: 2000, year_to: 2023, active: true }, { id: '44444444-4444-4444-8444-444444444444', name: 'Yeni program', curriculum_type: 'TYMM', grade: 9, subject_code: 'MAT', year_from: 2024, year_to: null, active: true }])
-    if (path.endsWith('/exams') && url.searchParams.get('select') === 'exam_date,exam_template_id') return json({ exam_date: '2026-10-06', exam_template_id: exam })
+    if (path.endsWith('/exams') && url.searchParams.get('select') === 'exam_date,exam_template_id,publisher_id') return json({ exam_date: '2026-10-06', exam_template_id: exam, publisher_id:null })
     if (path.endsWith('/exam_template_sections') && url.searchParams.get('select') === 'key,outcome_grades') return json([{ key: 'MAT', outcome_grades: [9] }])
     if (path.endsWith('/learning_outcomes')) {
       expect(url.searchParams.get('curriculum_version_id')).toContain(version)
