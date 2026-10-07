@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { codeKey, matchProgramCourse, validCorners, readProgramImage } from '../src/lib/programImage'
+import { codeKey, emptyProgramColumns, programPeriod, matchProgramCourse, validCorners, readProgramImage } from '../src/lib/programImage'
 const course = (id: string, name: string, short_name = id) => ({ id, name, short_name, active: true })
 const courses = [course('mat', 'Matematik'), course('ing', 'İngilizce'), course('reh', 'Rehberlik'), course('sd', 'Seçmeli Ders'), course('tur', 'Türkçe')]
 describe('Program görselindeki ders eşleşmeleri', () => {
+  it('öğle arası sayımından yalnız bütün günlerde boş kalan sütun çıkarılır', () => {
+    const cells = [1,2,3,4,5].flatMap((weekday) => [1,2,3].map((period) => ({weekday,period,text:period===2 ? '' : weekday===5 && period===3 ? '' : 'M',confidence:100})))
+    const omitted=emptyProgramColumns(cells)
+    expect(omitted).toEqual([2])
+    expect(programPeriod(2,omitted)).toBeNull()
+    expect(programPeriod(3,omitted)).toBe(2)
+    expect(programPeriod(3,[])).toBe(3)
+  })
   it('iptal edilmiş okuma çalışan veya görsel işlemi başlatmaz', async () => {
     const controller = new AbortController(); controller.abort()
     await expect(readProgramImage(null as unknown as HTMLCanvasElement,10,5,()=>{},controller.signal)).rejects.toThrow('İşlem iptal edildi.')

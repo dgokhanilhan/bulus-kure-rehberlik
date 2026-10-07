@@ -44,19 +44,19 @@ test('gerçek yerel metin tanıma: görsel, kısaltma eşleme, yeni ders ve öni
   await page.getByRole('button',{name:'Görselden yükle',exact:true}).click()
   const modal = page.getByRole('dialog',{name:'8/A · Görselden ders programı yükle'})
   const png = await page.evaluate(() => {
-    const c = document.createElement('canvas'); c.width=600; c.height=600
-    const ctx=c.getContext('2d')!; ctx.fillStyle='white'; ctx.fillRect(0,0,600,600)
-    const labels=['M','ENG','MU','PSK','REH','SD','TURKCE','','MATEMATIK','']
+    const c = document.createElement('canvas'); c.width=900; c.height=600
+    const ctx=c.getContext('2d')!; ctx.fillStyle='white'; ctx.fillRect(0,0,900,600)
+    const labels=['M','','ENG','MU','','PSK','REH','','SD','TURKCE','','','MATEMATIK','','']
     ctx.fillStyle='black'; ctx.font='bold 28px Arial'; ctx.fillText('12/A',20,25)
-    for(let i=0;i<10;i++){ const x=40+(i%2)*260, y=40+Math.floor(i/2)*100; ctx.strokeRect(x,y,260,100);ctx.fillText(labels[i]!,x+35,y+45) }
+    for(let i=0;i<15;i++){ const x=40+(i%3)*(820/3), y=40+Math.floor(i/3)*100; ctx.strokeRect(x,y,820/3,100);ctx.fillText(labels[i]!,x+35,y+45) }
     return c.toDataURL('image/png').split(',')[1]!
   })
   await modal.getByLabel('Program görseli').setInputFiles({name:'program.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')})
   const img=modal.getByRole('img',{name:'Ders hücrelerinin köşelerini seç'})
   await expect(img).toBeVisible()
   const box=(await img.boundingBox())!
-  for(const [x,y] of [[40,40],[560,40],[560,540],[40,540]]) await img.click({position:{x:x!*box.width/600,y:y!*box.height/600}})
-  await modal.getByLabel('Ders sütunu sayısı (boş saatler dahil)').fill('2')
+  for(const [x,y] of [[40,40],[860,40],[860,540],[40,540]]) await img.click({position:{x:x!*box.width/900,y:y!*box.height/600}})
+  await modal.getByLabel('Ders sütunu sayısı (boş saatler dahil)').fill('3')
   let release!: () => void
   const gate = new Promise<void>((resolve) => { release = resolve })
   let handled!: () => void
@@ -75,7 +75,7 @@ test('gerçek yerel metin tanıma: görsel, kısaltma eşleme, yeni ders ve öni
   await expect(modal.getByLabel('M karşılığı',{exact:true})).not.toHaveValue('')
   await expect(modal.getByLabel('MU karşılığı',{exact:true})).toHaveValue(await modal.getByLabel('M karşılığı',{exact:true}).inputValue())
   // SD bazen SO okunabilir: hücre düzeltmesi aynı kodun eşleşmesini yeniler.
-  await modal.getByLabel('Çarşamba 2. ders metni',{exact:true}).fill('SD')
+  await modal.getByLabel('Çarşamba 3. ders metni',{exact:true}).fill('SD')
   await expect(modal.getByLabel('SD karşılığı',{exact:true})).not.toHaveValue('')
   await modal.getByLabel('PSK karşılığı',{exact:true}).selectOption('new')
   await modal.getByLabel('Yeni ders adı',{exact:true}).fill('Program Test Dersi')
@@ -84,6 +84,8 @@ test('gerçek yerel metin tanıma: görsel, kısaltma eşleme, yeni ders ve öni
   }
   const save=modal.getByRole('button',{name:'Programı kaydet',exact:true})
   await expect(save).toBeDisabled()
+  await modal.getByLabel(/Tamamen boş sütunları/).check()
+  await expect(modal.getByText('Öğle arası',{exact:false}).first()).toBeVisible()
   await modal.getByLabel('Önizlemeyi kontrol ettim; 8/A sınıfına kaydet').check()
   await expect(save).toBeEnabled()
   // Migration onayından bağımsız UI testi: canlı/yerel program yazılmaz.
@@ -93,6 +95,7 @@ test('gerçek yerel metin tanıma: görsel, kısaltma eşleme, yeni ders ve öni
   await save.click()
   await expect(modal).not.toBeVisible()
   expect(payload.p_cells).toHaveLength(8)
+  expect((payload.p_cells as {period:number}[]).every((c) => c.period <= 2)).toBe(true)
   expect(payload.p_courses).toEqual([{key:'PSK',name:'Program Test Dersi'}])
   expect(payload.p_replace).toBe(false)
 })

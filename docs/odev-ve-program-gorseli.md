@@ -9,7 +9,7 @@
 3. Yalnız ders hücrelerinin dış köşelerini sol üst, sağ üst, sağ alt, sol alt sırasıyla seç. Gün adları, saatler ve sınıf başlığı alanın dışında kalmalı.
 4. Gün ve sütun sayısını belirt; öğle arası gibi boş saatler sütun sayısına dahildir. “Görseli tanı”ya bas.
 5. M/MU → Matematik, REH → Rehberlik, ENG → İngilizce, SD → Seçmeli Ders eşleşmeleri katalogda tek bir uygun aktif ders varsa seçilir. Bilinmeyen veya belirsiz kodları mevcut derse eşleştir ya da yeni ders adı gir. Bir kodun seçimi tüm hücrelerine uygulanır.
-6. Önizlemede yanlış okunan metinleri düzelt. Fotoğraflarda kırışıklık, eğrilik ve bölünmüş yazılar hataya yol açabilir; okuma kesin kabul edilmez. Boş görünen ders hücresini de kontrol et.
+6. Önizlemede yanlış okunan metinleri düzelt. Fotoğraflarda kırışıklık, eğrilik ve bölünmüş yazılar hataya yol açabilir; okuma kesin kabul edilmez. Boş görünen ders hücresini de kontrol et. Şablonun tamamında boş olan öğle arası sütunu okulun ders saatlerine dahil değilse “Tamamen boş sütunları öğle arası say” seçeneğini aç. Sonraki derslerin numaraları önizlemede yeniden sıralanır; tek bir gündeki boş saat bu sayımdan çıkarılmaz.
 7. Çakışan mevcut dersler varsayılan olarak korunur. Değiştirmek istiyorsan ilgili seçeneği işaretle. Boş hücreler hiçbir zaman ders silmez.
 8. Önizleme onayını işaretleyip kaydet. Yeni ders ve program hücreleri tek veritabanı işlemiyle kaydedilir; hata olursa tüm işlem geri alınır.
 

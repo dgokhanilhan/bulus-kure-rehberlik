@@ -2,6 +2,12 @@ type ProgramCourse = { id: string; name: string; short_name: string; active: boo
 export type Point = { x: number; y: number }
 export type ProgramCell = { weekday: number; period: number; text: string; confidence: number }
 export const codeKey = (s: string) => s.toLocaleUpperCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/İ/g, 'I').replace(/[^A-Z0-9]/g, '')
+export function emptyProgramColumns(cells: ProgramCell[]): number[] {
+  return [...new Set(cells.map((c) => c.period))].filter((p) => cells.filter((c) => c.period === p).every((c) => !codeKey(c.text))).sort((a,b) => a-b)
+}
+export function programPeriod(period: number, omitted: number[]): number | null {
+  return omitted.includes(period) ? null : period - omitted.filter((p) => p < period).length
+}
 // Yalnız kullanıcı tarafından açıklanmış kısaltmalar ve açık ders adları.
 const aliases: Record<string, string> = { M: 'Matematik', MU: 'Matematik', MATEMATIK: 'Matematik', REH: 'Rehberlik', ENG: 'İngilizce', SD: 'Seçmeli Ders', TURKCE: 'Türkçe', FEN: 'Fen Bilimleri', SOSYAL: 'Sosyal Bilgiler', DIN: 'Din Kültürü ve Ahlak Bilgisi', BEDEN: 'Beden Eğitimi', MUZIK: 'Müzik', ALMANCA: 'Almanca', BIYOLOJI: 'Biyoloji', KIMYA: 'Kimya', TARIH: 'Tarih', COGRAFYA: 'Coğrafya', FELSEFE: 'Felsefe' }
 export function matchProgramCourse(text: string, courses: ProgramCourse[]): string {

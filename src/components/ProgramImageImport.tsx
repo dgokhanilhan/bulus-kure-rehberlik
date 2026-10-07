@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/AuthProvider'
 import { useAssignments, useCourses, type Lesson } from '@/lib/data'
 import { supabase } from '@/lib/supabase'
-import { codeKey, matchProgramCourse, readProgramImage, rectifyProgram, validCorners, type Point, type ProgramCell } from '@/lib/programImage'
+import { codeKey, emptyProgramColumns, programPeriod, matchProgramCourse, readProgramImage, rectifyProgram, validCorners, type Point, type ProgramCell } from '@/lib/programImage'
 import { GUN } from '@/lib/format'
 import { Modal } from './Modal'
 import { useToast } from './Toast'
@@ -27,6 +27,7 @@ export function ProgramImageImport({ classId, className, level, lessons, onClose
   const [remember, setRemember] = useState(false)
   const [busy, setBusy] = useState(false), [percent, setPercent] = useState(0), [error, setError] = useState('')
   const [overwrite, setOverwrite] = useState(false), [confirmed, setConfirmed] = useState(false)
+  const [skipBlankColumns, setSkipBlankColumns] = useState(false)
   const imageRef = useRef<HTMLImageElement>(null), controller = useRef<AbortController | null>(null)
   const close = useCallback(() => { if (!busy) onClose() }, [busy, onClose])
   useEffect(() => () => controller.current?.abort(), [])
@@ -54,10 +55,12 @@ export function ProgramImageImport({ classId, className, level, lessons, onClose
     return saved && (saved.id === 'new' || !saved.id || opts.some((c) => c.id === saved.id)) ? saved : { id: matchProgramCourse(text, opts), name: '' }
   }
   const unresolved = codes.filter((key) => { const m = choice(key); return !m.id || (m.id === 'new' && m.name.trim().length < 2) })
-  const filled = cells.filter((c) => codeKey(c.text))
+  const blankColumns = emptyProgramColumns(cells)
+  const omitted = skipBlankColumns ? blankColumns : []
+  const filled = cells.filter((c) => codeKey(c.text)).map((c) => ({...c,period:programPeriod(c.period,omitted)!}))
   const conflicts = filled.filter((c) => lessons.some((l) => l.weekday === c.weekday && l.period === c.period))
   async function recognize() {
-    setError(''); setBusy(true); setPercent(0); setConfirmed(false)
+    setError(''); setBusy(true); setPercent(0); setConfirmed(false); setSkipBlankColumns(false)
     const abort = new AbortController(); controller.current = abort
     try { setCells(await readProgramImage(rectifyProgram(imageRef.current!, points), periods, days, setPercent, abort.signal)); setMap(remembered()) }
     catch (e) { setError(abort.signal.aborted ? 'Okuma iptal edildi.' : e instanceof Error ? e.message : 'Görsel okunamadı.') }
@@ -121,7 +124,8 @@ export function ProgramImageImport({ classId, className, level, lessons, onClose
         <h3>Ders eşleştirmeleri</h3><p className="m">Bilinmeyen kısaltmayı mevcut derse eşleştir veya “Yeni ders oluştur” seç. Aynı kısaltma tüm hücrelerde birlikte eşleşir.</p>
         {codes.map((key) => { const m = choice(key); return <div className="btns" key={key}><b style={{ minWidth: 90 }}>{key}</b><label className="field">{key} karşılığı<select aria-label={`${key} karşılığı`} value={m.id} disabled={busy} onChange={(e) => { setMap((v) => ({ ...v, [key]: { ...m, id: e.target.value } })); setConfirmed(false) }}><option value="">Ders seç</option>{opts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}<option value="new">Yeni ders oluştur</option></select></label>{m.id === 'new' && <label className="field">Yeni ders adı<input maxLength={60} value={m.name} disabled={busy} onChange={(e) => { setMap((v) => ({ ...v, [key]: { ...m, name: e.target.value } })); setConfirmed(false) }} /></label>}</div> })}
         <h3>Program önizlemesi</h3><p className="m">Yanlış okunan metni hücrede düzeltebilirsin. Okunamayan bir hücreye ders adını yaz; öğle arası gibi boş saatleri boş bırak.</p>
-        <div className="tbl"><table><thead><tr><th>Gün / ders</th><th>Okunan metin</th><th>Eşleşen ders</th></tr></thead><tbody>{cells.map((c, i) => { const m = choice(c.text); return <tr key={i}><td>{GUN[c.weekday]} {c.period}.</td><td><input aria-label={`${GUN[c.weekday]} ${c.period}. ders metni`} value={c.text} disabled={busy} onChange={(e) => { setCells((v) => v.map((x,j) => j === i ? { ...x, text: e.target.value } : x)); setConfirmed(false) }} />{c.text && c.confidence < 65 && <small className="m">Okumayı kontrol et</small>}</td><td>{m.id === 'new' ? `Yeni: ${m.name || 'ad bekleniyor'}` : opts.find((o) => o.id === m.id)?.name ?? (c.text ? 'Eşleştirme gerekli' : 'Boş · korunacak')}</td></tr> })}</tbody></table></div>
+        {blankColumns.length > 0 && <label className="check"><input type="checkbox" checked={skipBlankColumns} disabled={busy} onChange={(e) => { setSkipBlankColumns(e.target.checked); setConfirmed(false) }} /> Tamamen boş sütunları ({blankColumns.join(', ')}) öğle arası say ve ders saatlerini yeniden numaralandır</label>}
+        <div className="tbl"><table><thead><tr><th>Gün / ders</th><th>Okunan metin</th><th>Eşleşen ders</th></tr></thead><tbody>{cells.map((c, i) => { const m = choice(c.text); return <tr key={i}><td>{GUN[c.weekday]} {programPeriod(c.period,omitted) === null ? 'Öğle arası' : (programPeriod(c.period,omitted) + '.')}{skipBlankColumns && <small className="m" style={{display:'block'}}>Görselde {c.period}. sütun</small>}</td><td><input aria-label={`${GUN[c.weekday]} ${c.period}. ders metni`} value={c.text} disabled={busy} onChange={(e) => { setCells((v) => v.map((x,j) => j === i ? { ...x, text: e.target.value } : x)); setConfirmed(false) }} />{c.text && c.confidence < 65 && <small className="m">Okumayı kontrol et</small>}</td><td>{m.id === 'new' ? `Yeni: ${m.name || 'ad bekleniyor'}` : opts.find((o) => o.id === m.id)?.name ?? (c.text ? 'Eşleştirme gerekli' : 'Boş · korunacak')}</td></tr> })}</tbody></table></div>
         <p>{filled.length} dolu hücre · {unresolved.length} eşleştirme bekliyor · {conflicts.length} mevcut dersle çakışma</p>
         <label className="check"><input type="checkbox" checked={remember} disabled={busy} onChange={(e) => setRemember(e.target.checked)} /> Eşleştirmeleri bu okul için bu tarayıcıda hatırla</label>
         <label className="check"><input type="checkbox" checked={overwrite} disabled={busy} onChange={(e) => { setOverwrite(e.target.checked); setConfirmed(false) }} /> Çakışan hücrelerde mevcut dersi değiştir (seçilmezse korunur)</label>
@@ -130,3 +134,5 @@ export function ProgramImageImport({ classId, className, level, lessons, onClose
     </div>
   </Modal>
 }
+
+
