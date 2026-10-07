@@ -57,6 +57,16 @@ test('gerçek yerel metin tanıma: görsel, kısaltma eşleme, yeni ders ve öni
   const box=(await img.boundingBox())!
   for(const [x,y] of [[40,40],[560,40],[560,540],[40,540]]) await img.click({position:{x:x!*box.width/600,y:y!*box.height/600}})
   await modal.getByLabel('Ders sütunu sayısı (boş saatler dahil)').fill('2')
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => { release = resolve })
+  await page.route('**/program-ocr/worker.min.js', async (route) => { await gate; await route.continue() })
+  const requested = page.waitForRequest('**/program-ocr/worker.min.js')
+  await modal.getByRole('button',{name:'Görseli tanı',exact:true}).click()
+  await requested
+  await modal.getByRole('button',{name:'Okumayı iptal et',exact:true}).click()
+  await expect(modal.getByRole('alert')).toHaveText('Okuma iptal edildi.')
+  release()
+  await page.unroute('**/program-ocr/worker.min.js')
   await modal.getByRole('button',{name:'Görseli tanı',exact:true}).click()
   await expect(modal.getByRole('heading',{name:'Program önizlemesi'})).toBeVisible({timeout:120_000})
   await expect(modal.getByLabel('M karşılığı',{exact:true})).not.toHaveValue('')

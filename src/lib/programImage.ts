@@ -44,14 +44,23 @@ export function rectifyProgram(image: HTMLImageElement, points: Point[]): HTMLCa
   return canvas
 }
 export async function readProgramImage(canvas: HTMLCanvasElement, periods: number, days: number, progress: (n: number) => void, signal: AbortSignal): Promise<ProgramCell[]> {
+  if (signal.aborted) throw new Error('İşlem iptal edildi.')
   const { createWorker, PSM } = await import('tesseract.js')
+  if (signal.aborted) throw new Error('İşlem iptal edildi.')
+  if (!Number.isInteger(periods) || periods < 1 || periods > 20 || !Number.isInteger(days) || days < 1 || days > 6 || canvas.width/periods < 24 || canvas.height/days < 24) throw new Error('Tablo alanı çok dar. Ders hücrelerinin tamamını seç.')
   const base = `${location.origin}/program-ocr`
-  const worker = await createWorker('tur+eng', 1, { workerPath: `${base}/worker.min.js`, corePath: base, langPath: base, workerBlobURL: false })
-  const abort = () => { void worker.terminate() }
+  let cancel!: () => void
+  const interrupted = new Promise<never>((_, reject) => { cancel = () => reject(new Error('İşlem iptal edildi.')) })
+  const pending = createWorker('tur+eng', 1, { workerPath: `${base}/worker.min.js`, corePath: base, langPath: base, workerBlobURL: false })
+  let worker: Awaited<typeof pending> | undefined
+  // Yükleme henüz bitmeden iptal edilirse geç gelen çalışan da kapatılır.
+  void pending.then((w) => { if (signal.aborted) void w.terminate() }, () => {})
+  const abort = () => { cancel() }
   signal.addEventListener('abort', abort, { once: true })
+  const cancellable = <T>(p: Promise<T>) => Promise.race([p, interrupted])
   try {
-    if (signal.aborted) throw new Error('İşlem iptal edildi.')
-    await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK })
+    worker = await cancellable(pending)
+    await cancellable(worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK }))
     const cells: ProgramCell[] = []
     for (let day = 0; day < days; day++) for (let p = 0; p < periods; p++) {
       if (signal.aborted) throw new Error('İşlem iptal edildi.')
@@ -65,11 +74,11 @@ export async function readProgramImage(canvas: HTMLCanvasElement, periods: numbe
       for (let i=0;i<pixels.length;i+=4) if ((pixels[i]!+pixels[i+1]!+pixels[i+2]!)/3 < 110) ink++
       let result = { data: { text: '', confidence: 100 } }
       if (ink / (crop.width*crop.height) > 0.002) {
-        result = await worker.recognize(crop)
+        result = await cancellable(worker.recognize(crop))
         if (!result.data.text.trim()) {
-          await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_WORD })
-          result = await worker.recognize(crop)
-          await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK })
+          await cancellable(worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_WORD }))
+          result = await cancellable(worker.recognize(crop))
+          await cancellable(worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK }))
         }
       }
       const text = result.data.text.trim().split('\n').slice(0, 3).join(' ').replace(/[^\p{L}\p{N}\- /]/gu, '').trim()
@@ -77,5 +86,5 @@ export async function readProgramImage(canvas: HTMLCanvasElement, periods: numbe
       progress(Math.round(cells.length / (days*periods) * 100))
     }
     return cells
-  } finally { signal.removeEventListener('abort', abort); await worker.terminate() }
+  } finally { signal.removeEventListener('abort', abort); await worker?.terminate() }
 }

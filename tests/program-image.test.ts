@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { codeKey, matchProgramCourse, validCorners } from '../src/lib/programImage'
+import { codeKey, matchProgramCourse, validCorners, readProgramImage } from '../src/lib/programImage'
 const course = (id: string, name: string, short_name = id) => ({ id, name, short_name, active: true })
 const courses = [course('mat', 'Matematik'), course('ing', 'İngilizce'), course('reh', 'Rehberlik'), course('sd', 'Seçmeli Ders'), course('tur', 'Türkçe')]
 describe('Program görselindeki ders eşleşmeleri', () => {
+  it('iptal edilmiş okuma çalışan veya görsel işlemi başlatmaz', async () => {
+    const controller = new AbortController(); controller.abort()
+    await expect(readProgramImage(null as unknown as HTMLCanvasElement,10,5,()=>{},controller.signal)).rejects.toThrow('İşlem iptal edildi.')
+  })
   it('verilen kısaltmaları ve iki satıra bölünmüş dersleri birleştirir', () => {
     for (const s of ['M', 'MU', 'MATEM ATİK']) expect(matchProgramCourse(s, courses)).toBe('mat')
     expect(matchProgramCourse('Eng', courses)).toBe('ing')
