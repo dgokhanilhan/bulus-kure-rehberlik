@@ -6,10 +6,10 @@
 
 1. Yönetim → Ders programı bölümünde sınıfı elle seç ve “Görselden yükle”ye bas.
 2. JPG, PNG veya WebP seç (en fazla 15 MB). Gerekiyorsa fotoğrafı döndür.
-3. Yalnız ders hücrelerinin dış köşelerini sol üst, sağ üst, sağ alt, sol alt sırasıyla seç. Gün adları, saatler ve sınıf başlığı alanın dışında kalmalı.
+3. Yalnız ders hücrelerinin dış köşelerini seç; dokunma sırası önemli değildir. Gün adları, saatler ve sınıf başlığı alanın dışında kalmalı.
 4. Gün ve sütun sayısını belirt; öğle arası gibi boş saatler sütun sayısına dahildir. “Görseli tanı”ya bas.
 5. M/MU → Matematik, REH → Rehberlik, ENG → İngilizce, SD → Seçmeli Ders eşleşmeleri katalogda tek bir uygun aktif ders varsa seçilir. Bilinmeyen veya belirsiz kodları mevcut derse eşleştir ya da yeni ders adı gir. Bir kodun seçimi tüm hücrelerine uygulanır.
-6. Önizlemede yanlış okunan metinleri düzelt. Fotoğraflarda kırışıklık, eğrilik ve bölünmüş yazılar hataya yol açabilir; okuma kesin kabul edilmez. Boş görünen ders hücresini de kontrol et. Şablonun tamamında boş olan öğle arası sütunu okulun ders saatlerine dahil değilse “Tamamen boş sütunları öğle arası say” seçeneğini aç. Sonraki derslerin numaraları önizlemede yeniden sıralanır; tek bir gündeki boş saat bu sayımdan çıkarılmaz.
+6. Önizlemede her dersin temizlenmiş görsel yazısını okunan metinle karşılaştır. Okunamayan hücreler boş saat sayılmaz ve kontrol edilmeden kaydedilemez: ders adını yaz veya gerçekten boşsa “Bu hücre boş” seç. Yanlış okunan metinleri düzelt. Fotoğraflarda kırışıklık, eğrilik ve bölünmüş yazılar hataya yol açabilir; okuma kesin kabul edilmez. Boş görünen ders hücresini de kontrol et. Şablonun tamamında boş olan öğle arası sütunu okulun ders saatlerine dahil değilse “Tamamen boş sütunları öğle arası say” seçeneğini aç. Sonraki derslerin numaraları önizlemede yeniden sıralanır; tek bir gündeki boş saat bu sayımdan çıkarılmaz.
 7. Çakışan mevcut dersler varsayılan olarak korunur. Değiştirmek istiyorsan ilgili seçeneği işaretle. Boş hücreler hiçbir zaman ders silmez.
 8. Önizleme onayını işaretleyip kaydet. Yeni ders ve program hücreleri tek veritabanı işlemiyle kaydedilir; hata olursa tüm işlem geri alınır.
 
@@ -23,9 +23,8 @@ Migration kullanıcı onayından önce uygulanmaz. Onaydan sonra önce yerel ver
 
 Yeni tarayıcı testindeki kayıt RPC'si taklit edilir; bu test gerçek program kaydı veya veritabanı yetki testinin yerine geçmez. Üretim güvenlik başlıklarıyla yerel kontrol için önce `npm run build -- --mode development`, PowerShell'de `$env:E2E_DIST='1'` ardından `npx playwright test e2e/homework-owner-program-image.spec.ts` çalıştırılır. Test başlangıcı, derlemenin test veritabanına bağlı olduğunu doğrular.
 
-## 7 Ekim 2026 doğrulaması
+## Fotoğraf okuma düzeltmesi
 
-- Typecheck ve derleme geçti; saf eşleştirme/alan seçimi testleri 3/3 geçti.
-- İki yeni tarayıcı senaryosu üretim güvenlik başlıkları altında geçti. Hatalı okunan SD metnini önizlemede düzeltme de doğrulandı.
-- ZIP'teki dokuz fotoğraf cihazda okundu. Tek bir sabit alanla yapılan tam metin karşılaştırmaları başarısız oldu; fotoğrafların tablo sınırları farklı. 8/A örneğinin doğru sınırları seçildiğinde ilk MATEMATİK ve beş boş öğle arası tanındı, 45 ders hücresinden 44'ünde metin bulundu. Tam otomatik, hatasız okuma iddiası yok; önizleme zorunlu.
-- Kullanıcı onayından sonra migration yerelde uygulandı. 323 birim/veritabanı testi geçti; 2 mevcut test atlandı. SQL lint hata bulmadı. Uçtan uca testler ve canlı yayın doğrulaması sürüyor.
+Eşit genişlikte hücre kesimi fotoğrafın eğri çizgilerinde harfleri kesiyor, kâğıt dokusu ve küçük öğretmen yazıları sahte ders kodlarına dönüşüyordu. Yerel eşikleme ile gölge temizlenir; çizgi konumu her satırda aranır, küçük yazılar ayrılır ve iki satırlı ders metni birlikte okunur. Zor okumada ayrı satır okuması da denenir. Uzun açık ders adındaki tek harf hatası yalnız tek aday varsa düzeltilir; PÇ/P-S-K gibi bilinmeyen kısa kodlar tahmin edilmez. “Din Kültürü” katalog adı da DIN kısaltmasıyla eşleşir.
+
+Asıl 8/A fotoğrafı cihazda sınandı. Otomatik ekran testinde fotoğrafın öğretmen isimleri silinmiş ders alanı kullanılır: 44 dolu ve 6 boş hücre, ders eşleştirmeleri ve bilinmeyen kodların kullanıcıya bırakılması doğrulanır. Tam otomatik, her fotoğrafta hatasız okuma iddiası yok; önizleme onayı zorunlu kalır. Önizleme görselleri yalnız bellekte tutulur.

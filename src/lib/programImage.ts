@@ -1,20 +1,47 @@
+import { prepareProgramCells } from './programImageCrop'
 type ProgramCourse = { id: string; name: string; short_name: string; active: boolean }
 export type Point = { x: number; y: number }
-export type ProgramCell = { weekday: number; period: number; text: string; confidence: number }
+export type ProgramCell = { weekday: number; period: number; text: string; confidence: number; unreadable?: boolean; preview?: string }
 export const codeKey = (s: string) => s.toLocaleUpperCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/İ/g, 'I').replace(/[^A-Z0-9]/g, '')
 export function emptyProgramColumns(cells: ProgramCell[]): number[] {
-  return [...new Set(cells.map((c) => c.period))].filter((p) => cells.filter((c) => c.period === p).every((c) => !codeKey(c.text))).sort((a,b) => a-b)
+  return [...new Set(cells.map((c) => c.period))].filter((p) => cells.filter((c) => c.period === p).every((c) => !codeKey(c.text) && !c.unreadable)).sort((a,b) => a-b)
 }
 export function programPeriod(period: number, omitted: number[]): number | null {
   return omitted.includes(period) ? null : period - omitted.filter((p) => p < period).length
 }
 // Yalnız kullanıcı tarafından açıklanmış kısaltmalar ve açık ders adları.
 const aliases: Record<string, string> = { M: 'Matematik', MU: 'Matematik', MATEMATIK: 'Matematik', REH: 'Rehberlik', ENG: 'İngilizce', SD: 'Seçmeli Ders', TURKCE: 'Türkçe', FEN: 'Fen Bilimleri', SOSYAL: 'Sosyal Bilgiler', DIN: 'Din Kültürü ve Ahlak Bilgisi', BEDEN: 'Beden Eğitimi', MUZIK: 'Müzik', ALMANCA: 'Almanca', BIYOLOJI: 'Biyoloji', KIMYA: 'Kimya', TARIH: 'Tarih', COGRAFYA: 'Coğrafya', FELSEFE: 'Felsefe' }
+export function normalizeProgramReading(text: string): string {
+  const key=codeKey(text)
+  if(aliases[key])return key
+  // Yalnız uzun ve açık ders adındaki tek harf hatasını, tek aday varsa düzelt.
+  // Kısa/bilinmeyen kısaltmaları başka bir derse tahmin ederek eşleme.
+  if(key.length<5)return key
+  const oneEdit=(a:string,b:string) => {
+    if(Math.abs(a.length-b.length)>1)return false
+    let i=0,j=0,edits=0
+    while(i<a.length&&j<b.length) {
+      if(a[i]===b[j]){i++;j++;continue}
+      if(++edits>1)return false
+      if(a.length>=b.length)i++
+      if(b.length>=a.length)j++
+    }
+    return edits+(a.length-i)+(b.length-j)===1
+  }
+  const candidates=Object.keys(aliases).filter(k=>k.length>=5&&oneEdit(key,k))
+  return candidates.length===1 ? candidates[0]! : key
+}
+export function programReading(text:string,confidence:number,hasWriting:boolean) {
+  const normalized=normalizeProgramReading(text)
+  const minimum=aliases[normalized] && normalized.length>=5 ? 35 : 65
+  const unreadable=hasWriting && (!normalized || confidence<minimum)
+  return {text:unreadable ? '' : normalized, unreadable}
+}
 export function matchProgramCourse(text: string, courses: ProgramCourse[]): string {
   const key = codeKey(text)
   if (!key) return ''
   const target = aliases[key]
-  const targets = target === 'Rehberlik' ? ['Rehberlik','Rehberlik ve Yönlendirme'] : target === 'Seçmeli Ders' ? ['Seçmeli Ders','Seçmeli'] : target ? [target] : []
+  const targets = target === 'Rehberlik' ? ['Rehberlik','Rehberlik ve Yönlendirme'] : target === 'Seçmeli Ders' ? ['Seçmeli Ders','Seçmeli'] : key === 'DIN' ? ['Din Kültürü','Din Kültürü ve Ahlak Bilgisi'] : target ? [target] : []
   const fits = courses.filter((c) => c.active && (codeKey(c.name) === key || (!target && codeKey(c.short_name) === key) || targets.some((t) => codeKey(c.name) === codeKey(t))))
   return fits.length === 1 ? fits[0]!.id : ''
 }
@@ -74,29 +101,25 @@ export async function readProgramImage(canvas: HTMLCanvasElement, periods: numbe
   const cancellable = <T>(p: Promise<T>) => Promise.race([p, interrupted])
   try {
     worker = await cancellable(pending)
-    await cancellable(worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK }))
+    await cancellable(worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE }))
     const cells: ProgramCell[] = []
+    const cropCell=prepareProgramCells(canvas,periods,days)
     for (let day = 0; day < days; day++) for (let p = 0; p < periods; p++) {
       if (signal.aborted) throw new Error('İşlem iptal edildi.')
-      // Küçük öğretmen isimleri hücrenin alt bölümünde; yalnız ders adının bölgesini oku.
-      const crop = document.createElement('canvas')
-      crop.width = Math.floor(canvas.width/periods-16); crop.height = Math.floor(canvas.height/days*0.72-8)
-      const ctx = crop.getContext('2d')!
-      ctx.drawImage(canvas, Math.round(p*canvas.width/periods+8), Math.round(day*canvas.height/days+8), crop.width, crop.height, 0, 0, crop.width, crop.height)
-      const pixels = ctx.getImageData(0,0,crop.width,crop.height).data
-      let ink = 0
-      for (let i=0;i<pixels.length;i+=4) if ((pixels[i]!+pixels[i+1]!+pixels[i+2]!)/3 < 110) ink++
+      const crop = cropCell(day,p)
       let result = { data: { text: '', confidence: 100 } }
-      if (ink / (crop.width*crop.height) > 0.002) {
-        result = await cancellable(worker.recognize(crop))
-        if (!result.data.text.trim()) {
-          await cancellable(worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_WORD }))
-          result = await cancellable(worker.recognize(crop))
+      if (crop) {
+        result = await cancellable(worker.recognize(crop.line))
+        if (!aliases[normalizeProgramReading(result.data.text)] || result.data.confidence<65) {
           await cancellable(worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK }))
+          const alternate=await cancellable(worker.recognize(crop.block))
+          const score=(reading:typeof result) => (aliases[normalizeProgramReading(reading.data.text)] ? 100 : 0)+reading.data.confidence
+          if(score(alternate)>score(result))result=alternate
+          await cancellable(worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE }))
         }
       }
-      const text = result.data.text.trim().split('\n').slice(0, 3).join(' ').replace(/[^\p{L}\p{N}\- /]/gu, '').trim()
-      cells.push({ weekday: day + 1, period: p + 1, text, confidence: result.data.confidence })
+      const reading=programReading(result.data.text.trim().split('\n').slice(0, 3).join(' '),result.data.confidence,!!crop)
+      cells.push({ weekday: day + 1, period: p + 1, ...reading, confidence: result.data.confidence, preview:crop?.block.toDataURL('image/png') })
       progress(Math.round(cells.length / (days*periods) * 100))
     }
     return cells
