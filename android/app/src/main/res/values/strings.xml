@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Buluş Küre</string>
+    <string name="title_activity_main">Buluş Küre</string>
+    <string name="package_name">com.buluskurementor.app</string>
+    <string name="custom_url_scheme">com.buluskurementor.app</string>
+</resources>

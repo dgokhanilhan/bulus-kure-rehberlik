@@ -1,16 +1,17 @@
 // dist/ klasörünü Cloudflare Pages gibi sunar: dist/_headers başlıkları + SPA yönlendirmesi.
 // Yalnız test içindir (CSP'nin üretim derlemesini bozmadığını doğrulamak için: npm run e2e:dist).
+// SERVE_DIR=dist-mobil: mobil paket (Capacitor gibi: başlık dosyası yok, CSP index.html'de meta olarak).
 import { createServer } from 'node:http'
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 
-const root = fileURLToPath(new URL('../dist/', import.meta.url))
+const root = fileURLToPath(new URL(`../${process.env.SERVE_DIR ?? 'dist'}/`, import.meta.url))
 const port = Number(process.env.PORT ?? 4173)
 const rules = []
 let cur = null
-for (const line of readFileSync(join(root, '_headers'), 'utf8').split('\n')) {
+for (const line of (existsSync(join(root, '_headers')) ? readFileSync(join(root, '_headers'), 'utf8') : '').split('\n')) {
   if (!line.trim() || line.trim().startsWith('#')) continue
   if (!line.startsWith(' ')) rules.push((cur = { pattern: line.trim(), headers: [] }))
   else if (cur) {

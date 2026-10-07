@@ -11,6 +11,7 @@ import { useToast } from '@/components/Toast'
 import { EXAM_TYPE_TR, academicYear, cohortYear, outcomeTerm, type ExamType } from '@/lib/denemeGenel'
 import { searchOutcomes, useCurriculumVersions, useExamProfiles, useExamTemplates, useSubjects, useUnresolved, versionFor, type OutcomeRow, type TemplateRow, type UnresolvedRow } from '@/lib/denemeData'
 import { readGeneralFile } from '@/lib/genelEngine'
+import { PDF_OKUMA } from '@/lib/platform'
 import { mapSections, type GenelPack } from '@/lib/genelImport'
 import { outcomeCode, proposeOutcome, type OutcomeProposal } from '@/lib/outcomeMatching'
 
@@ -473,6 +474,12 @@ export function TestLaboratuvari() {
   const warned = pack?.records.filter((r) => r.warnings.length) ?? []
   const items = pack?.records.reduce((a, r) => a + r.items.length, 0) ?? 0, coded = pack?.records.reduce((a, r) => a + r.items.filter((q) => q.rawCode).length, 0) ?? 0
   const pct = (c: number) => `%${Math.round(c * 100)}`
+  if (!PDF_OKUMA)
+    return (
+      <p className="m a" data-testid="mobil-pdf-yok" style={{ fontSize: 14 }}>
+        Karne PDF'i okuma bilgisayardan, buluskurementor.com adresinde yapılır.
+      </p>
+    )
   return (
     <>
       <p className="m a" style={{ fontSize: 13 }}>

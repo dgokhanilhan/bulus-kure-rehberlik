@@ -1,5 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupportedStorage } from '@supabase/supabase-js'
 import { passwordLinkUser } from './authLink'
+import { MOBIL } from './platform'
 
 const url = import.meta.env.VITE_SUPABASE_URL
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -22,8 +23,25 @@ try {
 
 export const SCHOOL_SLUG = import.meta.env.VITE_SCHOOL_SLUG ?? 'bulus-kure'
 
+/**
+ * Mobil uygulamada oturum (yenileme anahtarı dahil) WebView'in localStorage'ında değil, iOS Keychain / Android Keystore
+ * ile şifrelenen güvenli depoda tutulur. Web'de bu kod derlemeye girmez.
+ */
+const secureStorage: SupportedStorage | undefined = MOBIL
+  ? (() => {
+      // Modül döndürülür, eklenti nesnesi değil: Capacitor eklenti vekili her özelliğe ("then" dahil) yanıt verdiği için
+      // bir Promise'in sonucu olursa "thenable" sanılır ve bekleme hiç bitmez.
+      const mod = () => import('@aparajita/capacitor-secure-storage')
+      return {
+        getItem: async (k) => (await mod()).SecureStorage.getItem(k),
+        setItem: async (k, v) => (await mod()).SecureStorage.setItem(k, v),
+        removeItem: async (k) => (await mod()).SecureStorage.removeItem(k),
+      }
+    })()
+  : undefined
+
 export const supabase = createClient(url, key, {
-  auth: { persistSession: true, autoRefreshToken: true, storageKey: 'bk-auth' },
+  auth: { persistSession: true, autoRefreshToken: true, storageKey: 'bk-auth', ...(secureStorage ? { storage: secureStorage } : {}) },
 })
 
 /**

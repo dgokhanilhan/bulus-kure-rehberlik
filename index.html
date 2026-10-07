@@ -11,7 +11,7 @@
     <style>
       body{margin:0;background:#f6f3ec;color:#1b2a2f;font-family:"IBM Plex Sans",system-ui,sans-serif}
       @media (prefers-color-scheme:dark){body{background:#121b1e;color:#f1ede4}}
-      .bk-splash-top{display:flex;align-items:center;gap:10px;min-height:62px;padding:10px 20px;border-bottom:1px solid rgba(127,127,127,.2);box-sizing:border-box}
+      .bk-splash-top{display:flex;align-items:center;gap:10px;min-height:62px;padding:calc(10px + env(safe-area-inset-top,0px)) 20px 10px;border-bottom:1px solid rgba(127,127,127,.2);box-sizing:border-box}
       .bk-splash-top b{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:18px}
       .bk-splash{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 62px)}
       .bk-splash svg{animation:bk-turn 2.4s linear infinite}

@@ -7,6 +7,7 @@ import { ToastProvider } from '@/components/Toast'
 import { ReportProvider } from '@/components/Report'
 import App from './App'
 import { initSentry } from '@/lib/sentry'
+import { MOBIL } from '@/lib/platform'
 // Yazı tipleri uygulamayla birlikte sunulur (Google'a istek gitmez; yalnız Latin + Türkçe karakter alt kümeleri).
 import '@fontsource/fraunces/latin-500.css'
 import '@fontsource/fraunces/latin-ext-500.css'
@@ -23,6 +24,7 @@ import '@fontsource/ibm-plex-mono/latin-ext-500.css'
 import './styles/app.css'
 
 initSentry()
+if (MOBIL) void import('@/lib/mobil').then((m) => m.initMobil())
 
 declare global {
   interface Window {

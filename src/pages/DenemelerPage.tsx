@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { readExamFile } from '@/lib/engine'
+import { PDF_OKUMA } from '@/lib/platform'
 import { goesToLegacy, nonLgsGrade, readGeneralFile } from '@/lib/genelEngine'
 import { GenelSihirbaz, type GenelSource } from './DenemeGenel'
 import { ADAPTER_PUBLISHER, buildPayload, buildReview, pendingCount, titleCase, type Review } from '@/lib/deneme'
@@ -193,39 +194,48 @@ export default function DenemelerPage() {
               <input id="upDate" type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
             </label>
           </div>
-          <label
-            className={`drop ${over ? 'over' : ''}`}
-            htmlFor="upFile"
-            onDragOver={(e: DragEvent) => (e.preventDefault(), setOver(true))}
-            onDragLeave={() => setOver(false)}
-            onDrop={(e: DragEvent) => {
-              e.preventDefault()
-              setOver(false)
-              const f = e.dataTransfer.files[0]
-              if (f) start(f)
-            }}
-          >
-            <span className="floaty" style={{ width: 62, height: 62, borderRadius: 18, background: 'var(--primary-soft)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="up" size={28} />
-            </span>
-            <b style={{ fontSize: 20 }}>Sonuç PDF'ini seç ya da buraya bırak</b>
-            <span className="m">PDF bilgisayarında okunur; sunucuya yalnız okunan sonuçlar gider. Yayınevi otomatik tanınır.</span>
-            <input
-              id="upFile"
-              ref={fileRef}
-              type="file"
-              accept="application/pdf,.pdf,.json,application/json"
-              hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0]
+          {PDF_OKUMA ? (
+            <label
+              className={`drop ${over ? 'over' : ''}`}
+              htmlFor="upFile"
+              onDragOver={(e: DragEvent) => (e.preventDefault(), setOver(true))}
+              onDragLeave={() => setOver(false)}
+              onDrop={(e: DragEvent) => {
+                e.preventDefault()
+                setOver(false)
+                const f = e.dataTransfer.files[0]
                 if (f) start(f)
-                e.target.value = ''
               }}
-            />
-            <span className="btn pri" style={{ pointerEvents: 'none' }}>
-              PDF seç
-            </span>
-          </label>
+            >
+              <span className="floaty" style={{ width: 62, height: 62, borderRadius: 18, background: 'var(--primary-soft)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="up" size={28} />
+              </span>
+              <b style={{ fontSize: 20 }}>Sonuç PDF'ini seç ya da buraya bırak</b>
+              <span className="m">PDF bilgisayarında okunur; sunucuya yalnız okunan sonuçlar gider. Yayınevi otomatik tanınır.</span>
+              <input
+                id="upFile"
+                ref={fileRef}
+                type="file"
+                accept="application/pdf,.pdf,.json,application/json"
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) start(f)
+                  e.target.value = ''
+                }}
+              />
+              <span className="btn pri" style={{ pointerEvents: 'none' }}>
+                PDF seç
+              </span>
+            </label>
+          ) : (
+            <div className="card" data-testid="mobil-pdf-yok" style={{ padding: 16, textAlign: 'center' }}>
+              <b>PDF ile deneme yükleme bilgisayardan yapılır</b>
+              <p className="m" style={{ fontSize: 14, margin: '6px 0 0' }}>
+                Sonuç PDF'lerini buluskurementor.com adresinden yükleyebilirsin. Excel / CSV ya da elle giriş burada da kullanılabilir.
+              </p>
+            </div>
+          )}
           {err && (
             <div className="card issue" role="alert">
               <span className="t">DOSYA OKUNAMADI</span>
@@ -244,7 +254,7 @@ export default function DenemelerPage() {
               Elle gir
             </button>
           </div>
-          {(import.meta.env.DEV || import.meta.env.VITE_DEMO === '1') && (
+          {PDF_OKUMA && (import.meta.env.DEV || import.meta.env.VITE_DEMO === '1') && (
             <button
               type="button"
               className="btn"

@@ -2,7 +2,7 @@
 
 8. sınıf LGS öğrencilerinin deneme sonuçlarını, konu (kazanım) hatalarını, görevlerini, görüşmelerini ve raporlarını tek yerde tutan **web** uygulaması. İlk müşteri Buluş Küre Koleji; yapı ileride çok okullu olacak şekilde kurulur (her tabloda `school_id`).
 
-Şimdilik **yalnızca web**. Mobil uygulama sonra düşünülecek.
+Web uygulaması; iOS ve Android uygulaması aynı koddan Capacitor ile paketlenir ([`docs/mobil.md`](docs/mobil.md)). Mobil pakette PDF okuma (MuPDF) yoktur.
 
 ## Referans dosyalar (önce bunları oku)
 

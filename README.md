@@ -6,6 +6,9 @@ tek yerde tutan web uygulaması. Proje kuralları: [`CLAUDE.md`](CLAUDE.md) · y
 Lisans: **AGPL-3.0-or-later** ([`LICENSE`](LICENSE)). PDF motoru MuPDF (AGPL) içerir; uygulamayı kullananlara kaynak
 kodu bağlantısı verilir (`VITE_SOURCE_URL`, giriş ekranı ve profil menüsü).
 
+iOS / Android uygulaması aynı koddan Capacitor ile paketlenir; mobil pakette MuPDF ve PDF okuma yoktur:
+[`docs/mobil.md`](docs/mobil.md).
+
 ## Gereksinimler
 Node.js 20+, Docker Desktop, Supabase CLI.
 
