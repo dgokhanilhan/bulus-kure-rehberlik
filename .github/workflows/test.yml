@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - uses: supabase/setup-cli@v1
-        with: { version: latest }
+        with: { version: 2.120.0 }
       - run: npm ci
       - run: supabase start -x studio,imgproxy,vector,logflare
       - run: supabase status -o env | sed -E 's/^API_URL=/VITE_SUPABASE_URL=/; s/^ANON_KEY=/VITE_SUPABASE_ANON_KEY=/; s/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' | grep -E '^(VITE_|SUPABASE_SERVICE)' > .env.local

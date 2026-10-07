@@ -1,0 +1,40 @@
+import { describe, it, expect } from 'vitest'
+import { codeKey, emptyProgramColumns, programPeriod, matchProgramCourse, validCorners, readProgramImage } from '../src/lib/programImage'
+const course = (id: string, name: string, short_name = id) => ({ id, name, short_name, active: true })
+const courses = [course('mat', 'Matematik'), course('ing', 'İngilizce'), course('reh', 'Rehberlik'), course('sd', 'Seçmeli Ders'), course('tur', 'Türkçe')]
+describe('Program görselindeki ders eşleşmeleri', () => {
+  it('öğle arası sayımından yalnız bütün günlerde boş kalan sütun çıkarılır', () => {
+    const cells = [1,2,3,4,5].flatMap((weekday) => [1,2,3].map((period) => ({weekday,period,text:period===2 ? '' : weekday===5 && period===3 ? '' : 'M',confidence:100})))
+    const omitted=emptyProgramColumns(cells)
+    expect(omitted).toEqual([2])
+    expect(programPeriod(2,omitted)).toBeNull()
+    expect(programPeriod(3,omitted)).toBe(2)
+    expect(programPeriod(3,[])).toBe(3)
+  })
+  it('iptal edilmiş okuma çalışan veya görsel işlemi başlatmaz', async () => {
+    const controller = new AbortController(); controller.abort()
+    await expect(readProgramImage(null as unknown as HTMLCanvasElement,10,5,()=>{},controller.signal)).rejects.toThrow('İşlem iptal edildi.')
+  })
+  it('verilen kısaltmaları ve iki satıra bölünmüş dersleri birleştirir', () => {
+    for (const s of ['M', 'MU', 'MATEM ATİK']) expect(matchProgramCourse(s, courses)).toBe('mat')
+    expect(matchProgramCourse('Eng', courses)).toBe('ing')
+    expect(matchProgramCourse('Reh', courses)).toBe('reh')
+    expect(matchProgramCourse('SD', courses)).toBe('sd')
+    expect(matchProgramCourse('TÜRKÇ E', courses)).toBe('tur')
+    expect(codeKey('BİYOLO Jİ')).toBe('BIYOLOJI')
+  })
+  it('bilinmeyen, belirsiz ve pasif dersler otomatik seçilmez', () => {
+    expect(matchProgramCourse('P-S-K', courses)).toBe('')
+    expect(matchProgramCourse('', courses)).toBe('')
+    expect(matchProgramCourse('M', [course('m1','Matematik'),course('m2','Matematik')])).toBe('')
+    expect(matchProgramCourse('ENG', [{ ...course('i','İngilizce'), active:false }])).toBe('')
+  })
+  it('ters, kesişen ve çok küçük alan seçimleri kabul edilmez', () => {
+    const corners = [{x:.1,y:.1},{x:.9,y:.1},{x:.9,y:.9},{x:.1,y:.9}]
+    expect(validCorners(corners)).toBe(true)
+    expect(validCorners(corners.slice(0,3))).toBe(false)
+    expect(validCorners([...corners].reverse())).toBe(false)
+    expect(validCorners([corners[0]!, corners[2]!, corners[1]!, corners[3]!])).toBe(false)
+    expect(validCorners([{x:0,y:0},{x:2,y:0},{x:2,y:1},{x:0,y:1}])).toBe(false)
+  })
+})

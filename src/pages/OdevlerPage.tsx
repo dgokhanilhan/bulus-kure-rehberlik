@@ -17,6 +17,7 @@ import {
   useSettings,
   useStudents,
   useTimetable,
+  useMyTeachingClasses,
   type Homework,
   type HwStatus,
 } from '@/lib/data'
@@ -73,22 +74,25 @@ function OgretmenOdev() {
   const classes = useClasses()
   const courses = useCourses()
   const hw = useHomework()
+  const teachingClasses = useMyTeachingClasses(profile?.role !== 'admin')
   const prog = useHomeworkProgress(true)
   const people = usePeople()
   const settings = useHwSettings()
   const [sp, setSp] = useSearchParams()
   const [cls, setCls] = useState('all')
   const [view, setView] = useState<'acik' | 'gecmis' | 'hepsi'>('acik')
+  const [scope, setScope] = useState<'mine' | 'others'>('mine')
   const [edit, setEdit] = useState<Homework | 'new' | null>(null)
   const today = todayISO()
   const assignable = useAssignable(classes.data ?? [])
   const open = sp.get('odev')
-  const cur = (hw.data ?? []).find((h) => h.id === open)
+  const visibleHomework = (hw.data ?? []).filter((h) => profile?.role === 'admin' || h.teacher_id === profile?.id || teachingClasses.data?.includes(h.class_id))
+  const cur = visibleHomework.find((h) => h.id === open)
   const cName = (id: string) => classes.data?.find((c) => c.id === id)?.name ?? '—'
   const coName = (id: string) => courses.data?.find((c) => c.id === id)?.name ?? '—'
   const tName = (id: string | null) => people.data?.find((p) => p.id === id)?.full_name
   const late = (h: Homework) => !!h.due_on && h.due_on < today
-  const list = (hw.data ?? []).filter((h) => (cls === 'all' || h.class_id === cls) && (view === 'hepsi' || (view === 'acik' ? !late(h) : late(h))))
+  const list = visibleHomework.filter((h) => (profile?.role === 'admin' || (scope === 'mine' ? h.teacher_id === profile?.id : h.teacher_id !== profile?.id)) && (cls === 'all' || h.class_id === cls) && (view === 'hepsi' || (view === 'acik' ? !late(h) : late(h))))
   const count = (id: string) => {
     const rows = (prog.data ?? []).filter((r) => r.homework_id === id)
     return { n: rows.length, done: rows.filter((r) => r.status !== 'bekliyor').length }
@@ -104,13 +108,15 @@ function OgretmenOdev() {
           <Icon name="plus" size={18} stroke={2} /> Ödev ver
         </button>
       </div>
+      {profile?.role !== 'admin' && <Seg label="Ödev kapsamı" value={scope} onChange={setScope} options={[[ 'mine', 'Verdiğim ödevler' ], [ 'others', 'Diğer verilen ödevler' ]]} />}
+      {profile?.role !== 'admin' && scope === 'others' && <p className="m">Ders verdiğin sınıfların diğer ödevlerini görebilirsin. Kontrol ve düzenleme ödevi veren öğretmene aittir.</p>}
       <div className="btns a" style={{ ['--d' as string]: 1, alignItems: 'flex-end' }}>
         <label className="field" htmlFor="oCls" style={{ minWidth: 150 }}>
           Sınıf
           <select id="oCls" value={cls} onChange={(e) => setCls(e.target.value)}>
             <option value="all">Tüm sınıflar</option>
             {(classes.data ?? [])
-              .filter((c) => (hw.data ?? []).some((h) => h.class_id === c.id) || assignable.has(c.id))
+              .filter((c) => visibleHomework.some((h) => h.class_id === c.id) || assignable.has(c.id))
               .map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -153,7 +159,7 @@ function OgretmenOdev() {
                     <b style={{ display: 'block', fontSize: 16 }}>{h.title}</b>
                     <span className="m" style={{ fontSize: 13 }}>
                       {cName(h.class_id)} · {coName(h.course_id)}
-                      {profile?.role === 'admin' && tName(h.teacher_id) ? ` · ${tName(h.teacher_id)}` : ''}
+                      {tName(h.teacher_id) ? ` · ${tName(h.teacher_id)}` : ''}
                     </span>
                   </span>
                   <span className={`chip ${late(h) && settings.lateRed && c.done < c.n ? 'down' : 'n'}`}>{h.due_on ? `Son gün ${trD(h.due_on)}` : 'Tarihsiz'}</span>
@@ -414,6 +420,7 @@ function HomeworkDetail({
   const [del, setDel] = useState(false)
   // Ayar kapalıyken öğretmen kendi ödevini düzenleyemez (veritabanında hw_update de reddeder); durum işaretlemeye devam eder.
   const canEdit = profile?.role === 'admin' || (h.teacher_id === profile?.id && settings.teacherCan)
+  const canCheck = profile?.role === 'admin' || h.teacher_id === profile?.id
   const atts = useAttachments({ kind: 'homework', ids: [h.id] })
   const subs = useAttachments({ kind: 'submission', ids: [h.id] })
   async function delFile(a: Attachment) {
@@ -432,6 +439,7 @@ function HomeworkDetail({
   const waiting = list.filter((r) => val(r.student_id).status === 'bekliyor').length
 
   async function save() {
+    if (!canCheck || busy) return
     setBusy(true)
     const { data, error } = await supabase.rpc('set_homework_statuses', {
       p_homework: h.id,
@@ -444,6 +452,7 @@ function HomeworkDetail({
     toast(`${data} öğrencinin durumu kaydedildi`)
   }
   function allDone() {
+    if (!canCheck) return
     const d = { ...draft }
     for (const r of list) if (val(r.student_id).status === 'bekliyor') d[r.student_id] = { ...val(r.student_id), status: 'yapti' }
     setDraft(d)
@@ -487,9 +496,9 @@ function HomeworkDetail({
           ))}
           <span className="chip gold">Bekliyor {waiting}</span>
         </div>
-        <button className="btn" onClick={allDone} disabled={!waiting}>
+        {canCheck && <button className="btn" onClick={allDone} disabled={!waiting}>
           <Icon name="check" size={16} /> Bekleyenlerin hepsi yaptı
-        </button>
+        </button>}
       </div>
       <section className="card a" style={{ ['--d' as string]: 2, overflow: 'hidden' }} aria-label="Öğrenci durumları">
         <div className="tbl">
@@ -515,18 +524,18 @@ function HomeworkDetail({
                       )}
                     </td>
                     <td>
-                      <div className="seg" role="group" aria-label={`${sName(r.student_id)} ödev durumu`} style={{ display: 'inline-flex' }}>
+                      {canCheck ? <div className="seg" role="group" aria-label={`${sName(r.student_id)} ödev durumu`} style={{ display: 'inline-flex' }}>
                         {MARKS.map(([k, l]) => (
                           <button key={k} type="button" aria-pressed={v.status === k} onClick={() => setDraft((d) => ({ ...d, [r.student_id]: { ...v, status: v.status === k ? 'bekliyor' : k } }))} className={v.status === k ? `hwon ${CHIP[k]}` : undefined}>
                             {l}
                           </button>
                         ))}
-                      </div>
+                      </div> : <span className="chip n">{MARKS.find(([k]) => k === v.status)?.[1] ?? 'Bekliyor'}</span>}
                     </td>
                     <td style={{ minWidth: 200 }}>
-                      <label className="field">
+                      {canCheck ? <label className="field">
                         <input aria-label={`${sName(r.student_id)} notu`} value={v.note} maxLength={300} placeholder="ör. 4. sorudan sonrası eksik" onChange={(e) => setDraft((d) => ({ ...d, [r.student_id]: { ...v, note: e.target.value } }))} />
-                      </label>
+                      </label> : <span>{v.note || '—'}</span>}
                     </td>
                   </tr>
                 )
@@ -540,14 +549,14 @@ function HomeworkDetail({
           </div>
         )}
       </section>
-      <div className="kv a" style={{ ['--d' as string]: 3 }}>
+      {canCheck ? <div className="kv a" style={{ ['--d' as string]: 3 }}>
         <span className="m" style={{ fontSize: 12 }}>
           Seçili duruma tekrar basınca “Bekliyor”a döner. {settings.parentSees ? 'Kaydedince veliler durumu görür ve bildirim alır.' : 'Veliler durumu görmüyor (Ödev ayarları).'}
         </span>
         <button className="btn pri" onClick={save} disabled={busy || !changed.length}>
           {busy && <span className="spinner" aria-hidden="true" />} Kaydet{changed.length ? ` (${changed.length})` : ''}
         </button>
-      </div>
+      </div> : <p className="m">Bu ödevi yalnız görüntüleyebilirsin. Öğrenci durumlarını ödevi veren öğretmen kontrol eder.</p>}
       {editing && editing !== 'new' && <HomeworkModal h={editing} classes={classes} assignable={assignable} dueRequired={settings.dueRequired} onClose={closeEdit} onSaved={() => {}} />}
       {del && (
         <ConfirmDelete

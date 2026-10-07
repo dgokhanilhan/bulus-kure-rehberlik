@@ -31,3 +31,6 @@ fixtures/pdf-genel/*
 
 # MEB program PDF önbelleği (scripts/meb-katalog; resmî dosyalar repoya girmez, hash manifestte)
 .cache
+
+# Derlemede npm paketlerinden hazırlanan yerel metin tanıma dosyaları
+public/program-ocr/

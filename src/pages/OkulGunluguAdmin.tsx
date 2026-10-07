@@ -11,6 +11,7 @@ import { Seg } from '@/components/Indicator'
 import { Modal } from '@/components/Modal'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
+import { ProgramImageImport } from '@/components/ProgramImageImport'
 
 interface Stu {
   id: string
@@ -147,6 +148,7 @@ export function YoklamaAdmin({ classes, students }: { classes: ClassRow[]; stude
 // ---------------------------------------------------------------- Ders programı
 
 export function ProgramAdmin({ classes, profiles }: { classes: ClassRow[]; profiles: Profile[] }) {
+  const [importImage, setImportImage] = useState(false)
   const [cls, setCls] = useState(classes[0]?.id ?? '')
   const [sat, setSat] = useState(false)
   const tt = useTimetable(cls)
@@ -167,6 +169,7 @@ export function ProgramAdmin({ classes, profiles }: { classes: ClassRow[]; profi
     <>
       <div className="btns a" style={{ alignItems: 'flex-end' }}>
         <ClassPick id="tCls" classes={classes} value={cls} onChange={setCls} />
+        <button className="btn" disabled={!cls} onClick={() => setImportImage(true)}>Görselden yükle</button>
         <button type="button" className="check" role="checkbox" aria-checked={sat} onClick={() => setSat((x) => !x)} style={{ minHeight: 44 }}>
           <span className={`box ${sat ? 'on' : ''}`}>{sat && <Icon name="check" size={13} stroke={3} />}</span>
           <span style={{ fontSize: 14 }}>Cumartesi</span>
@@ -227,6 +230,7 @@ export function ProgramAdmin({ classes, profiles }: { classes: ClassRow[]; profi
         Satırlar Yönetim Merkezi → <b>Ders saatleri</b>'nden, dersler <b>Dersler</b> kataloğundan gelir. Öğretmenli girilen ders, Ders atamalarına da eklenir.
       </p>
       {cell && <LessonModal cls={cls} level={cur?.level} cName={cName} {...cell} teachers={teachers} onClose={() => setCell(null)} />}
+      {importImage && cur && <ProgramImageImport classId={cls} className={cName} level={cur.level} lessons={lessons} onClose={() => setImportImage(false)} />}
     </>
   )
 }
