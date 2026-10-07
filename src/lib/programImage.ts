@@ -26,6 +26,14 @@ export function validCorners(points: Point[]): boolean {
   })
   return crosses.every((c) => c > 0.002)
 }
+/** Dokunma sırasından bağımsız olarak sol üstten saat yönünde sırala. */
+export function orderProgramCorners(points: Point[]): Point[] {
+  if (points.length !== 4) return points
+  const center = points.reduce((s,p) => ({x:s.x+p.x/4,y:s.y+p.y/4}),{x:0,y:0})
+  const ordered = [...points].sort((a,b) => Math.atan2(a.y-center.y,a.x-center.x)-Math.atan2(b.y-center.y,b.x-center.x))
+  const start = ordered.reduce((best,p,i) => p.x+p.y < ordered[best]!.x+ordered[best]!.y ? i : best,0)
+  return [...ordered.slice(start),...ordered.slice(0,start)]
+}
 /** Dört seçili köşeyi düz tabloya taşır; fotoğraf cihazdan çıkmaz. */
 export function rectifyProgram(image: HTMLImageElement, points: Point[]): HTMLCanvasElement {
   if (!validCorners(points)) throw new Error('Köşeleri sol üst, sağ üst, sağ alt, sol alt sırasıyla seç.')

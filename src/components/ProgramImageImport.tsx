@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/AuthProvider'
 import { useAssignments, useCourses, type Lesson } from '@/lib/data'
 import { supabase } from '@/lib/supabase'
-import { codeKey, emptyProgramColumns, programPeriod, matchProgramCourse, readProgramImage, rectifyProgram, validCorners, type Point, type ProgramCell } from '@/lib/programImage'
+import { codeKey, emptyProgramColumns, programPeriod, matchProgramCourse, readProgramImage, rectifyProgram, validCorners, orderProgramCorners, type Point, type ProgramCell } from '@/lib/programImage'
 import { GUN } from '@/lib/format'
 import { Modal } from './Modal'
 import { useToast } from './Toast'
@@ -103,16 +103,17 @@ export function ProgramImageImport({ classId, className, level, lessons, onClose
       }} /></label>
       {url && <>
         <div className="btns"><button className="btn" disabled={busy} onClick={() => setRotation((r) => (r + 270) % 360)}>Sola döndür</button><button className="btn" disabled={busy} onClick={() => setRotation((r) => (r + 90) % 360)}>Sağa döndür</button><button className="btn" disabled={busy} onClick={() => { setPoints([]); setCells([]); setConfirmed(false) }}>Alanı yeniden seç</button></div>
-        <p>Ders hücrelerinin dört dış köşesine sırayla dokun: <b>{['sol üst', 'sağ üst', 'sağ alt', 'sol alt'][points.length] ?? 'alan seçildi'}</b>. Gün adlarını ve saat başlıklarını dışarıda bırak.</p>
+        <p>Ders hücrelerinin dört dış köşesine dokun; seçim sırası önemli değil. <b>{points.length < 4 ? `${4-points.length} köşe kaldı` : 'Alan seçildi'}</b>. Gün adlarını ve saat başlıklarını dışarıda bırak.</p>
         <div style={{ position: 'relative', cursor: points.length < 4 && !busy ? 'crosshair' : 'default' }} onClick={(e) => {
           if (points.length === 4 || busy) return
-          const b = e.currentTarget.getBoundingClientRect(); setPoints((p) => [...p, { x: (e.clientX-b.left)/b.width, y: (e.clientY-b.top)/b.height }])
+          const b = e.currentTarget.getBoundingClientRect(); setPoints((p) => orderProgramCorners([...p, { x: (e.clientX-b.left)/b.width, y: (e.clientY-b.top)/b.height }]))
         }}><img ref={imageRef} src={url} alt="Ders hücrelerinin köşelerini seç" style={{ width: '100%', display: 'block' }} />
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
             {points.length === 4 && <polygon points={points.map((p) => `${p.x*100},${p.y*100}`).join(' ')} fill="rgba(45,150,140,.15)" stroke="var(--primary)" strokeWidth="0.4" />}
             {points.map((p, i) => <circle key={i} cx={p.x*100} cy={p.y*100} r="1" fill="var(--primary)" />)}
           </svg>
         </div>
+        {points.length === 4 && !validCorners(points) && <p role="alert" className="err">Seçilen alan geçerli değil. “Alanı yeniden seç” ile tablonun dört farklı dış köşesini seç.</p>}
         <div className="btns"><label className="field">Gün sayısı<select value={days} disabled={busy} onChange={(e) => { setDays(+e.target.value); setCells([]) }}><option value={5}>Pazartesi–Cuma</option><option value={6}>Pazartesi–Cumartesi</option></select></label>
           <label className="field">Ders sütunu sayısı (boş saatler dahil)<input type="number" min={1} max={20} value={periods} disabled={busy} onChange={(e) => { setPeriods(+e.target.value); setCells([]) }} /></label>
           <button className="btn pri" disabled={busy || !validCorners(points) || periods < 1 || periods > 20 || !Number.isInteger(periods)} onClick={recognize}>Görseli tanı</button>

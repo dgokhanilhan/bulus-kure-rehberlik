@@ -55,7 +55,9 @@ test('gerçek yerel metin tanıma: görsel, kısaltma eşleme, yeni ders ve öni
   const img=modal.getByRole('img',{name:'Ders hücrelerinin köşelerini seç'})
   await expect(img).toBeVisible()
   const box=(await img.boundingBox())!
-  for(const [x,y] of [[40,40],[860,40],[860,540],[40,540]]) await img.click({position:{x:x!*box.width/900,y:y!*box.height/600}})
+  // Kullanıcı soldan aşağı doğru seçse de tanıma etkinleşmeli.
+  for(const [x,y] of [[40,40],[40,540],[860,540],[860,40]]) await img.click({position:{x:x!*box.width/900,y:y!*box.height/600}})
+  await expect(modal.getByRole('button',{name:'Görseli tanı',exact:true})).toBeEnabled()
   await modal.getByLabel('Ders sütunu sayısı (boş saatler dahil)').fill('3')
   let release!: () => void
   const gate = new Promise<void>((resolve) => { release = resolve })
