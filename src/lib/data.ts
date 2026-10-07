@@ -210,6 +210,17 @@ export function useCourses() {
   })
 }
 
+export function useMyTeachingClasses(enabled: boolean) {
+  return useQuery({
+    queryKey: ['my_classes'], enabled,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase.rpc('my_classes')
+      if (error) throw error
+      return ((data ?? []) as (string | { my_classes: string })[]).map((x) => typeof x === 'string' ? x : x.my_classes)
+    },
+  })
+}
+
 export interface Assignment {
   id: string
   class_id: string

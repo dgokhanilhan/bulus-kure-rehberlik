@@ -30,3 +30,6 @@
 
 /engine/*
   Cache-Control: public, max-age=0, must-revalidate
+
+/program-ocr/*
+  Cache-Control: public, max-age=0, must-revalidate

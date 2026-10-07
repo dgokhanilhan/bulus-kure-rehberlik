@@ -101,6 +101,18 @@ describe('Görünürlük ve bildirim', () => {
 })
 
 describe('Durum işaretleme', () => {
+  it('aynı sınıf ve derse yetkisi olsa bile başka öğretmenin ödevini yalnız okur', async () => {
+    const owner = await signIn('rehber')
+    const uid = (await owner.auth.getUser()).data.user!.id
+    const h = await give(owner, uid, { class_id: c8A, course_id: mat, title: 'Test başka öğretmen aynı ders' })
+    expect(h.error).toBeNull()
+    const other = await signIn('matematik')
+    expect((await other.from('homework').select('id').eq('id', h.data!.id)).data).toHaveLength(1)
+    expect((await other.rpc('can_check_homework', { p_hw: h.data!.id })).data).toBe(false)
+    expect((await other.rpc('set_homework_statuses', { p_homework: h.data!.id, p_items: [{ student_id: ELIF, status: 'yapti' }] })).error?.code).toBe('42501')
+    expect((await owner.rpc('can_check_homework', { p_hw: h.data!.id })).data).toBe(true)
+    expect((await admin.rpc('can_check_homework', { p_hw: h.data!.id })).data).toBe(true)
+  })
   it('öğretmen toplu işaretler; not kaydedilir; veliye "kontrol edildi" bildirimi', async () => {
     const { data: hw } = await svc.from('homework').select('id').eq('title', 'Test 8A matematik').single()
     const t = await signIn('matematik')
