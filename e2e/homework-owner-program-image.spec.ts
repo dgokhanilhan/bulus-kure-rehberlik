@@ -54,6 +54,8 @@ test('gerçek yerel metin tanıma: görsel, kısaltma eşleme, yeni ders ve öni
   await modal.getByLabel('Program görseli').setInputFiles({name:'program.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')})
   const img=modal.getByRole('img',{name:'Ders hücrelerinin köşelerini seç'})
   await expect(img).toBeVisible()
+  await page.evaluate(() => document.fonts.ready.then(() => undefined))
+  await img.evaluate((element: HTMLImageElement) => element.decode())
   const box=(await img.boundingBox())!
   // Kullanıcı soldan aşağı doğru seçse de tanıma etkinleşmeli.
   for(const [x,y] of [[40,40],[40,540],[860,540],[860,40]]) await img.click({position:{x:x!*box.width/900,y:y!*box.height/600}})
@@ -116,6 +118,8 @@ test('fotoğraf dokusu ve eğri çizgiler ders adlarına karışmaz', async ({pa
   await modal.getByLabel('Program görseli').setInputFiles('e2e/fixtures/program-photo-lessons.png')
   const img=modal.getByRole('img',{name:'Ders hücrelerinin köşelerini seç'})
   await expect(img).toBeVisible()
+  await page.evaluate(() => document.fonts.ready.then(() => undefined))
+  await img.evaluate((element: HTMLImageElement) => element.decode())
   const box=(await img.boundingBox())!
   for(const [x,y] of [[1,1],[box.width-1,1],[box.width-1,box.height-1],[1,box.height-1]])await img.click({position:{x:x!,y:y!}})
   await modal.getByRole('button',{name:'Görseli tanı',exact:true}).click()
