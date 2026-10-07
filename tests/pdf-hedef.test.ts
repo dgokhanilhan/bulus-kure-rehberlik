@@ -36,6 +36,9 @@ it('aynı yayın hedefini tek oluşturur, soruları bağlar, puan ve net değiş
   expect((await admin.rpc('add_pdf_outcomes',{p_items:[item(1)]})).data[0].status).toBe('skipped')
   const v=(await svc.from('curriculum_versions').select('*').eq('publisher_id',publisher).single()).data!
   expect(v.curriculum_type).toBe('PDF');expect(v.school_id).toBe(school)
+  const resolveArgs={p_subject:'MAT',p_vers:[v.id],p_code:'PDF.8.1',p_text:null,p_school:school,p_publisher:publisher}
+  expect((await admin.rpc('resolve_outcome_in',resolveArgs)).data?.[0]?.learning_outcome_id).toBe(rows[0]!.learning_outcome_id)
+  expect((await admin.rpc('resolve_outcome_in',{...resolveArgs,p_publisher:null})).data).toEqual([])
   expect((await admin.rpc('curriculum_for',{p_grade:8,p_subject:'MAT',p_year:2026})).data).not.toBe(v.id)
 })
 it('metinsiz, yanlış sınıf ve başka okul satırı eklenmez; başarısız satır yarım hedef bırakmaz',async()=>{
