@@ -1,8 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { codeKey, emptyProgramColumns, programPeriod, matchProgramCourse, validCorners, readProgramImage } from '../src/lib/programImage'
+import { codeKey, emptyProgramColumns, programPeriod, matchProgramCourse, validCorners, orderProgramCorners, readProgramImage } from '../src/lib/programImage'
 const course = (id: string, name: string, short_name = id) => ({ id, name, short_name, active: true })
 const courses = [course('mat', 'Matematik'), course('ing', 'İngilizce'), course('reh', 'Rehberlik'), course('sd', 'Seçmeli Ders'), course('tur', 'Türkçe')]
 describe('Program görselindeki ders eşleşmeleri', () => {
+  it('aynı fotoğraf alanının 24 dokunma sırası aynı geçerli tabloyu verir', () => {
+    const points = [{x:.1,y:.15},{x:.95,y:.1},{x:.94,y:.85},{x:.1,y:.9}]
+    const permutations = (items: typeof points): typeof points[] => items.length ? items.flatMap((p,i) => permutations(items.filter((_,j) => i!==j)).map((tail) => [p,...tail])) : [[]]
+    for (const permutation of permutations(points)) {
+      expect(orderProgramCorners(permutation)).toEqual(points)
+      expect(validCorners(orderProgramCorners(permutation))).toBe(true)
+    }
+    expect(validCorners(orderProgramCorners([points[0]!,points[0]!,points[2]!,points[3]!]))).toBe(false)
+  })
   it('öğle arası sayımından yalnız bütün günlerde boş kalan sütun çıkarılır', () => {
     const cells = [1,2,3,4,5].flatMap((weekday) => [1,2,3].map((period) => ({weekday,period,text:period===2 ? '' : weekday===5 && period===3 ? '' : 'M',confidence:100})))
     const omitted=emptyProgramColumns(cells)
