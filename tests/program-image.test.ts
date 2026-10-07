@@ -1,8 +1,29 @@
 import { describe, it, expect } from 'vitest'
-import { codeKey, emptyProgramColumns, programPeriod, matchProgramCourse, validCorners, orderProgramCorners, readProgramImage } from '../src/lib/programImage'
+import { codeKey, emptyProgramColumns, programPeriod, programReading, matchProgramCourse, normalizeProgramReading, validCorners, orderProgramCorners, readProgramImage } from '../src/lib/programImage'
 const course = (id: string, name: string, short_name = id) => ({ id, name, short_name, active: true })
 const courses = [course('mat', 'Matematik'), course('ing', 'İngilizce'), course('reh', 'Rehberlik'), course('sd', 'Seçmeli Ders'), course('tur', 'Türkçe')]
 describe('Program görselindeki ders eşleşmeleri', () => {
+  it('düşük güvenli metin ve sahte kısa ders okunamadı kalır; gerçek boş hücre ayrılır', () => {
+    expect(programReading('EY',30,true)).toEqual({text:'',unreadable:true})
+    expect(programReading('M',30,true)).toEqual({text:'',unreadable:true})
+    expect(programReading('',0,true)).toEqual({text:'',unreadable:true})
+    expect(programReading('',100,false)).toEqual({text:'',unreadable:false})
+    expect(programReading('P-Ç',83,true)).toEqual({text:'PC',unreadable:false})
+    expect(programReading('MATEM ATIK',47,true)).toEqual({text:'MATEMATIK',unreadable:false})
+  })
+  it('açık ders adındaki tek harf hatası birleşir, bilinmeyen kısaltma tahmin edilmez', () => {
+    expect(normalizeProgramReading('TÜRKÇE E')).toBe('TURKCE')
+    expect(normalizeProgramReading('SOSYA I')).toBe('SOSYAL')
+    expect(normalizeProgramReading('MATEM ATİK')).toBe('MATEMATIK')
+    expect(normalizeProgramReading('P-Ç')).toBe('PC')
+    expect(normalizeProgramReading('EY')).toBe('EY')
+    expect(normalizeProgramReading('SOSYAKULL')).toBe('SOSYAKULL')
+    expect(matchProgramCourse('DIN',[course('din','Din Kültürü','DİN')])).toBe('din')
+    expect(matchProgramCourse('DIN',[course('a','Din Kültürü'),course('b','Din Kültürü ve Ahlak Bilgisi')])).toBe('')
+  })
+  it('okunamayan hücre boş saat sayılmaz', () => {
+    expect(emptyProgramColumns([{weekday:1,period:2,text:'',confidence:20,unreadable:true}])).toEqual([])
+  })
   it('aynı fotoğraf alanının 24 dokunma sırası aynı geçerli tabloyu verir', () => {
     const points = [{x:.1,y:.15},{x:.95,y:.1},{x:.94,y:.85},{x:.1,y:.9}]
     const permutations = (items: typeof points): typeof points[] => items.length ? items.flatMap((p,i) => permutations(items.filter((_,j) => i!==j)).map((tail) => [p,...tail])) : [[]]

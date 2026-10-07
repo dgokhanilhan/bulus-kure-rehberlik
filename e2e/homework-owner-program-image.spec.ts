@@ -104,3 +104,36 @@ test('gerçek yerel metin tanıma: görsel, kısaltma eşleme, yeni ders ve öni
   expect(payload.p_courses).toEqual([{key:'PSK',name:'Program Test Dersi'}])
   expect(payload.p_replace).toBe(false)
 })
+
+test('fotoğraf dokusu ve eğri çizgiler ders adlarına karışmaz', async ({page}) => {
+  test.setTimeout(180_000)
+  await resetAdminMfa()
+  await loginAdmin(page)
+  await page.goto('/yonetim?sekme=program')
+  await page.getByLabel('Sınıf').selectOption({label:'8/A'})
+  await page.getByRole('button',{name:'Görselden yükle',exact:true}).click()
+  const modal=page.getByRole('dialog',{name:'8/A · Görselden ders programı yükle'})
+  await modal.getByLabel('Program görseli').setInputFiles('e2e/fixtures/program-photo-lessons.png')
+  const img=modal.getByRole('img',{name:'Ders hücrelerinin köşelerini seç'})
+  await expect(img).toBeVisible()
+  const box=(await img.boundingBox())!
+  for(const [x,y] of [[1,1],[box.width-1,1],[box.width-1,box.height-1],[1,box.height-1]])await img.click({position:{x:x!,y:y!}})
+  await modal.getByRole('button',{name:'Görseli tanı',exact:true}).click()
+  await expect(modal.getByRole('heading',{name:'Program önizlemesi'})).toBeVisible({timeout:120_000})
+  const expected=[
+    ['MATEMATIK','MATEMATIK','FEN','FEN','','SOSYAL','SOSYAL','M','M','ENG'],
+    ['MATEMATIK','MATEMATIK','SOSYAL','SOSYAL','','TURKCE','TURKCE','ENG','FEN','SOSYAL'],
+    ['FEN','FEN','TURKCE','TURKCE','','DIN','DIN','ENG','MU','PC'],
+    ['MATEMATIK','MATEMATIK','ENG','ENG','','TURKCE','TURKCE','MU','MU','REH'],
+    ['SOSYAL','PSK','FEN','FEN','','TURKCE','TURKCE','BEDEN','BEDEN',''],
+  ]
+  for(const [dayIndex,day] of ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma'].entries())for(let p=0;p<10;p++) {
+    await expect(modal.getByLabel(`${day} ${p+1}. ders metni`,{exact:true})).toHaveValue(expected[dayIndex]![p]!)
+  }
+  await expect(modal.getByLabel('DIN karşılığı',{exact:true})).not.toHaveValue('')
+  await expect(modal.getByLabel('PC karşılığı',{exact:true})).toHaveValue('')
+  await expect(modal.getByLabel('PSK karşılığı',{exact:true})).toHaveValue('')
+  await expect(modal.getByRole('img',{name:'Salı 6. dersin görseldeki yazısı',exact:true})).toBeVisible()
+  await expect(modal.getByRole('button',{name:'Programı kaydet',exact:true})).toBeDisabled()
+  await shot(page,'program-gercek-fotograf')
+})
