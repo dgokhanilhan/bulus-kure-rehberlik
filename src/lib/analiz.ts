@@ -42,6 +42,8 @@ export interface Result {
   score: number | null
   subjects: Partial<Record<Subject, SubjectResult>>
   answers: Partial<Record<Subject, string>> | null
+  /** Genel karne aktarımı büyük/küçük harfle D/Y saklar; eski LGS gerçek şıkları saklar. */
+  answer_format?: 'status'
   outcomes_ok: boolean
   /** Gruplu kazanım verisi: subjects = güvenilir dersler; g[kod] = [soru, d, y, b]. */
   kazanim?: { subjects: Subject[]; g: Record<string, [number, number, number, number]> } | null
@@ -101,6 +103,12 @@ export function konuStatus(result: Result | undefined, examQuestions: Question[]
   if (!ans) return 'o'
   const marks = rel.map((q) => {
     const ch = ans[q.q_no - 1]
+    if (result.answer_format === 'status') {
+      if (ch === '_' || ch === ' ') return 'b'
+      if (ch === '?' || (ch && /^[A-Z]$/.test(ch))) return 'd'
+      if (ch && /^[a-z]$/.test(ch)) return 'y'
+      return 'o'
+    }
     if (ch === undefined || ch === '?' || !q.correct_answer) return 'o'
     if (ch === '_' || ch === ' ') return 'b'
     return ch === q.correct_answer ? 'd' : 'y'

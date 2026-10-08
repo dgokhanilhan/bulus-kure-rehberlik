@@ -77,7 +77,7 @@ export function genelDataset(input: { exams: GenelExam[]; results: GenelResult[]
     const subjects: Result['subjects'] = {}
     for (const [k, v] of Object.entries(r.subjects as SectionResults)) if (isScore(v)) subjects[k] = { d: v.d, y: v.y, b: v.b, net: v.net }
     const qs = questionsByExam.get(r.exam_id) ?? []
-    return { exam_id: r.exam_id, student_id: r.student_id, score: r.score, subjects, answers: r.answers ?? null, outcomes_ok: qs.some((q) => q.outcome_code), kazanim: null }
+    return { exam_id: r.exam_id, student_id: r.student_id, score: r.score, subjects, answers: r.answers ?? null, answer_format:'status', outcomes_ok: qs.some((q) => q.outcome_code), kazanim: null }
   })
   return { subjects, exams: exams.map((e) => ({ id: e.id, name: e.name, publisher: e.publisher, exam_date: e.exam_date })), questionsByExam, outcomes: [...outcomes.values()], results }
 }

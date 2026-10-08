@@ -123,7 +123,7 @@ test.describe.serial('Profil · genel deneme entegrasyonu', () => {
     await ctx.getByRole('button', { name: 'AYT' }).click()
     await expect(page.getByText('Puan · PRF AYT 1')).toBeVisible()
     await expect(page.locator('.stats')).toContainText('10,00') // yalnız AYT: 12 − 8/4
-    await expect(page.getByText('Tekrar eden hata yok')).toBeVisible()
+    await expect(page.getByText('Güvenilir hedef bilgisiyle belirlenen yanlış konu yok')).toBeVisible()
     await page.getByRole('tab', { name: 'Denemeler' }).click()
     await expect(page.getByRole('row').filter({ hasText: 'PRF AYT 1' })).toBeVisible()
     await expect(page.getByRole('row').filter({ hasText: 'PRF TYT' })).toHaveCount(0)

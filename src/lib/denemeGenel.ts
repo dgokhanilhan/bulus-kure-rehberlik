@@ -221,8 +221,8 @@ export function profileRows(p: Profile | null, e: { exam_type: ExamType | null; 
 }
 
 // ---------------------------------------------------------------- öğrenme çıktısı / kazanım analizi (yalnız ölçülmüş soru kanıtı)
-export interface OutcomeItem { section_key: string; q_no: number; learning_outcome_id: string | null; learning_outcomes: { code: string | null; title: string } | null }
-export interface OutcomeStat { id: string; code: string | null; title: string; sections: string[]; n: number; d: number; y: number; b: number }
+export interface OutcomeItem { section_key: string; q_no: number; learning_outcome_id: string | null; learning_outcomes: { code: string | null; title: string; curriculum_versions?: {curriculum_type:string}|null } | null }
+export interface OutcomeStat { id: string; code: string | null; title: string; source:'official'|'pdf'; sections: string[]; n: number; d: number; y: number; b: number }
 /** Öğrencinin soru cevapları (answers: bölüm başına soru sırasıyla; büyük harf/"?" doğru, küçük harf yanlış, "_" boş) + denemenin
  *  soru-kazanım eşleşmeleri → kazanım başına D/Y/B. Soru verisi yoksa ya da sayı tutmuyorsa o bölüm hesaplanmaz (toplamdan türetilmez);
  *  eşleşmeyen soru sayılmaz; listede olmayan kazanım ölçülmemiştir (başarısız değil). Bir soru tek kazanıma bağlıdır (çift sayım yok). */
@@ -237,7 +237,7 @@ export function outcomeAnalysis(items: OutcomeItem[], answers: Record<string, st
     qs.forEach((q, k) => {
       if (!q.learning_outcome_id || !q.learning_outcomes) { unresolved++; return }
       const ch = s[k]!
-      const st = by.get(q.learning_outcome_id) ?? { id: q.learning_outcome_id, code: q.learning_outcomes.code, title: q.learning_outcomes.title, sections: [], n: 0, d: 0, y: 0, b: 0 }
+      const st = by.get(q.learning_outcome_id) ?? { id: q.learning_outcome_id, code: q.learning_outcomes.code, title: q.learning_outcomes.title, source:q.learning_outcomes.curriculum_versions?.curriculum_type==='PDF'?'pdf' as const:'official' as const, sections: [], n: 0, d: 0, y: 0, b: 0 }
       if (!st.sections.includes(key)) st.sections.push(key)
       st.n++
       if (ch === '_' || ch === ' ') st.b++
