@@ -17,7 +17,7 @@ export function findForbidden(text: string): string[] {
   return hits
 }
 
-export const RULES = `Bir ortaokulun rehberlik servisi için 8. sınıf öğrencisinin "Veli İçin Çıktı" deneme raporunun metin bölümlerini yaz.
+export const RULES = `Bir okulun rehberlik servisi için öğrencinin "Veli İçin Çıktı" deneme raporunun metin bölümlerini yaz. Veride bulunmayan sınıf seviyesini veya kişisel bilgileri tahmin etme.
 KURALLAR:
 - Öğrenciyi başka öğrencilerle değil, kendi önceki denemeleriyle karşılaştır. Sınıf sıralaması kullanma.
 - Dil: bir öğretmenin öğrencisini tanıyarak veliye yaptığı açıklama gibi doğal, sıcak, profesyonel, anlaşılır, yargılamayan Türkçe; veliye "siz" diye hitap et. Mekanik cümleler kurma.

@@ -116,7 +116,7 @@ export default function DenemelerPage() {
         [qs.length ? `Konular resmî listeyle eşleştirildi (%${Math.round((mapped / qs.length) * 1000) / 10})` : 'Bu dosyada konu (kazanım) bilgisi yok', true],
       ]
       setLines([...base, ['İsimler kontrol ediliyor…', false]])
-      const src = await aiFix(review, roster)
+      const src = 'Kural tabanlı'
       setFixSrc(src)
       const total = review.rows.filter((r) => r.match.kind === 'fixed').length
       setLines([...base, [total ? `${total} isim yazım hatası düzeltildi (${src.toLocaleLowerCase('tr')})` : fixes ? 'İsimler eşleştirildi' : 'Bütün isimler listede', true]])
@@ -377,32 +377,6 @@ export default function DenemelerPage() {
       )}
     </>
   )
-}
-
-/** Belirsiz isimler için yapay zekâ (yalnız isim listeleri gider). Yapılandırılmamışsa kural tabanlı kalır. */
-async function aiFix(rv: Review, roster: Student[]): Promise<string> {
-  const unknown = rv.rows.filter((r) => r.match.kind === 'unknown')
-  if (!unknown.length) return 'Kural tabanlı'
-  try {
-    const { data, error } = await supabase.functions.invoke('ai-isim-duzelt', {
-      body: { read: unknown.map((r) => r.read.name), roster: roster.map((s) => s.full_name) },
-    })
-    if (error || !Array.isArray(data?.matches)) return 'Kural tabanlı'
-    let used = false
-    for (const m of data.matches as { raw: string; match: string | null; sure: boolean }[]) {
-      if (!m.match || !m.sure) continue
-      const hits = roster.filter((s) => s.full_name === m.match)
-      const row = unknown.find((r) => r.read.name === m.raw)
-      if (hits.length !== 1 || !row) continue
-      if (rv.rows.some((r) => r.choice?.kind === 'student' && r.choice.id === hits[0]!.id)) continue
-      row.match = { kind: 'fixed', id: hits[0]!.id, via: 'name' }
-      row.choice = { kind: 'student', id: hits[0]!.id }
-      used = true
-    }
-    return used ? 'Yapay zekâ' : 'Kural tabanlı'
-  } catch {
-    return 'Kural tabanlı'
-  }
 }
 
 function ReviewStep(props: {

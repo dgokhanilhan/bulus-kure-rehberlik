@@ -1,2 +1,2 @@
 /** Aydınlatma metni sürümü: metin değiştikçe artır (kayıtta saklanır). */
-export const KVKK_VERSION = 'KVKK-1.0'
+export const KVKK_VERSION = 'KVKK-1.1'

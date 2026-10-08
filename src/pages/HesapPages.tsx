@@ -20,10 +20,12 @@ export function SetPasswordPage() {
     if (p1.length < 8) return setErr('Şifre en az 8 karakter olmalı.')
     if (p1 !== p2) return setErr('Şifreler aynı değil.')
     setBusy(true)
-    const { error } = await supabase.auth.updateUser({ password: p1 })
-    setBusy(false)
-    if (error) return setErr(/same|different/i.test(error.message) ? 'Yeni şifre eskisiyle aynı olamaz.' : /weak|password/i.test(error.message) ? 'Şifre çok zayıf; harf ve rakam kullan.' : 'Şifre kaydedilemedi. Bağlantının süresi dolmuş olabilir; yeniden iste.')
-    passwordSet()
+    try {
+      const { error } = await supabase.auth.updateUser({ password: p1 })
+      if (error) return setErr(/same|different/i.test(error.message) ? 'Yeni şifre eskisiyle aynı olamaz.' : /weak|password/i.test(error.message) ? 'Şifre çok zayıf; harf ve rakam kullan.' : 'Şifre kaydedilemedi. Bağlantının süresi dolmuş olabilir; yeniden iste.')
+      passwordSet()
+    } catch { setErr('Şifre kaydedilemedi. Bağlantını kontrol edip tekrar dene.') }
+    finally { setBusy(false) }
   }
   return (
     <AuthLayout>

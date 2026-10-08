@@ -140,14 +140,12 @@ describe('ai-veli-raporu', () => {
     expect(alarms).toHaveLength(1)
   })
 
-  it('ai-isim-duzelt yalnız isim listesiyle eşleştirir', async () => {
+  it('eski isim endpointi dış sağlayıcıya kişisel veri göndermez', async () => {
     await mockReset()
-    const { data } = await rehber.functions.invoke('ai-isim-duzelt', { body: { read: ['Zegnep Kya'], roster: ['Zeynep Kaya', 'Zehra Kaya'] } })
-    expect(data.matches).toEqual([{ raw: 'Zegnep Kya', match: 'Zeynep Kaya', sure: true }])
-    const sent = JSON.stringify((await mockLog())[0]!.body)
-    expect(sent).not.toMatch(/Buluş|8\/A|1187/)
-  })
-})
+    const { error } = await rehber.functions.invoke('ai-isim-duzelt', { body: { read: ['Zegnep Kya'], roster: ['Zeynep Kaya', 'Zehra Kaya'] } })
+    expect(error).not.toBeNull()
+    expect(await mockLog()).toEqual([])
+  })})
 
 describe('Rapor kaydet / gönder', () => {
   it('rehber yorumu şifreli saklanır; yalnız rehber ve raporu alan veli okur', async () => {

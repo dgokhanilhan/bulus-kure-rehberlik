@@ -22,7 +22,8 @@ export async function guard(req: Request, fn: string): Promise<{ user: SupabaseC
   const { data: staff } = await user.rpc('is_staff')
   if (staff !== true) return json({ error: 'forbidden' }, 403)
   const svc = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
-  const { data: quota } = await svc.rpc('ai_quota_check', { p_user: u.user.id, p_fn: fn })
+  const { data: quota, error: quotaError } = await svc.rpc('ai_quota_check', { p_user: u.user.id, p_fn: fn })
+  if (quotaError) return json({ error: 'quota_unavailable' }, 503)
   if (quota) return json({ error: 'quota', kind: quota }, 429)
   if (!Deno.env.get('DEEPSEEK_API_KEY')) return json({ error: 'not_configured' }, 503)
   return { user, svc, uid: u.user.id }

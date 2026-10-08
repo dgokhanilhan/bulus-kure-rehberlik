@@ -83,13 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient()
   const [session, setSession] = useState<Session | null>(null)
   const [loaded, setLoaded] = useState(false)
-  const [needPassword, setNeedPassword] = useState(() => {
-    try {
-      return sessionStorage.getItem(PW_FLAG) === '1'
-    } catch {
-      return false
-    }
-  })
+  const [needPassword, setNeedPassword] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -103,6 +97,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
       }
+      try {
+        const expected = sessionStorage.getItem(PW_FLAG)
+        if (expected && data.session?.user.id === expected) setNeedPassword(true)
+        else sessionStorage.removeItem(PW_FLAG)
+      } catch { /* depolama kapalı */ }
       setSession(data.session)
       setLoaded(true)
     })
@@ -110,6 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s)
       if (event === 'PASSWORD_RECOVERY') setNeedPassword(true)
       if (event === 'SIGNED_OUT') {
+        setNeedPassword(false)
+        try { sessionStorage.removeItem(PW_FLAG) } catch { /* depolama kapalı */ }
         clearRoleChoice()
         qc.clear()
       }

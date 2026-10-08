@@ -112,7 +112,7 @@ function NewApplication({ onTrack }: { onTrack: (code: string) => void }) {
     if (f.student_name.trim().length < 3 || f.parent_name.trim().length < 3) return setErr('Öğrenci ve veli adını yazın.')
     if (f.phone.replace(/\D/g, '').length < 10) return setErr('Telefon numarasını yazın (ör. 0532 123 45 67).')
     if (f.email && !EMAIL.test(f.email.trim())) return setErr('E-posta geçersiz.')
-    if (!f.consent) return setErr('Aydınlatma metnini onaylayın.')
+    if (!f.consent) return setErr('Aydınlatma metnini okuduğunuzu ve bilgi edindiğinizi belirtin.')
     setBusy(true)
     const r = await call<NonNullable<typeof done>>(
       supabase.rpc('apply_scholarship', {

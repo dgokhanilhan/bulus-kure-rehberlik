@@ -83,7 +83,7 @@ test.describe.serial('Bursluluk', () => {
     await page.getByLabel('Velinin adı soyadı').fill('Serkan Çelik')
     await page.getByLabel('Telefon').fill('0532 444 55 66')
     await page.getByRole('button', { name: 'Başvuruyu tamamla' }).click()
-    await expect(page.getByRole('alert')).toHaveText('Aydınlatma metnini onaylayın.')
+    await expect(page.getByRole('alert')).toHaveText('Aydınlatma metnini okuduğunuzu ve bilgi edindiğinizi belirtin.')
     await axe(page, 'başvuru formu')
     await page.getByRole('checkbox', { name: /Aydınlatma metnini okudum/ }).click()
     await page.getByRole('button', { name: 'Başvuruyu tamamla' }).click()

@@ -15,6 +15,8 @@ describe('Program görselindeki ders eşleşmeleri', () => {
     expect(normalizeProgramReading('TÜRKÇE E')).toBe('TURKCE')
     expect(normalizeProgramReading('SOSYA I')).toBe('SOSYAL')
     expect(normalizeProgramReading('MATEM ATİK')).toBe('MATEMATIK')
+    expect(normalizeProgramReading('VIATEMATIK')).toBe('MATEMATIK')
+    expect(normalizeProgramReading('VI')).toBe('VI')
     expect(normalizeProgramReading('P-Ç')).toBe('PC')
     expect(normalizeProgramReading('EY')).toBe('EY')
     expect(normalizeProgramReading('SOSYAKULL')).toBe('SOSYAKULL')

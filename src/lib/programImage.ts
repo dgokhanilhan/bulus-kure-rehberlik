@@ -13,6 +13,8 @@ export function programPeriod(period: number, omitted: number[]): number | null 
 const aliases: Record<string, string> = { M: 'Matematik', MU: 'Matematik', MATEMATIK: 'Matematik', REH: 'Rehberlik', ENG: 'İngilizce', SD: 'Seçmeli Ders', TURKCE: 'Türkçe', FEN: 'Fen Bilimleri', SOSYAL: 'Sosyal Bilgiler', DIN: 'Din Kültürü ve Ahlak Bilgisi', BEDEN: 'Beden Eğitimi', MUZIK: 'Müzik', ALMANCA: 'Almanca', BIYOLOJI: 'Biyoloji', KIMYA: 'Kimya', TARIH: 'Tarih', COGRAFYA: 'Coğrafya', FELSEFE: 'Felsefe' }
 export function normalizeProgramReading(text: string): string {
   const key=codeKey(text)
+  // Linux OCR'da M harfinin iki çizgisi VI okunabiliyor; yalnız tam ders adı.
+  if(key==='VIATEMATIK')return 'MATEMATIK'
   if(aliases[key])return key
   // Yalnız uzun ve açık ders adındaki tek harf hatasını, tek aday varsa düzelt.
   // Kısa/bilinmeyen kısaltmaları başka bir derse tahmin ederek eşleme.
