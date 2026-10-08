@@ -35,3 +35,7 @@ fixtures/pdf-genel/*
 
 # Derlemede npm paketlerinden hazırlanan yerel metin tanıma dosyaları
 public/program-ocr/
+
+# Mobil (Capacitor) derleme çıktısı ve yerel ortam
+dist-mobil
+!.env.mobil.example

@@ -25,9 +25,20 @@
     "functions": "supabase functions serve",
     "e2e:dist": "npm run build && E2E_DIST=1 playwright test e2e/asama3.spec.ts e2e/asama4.spec.ts e2e/dosyalar.spec.ts e2e/davet.spec.ts e2e/acilis.spec.ts",
     "deploy:staging": "node scripts/prepare-program-ocr.mjs && npm run tokens && tsc -b && vite build --mode staging && npx wrangler pages deploy dist --project-name bulus-kure-staging --branch master",
-    "deploy:prod": "node scripts/prepare-program-ocr.mjs && npm run tokens && tsc -b && vite build --mode production && npx wrangler pages deploy dist --project-name ${CF_PROJECT:-bulus-kure} --branch main"
+    "deploy:prod": "node scripts/prepare-program-ocr.mjs && npm run tokens && tsc -b && vite build --mode production && npx wrangler pages deploy dist --project-name ${CF_PROJECT:-bulus-kure} --branch main",
+    "mobil:build": "node scripts/prepare-program-ocr.mjs && npm run tokens && tsc -b && vite build --mode mobil && cap sync",
+    "mobil:ios": "npm run mobil:build && cap open ios",
+    "mobil:android": "npm run mobil:build && cap open android",
+    "e2e:mobil": "vite build --mode mobil && E2E_MOBIL=1 playwright test e2e/mobil.spec.ts"
   },
   "dependencies": {
+    "@aparajita/capacitor-secure-storage": "8.0.1",
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "8.5.2",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.3",
     "@fontsource/fraunces": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
@@ -45,6 +56,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@capacitor/cli": "8.5.2",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tesseract.js-data/eng": "^1.0.0",
