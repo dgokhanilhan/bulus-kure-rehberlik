@@ -29,7 +29,7 @@ export function PdfHedefEkle({rows,onClose}:{rows:UnresolvedRow[];onClose:()=>vo
       setMessage('İşlem tamamlandı. Eklenen hedefler sorulara bağlandı; başarısız satırlar aşağıda açıklanır.')
     }catch(e){setMessage(e instanceof Error ? e.message : 'Bağlantı kurulamadı. Başarılı kayıtlar korunur; kalanları yeniden deneyebilirsin.')}
     finally {
-      await Promise.all(['unresolved_outcomes','exam_items','genel-dataset','curriculum_versions','outcomes','bulk-outcome-proposals'].map(key=>qc.invalidateQueries({queryKey:[key]})))
+      await Promise.all(['unresolved_outcomes','exam_items','genel-dataset','genel-items','dataset','curriculum_versions','outcomes','bulk-outcome-proposals'].map(key=>qc.invalidateQueries({queryKey:[key]})))
       setBusy(false);setConfirmed(false)
     }
   }

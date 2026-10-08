@@ -156,7 +156,7 @@ export default function TakvimPage() {
 }
 
 function targetText(e: CalEvent, cls: (id: string | null) => string, stu: (id: string | null) => string, per: (id: string | null) => string) {
-  return e.target === 'okul' ? 'Tüm okul' : e.target === 'kademe' ? LEVEL_TR[e.level!] : e.target === 'sinif' ? cls(e.class_id) : e.target === 'ogrenci' ? stu(e.student_id) : per(e.teacher_id)
+  return e.target === 'okul' ? 'Tüm okul' : e.target === 'kademe' ? LEVEL_TR[e.level!] : e.target === 'sinif' ? (e.class_ids?.length ? e.class_ids.map(cls).join(', ') : cls(e.class_id)) : e.target === 'ogrenci' ? stu(e.student_id) : per(e.teacher_id)
 }
 
 function EventDetail({ e, onClose, onEdit }: { e: CalEvent; onClose: () => void; onEdit: () => void }) {
@@ -277,6 +277,7 @@ function EventModal({ e, onClose }: { e: CalEvent | null; onClose: () => void })
     target: (e?.target ?? targets[0]![0]) as CalEvent['target'],
     level: (e?.level ?? 'ortaokul') as Level,
     class_id: e?.class_id ?? '',
+    class_ids: e?.class_ids?.length ? e.class_ids : e?.class_id ? [e.class_id] : [],
     student_id: e?.student_id ?? '',
     teacher_id: e?.teacher_id ?? (staff ? '' : (profile?.id ?? '')),
     course_id: e?.course_id ?? '',
@@ -292,7 +293,8 @@ function EventModal({ e, onClose }: { e: CalEvent | null; onClose: () => void })
   async function save() {
     if (f.title.trim().length < 3) return setErr('Başlık en az 3 harf olmalı.')
     if (f.ends_on < f.starts_on) return setErr('Bitiş, başlangıçtan önce olamaz.')
-    const cls = f.class_id || clsOpts[0]?.id || ''
+    const selectedClasses = f.class_ids.length ? f.class_ids : f.class_id ? [f.class_id] : []
+    const cls = selectedClasses[0] || ''
     const stu = f.student_id || stuOpts[0]?.id || ''
     const tch = staff ? f.teacher_id || teachers[0]?.id || '' : profile!.id
     if (f.target === 'sinif' && !cls) return setErr('Sınıf seç.')
@@ -310,6 +312,7 @@ function EventModal({ e, onClose }: { e: CalEvent | null; onClose: () => void })
       target: f.target,
       level: f.target === 'kademe' ? f.level : null,
       class_id: f.target === 'sinif' ? cls : null,
+      class_ids: f.target === 'sinif' ? selectedClasses : [],
       student_id: f.target === 'ogrenci' ? stu : null,
       teacher_id: f.target === 'ogretmen' ? tch : null,
       course_id: f.course_id || null,
@@ -405,16 +408,7 @@ function EventModal({ e, onClose }: { e: CalEvent | null; onClose: () => void })
           </label>
         )}
         {f.target === 'sinif' && (
-          <label className="field" htmlFor="eClass">
-            Sınıf
-            <select id="eClass" value={f.class_id || clsOpts[0]?.id || ''} onChange={set('class_id')}>
-              {clsOpts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <fieldset className="field" style={{border:0,padding:0,margin:0}}><legend>Sınıflar</legend><div className="btns" style={{flexWrap:'wrap'}}>{[...new Set(clsOpts.filter(c=>c.active!==false).map(c=>c.grade))].map(g=><button type="button" className="btn sm" key={g} onClick={()=>setF(x=>({...x,class_ids:clsOpts.filter(c=>c.grade===g&&c.active!==false).map(c=>c.id),class_id:''}))}>{g}. sınıfları seç</button>)}</div><div className="btns" style={{flexWrap:'wrap'}}>{clsOpts.filter(c=>c.active!==false||f.class_ids.includes(c.id)).map(c=><label className="check" key={c.id}><input type="checkbox" checked={f.class_ids.includes(c.id)} onChange={event=>{const checked=event.target.checked;setF(x=>({...x,class_id:'',class_ids:checked?[...x.class_ids,c.id]:x.class_ids.filter(id=>id!==c.id)}))}}/>{c.name}</label>)}</div><span className="m">Yalnız seçilen sınıfların öğrencileri ve velileri görür. {f.class_ids.length} sınıf seçili.</span></fieldset>
         )}
         {f.target === 'ogrenci' && (
           <label className="field" htmlFor="eStu">

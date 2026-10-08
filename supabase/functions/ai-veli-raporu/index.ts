@@ -14,12 +14,23 @@ Deno.serve(async (req) => {
   // Ad, çağıranın yetkisiyle (RLS) okunur ve yalnız cevaba eklenir.
   const { data: st } = await g.user.from('students').select('full_name').eq('id', sid).maybeSingle()
   if (!st) return json({ error: 'forbidden' }, 403)
-  const { data: outs } = await g.svc.from('outcomes').select('title')
-  const err = validatePayload(body.payload, new Set((outs ?? []).map((o: { title: string }) => o.title)))
+  // Yalnız RLS ile görülebilen katalog metinleri. İstemcinin serbest metni onaylanmış sayılmaz.
+  const requested = ['guvenilirTekrarEdenHatalar','buDenemedeYanlisKonular'].flatMap(key => Array.isArray(body.payload?.[key]) ? body.payload[key].slice(0,80).map((r: {konu?: unknown})=>r?.konu).filter((t: unknown)=>typeof t==='string') : [])
+  const [legacy,catalog,sections,subtests,subjects] = await Promise.all([
+    g.user.from('outcomes').select('title').in('title',requested),
+    g.user.from('learning_outcomes').select('title').in('title',requested),
+    g.user.from('exam_template_sections').select('label').limit(1000),
+    g.user.from('exam_subtests').select('display_name').limit(1000),
+    g.user.from('subjects').select('name').limit(100),
+  ])
+  if([legacy,catalog,sections,subtests,subjects].some(r=>r.error)) return json({error:'catalog_unavailable'},503)
+  const knownTopics = new Set([...legacy.data??[],...catalog.data??[]].map((o: {title:string})=>o.title))
+  const knownSubjects = new Set(['Türkçe','Matematik','Fen Bilimleri','T.C. İnkılap Tarihi','Din Kültürü','İngilizce',...sections.data!.map((s:{label:string})=>s.label),...subtests.data!.map((s:{display_name:string})=>s.display_name),...subjects.data!.map((s:{name:string})=>s.name)])
+  const err = validatePayload(body.payload, knownTopics, knownSubjects)
   if (err) return json({ error: `payload: ${err}` }, 400)
 
   const messages = [
-    { role: 'system', content: RULES },
+    { role: 'system', content: RULES + '\nHedeflerde kaynak=pdf okulun deneme PDF’sinden eklediği çalışma hedefidir; resmî MEB kazanımı veya çıktısı olarak adlandırma. Resmî hedefler ile PDF hedeflerini karıştırma. Her iki kaynak da öğrencinin çalışma ihtiyacını gösterir; net ve puanı değiştirmez.' },
     { role: 'user', content: JSON.stringify({ veri: body.payload }) },
   ]
   const t0 = Date.now()

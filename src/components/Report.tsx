@@ -116,7 +116,7 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
   const links = useParentLinks(E)
   const [rec, setRec] = useState({ veli: true, ogrenci: false, users: [] as string[] })
 
-  if (!R) return <div className="empty">Bu öğrencinin bu denemede sonucu yok.</div>
+  if (!R) return <div className="rbar"><b>Bu öğrencinin bu denemede sonucu yok.</b><button className="btn sm" onClick={onClose} aria-label="Kapat"><Icon name="x" size={16}/></button></div>
   const vb = body as VeliBody
   const ob = body as OgretmenBody
   const set = (k: string, v: string) => setBody((b) => ({ ...b, [k]: v }))
@@ -150,6 +150,10 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
         err:
           st === 401
             ? 'Oturumun süresi dolmuş; çıkış yapıp yeniden gir. Kural tabanlı taslak duruyor.'
+            : st === 400
+            ? 'Rapor verisi doğrulanamadı. Sayfayı yenileyip yeniden dene; kural tabanlı taslak duruyor.'
+            : st === 403
+            ? 'Bu öğrenci için yapay zekâ raporu oluşturma yetkin yok. Kural tabanlı taslak duruyor.'
             : st === 429
             ? 'Yapay zekâ kotası doldu (günlük ya da aylık sınır). Kural tabanlı taslak duruyor.'
             : st === 503
@@ -222,6 +226,7 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
       totalNet: info[5]![1],
       reportDate: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
       subjects: subjRows.map((r) => ({ ad: r.d.ad, d: String(r.q?.d ?? '—'), y: String(r.q?.y ?? '—'), b: String(r.q?.b ?? '—'), net: r.q ? fmt(r.q.net, 2) : '—', prev: r.p ? fmt(r.p.net, 2) : '—', trend: r.trend })),
+      weaknesses: R!.lastWrong.map(w=>({konu:w.title,kod:w.code,ders:R!.subjects.find(d=>d.code===w.subject)?.ad??w.subject,source:w.source??'official',type:w.outcomeType??'KAZANIM'})),
     }
     const data: PdfVeli | PdfOgretmen = V
       ? { ...common, kind: 'veli', genel: vb.genel, guclu: vb.guclu, gelisim: vb.gelisim, oneriler: vb.oneriler.split('\n').map((o) => o.trim()).filter(Boolean), mentor: vb.mentor, rehber: vb.rehber ?? '' }
@@ -394,7 +399,7 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
                 <tr>
                   <th>Ders</th>
                   {R.exams.map((e) => (
-                    <th key={e.name} className="pnum">
+                    <th key={e.result.exam_id} className="pnum">
                       {e.name}
                     </th>
                   ))}
@@ -405,7 +410,7 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
                   <tr key={d.code}>
                     <td>{d.ad}</td>
                     {R.exams.map((e) => (
-                      <td key={e.name} className="pnum">
+                      <td key={e.result.exam_id} className="pnum">
                         {e.result.subjects[d.code] ? fmt(e.result.subjects[d.code]!.net, 2) : '—'}
                       </td>
                     ))}
@@ -416,7 +421,7 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
                     <b>Toplam</b>
                   </td>
                   {R.exams.map((e) => (
-                    <td key={e.name} className="pnum">
+                    <td key={e.result.exam_id} className="pnum">
                       <b>{fmt(totalNet(e.result), 2)}</b>
                     </td>
                   ))}
@@ -457,6 +462,10 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
             </tbody>
           </table>
         </div>
+        {(['official','pdf'] as const).map(source=>{
+          const rows=R.lastWrong.filter(w=>(w.source??'official')===source)
+          return rows.length ? <div className="sec" key={source}><h3>{source==='pdf'?'Okulun PDF’den eklediği çalışma hedefleri':'Resmî programdaki çalışma hedefleri'}</h3><p className="m" style={{fontSize:12}}>{source==='pdf'?'Bu hedefler deneme PDF’sinden okul tarafından eklenmiştir; resmî program eşleşmesi olarak değerlendirilmez.':'Bu denemede yanlış yanıtlanan soruların eşleştiği kazanım ve öğrenme çıktıları.'}</p><table><thead><tr><th>Ders</th><th>Hedef</th><th>Tür</th>{!V&&<th>Kod</th>}</tr></thead><tbody>{rows.map((w,i)=><tr key={`${w.subject}:${w.code}:${i}`}><td>{R.subjects.find(d=>d.code===w.subject)?.ad??w.subject}</td><td>{w.title}</td><td>{w.outcomeType==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım'}</td>{!V&&<td>{w.code}</td>}</tr>)}</tbody></table></div> : null
+        })}
         {V ? (
           <>
             <div className="sec" id="rapor-genel">

@@ -134,7 +134,7 @@ function Analiz({ exam, result, profile, sections }: { exam: GenelExam; result: 
             <tbody>
               {a.rows.map((r) => (
                 <tr key={r.id}>
-                  <td style={{ fontSize: 13 }}><span className="mono">{r.code ?? ''}</span> {r.title} <span className="m">· {r.sections.map(label).join(', ')}</span></td>
+                  <td style={{ fontSize: 13 }}><span className="mono">{r.code ?? ''}</span> {r.title} <span className="m">· {r.sections.map(label).join(', ')}</span><div className="m" style={{fontSize:12}}>{r.source==='pdf'?'Okulun PDF’den eklediği hedef':'Resmî program hedefi'}</div></td>
                   <td className="num">{r.n}</td><td className="num">{r.d}</td><td className="num">{r.y}</td><td className="num">{r.b}</td>
                 </tr>
               ))}
@@ -145,7 +145,7 @@ function Analiz({ exam, result, profile, sections }: { exam: GenelExam; result: 
         <p className="m" style={{ fontSize: 13 }}>Bu denemede {outcomeTerm(profile, 'tekil')} ile eşleşmiş soru verisi yok.</p>
       )}
       <p className="m" style={{ fontSize: 12 }}>
-        Yalnız bu denemede ölçülen ve resmî {outcomeTerm(profile, 'cogul')} ile eşleşen sorular gösterilir; listede olmayan {outcomeTerm(profile, 'tekil')} ölçülmemiştir, eksik sayılmaz.
+        Yalnız bu denemede ölçülen ve bir hedefe bağlanan sorular gösterilir. Resmî program hedefleri ve okulun PDF’den eklediği hedefler kaynak etiketiyle ayrılır; listede olmayan hedefler ölçülmemiştir, eksik sayılmaz.
         {a.unresolved ? ` ${a.unresolved} soru henüz eşleşmediği için analiz dışı.` : ''}
         {a.skipped.length ? ` ${a.skipped.map(label).join(', ')}: soru verisi sonuçla tutmadığı için hesaplanmadı.` : ''}
       </p>

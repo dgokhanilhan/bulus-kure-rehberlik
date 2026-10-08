@@ -21,7 +21,7 @@ export function useGenelItems(enabled = true) {
     staleTime: 60_000,
     queryFn: () =>
       pages<ItemRow & { exams?: unknown }>((a, b) =>
-        supabase.from('exam_items').select('exam_id, section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title), exams!inner(exam_type, status)')
+        supabase.from('exam_items').select('exam_id, section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title, outcome_type, curriculum_versions(curriculum_type)), exams!inner(exam_type, status)')
           .neq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').order('exam_id').order('section_key').order('q_no').range(a, b),
       ).then((rows) => rows.map(({ exams: _e, ...r }) => r as ItemRow)),
   })

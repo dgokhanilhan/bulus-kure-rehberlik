@@ -48,6 +48,7 @@ export interface PdfCommon {
   totalNet: string
   reportDate: string
   subjects: PdfSubjectRow[]
+  weaknesses?: {konu:string;kod:string;ders:string;source:'official'|'pdf';type:string}[]
 }
 export interface PdfVeli extends PdfCommon {
   kind: 'veli'
@@ -145,6 +146,10 @@ function Report(d: PdfVeli | PdfOgretmen) {
           widths={[40, 10, 10, 10, 15, 15]}
           numFrom={1}
         />
+        {(['official','pdf'] as const).map(source=>{
+          const rows=(d.weaknesses??[]).filter(w=>w.source===source)
+          return rows.length ? <View key={source}><H>{source==='pdf'?'Okulun PDF’den eklediği çalışma hedefleri':'Resmî programdaki çalışma hedefleri'}</H>{source==='pdf'&&<Text style={s.p}>Deneme PDF’sinden okul tarafından eklenen hedeflerdir; resmî program eşleşmesi değildir.</Text>}<Table head={V?['Ders','Hedef','Tür']:['Ders','Hedef','Tür','Kod']} rows={rows.map(w=>V?[w.ders,w.konu,w.type==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım']:[w.ders,w.konu,w.type==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım',w.kod])} widths={V?[22,58,20]:[18,47,17,18]} numFrom={5}/></View>:null
+        })}
         {V ? (
           <>
             <H>Genel Değerlendirme</H>

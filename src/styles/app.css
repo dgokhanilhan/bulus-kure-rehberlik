@@ -146,6 +146,7 @@ h2.sec{font-size:17px;font-weight:600}
 .tbl tbody tr.click{cursor:pointer}
 .tbl tbody tr:hover{background:var(--paper)}
 .num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.tbl th.num{text-align:right}
 .hist{display:flex;gap:4px}
 .hist i{width:18px;height:18px;border-radius:5px;display:block}
 .h-y{background:var(--signal)}.h-d{background:var(--primary)}.h-n{background:var(--line)}.h-b{background:var(--highlight)}

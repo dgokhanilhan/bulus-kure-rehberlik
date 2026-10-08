@@ -137,10 +137,10 @@ export function profileFor<P extends Profile & { school_id: string | null }>(ps:
     .sort((a, b) => b.academic_year - a.academic_year || Number(!!b.school_id) - Number(!!a.school_id))[0] ?? null
 }
 
-export interface ItemRow { section_key: string; q_no: number; correct_answer: string | null; learning_outcome_id: string | null; match_method: string; learning_outcomes: { code: string | null; title: string } | null }
+export interface ItemRow { section_key: string; q_no: number; correct_answer: string | null; learning_outcome_id: string | null; match_method: string; learning_outcomes: { code: string | null; title: string; curriculum_versions?: {curriculum_type:string}|null } | null }
 export const useExamItems = (examId: string | null) =>
   useQuery({
     queryKey: ['exam_items', examId],
     enabled: !!examId,
-    queryFn: async () => ((await supabase.from('exam_items').select('section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title)').eq('exam_id', examId!).order('section_key').order('q_no')).data ?? []) as unknown as ItemRow[],
+    queryFn: async () => ((await supabase.from('exam_items').select('section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title, curriculum_versions(curriculum_type))').eq('exam_id', examId!).order('section_key').order('q_no')).data ?? []) as unknown as ItemRow[],
   })
