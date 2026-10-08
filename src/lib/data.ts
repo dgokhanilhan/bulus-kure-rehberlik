@@ -334,10 +334,11 @@ export interface Announcement {
 }
 export function useAnnouncements() {
   const { profile } = useAuth()
+  const dual = useDualMode()
   const students = useStudents(profile?.role === 'veli' || profile?.role === 'ogrenci')
   return useQuery({
     queryKey: ['announcements', profile?.id, profile?.role],
-    select: (l: Announcement[]) => l.filter(a => calendarInScope({ ...a, target: a.scope, student_id: null }, profile?.role, profile?.id, students.data ?? [])),
+    select: (l: Announcement[]) => l.filter(a => calendarInScope({ ...a, target: a.scope, student_id: null }, profile?.role, profile?.id, students.data ?? []) && (!dual || dual.as !== 'ogretmen' || a.created_by === dual.uid || a.audience.includes('ogretmen'))),
     queryFn: () => all<Announcement>(supabase.from('announcements').select('id, title, body, scope, level, class_id, audience, created_by, author_name, created_at').order('created_at', { ascending: false }).limit(200)),
   })
 }
