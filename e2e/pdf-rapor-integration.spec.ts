@@ -11,7 +11,7 @@ test.beforeAll(async()=>{
  ids.v=(await svc.from('curriculum_versions').insert({school_id:school,authority:'Yayıncı',name:'PDF rapor testi',curriculum_type:'PDF',grade:6,subject_code:'MAT',year_from:2000,outcome_kind:'KAZANIM',source_title:'PDF',source_url:'',retrieved_at:'2026-10-08'}).select('id').single()).data!.id
  ids.o=(await svc.from('learning_outcomes').insert({curriculum_version_id:ids.v,grade:6,subject_code:'MAT',code:`PDF.${stamp}`,title:'PDF’den eklenen özgün çalışma hedefi',outcome_type:'OGRENME_CIKTISI'}).select('id').single()).data!.id
  for(const role of ['veli','ogrenci'] as const){
-  const result=await svc.auth.admin.createUser({email:`e2e-pdf-${role}-${stamp}@ornek.com`,password,email_confirm:true,user_metadata:{school:'bulus-kure',consent_version:'v1',role,full_name:`PDF ${role}`}})
+  const result=await svc.auth.admin.createUser({email:`e2e-pdf-${role}-${stamp}@ornek.com`,password,email_confirm:true,user_metadata:{school:'bulus-kure',consent_version:'v1',role,full_name:`PDF ${role}`,declared:role==='veli'?{childName:'PDF Rapor Test Öğrencisi',childClass:'6/A',relation:'Anne'}:{className:'6/A',schoolNo:'999'}}})
   expect(result.error).toBeNull();ids[role]=result.data.user!.id
   expect((await svc.from('profiles').update({status:'approved',...(role==='ogrenci'?{student_id:ids.s}:{})}).eq('id',ids[role])).error).toBeNull()
  }
