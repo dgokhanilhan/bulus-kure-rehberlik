@@ -11,6 +11,7 @@ playwright-report
 e2e/.auth
 supabase/.branches
 supabase/.temp
+deploy/auth-security/supabase/.temp
 .DS_Store
 
 e2e-artifacts

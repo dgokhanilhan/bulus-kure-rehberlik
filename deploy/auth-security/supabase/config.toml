@@ -1,0 +1,5 @@
+# Yalnız belirtilen Auth özelliği gönderilir. Ana yerel config canlıya gönderilmez.
+# Önce diff: supabase config diff --workdir deploy/auth-security --project-ref <canlı-ref>
+project_id = "bulus-kure-rehberlik"
+[auth]
+minimum_password_length = 8

@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { supabase, signupClient, SCHOOL_SLUG, SOURCE_URL } from '@/lib/supabase'
+import { supabase, signupClient, SCHOOL_SLUG, SOURCE_URL, AUTH_LINK_ERROR } from '@/lib/supabase'
 import { KVKK_VERSION } from '@/lib/kvkk'
 import { useQuery } from '@tanstack/react-query'
 import { BRANS, LEVEL_TR, LEVELS, YAKINLIK, type Level } from '@/lib/roles'
@@ -52,10 +52,11 @@ type RegRole = 'ogrenci' | 'veli' | 'ogretmen'
 
 export default function AuthPage() {
   const [step, setStep] = useState<Step>('login')
+  const [confirmationNeeded, setConfirmationNeeded] = useState(true)
   return (
     <AuthLayout>
       {step === 'login' && <LoginForm onStep={setStep} />}
-      {step === 'register' && <RegisterForm onStep={setStep} />}
+      {step === 'register' && <RegisterForm onStep={setStep} onRegistered={(confirmation) => { setConfirmationNeeded(confirmation); setStep('sent') }} />}
       {step === 'sent' && (
         <div className="stack a" style={{ alignItems: 'center', textAlign: 'center', paddingTop: 30 }}>
           <svg width="84" height="84" viewBox="0 0 72 72" className="pp" aria-hidden="true">
@@ -63,7 +64,7 @@ export default function AuthPage() {
             <path className="draw" pathLength={1} d="M22 37l10 10 19-21" fill="none" stroke="var(--primary)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500 }}>Kaydın alındı</h2>
-          <p className="m">E-posta adresine bir doğrulama bağlantısı gönderdik; önce ona tıkla (gelmediyse gereksiz/spam klasörüne bak). Okul yönetimi de onayladığında bu e-posta ve şifreyle giriş yapabilirsin.</p>
+          <p className="m">{confirmationNeeded ? 'E-posta adresine bir doğrulama bağlantısı gönderdik; önce ona tıkla (gelmediyse gereksiz/spam klasörüne bak). ' : ''}Okul yönetimi onayladığında bu e-posta ve şifreyle giriş yapabilirsin.</p>
           <button className="btn pri" onClick={() => setStep('login')}>
             Giriş ekranına dön
           </button>
@@ -91,21 +92,31 @@ function StepSeg({ step, onStep }: { step: Step; onStep: (s: Step) => void }) {
 function LoginForm({ onStep }: { onStep: (s: Step) => void }) {
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
-  const [err, setErr] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(AUTH_LINK_ERROR)
   const [busy, setBusy] = useState(false)
   const [unconfirmed, setUnconfirmed] = useState(false)
 
   async function resend() {
-    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/` } })
-    setErr(error ? (error.status === 429 ? 'Kısa süre önce gönderildi. Birkaç dakika sonra tekrar dene.' : 'Bağlantı gönderilemedi.') : 'Doğrulama bağlantısı yeniden gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.')
-    setUnconfirmed(false)
+    if (busy) return
+    setBusy(true)
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/` } })
+      setErr(error ? (error.status === 429 ? 'Kısa süre önce gönderildi. Birkaç dakika sonra tekrar dene.' : 'Bağlantı gönderilemedi.') : 'Doğrulama bağlantısı yeniden gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.')
+      if (!error) setUnconfirmed(false)
+    } catch { setErr('Bağlantı gönderilemedi. Bağlantını kontrol edip tekrar dene.') }
+    finally { setBusy(false) }
   }
 
   async function forgot() {
+    if (busy) return
     const em = email.trim()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)) return setErr('Şifre sıfırlama bağlantısı için önce e-postanı yaz.')
-    const { error } = await supabase.auth.resetPasswordForEmail(em, { redirectTo: `${window.location.origin}/` })
-    setErr(error?.status === 429 ? 'Kısa süre önce gönderildi. Birkaç dakika sonra tekrar dene.' : 'Bu e-postayla bir hesap varsa şifre belirleme bağlantısı gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.')
+    setBusy(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(em, { redirectTo: `${window.location.origin}/` })
+      setErr(error ? (error.status === 429 ? 'Kısa süre önce gönderildi. Birkaç dakika sonra tekrar dene.' : 'Şifre sıfırlama isteği tamamlanamadı. Bağlantını kontrol edip tekrar dene.') : 'Bu e-postayla bir hesap varsa şifre belirleme bağlantısı gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.')
+    } catch { setErr('Şifre sıfırlama isteği tamamlanamadı. Bağlantını kontrol edip tekrar dene.') }
+    finally { setBusy(false) }
   }
 
   async function submit(e: FormEvent) {
@@ -150,7 +161,7 @@ function LoginForm({ onStep }: { onStep: (s: Step) => void }) {
           </div>
         )}
         {unconfirmed && (
-          <button className="btn" type="button" onClick={resend}>
+          <button className="btn" type="button" disabled={busy} onClick={resend}>
             Doğrulama bağlantısını yeniden gönder
           </button>
         )}
@@ -158,7 +169,7 @@ function LoginForm({ onStep }: { onStep: (s: Step) => void }) {
           {busy ? <span className="spinner" aria-hidden="true" /> : null}
           Giriş yap
         </button>
-        <button type="button" className="linkbtn" style={{ alignSelf: 'center', fontSize: 13 }} onClick={forgot}>
+        <button type="button" className="linkbtn" disabled={busy} style={{ alignSelf: 'center', fontSize: 13 }} onClick={forgot}>
           Şifremi unuttum
         </button>
       </form>
@@ -239,7 +250,7 @@ export function validateRegistration(f: RegForm): string[] {
   return err
 }
 
-function RegisterForm({ onStep }: { onStep: (s: Step) => void }) {
+function RegisterForm({ onStep, onRegistered }: { onStep: (s: Step) => void; onRegistered: (confirmation: boolean) => void }) {
   const [f, setF] = useState<RegForm>({ role: 'ogrenci', name: '', email: '', pass: '', pass2: '', brans: '', cls: '', no: '', childName: '', childCls: '', rel: 'Anne', consent: false })
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -257,7 +268,7 @@ function RegisterForm({ onStep }: { onStep: (s: Step) => void }) {
         : f.role === 'veli'
           ? { childName: f.childName.trim(), childClass: f.childCls, relation: f.rel }
           : undefined
-    const { error } = await signupClient().auth.signUp({
+    const { data, error } = await signupClient().auth.signUp({
       email: f.email.trim(),
       password: f.pass,
       options: {
@@ -285,7 +296,7 @@ function RegisterForm({ onStep }: { onStep: (s: Step) => void }) {
       )
       return
     }
-    onStep('sent')
+    onRegistered(!data.session)
   }
 
   const r = f.role

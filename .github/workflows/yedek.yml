@@ -1,4 +1,4 @@
-# Haftalık şifreli veritabanı yedeği (Supabase Pro'nun günlük yedeğine ek).
+# Haftalık şifreli veritabanı yedeği. Sağlayıcının günlük yedek planı ayrıca doğrulanmalıdır.
 # Gerekli GitHub secret'ları: SUPABASE_DB_URL (Settings → Database → Connection string, "session" modu),
 # BACKUP_PASSPHRASE (uzun, rastgele; okulun güvenli yerinde saklanır). Yedek, 30 gün tutulan bir artefakt olarak
 # yüklenir; okulun kendi depolama alanına taşınması için indirilebilir. Şifresiz yedek hiçbir yerde durmaz.
@@ -13,6 +13,15 @@ jobs:
   yedek:
     runs-on: ubuntu-latest
     steps:
+      - name: Yedekleme yapılandırmasını doğrula
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DB_URL" ] || [ -z "$PASS" ]; then
+            echo "::error::SUPABASE_DB_URL ve BACKUP_PASSPHRASE secret'ları tanımlanmalı. Yedek oluşturulmadı."
+            exit 1
+          fi
       - name: PostgreSQL istemcisi
         run: sudo apt-get install -y -q postgresql-common && sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && sudo apt-get install -y -q postgresql-client-17
       - name: pg_dump + şifreleme
@@ -21,8 +30,9 @@ jobs:
           PASS: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
-          test -n "$DB_URL" && test -n "$PASS"
+          umask 077
           f="yedek-$(date -u +%Y%m%d).dump"
+          trap 'shred -u "$f" 2>/dev/null || true' EXIT
           /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --format=custom --no-owner --no-privileges --schema=public --schema=auth --file="$f"
           gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" --symmetric --cipher-algo AES256 --output "$f.gpg" "$f"
           shred -u "$f"

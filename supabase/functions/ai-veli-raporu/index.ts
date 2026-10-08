@@ -1,5 +1,5 @@
-// ai-veli-raporu: anonim deneme verisinden veli raporu metni üretir (docs/veli-raporu-kurallari.md).
-// Modele KİŞİSEL VERİ GİTMEZ: ad yerine {AD} yazılır, gerçek ad cevaba sunucuda eklenir.
+// ai-veli-raporu: doğrudan kimlik bilgileri çıkarılmış deneme verisinden taslak üretir.
+// Ad yerine {AD} kullanılır; bu tek başına hukuki anonimleştirme kanıtı değildir.
 // Çıktı şemaya ve yasak ifade filtresine göre doğrulanır; başarısızsa 422 → istemci kural tabanlı taslakta kalır.
 import { RULES, fillName, fixHint, validatePayload, validateReport } from '../_shared/rapor-ai.ts'
 import { chat, guard, json, logUsage } from '../_shared/ai.ts'
