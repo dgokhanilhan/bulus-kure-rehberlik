@@ -12,7 +12,7 @@ export function PdfHedefDuzenle({row,onClose}:{row:OutcomeRow;onClose:()=>void})
     try {
       const {error}=await supabase.rpc('update_pdf_outcome',{p_id:row.id,p_code:code,p_title:title,p_kind:kind})
       if(error)throw new Error(error.code==='23505'?'Aynı kod bu yayın kataloğunda zaten var.':error.message)
-      await Promise.all(['outcomes','genel-items','dataset','unresolved_outcomes','bulk-outcome-proposals'].map(key=>qc.invalidateQueries({queryKey:[key]})))
+      await Promise.all(['outcomes','exam_items','genel-items','dataset','unresolved_outcomes','bulk-outcome-proposals'].map(key=>qc.invalidateQueries({queryKey:[key]})))
       onClose()
     }catch(e){setError(e instanceof Error?e.message:'Kaydedilemedi.')}finally{setBusy(false)}
   }
