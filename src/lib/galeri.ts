@@ -3,6 +3,15 @@
 // Hata olan dosyanın yarım kaydı ve dosyaları silinir; diğer dosyalar devam eder. Yetki ve sınırlar veritabanında yeniden denetlenir.
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
+import { useAuth } from '@/auth/AuthProvider'
+import { useStudents } from './data'
+import { albumInScope, type AlbumScope } from './albumScope'
+
+function useAlbumScope() {
+  const { profile } = useAuth()
+  const students = useStudents(profile?.role === 'veli' || profile?.role === 'ogrenci')
+  return { key: [profile?.id, profile?.role], visible: (a: AlbumScope) => albumInScope(a, profile?.role, students.data ?? []) }
+}
 
 export type AlbumStatus = 'taslak' | 'onay_bekliyor' | 'yayinda' | 'arsiv'
 export type Audience = 'okul' | 'kademe' | 'sinif' | 'ogrenci' | 'ogretmen'
@@ -68,8 +77,10 @@ export function useCategories() {
 }
 
 export function useAlbums(archived: boolean) {
+  const scope = useAlbumScope()
   return useQuery({
-    queryKey: ['gallery_albums', archived],
+    queryKey: ['gallery_albums', archived, ...scope.key],
+    select: rows => rows.filter(scope.visible),
     queryFn: async () => {
       let q = supabase.from('gallery_albums').select('*, gallery_media!gallery_media_album_id_fkey(count)').order('event_date', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false })
       q = archived ? q.eq('status', 'arsiv') : q.neq('status', 'arsiv')
@@ -81,8 +92,10 @@ export function useAlbums(archived: boolean) {
 }
 
 export function useAlbum(id: string | null) {
+  const scope = useAlbumScope()
   return useQuery({
-    queryKey: ['gallery_album', id],
+    queryKey: ['gallery_album', id, ...scope.key],
+    select: row => row && scope.visible(row) ? row : null,
     enabled: !!id,
     queryFn: async () => {
       const { data, error } = await supabase.from('gallery_albums').select('*').eq('id', id!).maybeSingle()
@@ -115,19 +128,21 @@ export function useMedia(album: string | null, pages: number) {
 
 /** Son eklenenler: yayındaki albümlerden onaylı medya. */
 export function useRecent() {
+  const scope = useAlbumScope()
   return useQuery({
-    queryKey: ['gallery_recent'],
+    queryKey: ['gallery_recent', ...scope.key],
+    select: rows => rows.filter(m => scope.visible(m.gallery_albums)),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('gallery_media')
-        .select('*, gallery_albums!gallery_media_album_id_fkey!inner(status, title)')
+        .select('*, gallery_albums!gallery_media_album_id_fkey!inner(status, title, audience, class_ids, student_ids, level)')
         .eq('uploaded', true)
         .eq('approved', true)
         .eq('gallery_albums.status', 'yayinda')
         .order('created_at', { ascending: false })
         .limit(12)
       if (error) throw error
-      return data as (Media & { gallery_albums: { title: string } })[]
+      return data as (Media & { gallery_albums: AlbumScope & { title: string } })[]
     },
   })
 }

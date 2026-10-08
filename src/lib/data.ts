@@ -8,6 +8,7 @@ import type { ClassRow, Student } from './types'
 import { examTrack, MODULE_DEFAULTS, type Modules } from './roles'
 import { useAuth } from '@/auth/AuthProvider'
 import { withCatalogItems, type ItemRow } from './genelVeriSeti'
+import { calendarInScope } from './calendarScope'
 
 async function all<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await q
@@ -33,7 +34,7 @@ export function useStudents(enabled = true) {
   // İki rollü hesap öğretmen modunda: yalnız öğretmen olarak atandığı sınıflar (veli olarak gördüğü kendi çocukları listelenmez)
   const teacherOnly = !parentOf && profile?.role === 'ogretmen' && switchable.length > 0 ? profile.id : null
   return useQuery({
-    queryKey: ['students', parentOf ? 'veli' : teacherOnly ? 'ogretmen' : 'hepsi'],
+    queryKey: ['students', parentOf ? 'veli' : teacherOnly ? 'ogretmen' : 'hepsi', profile?.id],
     staleTime: STALE,
     enabled,
     queryFn: async () => {
@@ -96,10 +97,11 @@ export interface CalEvent {
   created_by: string | null
 }
 export function useCalendar(from: string, to: string) {
-  const dual = useDualMode()
+  const { profile } = useAuth()
+  const students = useStudents(profile?.role === 'veli' || profile?.role === 'ogrenci')
   return useQuery({
-    queryKey: ['calendar', from, to],
-    select: dual ? (l: CalEvent[]) => l.filter((e) => e.created_by === dual.uid || e.teacher_id === dual.uid || e.audience.includes(dual.as)) : undefined,
+    queryKey: ['calendar', from, to, profile?.id, profile?.role],
+    select: (l: CalEvent[]) => l.filter(e => calendarInScope(e, profile?.role, profile?.id, students.data ?? [])),
     queryFn: () =>
       all<CalEvent>(
         supabase.from('calendar_events').select('id, title, description, type, starts_on, ends_on, starts_at, ends_at, location, target, level, class_id, class_ids, student_id, teacher_id, course_id, audience, created_by').lte('starts_on', to).gte('ends_on', from).order('starts_on').order('starts_at', { nullsFirst: true }),
@@ -331,10 +333,12 @@ export interface Announcement {
   created_at: string
 }
 export function useAnnouncements() {
+  const { profile } = useAuth()
   const dual = useDualMode()
+  const students = useStudents(profile?.role === 'veli' || profile?.role === 'ogrenci')
   return useQuery({
-    queryKey: ['announcements'],
-    select: dual ? (l: Announcement[]) => l.filter((a) => a.created_by === dual.uid || a.audience.includes(dual.as)) : undefined,
+    queryKey: ['announcements', profile?.id, profile?.role],
+    select: (l: Announcement[]) => l.filter(a => calendarInScope({ ...a, target: a.scope, student_id: null }, profile?.role, profile?.id, students.data ?? []) && (!dual || dual.as !== 'ogretmen' || a.created_by === dual.uid || a.audience.includes('ogretmen'))),
     queryFn: () => all<Announcement>(supabase.from('announcements').select('id, title, body, scope, level, class_id, audience, created_by, author_name, created_at').order('created_at', { ascending: false }).limit(200)),
   })
 }

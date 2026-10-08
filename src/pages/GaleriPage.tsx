@@ -229,7 +229,7 @@ function AlbumView({ id }: { id: string }) {
   const [, setSp] = useSearchParams()
   const album = useAlbum(id)
   const [pages, setPages] = useState(1)
-  const media = useMedia(id, pages)
+  const media = useMedia(album.data ? id : null, pages)
   const cats = useCategories()
   const toast = useToast()
   const inv = useInvalidate()

@@ -129,7 +129,7 @@ function Duyurular() {
                   {a.author_name ?? 'Okul'} · {localDate(a.created_at) === todayISO() ? `bugün ${localHM(a.created_at)}` : trD(localDate(a.created_at))}
                   {teacher ? ` · ${a.audience.map((x) => AUD_TR[x]).join(', ')}` : ''}
                 </span>
-                {(a.created_by === profile?.id || role === 'admin') && (
+                {(role === 'admin' || ((role === 'rehber' || role === 'brans') && a.created_by === profile?.id)) && (
                   <button className="btn sm" onClick={() => remove(a)} aria-label={`${a.title} duyurusunu kaldır`}>
                     <Icon name="trash" size={15} />
                   </button>

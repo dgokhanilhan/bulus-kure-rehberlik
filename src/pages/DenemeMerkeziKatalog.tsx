@@ -6,6 +6,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { Modal } from '@/components/Modal'
 import { PdfHedefEkle } from '@/components/PdfHedefEkle'
 import { PdfHedefDuzenle } from '@/components/PdfHedefDuzenle'
+import { PdfMetinTamamla } from '@/components/PdfMetinTamamla'
 import { pdfVersionsFor } from '@/lib/pdfOutcomes'
 import { useToast } from '@/components/Toast'
 import { EXAM_TYPE_TR, academicYear, cohortYear, outcomeTerm, type ExamType } from '@/lib/denemeGenel'
@@ -163,6 +164,7 @@ function SablonDuzenle({ t, onClose }: { t: TemplateRow; onClose: () => void }) 
 
 // ---------------------------------------------------------------- kazanım kataloğu
 export function KatalogBolumu() {
+  const [complete, setComplete] = useState(false)
   const {role}=useAuth()
   const [edit,setEdit]=useState<OutcomeRow|null>(null),[onlyPdf,setOnlyPdf]=useState(false)
   const cv = useCurriculumVersions(), subjects = useSubjects()
@@ -211,6 +213,7 @@ export function KatalogBolumu() {
         </label>
       </section>
       <label className="check"><input type="checkbox" checked={onlyPdf} onChange={e=>setOnlyPdf(e.target.checked)}/>Yalnız okulun PDF’den eklediği hedefleri göster</label>
+      {role === 'admin' && v && <button className="btn" disabled={!res.data?.some(o => pdfIds.includes(o.curriculum_version_id))} onClick={() => setComplete(true)}>Eksik PDF metinlerini kontrol et</button>}
       {vids.length ? (
         <section className="card a" style={{ overflow: 'hidden' }} aria-label="Kazanımlar">
           <div style={{ padding: '12px 16px', fontSize: 13 }}>
@@ -244,6 +247,7 @@ export function KatalogBolumu() {
         </div>
       )}
       {edit&&<PdfHedefDuzenle row={edit} onClose={()=>setEdit(null)}/>}
+      {complete && v && <PdfMetinTamamla rows={(res.data ?? []).filter(o => pdfIds.includes(o.curriculum_version_id))} version={v} onClose={() => setComplete(false)}/>}
     </>
   )
 }

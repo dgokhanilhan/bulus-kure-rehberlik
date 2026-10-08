@@ -56,6 +56,14 @@ describe('Bildirim türleri', () => {
 })
 
 describe('Takvim', () => {
+  it('öğretmen atanmamış sınıfın denemesini görür; veli ve öğrenci görmez', async () => {
+    const { error } = await ev(svc, await idOf('rehber@buluskure.k12.tr'), { title: 'Test tüm öğretmenlere deneme', type: 'deneme', target: 'sinif', class_id: c8B, class_ids: [c8B], audience: ['veli','ogrenci'] })
+    expect(error).toBeNull()
+    expect(await titles(await signIn('fen'))).toContain('Test tüm öğretmenlere deneme')
+    expect(await titles(await signIn('veliElif'))).not.toContain('Test tüm öğretmenlere deneme')
+    expect(await titles(await signIn('elif'))).not.toContain('Test tüm öğretmenlere deneme')
+    expect(await titles(await signIn('veliKerem'))).toContain('Test tüm öğretmenlere deneme')
+  })
   it('okul geneli veli toplantısı yalnız velilere; bildirim "etkinlik"', async () => {
     const rehber = await signIn('rehber')
     const before = await snap()

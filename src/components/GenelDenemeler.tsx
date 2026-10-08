@@ -120,19 +120,22 @@ function Bolumler({ exam, result, sections, profile }: { exam: GenelExam; result
 
 /** Öğrenme Çıktısı Analizi (TYMM) / Kazanım Analizi (eski program): yalnız soru düzeyinde ölçülmüş ve eşleşmiş sorular. */
 function Analiz({ exam, result, profile, sections }: { exam: GenelExam; result: GenelResult; profile: Profile | null; sections: TemplateSection[] }) {
+  const [onlyMissing, setOnlyMissing] = useState(true)
   const items = useExamItems(exam.id)
   if (items.isLoading || !items.data?.length) return null
   const a = outcomeAnalysis(items.data, result.answers)
   const label = (k: string) => sections.find((s) => s.key === k)?.label ?? k
   return (
-    <div data-testid="kazanim-analizi">
+    <details key={exam.id} data-testid="kazanim-analizi">
+      <summary style={{ cursor: 'pointer', padding: '10px 0' }}>Yanlış ve boş yapılan kazanım / öğrenme çıktılarını göster ({a.rows.filter(r => r.y > 0 || r.b > 0).length} hedef)</summary>
+      <label className="check"><input type="checkbox" checked={onlyMissing} onChange={e => setOnlyMissing(e.target.checked)}/>Yalnız yanlış veya boş yapılan hedefler</label>
       <h3 className="sec" style={{ fontSize: 15 }}>{outcomeTerm(profile)}</h3>
       {a.rows.length ? (
         <div className="tbl" tabIndex={0} role="region" aria-label={outcomeTerm(profile)}>
           <table>
             <thead><tr><th>{outcomeTerm(profile, 'tekil').replace(/^./, (c) => c.toLocaleUpperCase('tr'))}</th><th className="num">Soru</th><th className="num">D</th><th className="num">Y</th><th className="num">B</th></tr></thead>
             <tbody>
-              {a.rows.map((r) => (
+              {a.rows.filter(r => !onlyMissing || r.y > 0 || r.b > 0).map((r) => (
                 <tr key={r.id}>
                   <td style={{ fontSize: 13 }}><span className="mono">{r.code ?? ''}</span> {r.title} <span className="m">· {r.sections.map(label).join(', ')}</span><div className="m" style={{fontSize:12}}>{r.source==='pdf'?'Okulun PDF’den eklediği hedef':'Resmî program hedefi'}</div></td>
                   <td className="num">{r.n}</td><td className="num">{r.d}</td><td className="num">{r.y}</td><td className="num">{r.b}</td>
@@ -149,7 +152,7 @@ function Analiz({ exam, result, profile, sections }: { exam: GenelExam; result: 
         {a.unresolved ? ` ${a.unresolved} soru henüz eşleşmediği için analiz dışı.` : ''}
         {a.skipped.length ? ` ${a.skipped.map(label).join(', ')}: soru verisi sonuçla tutmadığı için hesaplanmadı.` : ''}
       </p>
-    </div>
+    </details>
   )
 }
 
