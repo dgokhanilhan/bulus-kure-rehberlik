@@ -30,6 +30,7 @@ test.describe.serial('Çoklu rol', () => {
     await svc.from('profiles').update({ status: 'approved' }).eq('id', T.id)
   })
   test.afterAll(async () => {
+    await svc.from('calendar_events').delete().eq('created_by', T.id)
     if (T.id) await svc.auth.admin.deleteUser(T.id)
   })
 
@@ -67,6 +68,15 @@ test.describe.serial('Çoklu rol', () => {
     await expect(menu(page)).toHaveText(TEACHER_MENU)
     await expect(role(page)).toContainText('Branş öğretmeni')
 
+    const cls = (await svc.from('classes').select('id,name').in('name',['8/A','8/B'])).data!
+    const school = (await svc.from('profiles').select('school_id').eq('id',T.id).single()).data!.school_id
+    const day = new Date(Date.now()+3*3600_000).toISOString().slice(0,10)
+    const inserted = await svc.from('calendar_events').insert(cls.map(c => ({school_id:school,created_by:T.id,title:`Rol denemesi ${c.name}`,type:'deneme',target:'sinif',class_id:c.id,class_ids:[c.id],audience:['veli','ogrenci'],starts_on:day,ends_on:day}))).select('id,title')
+    expect(inserted.error).toBeNull()
+    await page.goto('/takvim')
+    await expect(page.getByTestId('upcoming').filter({hasText:'Rol denemesi 8/A'})).toBeVisible()
+    await expect(page.getByTestId('upcoming').filter({hasText:'Rol denemesi 8/B'})).toBeVisible()
+
     // Yenileme: seçim korunur
     await page.reload()
     await expect(menu(page)).toHaveText(TEACHER_MENU)
@@ -78,6 +88,12 @@ test.describe.serial('Çoklu rol', () => {
     await expect(menu(page)).toHaveText(FAMILY_MENU)
     await expect(role(page)).toContainText('Veli')
     await expect(page).toHaveURL(/\/panel$/)
+    await page.goto('/takvim')
+    await expect(page.getByTestId('upcoming').filter({hasText:'Rol denemesi 8/B'})).toBeVisible()
+    await expect(page.getByTestId('upcoming').filter({hasText:'Rol denemesi 8/A'})).toHaveCount(0)
+    const forbidden = inserted.data!.find(e => e.title === 'Rol denemesi 8/A')!
+    await page.goto(`/takvim?etkinlik=${forbidden.id}`)
+    await expect(page.getByRole('dialog',{name:'Rol denemesi 8/A',exact:true})).toHaveCount(0)
     await page.getByRole('navigation', { name: 'Ana menü' }).getByRole('link', { name: 'Okul', exact: true }).click()
     await expect(page.getByRole('heading', { name: "Kerem'in okul günü" })).toBeVisible() // yalnız kendi çocuğu
     await page.reload()

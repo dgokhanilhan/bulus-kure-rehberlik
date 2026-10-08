@@ -11,6 +11,7 @@ import { Modal } from '@/components/Modal'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
+import { calendarInScope } from '@/lib/calendarScope'
 
 const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
 const TYPES = Object.keys(EVENT_TR) as EventType[]
@@ -44,7 +45,7 @@ export default function TakvimPage() {
   const family = role === 'veli' || role === 'ogrenci'
   const open = sp.get('etkinlik')
   const single = useQuery({
-    queryKey: ['calendar-one', open],
+    queryKey: ['calendar-one', open, profile?.id, profile?.role],
     enabled: !!open,
     queryFn: async () => (await supabase.from('calendar_events').select('*').eq('id', open!).maybeSingle()).data as CalEvent | null,
   })
@@ -66,7 +67,8 @@ export default function TakvimPage() {
   const upcoming = items.filter((x) => x.ends_on >= today && x.starts_on <= upTo).sort((a, b) => a.starts_on.localeCompare(b.starts_on) || (a.time ?? '').localeCompare(b.time ?? ''))
   const [y, m] = month.split('-').map(Number) as [number, number]
   const shift = (n: number) => setMonth(monthStart(new Date(Date.UTC(y, m - 1 + n, 1)).toISOString()))
-  const detail = open ? (cal.data?.find((e) => e.id === open) ?? single.data ?? null) : null
+  const candidate = open ? (cal.data?.find((e) => e.id === open) ?? single.data ?? null) : null
+  const detail = candidate && calendarInScope(candidate, profile?.role, profile?.id, students.data ?? []) ? candidate : null
   const openItem = (x: Item) => (x.homework ? nav(`/odevler?odev=${x.homework}`) : setSp({ etkinlik: x.key }, { replace: true }))
 
   return (
@@ -168,7 +170,7 @@ function EventDetail({ e, onClose, onEdit }: { e: CalEvent; onClose: () => void;
   const qc = useQueryClient()
   const toast = useToast()
   const [del, setDel] = useState(false)
-  const mine = role === 'admin' || e.created_by === profile?.id
+  const mine = role === 'admin' || ((role === 'rehber' || role === 'brans') && e.created_by === profile?.id)
   const cls = (id: string | null) => classes.data?.find((c) => c.id === id)?.name ?? 'Sınıf'
   const stu = (id: string | null) => students.data?.find((s) => s.id === id)?.full_name ?? 'Öğrenci'
   const per = (id: string | null) => people.data?.find((p) => p.id === id)?.full_name ?? 'Öğretmen'

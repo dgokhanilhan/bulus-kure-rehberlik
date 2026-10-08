@@ -20,7 +20,7 @@ export function LineChart({
   height?: number
 }) {
   if (!values.length) return null
-  const W = width,
+  const W = Math.max(width, values.length * 110),
     H = height,
     top = 28,
     bot = H - 34
@@ -36,7 +36,7 @@ export function LineChart({
   const mean = values.reduce((a, b) => a + b, 0) / values.length
   return (
     // Tıklanabilir deneme adları varsa "group" (img rolü içindeki düğmeleri ekran okuyucu görmez).
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }} role={onSelect ? 'group' : 'img'} aria-label={`Toplam net: ${values.map((v) => fmt(v)).join(', ')}`}>
+    <div style={{ overflowX: 'auto' }}><svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: W, height: 'auto' }} role={onSelect ? 'group' : 'img'} aria-label={`Toplam net: ${values.map((v) => fmt(v)).join(', ')}`}>
       {grid.map((v) => (
         <g key={v}>
           <line x1="42" x2={W - 10} y1={Y(v)} y2={Y(v)} stroke="var(--line)" />
@@ -65,10 +65,10 @@ export function LineChart({
           </text>
           <text className="lbl" x={X(i)} y={H - 10} textAnchor="middle" fill="var(--ink-muted)" fontSize="12.5" textDecoration={onSelect ? 'underline' : undefined}>
             <title>{labels[i]}</title>
-            {labels[i]!.length > Math.max(10, Math.floor((W-80)/Math.max(1,values.length)/7)) ? labels[i]!.slice(0, Math.max(10, Math.floor((W-80)/Math.max(1,values.length)/7))-1)+'…' : labels[i]}
+            {labels[i]!.length > Math.max(3, Math.min(18, Math.floor((W-80)/Math.max(1,values.length)/8))) ? labels[i]!.slice(0, Math.max(3, Math.min(18, Math.floor((W-80)/Math.max(1,values.length)/8)))-1)+'…' : labels[i]}
           </text>
         </g>
       ))}
-    </svg>
+    </svg></div>
   )
 }
