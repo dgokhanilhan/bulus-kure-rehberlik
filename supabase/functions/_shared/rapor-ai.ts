@@ -98,16 +98,16 @@ export function fillName(r: AiReport, first: string): AiReport {
 }
 
 /** Anonim veri doğrulaması: yalnız izinli alanlar ve biçimler (kişisel veri sızamaz). */
-export function validatePayload(p: unknown, knownTopics: Set<string>): string | null {
+export function validatePayload(p: unknown, knownTopics: Set<string>, knownSubjects = new Set(['Türkçe', 'Matematik', 'Fen Bilimleri', 'T.C. İnkılap Tarihi', 'Din Kültürü', 'İngilizce'])): string | null {
   const o = p as Record<string, unknown>
   const allowed = ['denemeSayisi', 'sonDeneme', 'puan', 'toplamNet', 'dersler', 'gecmis', 'guvenilirTekrarEdenHatalar', 'buDenemedeYanlisKonular', 'konuBilgisiOkunamadi']
   if (!o || typeof o !== 'object') return 'veri yok'
   for (const k of Object.keys(o)) if (!allowed.includes(k)) return `izinsiz alan: ${k}`
-  const DERS = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'T.C. İnkılap Tarihi', 'Din Kültürü', 'İngilizce']
+  const DERS = [...knownSubjects]
   const num = (x: unknown) => x === null || (typeof x === 'number' && Number.isFinite(x) && Math.abs(x) < 1000)
   if (typeof o.sonDeneme !== 'string' || !/^Deneme \d{1,3}$/.test(o.sonDeneme)) return 'sonDeneme'
   if (!num(o.puan) || !num(o.toplamNet) || !Number.isInteger(o.denemeSayisi)) return 'sayı'
-  if (!Array.isArray(o.dersler) || o.dersler.length !== 6) return 'dersler'
+  if (!Array.isArray(o.dersler) || o.dersler.length < 1 || o.dersler.length > 30) return 'dersler'
   for (const d of o.dersler as Record<string, unknown>[]) {
     if (!DERS.includes(d.ders as string)) return 'ders adı'
     for (const k of Object.keys(d)) if (!['ders', 'soru', 'dogru', 'yanlis', 'bos', 'net', 'oncekiNet'].includes(k) || (k !== 'ders' && !num(d[k]))) return `ders alanı: ${k}`
@@ -124,7 +124,8 @@ export function validatePayload(p: unknown, knownTopics: Set<string>): string | 
     if (!Array.isArray(arr) || arr.length > 80) return key
     for (const t of arr as Record<string, unknown>[]) {
       if (!DERS.includes(t.ders as string) || typeof t.konu !== 'string' || !knownTopics.has(t.konu)) return `${key}: bilinmeyen konu`
-      if (Object.keys(t).some((k) => !['ders', 'konu', 'kacDenemedeYanlis'].includes(k))) return `${key} alanı`
+      if (Object.keys(t).some((k) => !['ders', 'konu', 'kacDenemedeYanlis','kaynak'].includes(k))) return `${key} alanı`
+      if (t.kaynak !== undefined && !['official','pdf'].includes(t.kaynak as string)) return `${key}: kaynak`
       if (t.kacDenemedeYanlis !== undefined && !Number.isInteger(t.kacDenemedeYanlis)) return key
     }
   }

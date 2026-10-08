@@ -1,6 +1,6 @@
 // Veli raporu: kural tabanlı taslak + yapay zekâ için anonim veri (docs/veli-raporu-kurallari.md).
 // Regresyon kilidi: yalnız metin üretir; D/Y/B, net, puan ve eşleştirmeleri değiştirmez.
-import { indexResults, repeats, studentExams, totalNet, wrongOutcomes, fmt, type Dataset, type Repeat, type Result, type Subject, type SubjectDef } from './analiz'
+import { indexResults, repeats, studentExams, totalNet, wrongOutcomes, fmt, outcomeCode, type Dataset, type Repeat, type Result, type Subject, type SubjectDef } from './analiz'
 import { gen } from './format'
 import { FORBIDDEN, findForbidden } from '../../supabase/functions/_shared/rapor-ai'
 
@@ -38,7 +38,7 @@ export interface ReportData {
   cur: Result
   prev?: Result
   rep: Repeat[]
-  lastWrong: { subject: Subject; title: string; code: string }[]
+  lastWrong: { subject: Subject; title: string; code: string; source?: 'official' | 'pdf'; outcomeType?: 'KAZANIM' | 'OGRENME_CIKTISI' }[]
   kzMissing: boolean
 }
 
@@ -46,9 +46,11 @@ export function reportData(ds: Dataset, sid: string, eid: string): ReportData | 
   const idx = indexResults(ds.results)
   const target = ds.exams.find((e) => e.id === eid)
   if (!target) return null
-  const ex = studentExams(ds, sid, idx).filter((x) => x.exam.exam_date <= target.exam_date)
-  const cur = ex.at(-1)
-  if (!cur || cur.exam.id !== eid) return null
+  const all = studentExams(ds, sid, idx)
+  const targetIndex = all.findIndex(x => x.exam.id === eid)
+  if (targetIndex < 0) return null
+  const ex = all.slice(0, targetIndex + 1)
+  const cur = ex.at(-1)!
   const w = wrongOutcomes(ds, cur.result)
   const qs = ds.questionsByExam.get(eid) ?? []
   const reliable =
@@ -60,7 +62,7 @@ export function reportData(ds: Dataset, sid: string, eid: string): ReportData | 
     cur: cur.result,
     prev: ex.at(-2)?.result,
     rep: repeats(ds, sid, eid, idx),
-    lastWrong: w.wrong.map((o) => ({ subject: o.subject, title: o.title, code: o.code })),
+    lastWrong: w.wrong.map((o) => ({ subject: o.subject, title: o.title, code: outcomeCode(o), source: o.source, outcomeType: o.outcomeType })),
     kzMissing: !reliable,
   }
 }
@@ -208,9 +210,9 @@ export function aiPayload(R: ReportData) {
       const p = R.prev?.subjects[s.code]
       return { ders: s.ad, soru: s.q, dogru: q?.d ?? null, yanlis: q?.y ?? null, bos: q?.b ?? null, net: q ? r2(q.net) : null, oncekiNet: p ? r2(p.net) : null }
     }),
-    gecmis: R.exams.map((e, i) => ({ deneme: `Deneme ${i + 1}`, toplamNet: r2(totalNet(e.result)), dersNetleri: Object.fromEntries(R.subjects.map((s) => [s.ad, e.result.subjects[s.code] ? r2(e.result.subjects[s.code]!.net) : null])) })),
-    guvenilirTekrarEdenHatalar: R.kzMissing ? [] : R.rep.map((r) => ({ ders: (R.subjects.find((s) => s.code === r.outcome.subject)?.ad ?? r.outcome.subject), konu: r.outcome.title, kacDenemedeYanlis: r.count })),
-    buDenemedeYanlisKonular: R.kzMissing ? [] : R.lastWrong.map((w) => ({ ders: (R.subjects.find((s) => s.code === w.subject)?.ad ?? w.subject), konu: w.title })),
+    gecmis: R.exams.slice(-60).map((e, i) => ({ deneme: `Deneme ${Math.max(0,n-60)+i+1}`, toplamNet: r2(totalNet(e.result)), dersNetleri: Object.fromEntries(R.subjects.map((s) => [s.ad, e.result.subjects[s.code] ? r2(e.result.subjects[s.code]!.net) : null])) })),
+    guvenilirTekrarEdenHatalar: R.kzMissing ? [] : R.rep.slice(0,80).map((r) => ({ ders: (R.subjects.find((s) => s.code === r.outcome.subject)?.ad ?? r.outcome.subject), konu: r.outcome.title, kacDenemedeYanlis: r.count, kaynak:r.outcome.source??'official' })),
+    buDenemedeYanlisKonular: R.kzMissing ? [] : R.lastWrong.slice(0,80).map((w) => ({ ders: (R.subjects.find((s) => s.code === w.subject)?.ad ?? w.subject), konu: w.title, kaynak:w.source??'official' })),
     konuBilgisiOkunamadi: R.kzMissing,
   }
 }

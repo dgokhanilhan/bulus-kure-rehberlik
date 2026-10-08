@@ -63,8 +63,11 @@ export interface Outcome {
   display?: string | null
   /** Yeni katalogdaki kazanım kimliği (genel; görev bağlantısı). */
   outcomeId?: string
+  source?: 'official' | 'pdf'
+  outcomeType?: 'KAZANIM' | 'OGRENME_CIKTISI'
 }
-export const outcomeCode = (o: Outcome) => o.display ?? o.code
+export const outcomeCode = (o: Outcome) => o.outcomeId ? o.display ?? '—' : o.code
+export const outcomeSourceLabel = (o: Pick<Outcome, 'source'>) => o.source === 'pdf' ? 'Okulun PDF’den eklediği hedef' : 'Resmî program hedefi'
 
 export const RELIABLE: MatchLevel[] = ['code_exact', 'code_inferred', 'text_exact', 'text_match']
 
@@ -82,7 +85,7 @@ export function konuStatus(result: Result | undefined, examQuestions: Question[]
   if (!result) return 'x'
   // Gruplu kazanım (kazanım × D/Y/B): o dersin grupları güvenilirse oradan; tutarsız ders "okunamadı".
   const k = result.kazanim
-  if (k) {
+  if (k && !code.includes(':')) {
     if (!k.subjects.includes(subject)) return 'o'
     const g = k.g[code]
     if (!g) return 'n'
@@ -140,17 +143,19 @@ export function studentExams(ds: Dataset, sid: string, idx = indexResults(ds.res
 }
 
 /** Tekrar eden hata: aynı kazanım, güvenilir eşleşmeyle ≥ 2 denemede yanlış. */
-export function repeats(ds: Dataset, sid: string, uptoExamId?: string, idx = indexResults(ds.results)): Repeat[] {
+export function repeats(ds: Dataset, sid: string, uptoExamId?: string, idx = indexResults(ds.results), minCount = 2): Repeat[] {
   let ex = studentExams(ds, sid, idx)
   if (uptoExamId) {
     const upto = ds.exams.find((e) => e.id === uptoExamId)
-    if (upto) ex = ex.filter((x) => x.exam.exam_date <= upto.exam_date)
+    const position = ex.findIndex(x=>x.exam.id===uptoExamId)
+    if (position>=0) ex=ex.slice(0,position+1)
+    else if (upto) ex = ex.filter((x) => x.exam.exam_date <= upto.exam_date)
   }
   const out: Repeat[] = []
   for (const o of ds.outcomes) {
     const hist = ex.map((x) => konuStatus(x.result, ds.questionsByExam.get(x.exam.id) ?? [], o.subject, o.code))
     const count = hist.filter((h) => h === 'y').length
-    if (count >= 2)
+    if (count >= minCount)
       out.push({ outcome: o, count, hist, examNames: ex.filter((_, i) => hist[i] === 'y').map((x) => x.exam.name), lastWrong: hist[hist.length - 1] === 'y' })
   }
   return out.sort((a, b) => b.count - a.count || Number(b.lastWrong) - Number(a.lastWrong))

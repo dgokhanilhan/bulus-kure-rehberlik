@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { Modal } from '@/components/Modal'
 import { PdfHedefEkle } from '@/components/PdfHedefEkle'
+import { PdfHedefDuzenle } from '@/components/PdfHedefDuzenle'
 import { pdfVersionsFor } from '@/lib/pdfOutcomes'
 import { useToast } from '@/components/Toast'
 import { EXAM_TYPE_TR, academicYear, cohortYear, outcomeTerm, type ExamType } from '@/lib/denemeGenel'
@@ -161,6 +162,8 @@ function SablonDuzenle({ t, onClose }: { t: TemplateRow; onClose: () => void }) 
 
 // ---------------------------------------------------------------- kazanım kataloğu
 export function KatalogBolumu() {
+  const {role}=useAuth()
+  const [edit,setEdit]=useState<OutcomeRow|null>(null),[onlyPdf,setOnlyPdf]=useState(false)
   const cv = useCurriculumVersions(), subjects = useSubjects()
   const [grade, setGrade] = useState(7)
   const [year, setYear] = useState(thisYear())
@@ -176,7 +179,8 @@ export function KatalogBolumu() {
     if (subjOfGrade.length && !subjOfGrade.includes(subject)) setSubject(subjOfGrade[0]!)
   }, [subjOfGrade, subject])
   const v = versionFor(cv.data ?? [], grade, subject, year)
-  const vids=[...(v ? [v.id] : []),...pdfVersionsFor(cv.data??[],[grade],subject)]
+  const pdfIds=pdfVersionsFor(cv.data??[],[grade],subject)
+  const vids=[...(!onlyPdf&&v ? [v.id] : []),...pdfIds]
   const res = useQuery({ queryKey: ['outcomes', vids.join(), dq], enabled: !!vids.length, queryFn: () => searchOutcomes({ versionIds: vids, q: dq }) })
   const sname = (c: string) => subjects.data?.find((s) => s.code === c)?.name ?? c
   return (
@@ -205,24 +209,26 @@ export function KatalogBolumu() {
           <input id="katQ" value={q} onChange={(e) => setQ(e.target.value)} placeholder="ör. T.7.3 ya da oran" />
         </label>
       </section>
+      <label className="check"><input type="checkbox" checked={onlyPdf} onChange={e=>setOnlyPdf(e.target.checked)}/>Yalnız okulun PDF’den eklediği hedefleri göster</label>
       {vids.length ? (
         <section className="card a" style={{ overflow: 'hidden' }} aria-label="Kazanımlar">
           <div style={{ padding: '12px 16px', fontSize: 13 }}>
-            <b>{v?.name ?? 'Okulun PDF yayın hedefleri'}</b> <span className={`chip ${v?.curriculum_type === 'TYMM' ? 'up' : 'n'}`}>{v ? v.curriculum_type === 'TYMM' ? 'Türkiye Yüzyılı Maarif Modeli' : 'Önceki program' : 'PDF yayın hedefleri'}</span>
+            <b>{onlyPdf ? 'Okulun PDF yayın hedefleri' : v?.name ?? 'Okulun PDF yayın hedefleri'}</b> <span className={`chip ${!onlyPdf && v?.curriculum_type === 'TYMM' ? 'up' : 'n'}`}>{!onlyPdf && v ? v.curriculum_type === 'TYMM' ? 'Türkiye Yüzyılı Maarif Modeli' : 'Önceki program' : 'PDF yayın hedefleri'}</span>
             <div className="m">
-              Kaynak: {v?.source_url ? <a href={v.source_url} target="_blank" rel="noreferrer noopener">{v.source_title}</a> : 'Yönetici tarafından PDF metninden eklendi'}
-              {v?.notes ? ` · ${v.notes}` : ''}
+              Kaynak: {!onlyPdf && v?.source_url ? <a href={v.source_url} target="_blank" rel="noreferrer noopener">{v.source_title}</a> : 'Yönetici tarafından PDF metninden eklendi'}
+              {!onlyPdf && v?.notes ? ` · ${v.notes}` : ''}
             </div>
           </div>
           <div className="tbl" tabIndex={0} role="region" aria-label="Tablo (yana kaydırılabilir)">
             <table>
-              <thead><tr><th>Kod</th><th>Kazanım / öğrenme çıktısı</th><th>Ünite / tema</th></tr></thead>
+              <thead><tr><th>Kod</th><th>Kazanım / öğrenme çıktısı</th><th>Ünite / tema</th><th>Kaynak / işlem</th></tr></thead>
               <tbody>
                 {(res.data ?? []).map((o) => (
                   <tr key={o.id} data-testid="kazanim-satiri">
                     <td className="mono" style={{ whiteSpace: 'nowrap' }}>{o.code ?? '—'}</td>
                     <td>{o.title}{o.source_note && <div className="m" style={{ fontSize: 12 }}>{o.source_note}</div>}</td>
                     <td className="m" style={{ fontSize: 13 }}>{o.theme ?? o.unit ?? ''}</td>
+                    <td>{pdfIds.includes(o.curriculum_version_id)?<><span className="chip n">Okulun PDF hedefi</span>{role==='admin'&&<button className="btn sm" onClick={()=>setEdit(o)}>Düzenle</button>}</>:<span className="chip up">Resmî program</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -236,6 +242,7 @@ export function KatalogBolumu() {
           {cv.isLoading ? 'Yükleniyor…' : `${grade}. sınıf ${sname(subject)} için ${year}–${year + 1} yılında geçerli resmî program katalogda yok. Bu ders için kazanım eşlemesi yapılmaz (uydurulmaz).`}
         </div>
       )}
+      {edit&&<PdfHedefDuzenle row={edit} onClose={()=>setEdit(null)}/>}
     </>
   )
 }

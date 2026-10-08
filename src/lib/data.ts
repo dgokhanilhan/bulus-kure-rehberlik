@@ -3,10 +3,11 @@ import { useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import { pages } from './sayfali'
-import { SUBJECTS, type Dataset, type Exam, type Outcome, type Question, type Result, type Subject } from './analiz'
+import { SUBJECTS, type Exam, type Outcome, type Question, type Result, type Subject } from './analiz'
 import type { ClassRow, Student } from './types'
 import { examTrack, MODULE_DEFAULTS, type Modules } from './roles'
 import { useAuth } from '@/auth/AuthProvider'
+import { withCatalogItems, type ItemRow } from './genelVeriSeti'
 
 async function all<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await q
@@ -87,6 +88,7 @@ export interface CalEvent {
   target: 'okul' | 'kademe' | 'sinif' | 'ogrenci' | 'ogretmen'
   level: 'ilkokul' | 'ortaokul' | 'lise' | null
   class_id: string | null
+  class_ids?: string[]
   student_id: string | null
   teacher_id: string | null
   course_id: string | null
@@ -100,7 +102,7 @@ export function useCalendar(from: string, to: string) {
     select: dual ? (l: CalEvent[]) => l.filter((e) => e.created_by === dual.uid || e.teacher_id === dual.uid || e.audience.includes(dual.as)) : undefined,
     queryFn: () =>
       all<CalEvent>(
-        supabase.from('calendar_events').select('id, title, description, type, starts_on, ends_on, starts_at, ends_at, location, target, level, class_id, student_id, teacher_id, course_id, audience, created_by').lte('starts_on', to).gte('ends_on', from).order('starts_on').order('starts_at', { nullsFirst: true }),
+        supabase.from('calendar_events').select('id, title, description, type, starts_on, ends_on, starts_at, ends_at, location, target, level, class_id, class_ids, student_id, teacher_id, course_id, audience, created_by').lte('starts_on', to).gte('ends_on', from).order('starts_on').order('starts_at', { nullsFirst: true }),
       ),
   })
 }
@@ -405,7 +407,7 @@ export function useDataset(enabled = true) {
     enabled,
     staleTime: STALE,
     queryFn: async () => {
-      const [exams, questions, outcomes, results] = await Promise.all([
+      const [exams, questions, outcomes, results, items] = await Promise.all([
         // Yalnız yayındaki LGS denemeleri: 5–7 / 9–12 genel denemeleri ve arşiv LGS Atlas'a karışmaz (genel denemeler: useGenelDataset)
         all<Exam>(supabase.from('exams').select('id, name, publisher, exam_date').not('published_at', 'is', null).eq('exam_type', 'LGS').eq('status', 'yayinda').order('exam_date')),
         // Sayfalı: tek istek en çok 1000 satır döner (önceki .limit(20000) sessizce 1000'de kesiliyordu); sıra sabit
@@ -414,6 +416,7 @@ export function useDataset(enabled = true) {
         pages<Result & { exams?: unknown }>(
           (a, b) => supabase.from('exam_results').select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim, exams!inner(exam_type, status)').eq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').order('exam_id').order('student_id').range(a, b),
         ).then((rows) => rows.map(({ exams: _e, ...r }) => r as Result)),
+        pages<ItemRow>((a,b) => supabase.from('exam_items').select('exam_id, section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title, outcome_type, curriculum_versions(curriculum_type)), exams!inner(exam_type, status)').eq('exams.exam_type','LGS').eq('exams.status','yayinda').order('exam_id').order('section_key').order('q_no').range(a,b)),
       ])
       const questionsByExam = new Map<string, Question[]>()
       for (const x of questions) {
@@ -421,7 +424,7 @@ export function useDataset(enabled = true) {
         if (l) l.push(x)
         else questionsByExam.set(x.exam_id, [x])
       }
-      return { subjects: SUBJECTS, exams, questionsByExam, outcomes, results } satisfies Dataset
+      return withCatalogItems({ subjects: SUBJECTS, exams, questionsByExam, outcomes, results }, items)
     },
   })
   return q

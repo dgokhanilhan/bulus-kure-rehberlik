@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { isFullAccess, ROLE_TR, roleOf } from '@/lib/roles'
-import { fmt, indexResults, outcomeCode, repeats, studentExams, subjectOf, totalNet, type Subject } from '@/lib/analiz'
+import { fmt, indexResults, outcomeCode, outcomeSourceLabel, repeats, studentExams, subjectOf, totalNet, type Subject } from '@/lib/analiz'
 import { useMeetings, useNotes, useParentLinks, usePeople, useRefresh, useReports, useStudents, useTasks, type Meeting, type Task, useModules } from '@/lib/data'
 import { ago, initials, todayISO, trD } from '@/lib/format'
 import { Icon } from '@/components/Icon'
@@ -67,7 +67,7 @@ export default function OgrenciPage() {
     const used = new Set<string>()
     for (const qs of ds.questionsByExam.values()) for (const q of qs) if (q.outcome_code) used.add(q.outcome_code)
     for (const r of ds.results) for (const c of Object.keys(r.kazanim?.g ?? {})) used.add(c)
-    return { ex, rep: repeats(ds, s.id, undefined, idx), used }
+    return { ex, rep: repeats(ds, s.id, undefined, idx), weaknesses: repeats(ds, s.id, undefined, idx, 1), used }
   }, [ds, s])
 
   if (students.isLoading || dsq.isLoading || (!!students.data && !dsq.data && !dsq.isError))
@@ -84,7 +84,7 @@ export default function OgrenciPage() {
       </>
     )
 
-  const { ex, rep, used } = calc
+  const { ex, rep, weaknesses, used } = calc
   const L = ex.at(-1)
   const P = ex.at(-2)
   const nets = ex.map((x) => totalNet(x.result))
@@ -327,7 +327,7 @@ export default function OgrenciPage() {
 
       {tab === 'konular' && (
         <section className="card a" style={{ ['--d' as string]: 3, overflow: 'hidden' }}>
-          {rep.length ? (
+          {weaknesses.length ? (
             <div className="tbl">
               <table>
                 <thead>
@@ -340,10 +340,10 @@ export default function OgrenciPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rep.map((k) => (
+                  {weaknesses.map((k) => (
                     <tr key={k.outcome.code}>
                       <td>
-                        <b>{k.outcome.title}</b>{' '}
+                        <b>{k.outcome.title}</b><div className="m" style={{fontSize:12}}>{outcomeSourceLabel(k.outcome)}</div>{' '}
                         <span className="m mono" style={{ fontSize: 12 }}>
                           {outcomeCode(k.outcome)}
                         </span>
@@ -373,7 +373,7 @@ export default function OgrenciPage() {
             </div>
           ) : (
             <div className="empty" style={{ margin: 16 }}>
-              {!ex.length && yks ? none : <>Tekrar eden hata yok{ex.length && ex.every((x) => !x.result.outcomes_ok) ? ' · bu öğrencinin konu bilgisi okunamadı' : ''}{ex.length === 1 ? ' · tekrar için en az iki deneme gerekir' : ''}.</>}
+              {!ex.length && yks ? none : <>Güvenilir hedef bilgisiyle belirlenen yanlış konu yok{ex.length && ex.every((x) => !x.result.outcomes_ok) ? ' · bu öğrencinin konu bilgisi okunamadı' : ''}.</>}
             </div>
           )}
           <div className="legend" style={{ padding: '12px 16px', borderTop: '1px solid var(--line)' }}>

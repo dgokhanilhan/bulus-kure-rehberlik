@@ -64,7 +64,8 @@ export function LineChart({
             {fmt(v)}
           </text>
           <text className="lbl" x={X(i)} y={H - 10} textAnchor="middle" fill="var(--ink-muted)" fontSize="12.5" textDecoration={onSelect ? 'underline' : undefined}>
-            {labels[i]}
+            <title>{labels[i]}</title>
+            {labels[i]!.length > Math.max(10, Math.floor((W-80)/Math.max(1,values.length)/7)) ? labels[i]!.slice(0, Math.max(10, Math.floor((W-80)/Math.max(1,values.length)/7))-1)+'…' : labels[i]}
           </text>
         </g>
       ))}

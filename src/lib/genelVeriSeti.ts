@@ -20,9 +20,24 @@ export function inContext(e: Pick<GenelExam, 'exam_type' | 'yks_part'>, kind: Ex
   return false
 }
 
-export interface ItemRow { exam_id: string; section_key: string; q_no: number; correct_answer: string | null; learning_outcome_id: string | null; match_method: string; learning_outcomes: { code: string | null; title: string } | null }
+export interface ItemRow { exam_id: string; section_key: string; q_no: number; correct_answer: string | null; learning_outcome_id: string | null; match_method: string; learning_outcomes: { code: string | null; title: string; outcome_type?: 'KAZANIM' | 'OGRENME_CIKTISI'; curriculum_versions?: { curriculum_type: string } | null } | null }
 
 const RESOLVED = new Set(['CODE_EXACT', 'CODE_NORMALIZED', 'CONTEXT_EXACT', 'TEXT_EXACT', 'TEXT_MATCH', 'ALIAS', 'MANUAL'])
+
+/** LGS'nin eski katalog/gruplu sonuçlarını korur; yeni katalog hedeflerini UUID anahtarıyla ayrıca bağlar. */
+export function withCatalogItems(ds: Dataset, items: ItemRow[]): Dataset {
+  const ids = new Set(ds.exams.map(e=>e.id)), questionsByExam = new Map(ds.questionsByExam), outcomes = new Map(ds.outcomes.map(o=>[o.code,o]))
+  for(const item of items) {
+    if(!ids.has(item.exam_id) || !item.learning_outcomes || !item.learning_outcome_id || !RESOLVED.has(item.match_method)) continue
+    const key=`${item.section_key}:${item.learning_outcome_id}`, meta=item.learning_outcomes
+    const old=questionsByExam.get(item.exam_id)??[]
+    // Aynı soru eski katalogda güvenilir biçimde eşleşmişse iki kez sayılmaz.
+    if(old.some(q=>q.subject===item.section_key && q.q_no===item.q_no && q.outcome_code && q.match!=='none' && q.match!=='semantic')) continue
+    questionsByExam.set(item.exam_id,[...old.filter(q=>q.subject!==item.section_key||q.q_no!==item.q_no),{exam_id:item.exam_id,subject:item.section_key,q_no:item.q_no,correct_answer:item.correct_answer,outcome_code:key,match:'code_exact'}])
+    outcomes.set(key,{code:key,subject:item.section_key,title:meta.title,display:meta.code,outcomeId:item.learning_outcome_id,source:meta.curriculum_versions?.curriculum_type==='PDF'?'pdf':'official',outcomeType:meta.outcome_type})
+  }
+  return {...ds,questionsByExam,outcomes:[...outcomes.values()],results:ds.results.map(r=>({...r,outcomes_ok:r.outcomes_ok||(questionsByExam.get(r.exam_id)??[]).some(q=>!!q.outcome_code)}))}
+}
 
 /**
  * Genel denemeler → Dataset. Ders = şablon bölümü (sıra profilden; ad profildeki alt test adı). Kazanım anahtarı bölüm + katalog
@@ -55,7 +70,7 @@ export function genelDataset(input: { exams: GenelExam[]; results: GenelResult[]
     const key = ok ? `${it.section_key}:${it.learning_outcome_id}` : null
     const q: Question = { exam_id: it.exam_id, subject: it.section_key, q_no: it.q_no, correct_answer: it.correct_answer, outcome_code: key, match: (ok ? 'code_exact' : 'none') as MatchLevel }
     questionsByExam.set(it.exam_id, [...(questionsByExam.get(it.exam_id) ?? []), q])
-    if (key && !outcomes.has(key)) outcomes.set(key, { code: key, subject: it.section_key, title: it.learning_outcomes!.title, display: it.learning_outcomes!.code, outcomeId: it.learning_outcome_id! })
+    if (key && !outcomes.has(key)) outcomes.set(key, { code: key, subject: it.section_key, title: it.learning_outcomes!.title, display: it.learning_outcomes!.code, outcomeId: it.learning_outcome_id!, source: it.learning_outcomes!.curriculum_versions?.curriculum_type === 'PDF' ? 'pdf' : 'official', outcomeType: it.learning_outcomes!.outcome_type })
   }
 
   const results: Result[] = input.results.filter((r) => ids.has(r.exam_id)).map((r) => {
