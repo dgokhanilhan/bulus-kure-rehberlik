@@ -94,7 +94,7 @@ test('yönetici PDF hedefini panelden düzenler ve takvimde tüm 8. sınıfları
  const completion=page.getByRole('dialog',{name:'PDF hedef metinlerini tamamla',exact:true})
  await expect(completion).toContainText('0 güvenilir öneri')
  await expect(completion.getByRole('button',{name:'Seçilen 0 metni tamamla'})).toBeDisabled()
- await completion.getByRole('button',{name:'Kapat',exact:true}).click()
+ await completion.getByRole('button',{name:'Kapat',exact:true}).last().click()
  await page.goto('/takvim');await page.getByRole('button',{name:'Etkinlik ekle',exact:true}).click()
  const event=page.getByRole('dialog',{name:'Etkinlik ekle',exact:true})
  await event.getByLabel('Kimin için').selectOption('sinif')
