@@ -20,7 +20,7 @@ export function LineChart({
   height?: number
 }) {
   if (!values.length) return null
-  const W = Math.max(width, values.length * 110),
+  const W = Math.max(width, values.length * 150),
     H = height,
     top = 28,
     bot = H - 34
@@ -29,7 +29,7 @@ export function LineChart({
   const lo = Math.floor((mn - 4) / 10) * 10,
     hi = Math.ceil((mx + 4) / 10) * 10
   const Y = (v: number) => bot - ((v - lo) / (hi - lo || 1)) * (bot - top)
-  const X = (i: number) => 52 + i * ((W - 80) / Math.max(1, values.length - 1))
+  const X = (i: number) => 88 + i * ((W - 176) / Math.max(1, values.length - 1))
   const grid: number[] = []
   for (let v = lo; v <= hi; v += 10) grid.push(v)
   const pts = values.map((v, i) => `${X(i)},${Y(v)}`).join(' ')

@@ -2,6 +2,8 @@
 
 Takvim ve duyurular seçili rol ve hesap kimliğiyle önbelleğe alınır. Öğretmen/veli hesabının veritabanı yetkileri rollerinin toplamıdır; veli ekranı ayrıca bağlı çocukların sınıfı, kademesi ve öğrenci hedefiyle daraltılır. Yükleme sırasında aile etkinlikleri varsayılan olarak gizlidir. Doğrudan etkinlik bağlantısı aynı kontrolden geçer. Veli modunda öğretmenin oluşturduğu kayıtlarda düzenleme/silme düğmeleri gösterilmez.
 
+Galeri albümleri, son eklenenler ve doğrudan albüm bağlantıları da seçili aile rolünün çocuk kapsamıyla süzülür. İlgisiz albümün medyası yüklenmez; öğretmenlere özel veya taslak albümler veli ekranında açılmaz.
+
 0038 yalnız onaylı öğretmenlerin kendi okulundaki tüm deneme etkinliklerini okumalarını sağlar. Deneme bildirimi alacak kişiler, diğer etkinlik yetkileri ve okullar arası sınır değişmez.
 
 Deneme analizi başlangıçta kapalıdır. Açıldığında yanlış ve boş yapılan hedefler görünür; kutucuğun işareti kaldırılarak tüm ölçülen hedefler görülebilir. Grafik her denemeye yeterli yatay alan ayırır; uzun adlar kısaltılır, tam ad başlık ve erişilebilir düğme adında korunur.
