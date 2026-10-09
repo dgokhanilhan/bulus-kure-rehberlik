@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import { pages } from './sayfali'
+import { outcomeTitle } from './outcomeTitle'
 import type { ExamTemplate, ExamType, Profile, SectionResults, Subtest, TemplateSection, YksPart } from './denemeGenel'
 
 export interface TemplateRow extends ExamTemplate {
@@ -78,12 +79,12 @@ export interface OutcomeRow { id: string; code: string | null; title: string; th
 /** Katalog araması: tüm katalog istemciye çekilmez; sürüm(ler) + metin/kod ile en çok 200 kayıt. */
 export async function searchOutcomes(p: { versionIds: string[]; q?: string; limit?: number }): Promise<OutcomeRow[]> {
   if (!p.versionIds.length) return []
-  let qb = supabase.from('learning_outcomes').select('id, code, title, theme, unit, grade, subject_code, outcome_type, curriculum_version_id, source_note').in('curriculum_version_id', p.versionIds)
+  let qb = supabase.from('learning_outcomes').select('id, code, title, theme, unit, grade, subject_code, outcome_type, curriculum_version_id, source_note, curriculum_versions(curriculum_type)').in('curriculum_version_id', p.versionIds)
   const q = (p.q ?? '').trim()
   if (q) qb = qb.or(`code.ilike.%${q.replace(/[,()%]/g, ' ')}%,title.ilike.%${q.replace(/[,()%]/g, ' ')}%`)
   const { data, error } = await qb.order('grade').order('sort_order').limit(p.limit ?? 200)
   if (error) throw error
-  return data as OutcomeRow[]
+  return (data as unknown as (OutcomeRow & { curriculum_versions: { curriculum_type: string } | null })[]).map(({ curriculum_versions, ...o }) => ({ ...o, title: outcomeTitle(o.title, curriculum_versions?.curriculum_type === 'PDF' ? 'pdf' : 'official') }))
 }
 
 export interface ExamAdminRow {

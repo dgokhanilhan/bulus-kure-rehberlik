@@ -55,13 +55,13 @@ describe('Kural tabanlı veli raporu (kabul testi)', () => {
 describe('ai-veli-raporu', () => {
   const invoke = (c: SupabaseClient, body: Record<string, unknown>) => c.functions.invoke('ai-veli-raporu', { body })
 
-  it('istekte kişisel veri yok (ad, soyad, okul, no, şube, öğretmen/veli adı, notlar); ad cevaba sunucuda eklenir', async () => {
+  it('istekte doğrudan kimlik yok; analiz korunur ve metinde öğrencimiz kullanılır', async () => {
     await mockReset()
     const R = reportData(ds, ELIF, lastExam())!
     const { data, error } = await invoke(rehber, { student_id: ELIF, payload: aiPayload(R) })
     expect(error).toBeNull()
-    expect(data.report.genel.startsWith('Elif ')).toBe(true)
-    expect(data.report.mentorOneri).toContain('Elif ile')
+    expect(data.report.genel.startsWith('Öğrencimiz ')).toBe(true)
+    expect(data.report.mentorOneri).toContain('Öğrencimiz ile')
 
     const log = await mockLog()
     expect(log).toHaveLength(1)
@@ -82,6 +82,9 @@ describe('ai-veli-raporu', () => {
       // Diğer testlerin açtığı "Yeni Öğrenci" gibi hesapların genel kelimeleri kişisel veri değildir.
       .filter((x): x is string => !!x && x.length >= 3 && !['Öğrenci', 'Veli', 'Deneme', 'Yeni', 'Sahte', 'Onaylı', 'Yönetici', 'Rehber', 'Öğretmen', 'Kendini', 'Onaylayan', 'Onaylamasın', 'Reddedilecek'].includes(x))
     for (const b of banned) expect(sent.includes(b), `istekte "${b}" var`).toBe(false)
+    expect(sent).toContain('toplamNet')
+    expect(sent).toContain('guvenilirTekrarEdenHatalar')
+    expect(sent).not.toContain(ELIF)
     expect(sent).toContain('{AD}') // talimat yer tutucuyu açıklar
     // anahtar istemciye/loga düşmez: sahte sunucu yalnız "Bearer ***" gördüğünü kaydeder
   })

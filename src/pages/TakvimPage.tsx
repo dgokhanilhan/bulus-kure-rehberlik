@@ -43,6 +43,8 @@ export default function TakvimPage() {
   const hw = useHomework()
   const students = useStudents()
   const family = role === 'veli' || role === 'ogrenci'
+  const loading = cal.isPending || hw.isPending || (family && students.isPending)
+  const failed = cal.isError || hw.isError || (family && students.isError)
   const open = sp.get('etkinlik')
   const single = useQuery({
     queryKey: ['calendar-one', open, profile?.id, profile?.role],
@@ -107,7 +109,8 @@ export default function TakvimPage() {
           </select>
         </label>
       </div>
-      <div className="calcols">
+      {failed ? <div className="card" role="alert" style={{ padding: 16 }}>Takvim bilgileri yüklenemedi. <button className="btn sm" onClick={() => { void cal.refetch(); void hw.refetch(); if (family) void students.refetch() }}>Yeniden dene</button></div> : loading ? <p role="status">Takvim yükleniyor…</p> : null}
+      <div className="calcols" aria-busy={loading}>
         <section className="card a calgrid" style={{ ['--d' as string]: 2 }} aria-label={`${AYLAR[m - 1]} ${y} takvimi`}>
           {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((d, i) => (
             <div key={d} className="calhd" title={GUN[i + 1]}>
@@ -132,7 +135,7 @@ export default function TakvimPage() {
         </section>
         <aside className="card a" style={{ ['--d' as string]: 3, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, alignSelf: 'flex-start' }} aria-label="Yaklaşanlar">
           <h2 style={{ fontSize: 17 }}>Yaklaşanlar</h2>
-          {upcoming.length ? (
+          {loading ? <span className="m">Etkinlikler yükleniyor…</span> : failed ? <span className="m">Etkinlikler şu anda gösterilemiyor.</span> : upcoming.length ? (
             upcoming.slice(0, 15).map((x) => (
               <button key={x.key} className="srow" style={{ padding: '8px 4px', borderTop: 0 }} onClick={() => openItem(x)} data-testid="upcoming">
                 <span style={{ width: 4, alignSelf: 'stretch', borderRadius: 4, background: EVENT_COLOR[x.type] }} aria-hidden="true" />

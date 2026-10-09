@@ -1,6 +1,7 @@
 // Genel denemeler → profil veri modeli (saf; arayüzden bağımsız, birim testli). Kancalar: sinavBaglami.ts.
 import { examFamily, examStage, isScore, type ExamType, type Profile, type SectionResults, type TemplateSection, type YksPart } from './denemeGenel'
 import type { Dataset, MatchLevel, Outcome, Question, Result, SubjectDef } from './analiz'
+import { outcomeTitle } from './outcomeTitle'
 
 /** Profilin deneme bağlamı: 8 → LGS (mevcut), 5–7 → okul denemeleri, 9–12 → YKS (TYT / AYT ayrı seri). */
 // Yapısal tipler (denemeData'nın satırlarıyla uyumlu; Supabase istemcisine bağımlılık yok)
@@ -34,7 +35,7 @@ export function withCatalogItems(ds: Dataset, items: ItemRow[]): Dataset {
     // Aynı soru eski katalogda güvenilir biçimde eşleşmişse iki kez sayılmaz.
     if(old.some(q=>q.subject===item.section_key && q.q_no===item.q_no && q.outcome_code && q.match!=='none' && q.match!=='semantic')) continue
     questionsByExam.set(item.exam_id,[...old.filter(q=>q.subject!==item.section_key||q.q_no!==item.q_no),{exam_id:item.exam_id,subject:item.section_key,q_no:item.q_no,correct_answer:item.correct_answer,outcome_code:key,match:'code_exact'}])
-    outcomes.set(key,{code:key,subject:item.section_key,title:meta.title,display:meta.code,outcomeId:item.learning_outcome_id,source:meta.curriculum_versions?.curriculum_type==='PDF'?'pdf':'official',outcomeType:meta.outcome_type})
+    outcomes.set(key,{code:key,subject:item.section_key,rawTitle:meta.title,title:outcomeTitle(meta.title, meta.curriculum_versions?.curriculum_type==='PDF'?'pdf':'official'),display:meta.code,outcomeId:item.learning_outcome_id,source:meta.curriculum_versions?.curriculum_type==='PDF'?'pdf':'official',outcomeType:meta.outcome_type})
   }
   return {...ds,questionsByExam,outcomes:[...outcomes.values()],results:ds.results.map(r=>({...r,outcomes_ok:r.outcomes_ok||(questionsByExam.get(r.exam_id)??[]).some(q=>!!q.outcome_code)}))}
 }
@@ -70,7 +71,7 @@ export function genelDataset(input: { exams: GenelExam[]; results: GenelResult[]
     const key = ok ? `${it.section_key}:${it.learning_outcome_id}` : null
     const q: Question = { exam_id: it.exam_id, subject: it.section_key, q_no: it.q_no, correct_answer: it.correct_answer, outcome_code: key, match: (ok ? 'code_exact' : 'none') as MatchLevel }
     questionsByExam.set(it.exam_id, [...(questionsByExam.get(it.exam_id) ?? []), q])
-    if (key && !outcomes.has(key)) outcomes.set(key, { code: key, subject: it.section_key, title: it.learning_outcomes!.title, display: it.learning_outcomes!.code, outcomeId: it.learning_outcome_id!, source: it.learning_outcomes!.curriculum_versions?.curriculum_type === 'PDF' ? 'pdf' : 'official', outcomeType: it.learning_outcomes!.outcome_type })
+    if (key && !outcomes.has(key)) outcomes.set(key, { code: key, subject: it.section_key, rawTitle: it.learning_outcomes!.title, title: outcomeTitle(it.learning_outcomes!.title, it.learning_outcomes!.curriculum_versions?.curriculum_type === 'PDF' ? 'pdf' : 'official'), display: it.learning_outcomes!.code, outcomeId: it.learning_outcome_id!, source: it.learning_outcomes!.curriculum_versions?.curriculum_type === 'PDF' ? 'pdf' : 'official', outcomeType: it.learning_outcomes!.outcome_type })
   }
 
   const results: Result[] = input.results.filter((r) => ids.has(r.exam_id)).map((r) => {

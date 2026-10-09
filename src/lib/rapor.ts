@@ -38,7 +38,7 @@ export interface ReportData {
   cur: Result
   prev?: Result
   rep: Repeat[]
-  lastWrong: { subject: Subject; title: string; code: string; source?: 'official' | 'pdf'; outcomeType?: 'KAZANIM' | 'OGRENME_CIKTISI' }[]
+  lastWrong: { subject: Subject; title: string; rawTitle?: string; code: string; source?: 'official' | 'pdf'; outcomeType?: 'KAZANIM' | 'OGRENME_CIKTISI' }[]
   kzMissing: boolean
 }
 
@@ -62,7 +62,7 @@ export function reportData(ds: Dataset, sid: string, eid: string): ReportData | 
     cur: cur.result,
     prev: ex.at(-2)?.result,
     rep: repeats(ds, sid, eid, idx),
-    lastWrong: w.wrong.map((o) => ({ subject: o.subject, title: o.title, code: outcomeCode(o), source: o.source, outcomeType: o.outcomeType })),
+    lastWrong: w.wrong.map((o) => ({ subject: o.subject, title: o.title, rawTitle: o.rawTitle, code: outcomeCode(o), source: o.source, outcomeType: o.outcomeType })),
     kzMissing: !reliable,
   }
 }
@@ -194,7 +194,7 @@ export function genVeli(R: ReportData, fullName: string, seed: string): VeliBody
 }
 
 /**
- * Yapay zekâya giden veri: KİŞİSEL VERİ YOK (ad, soyad, okul, okul no, şube, öğretmen/veli adı,
+ * Yapay zekâya giden performans verisinde doğrudan kimlik bilgisi yok (ad, soyad, okul, okul no, şube, öğretmen/veli adı,
  * rehberlik notu, mentör/rehber yorumu yok). Deneme adları "Deneme 1…n" olarak gider.
  */
 export function aiPayload(R: ReportData) {
@@ -211,8 +211,8 @@ export function aiPayload(R: ReportData) {
       return { ders: s.ad, soru: s.q, dogru: q?.d ?? null, yanlis: q?.y ?? null, bos: q?.b ?? null, net: q ? r2(q.net) : null, oncekiNet: p ? r2(p.net) : null }
     }),
     gecmis: R.exams.slice(-60).map((e, i) => ({ deneme: `Deneme ${Math.max(0,n-60)+i+1}`, toplamNet: r2(totalNet(e.result)), dersNetleri: Object.fromEntries(R.subjects.map((s) => [s.ad, e.result.subjects[s.code] ? r2(e.result.subjects[s.code]!.net) : null])) })),
-    guvenilirTekrarEdenHatalar: R.kzMissing ? [] : R.rep.slice(0,80).map((r) => ({ ders: (R.subjects.find((s) => s.code === r.outcome.subject)?.ad ?? r.outcome.subject), konu: r.outcome.title, kacDenemedeYanlis: r.count, kaynak:r.outcome.source??'official' })),
-    buDenemedeYanlisKonular: R.kzMissing ? [] : R.lastWrong.slice(0,80).map((w) => ({ ders: (R.subjects.find((s) => s.code === w.subject)?.ad ?? w.subject), konu: w.title, kaynak:w.source??'official' })),
+    guvenilirTekrarEdenHatalar: R.kzMissing ? [] : R.rep.slice(0,80).map((r) => ({ ders: (R.subjects.find((s) => s.code === r.outcome.subject)?.ad ?? r.outcome.subject), konu: r.outcome.rawTitle ?? r.outcome.title, kacDenemedeYanlis: r.count, kaynak:r.outcome.source??'official' })),
+    buDenemedeYanlisKonular: R.kzMissing ? [] : R.lastWrong.slice(0,80).map((w) => ({ ders: (R.subjects.find((s) => s.code === w.subject)?.ad ?? w.subject), konu: w.rawTitle ?? w.title, kaynak:w.source??'official' })),
     konuBilgisiOkunamadi: R.kzMissing,
   }
 }

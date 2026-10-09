@@ -1,4 +1,5 @@
 import { fmt } from '@/lib/analiz'
+import { chartLabel } from '@/lib/chartLabel'
 
 /**
  * Gelişim grafiği (prototipteki lineChart): primary 3px çizgi, son noktalar vurgulu,
@@ -65,7 +66,7 @@ export function LineChart({
           </text>
           <text className="lbl" x={X(i)} y={H - 10} textAnchor="middle" fill="var(--ink-muted)" fontSize="12.5" textDecoration={onSelect ? 'underline' : undefined}>
             <title>{labels[i]}</title>
-            {labels[i]!.length > Math.max(3, Math.min(18, Math.floor((W-80)/Math.max(1,values.length)/8))) ? labels[i]!.slice(0, Math.max(3, Math.min(18, Math.floor((W-80)/Math.max(1,values.length)/8)))-1)+'…' : labels[i]}
+            {chartLabel(labels[i] ?? '', Math.max(3, Math.min(18, Math.floor((W - 80) / Math.max(1, values.length) / 8))))}
           </text>
         </g>
       ))}

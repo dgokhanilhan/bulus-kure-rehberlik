@@ -145,6 +145,7 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
     if (error || !data?.report) {
       const ctx = (error as { context?: Response } | null)?.context
       const st = ctx?.status
+      const unavailable = st === 503 ? await ctx!.clone().json().then((b: { error?: string }) => b.error, () => '') : ''
       const why = st === 422 ? await ctx!.json().then((b: { detail?: string[] }) => (b.detail ?? []).map((d) => d.replace(/^yasak:/, '')).join(', '), () => '') : ''
       setAi({
         err:
@@ -157,7 +158,9 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
             : st === 429
             ? 'Yapay zekâ kotası doldu (günlük ya da aylık sınır). Kural tabanlı taslak duruyor.'
             : st === 503
-              ? 'Yapay zekâ henüz yapılandırılmadı. Kural tabanlı taslak duruyor.'
+              ? unavailable === 'legal_transfer_pending'
+                ? 'Yapay zekâ için veri aktarım süreci henüz tamamlanmadığından bu özellik kapalı. Kural tabanlı taslağı düzenleyip kullanabilirsin.'
+                : 'Yapay zekâ henüz yapılandırılmadı. Kural tabanlı taslak duruyor.'
               : st === 422
                 ? `Yapay zekânın metni yazım kurallarına uymadığı için kullanılmadı${why ? ` (${why})` : ''}. Kural tabanlı taslak duruyor.`
                 : 'Yapay zekâ şu an yanıt vermedi; kural tabanlı taslak duruyor. Birazdan tekrar deneyebilirsin.',

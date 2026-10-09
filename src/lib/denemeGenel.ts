@@ -1,6 +1,7 @@
 // Okul geneli deneme çekirdeği (5–12; Genel / LGS / TYT / AYT / YKS): yayıncıdan bağımsız normalleştirilmiş sonuç modeli.
 // Saf fonksiyonlar, birim testli. Yayıncı yalnız içe aktarma (ayrıştırıcı) meselesidir; analiz bu modelle çalışır.
 // Kurallar: okunamayan bölüm null (uydurulmaz), uygulanmayan bölüm { na: true } (boş değildir), net kuralı şablondan gelir.
+import { outcomeTitle } from './outcomeTitle'
 
 export type ExamType = 'GENEL' | 'LGS' | 'TYT' | 'AYT' | 'YKS' | 'BRANS' | 'KURUMSAL' | 'DIGER'
 export type YksPart = 'TYT' | 'AYT'
@@ -233,11 +234,14 @@ export function outcomeAnalysis(items: OutcomeItem[], answers: Record<string, st
   for (const key of secs) {
     const qs = items.filter((i) => i.section_key === key).sort((a, b) => a.q_no - b.q_no)
     const s = answers?.[key] ?? ''
-    if (!s || s.length !== qs.length) { skipped.push(key); continue }
-    qs.forEach((q, k) => {
+    // PDF yalnız bazı soruların hedefini içerebilir. Dizi sırası yerine gerçek soru numarasını kullan.
+    if (!s || !/^[A-Za-z?_ ]+$/.test(s) || qs.some(q => !Number.isInteger(q.q_no) || q.q_no < 1 || q.q_no > s.length) || new Set(qs.map(q => q.q_no)).size !== qs.length) { skipped.push(key); continue }
+    unresolved += s.length - qs.length
+    qs.forEach((q) => {
       if (!q.learning_outcome_id || !q.learning_outcomes) { unresolved++; return }
-      const ch = s[k]!
-      const st = by.get(q.learning_outcome_id) ?? { id: q.learning_outcome_id, code: q.learning_outcomes.code, title: q.learning_outcomes.title, source:q.learning_outcomes.curriculum_versions?.curriculum_type==='PDF'?'pdf' as const:'official' as const, sections: [], n: 0, d: 0, y: 0, b: 0 }
+      const ch = s[q.q_no - 1]!
+      const source = q.learning_outcomes.curriculum_versions?.curriculum_type === 'PDF' ? 'pdf' as const : 'official' as const
+      const st = by.get(q.learning_outcome_id) ?? { id: q.learning_outcome_id, code: q.learning_outcomes.code, title: outcomeTitle(q.learning_outcomes.title, source), source, sections: [], n: 0, d: 0, y: 0, b: 0 }
       if (!st.sections.includes(key)) st.sections.push(key)
       st.n++
       if (ch === '_' || ch === ' ') st.b++
