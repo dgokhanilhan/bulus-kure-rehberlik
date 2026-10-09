@@ -3,6 +3,9 @@
 // ve programın başka sayfalarında geçen "KOD. Başlık" satırlarıyla çapraz kontrol (crossCheck). Kod uydurulmaz.
 import { lines, esc } from './okuyucu.mjs'
 
+// Sol sütunun iki satırlı başlığını hedef metninden ayır; aynı PDF satırına yapışabilir.
+export const cleanOutcomeText = (text) => text.replace(/(?:ÖĞRENME ÇIKTILARI\s+)?VE\s+SÜREÇ BİLEŞENLERİ/g, '').replace(/\s+/g, ' ').trim()
+
 // Resmî kaynaktaki bilinen yazım hataları. Kod uydurulmaz: düzeltme yalnız doğru kod AYNI belgede geçiyorsa uygulanır.
 export const ERRATA = [
   { prefix: 'İTA', wrong: 'TA.8.2.5.', code: 'İTA.8.2.5', require: '(İTA.8.2.5)', evidence: 'Tanım satırında "TA.8.2.5." yazıyor; aynı belgede "SBAB3. Tarihsel Empati (İTA.8.2.5)" ve "İTA.8.2.5." geçiyor.' },
@@ -35,7 +38,7 @@ export function extract(file, prefix) {
       const seg = sorted.slice(i + 1, stop < 0 ? undefined : stop)
       const colX = seg.length ? Math.min(...seg.filter((z) => !/^(ÖĞRENME ÇIKTILARI|VE|SÜREÇ BİLEŞENLERİ)$/.test(z.t)).map((z) => z.x)) : l.x
       const body = seg.filter((z) => z.x >= colX - 2 && !/^(ÖĞRENME ÇIKTILARI|VE|SÜREÇ BİLEŞENLERİ)$/.test(z.t))
-      let text = [m[5], ...body.map((z) => z.t)].join(' ').replace(/(\S)- (\S)/g, '$1$2')
+      let text = cleanOutcomeText([m[5], ...body.map((z) => z.t)].join(' ').replace(/(\S)- (\S)/g, '$1$2'))
       const k = text.search(/\s[a-zçğıöşü]\)\s/)
       const title = (k < 0 ? text : text.slice(0, k)).trim()
       const comps = k < 0 ? [] : text.slice(k).split(/\s(?=[a-zçğıöşü]\)\s)/).map((s) => s.trim()).filter(Boolean)

@@ -28,7 +28,7 @@ test.describe.serial('§6 Raporlar', () => {
 
     await page.getByRole('button', { name: 'Yapay zekâ ile yaz' }).click()
     await expect(page.getByText('Metin yapay zekâ tarafından senin kurallarınla yazıldı.')).toBeVisible()
-    await expect(page.getByLabel('Genel değerlendirme')).toHaveValue(/^Elif TG-5 sonucunda/)
+    await expect(page.getByLabel('Genel değerlendirme')).toHaveValue(/^Öğrencimiz TG-5 sonucunda/)
     await page.getByLabel('Mentör yorumu').fill('E2E mentör: Elif ile haftalık matematik planını birlikte takip edeceğiz.')
     await page.getByLabel('Rehber öğretmen yorumu').fill('E2E rehber: Planlı çalışma alışkanlığı gelişiyor.')
     await page.getByRole('button', { name: 'Kaydet' }).click()
@@ -98,7 +98,7 @@ test.describe.serial('§6 Raporlar', () => {
     // Başlıklar Türkçe büyük harf kuralıyla (i → İ)
     for (const s of ['ÖĞRENCİ BİLGİLERİ', 'GENEL DEĞERLENDİRME', 'GÜÇLÜ YÖNLER', 'ÜZERİNDE ÇALIŞILMASI GEREKEN ALANLAR', 'ÇALIŞMA ÖNERİLERİ', 'MENTÖR YORUMU', 'REHBER ÖĞRETMEN YORUMU'])
       expect(text, s).toContain(s)
-    expect(text).toContain('Elif TG-5 sonucunda') // "Deneme 5" gerçek adına çevrildi
+    expect(text).toContain('Öğrencimiz TG-5 sonucunda') // "Deneme 5" gerçek adına çevrildi
     expect(text).toContain('E2E mentör: Elif ile haftalık matematik planını birlikte takip edeceğiz.')
     expect(text).not.toMatch(/CODE_EXACT|confidence|OCR/)
   })

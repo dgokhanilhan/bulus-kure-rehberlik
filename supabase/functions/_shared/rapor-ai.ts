@@ -19,9 +19,12 @@ export function findForbidden(text: string): string[] {
 
 export const RULES = `Bir okulun rehberlik servisi için öğrencinin "Veli İçin Çıktı" deneme raporunun metin bölümlerini yaz. Veride bulunmayan sınıf seviyesini veya kişisel bilgileri tahmin etme.
 KURALLAR:
+- Öğrenciden yalnız "öğrencimiz" diye bahset. İsim, soyisim, sınıf veya kimlik bilgisi yazma ve uydurma. Eski {AD} yer tutucusu kullanılırsa bu da öğrencimiz anlamındadır.
+- Öğretmenlerden yalnız "rehber öğretmenimiz" ve "mentör öğretmenimiz" diye bahset; görüşme veya çalışma yapıldığına dair verilmemiş olayları uydurma.
+- Günlük konuşma dilinde, akıcı ve doğal yaz; teknik analiz gerçek veriye dayansın. Son denemenin D/Y/B ve netlerini, önceki netlerle değişimini, geçmiş eğilimi ve güvenilir konu hatalarını birlikte değerlendir. Sayıları raporlamakla yetinme; veli için ne anlama geldiklerini ve somut sonraki adımı açıkla.
+- Soru toplamını, doğru ve boş sayısını karıştırma. Örneğin 15 soruda 1 doğru ve 14 boş varsa "15 sorunun 14'ü boş" de; "tüm sorular boş" deme. Tümü/hiç/daima ifadelerini yalnız veri gerçekten destekliyorsa kullan. Önceki net olmayan derste gelişim veya gerileme hesaplama.
 - Öğrenciyi başka öğrencilerle değil, kendi önceki denemeleriyle karşılaştır. Sınıf sıralaması kullanma.
 - Dil: bir öğretmenin öğrencisini tanıyarak veliye yaptığı açıklama gibi doğal, sıcak, profesyonel, anlaşılır, yargılamayan Türkçe; veliye "siz" diye hitap et. Mekanik cümleler kurma.
-- Öğrencinin adını bilmiyorsun. Adın geçmesi gereken yerde yalnızca {AD} yaz ve {AD}'dan sonra ek getirme (örn. "{AD} bu denemede..." doğru; "{AD}'nin" yanlış). Ek gerekiyorsa "öğrencimiz" ya da "çocuğunuz" de.
 - Her öğrenciye aynı kalıpla başlama; giriş cümlesini durumuna göre çeşitlendir.
 - Akış: genel durum → güçlü yönler (mutlaka) → geliştirilecek alanlar → 3–5 somut öneri.
 - Kazanım bilgisi yoksa ya da konuBilgisiOkunamadi true ise konu uydurma; yalnız ders verisinden konuş ve yanlış soruların birlikte incelenmesini öner.
@@ -54,6 +57,7 @@ export function validateReport(text: string): { ok: true; report: AiReport } | {
   } catch {
     return { ok: false, errors: ['json'] }
   }
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return { ok: false, errors: ['json'] }
   const s = (k: string, min: number, max: number) => typeof d[k] === 'string' && (d[k] as string).trim().length >= min && (d[k] as string).length <= max
   const errors: string[] = []
   if (!s('genel', 40, 2500)) errors.push('genel')
@@ -97,7 +101,17 @@ export function fillName(r: AiReport, first: string): AiReport {
   return { genel: f(r.genel), guclu: f(r.guclu), gelisim: f(r.gelisim), oneriler: r.oneriler.map(f), mentorOneri: f(r.mentorOneri) }
 }
 
-/** Anonim veri doğrulaması: yalnız izinli alanlar ve biçimler (kişisel veri sızamaz). */
+/** Gerçek öğrenci adı hem modele hem üretilen metne girmez. */
+export function fillStudent(r: AiReport): AiReport {
+  const f = (s: string) => {
+    const text = s.replace(/\{AD\}['’](?:ın|in|un|ün)(?=$|[^\p{L}])/gu, 'öğrencimizin')
+      .replace(/\{AD\}['’](?:a|e)(?=$|[^\p{L}])/gu, 'öğrencimize').replace(/\{AD\}['’](?:ı|i|u|ü)(?=$|[^\p{L}])/gu, 'öğrencimizi').replace(/\{AD\}/g, 'öğrencimiz')
+    return text ? text[0]!.toLocaleUpperCase('tr') + text.slice(1) : text
+  }
+  return { genel: f(r.genel), guclu: f(r.guclu), gelisim: f(r.gelisim), oneriler: r.oneriler.map(f), mentorOneri: f(r.mentorOneri) }
+}
+
+/** Performans verisi doğrulaması: doğrudan kimlik ve serbest not alanları kabul edilmez. */
 export function validatePayload(p: unknown, knownTopics: Set<string>, knownSubjects = new Set(['Türkçe', 'Matematik', 'Fen Bilimleri', 'T.C. İnkılap Tarihi', 'Din Kültürü', 'İngilizce'])): string | null {
   const o = p as Record<string, unknown>
   const allowed = ['denemeSayisi', 'sonDeneme', 'puan', 'toplamNet', 'dersler', 'gecmis', 'guvenilirTekrarEdenHatalar', 'buDenemedeYanlisKonular', 'konuBilgisiOkunamadi']
@@ -109,11 +123,13 @@ export function validatePayload(p: unknown, knownTopics: Set<string>, knownSubje
   if (!num(o.puan) || !num(o.toplamNet) || !Number.isInteger(o.denemeSayisi)) return 'sayı'
   if (!Array.isArray(o.dersler) || o.dersler.length < 1 || o.dersler.length > 30) return 'dersler'
   for (const d of o.dersler as Record<string, unknown>[]) {
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return 'dersler'
     if (!DERS.includes(d.ders as string)) return 'ders adı'
     for (const k of Object.keys(d)) if (!['ders', 'soru', 'dogru', 'yanlis', 'bos', 'net', 'oncekiNet'].includes(k) || (k !== 'ders' && !num(d[k]))) return `ders alanı: ${k}`
   }
   if (!Array.isArray(o.gecmis) || o.gecmis.length > 60) return 'gecmis'
   for (const g of o.gecmis as Record<string, unknown>[]) {
+    if (!g || typeof g !== 'object' || Array.isArray(g)) return 'gecmis'
     if (typeof g.deneme !== 'string' || !/^Deneme \d{1,3}$/.test(g.deneme) || !num(g.toplamNet)) return 'gecmis'
     const dn = g.dersNetleri as Record<string, unknown>
     if (!dn || Object.keys(dn).some((k) => !DERS.includes(k) || !num(dn[k]))) return 'dersNetleri'
@@ -123,6 +139,7 @@ export function validatePayload(p: unknown, knownTopics: Set<string>, knownSubje
     const arr = o[key]
     if (!Array.isArray(arr) || arr.length > 80) return key
     for (const t of arr as Record<string, unknown>[]) {
+      if (!t || typeof t !== 'object' || Array.isArray(t)) return key
       if (!DERS.includes(t.ders as string) || typeof t.konu !== 'string' || !knownTopics.has(t.konu)) return `${key}: bilinmeyen konu`
       if (Object.keys(t).some((k) => !['ders', 'konu', 'kacDenemedeYanlis','kaynak'].includes(k))) return `${key} alanı`
       if (t.kaynak !== undefined && !['official','pdf'].includes(t.kaynak as string)) return `${key}: kaynak`

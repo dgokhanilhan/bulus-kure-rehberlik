@@ -1,5 +1,6 @@
 // Edge Function ortak parçaları: CORS, kimlik/rol, kota, DeepSeek çağrısı, kullanım kaydı.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
+import { aiFeatureAllowed } from './transfer-policy.ts'
 
 export const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +22,9 @@ export async function guard(req: Request, fn: string): Promise<{ user: SupabaseC
   if (!u.user) return json({ error: 'unauthorized' }, 401)
   const { data: staff } = await user.rpc('is_staff')
   if (staff !== true) return json({ error: 'forbidden' }, 403)
+  if (!aiFeatureAllowed(fn, Deno.env.get('AI_REPORT_EXTERNAL_ENABLED'), Deno.env.get('AI_EXTERNAL_TRANSFER_APPROVED'), url, Deno.env.get('DEEPSEEK_BASE_URL'))) {
+    return json({ error: 'legal_transfer_pending' }, 503)
+  }
   const svc = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
   const { data: quota, error: quotaError } = await svc.rpc('ai_quota_check', { p_user: u.user.id, p_fn: fn })
   if (quotaError) return json({ error: 'quota_unavailable' }, 503)
@@ -43,7 +47,7 @@ export async function chat(messages: unknown[], temperature: number, maxTokens: 
       method: 'POST',
       signal: AbortSignal.timeout(30_000),
       headers: { Authorization: `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: Deno.env.get('DEEPSEEK_MODEL') ?? 'deepseek-flash', messages, response_format: { type: 'json_object' }, temperature, max_tokens: maxTokens }),
+      body: JSON.stringify({ model: Deno.env.get('DEEPSEEK_MODEL') ?? 'deepseek-flash', messages, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, temperature, max_tokens: maxTokens }),
     })
     if (!res.ok) return { text: null, inTok: 0, outTok: 0 }
     const b = await res.json()

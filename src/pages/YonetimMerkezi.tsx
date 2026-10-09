@@ -719,7 +719,7 @@ export function DersAtamalari({ classes, profiles }: { classes: ClassRow[]; prof
   return (
     <>
       <p className="m a" style={{ fontSize: 13 }}>
-        Öğretmen, atandığı sınıflarda duyuru yayınlar ve o sınıfların velileriyle yazışır (ödev ve yoklama yetkileri de buradan gelecek). Ders programına öğretmenli ders girildiğinde atama kendiliğinden oluşur.
+        Öğretmen, atandığı sınıflarda duyuru yayınlar ve o sınıfların velileriyle yazışır (ödev ve yoklama yetkileri de bu atamalara göre belirlenir). Ders programına öğretmenli ders girildiğinde atama kendiliğinden oluşur.
       </p>
       <div className="btns a" style={{ ['--d' as string]: 1 }} role="group" aria-label="Görünüm">
         <button className={`btn sm ${view === 'sinif' ? 'pri' : ''}`} aria-pressed={view === 'sinif'} onClick={() => setView('sinif')}>
@@ -969,8 +969,8 @@ const HW_BOOLS: [string, string, string, boolean][] = [
   ['odev.geciken_kirmizi', 'Geciken ödev kırmızı gösterilir', 'Veli ve öğrenci ekranında süresi geçmiş, yapılmamış ödevler.', true],
   ['odev.bildirim_yeni', 'Yeni ödevde bildirim', 'Ödev verilince öğrencilere ve velilere.', true],
   ['odev.bildirim_kontrol', 'Ödev kontrol edilince bildirim', 'Öğretmen durum işaretleyince öğrenciye (ve ayar açıksa veliye).', true],
-  ['odev.ogretmen_dosya', 'Öğretmen ek dosya yükleyebilir', 'Dosya altyapısıyla (Faz C) devreye girer.', true],
-  ['odev.ogrenci_dosya', 'Öğrenci dosya yükleyebilir', 'Dosya altyapısıyla (Faz C) devreye girer.', false],
+  ['odev.ogretmen_dosya', 'Öğretmen ek dosya yükleyebilir', 'Etkinleştirildiğinde dosya ve görsel eklenebilir; dosya türü ve boyut sınırları Dosya ve duyuru ayarlarından belirlenir.', true],
+  ['odev.ogrenci_dosya', 'Öğrenci dosya yükleyebilir', 'Etkinleştirildiğinde dosya ve görsel eklenebilir; dosya türü ve boyut sınırları Dosya ve duyuru ayarlarından belirlenir.', false],
 ]
 export function OdevAyarlari() {
   const s = useSettings()

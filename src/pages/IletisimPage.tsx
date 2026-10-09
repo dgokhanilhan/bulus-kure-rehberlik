@@ -313,7 +313,7 @@ function Mesajlar({ convs, loading }: { convs: Conversation[]; loading: boolean 
     <>
       <div className="kv a" style={{ ['--d' as string]: 2 }}>
         <span className="m" style={{ fontSize: 13 }}>
-          {profile?.role === 'veli' ? 'Çocuğunuzun öğretmenleri, rehberlik servisi ve okul yönetimiyle yazışabilirsiniz.' : 'Ders verdiğin sınıflardaki öğrencilerin velileriyle yazışabilirsin.'}
+          {profile?.role === 'veli' ? 'Çocuğunuzun öğretmenleri, rehberlik servisi ve okul yönetimiyle yazışabilirsiniz.' : profile?.role === 'admin' || (profile?.role === 'ogretmen' && profile.branch === 'Rehberlik') ? 'Okulun veli ve öğretmenleriyle yazışabilir, yetkin kapsamındaki görüşmeleri takip edebilirsin.' : 'Ders verdiğin sınıflardaki öğrencilerin velileriyle yazışabilirsin.'}
         </span>
         <button className="btn pri" onClick={() => setStart(true)}>
           <Icon name="pen" size={18} /> Yeni mesaj

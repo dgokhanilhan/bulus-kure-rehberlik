@@ -19,6 +19,8 @@ test('uzun deneme adları masaüstü ve telefonda çakışmaz; tam ad ve tıklam
   const chart = page.locator('svg[aria-label^="Toplam net:"]').first()
   await expect(chart).toBeVisible()
   expect(await chart.locator('text.lbl').count()).toBeGreaterThanOrEqual(5)
+  const shortNames = await chart.locator('text.lbl').evaluateAll(nodes => nodes.map(n => [...n.childNodes].filter(c => c.nodeType === Node.TEXT_NODE).map(c => c.textContent).join('').trim()))
+  expect(new Set(shortNames).size).toBe(shortNames.length)
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 844 })
     const bounds = await chart.evaluate(svg => {

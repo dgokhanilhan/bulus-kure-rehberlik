@@ -61,6 +61,7 @@ export interface Outcome {
   code: string
   subject: Subject
   title: string
+  rawTitle?: string // AI katalog doğrulaması için kaynaktaki metin; görünümde temizlenmiş title kullanılır.
   /** Gösterilen resmî kod (genel); yoksa code gösterilir. */
   display?: string | null
   /** Yeni katalogdaki kazanım kimliği (genel; görev bağlantısı). */
