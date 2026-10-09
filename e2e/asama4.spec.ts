@@ -98,7 +98,7 @@ test.describe.serial('§6 Raporlar', () => {
     // Başlıklar Türkçe büyük harf kuralıyla (i → İ)
     for (const s of ['ÖĞRENCİ BİLGİLERİ', 'GENEL DEĞERLENDİRME', 'GÜÇLÜ YÖNLER', 'ÜZERİNDE ÇALIŞILMASI GEREKEN ALANLAR', 'ÇALIŞMA ÖNERİLERİ', 'MENTÖR YORUMU', 'REHBER ÖĞRETMEN YORUMU'])
       expect(text, s).toContain(s)
-    expect(text).toContain('Elif TG-5 sonucunda') // "Deneme 5" gerçek adına çevrildi
+    expect(text).toContain('Öğrencimiz TG-5 sonucunda') // "Deneme 5" gerçek adına çevrildi
     expect(text).toContain('E2E mentör: Elif ile haftalık matematik planını birlikte takip edeceğiz.')
     expect(text).not.toMatch(/CODE_EXACT|confidence|OCR/)
   })
