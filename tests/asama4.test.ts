@@ -65,6 +65,7 @@ describe('ai-veli-raporu', () => {
 
     const log = await mockLog()
     expect(log).toHaveLength(1)
+    expect(log[0]!.body.thinking).toEqual({ type: 'disabled' })
     const sent = JSON.stringify(log[0]!.body)
     const svc = service()
     const [{ data: st }, { data: people }, { data: notes }, { data: school }] = await Promise.all([

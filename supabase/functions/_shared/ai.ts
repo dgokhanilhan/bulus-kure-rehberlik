@@ -47,7 +47,7 @@ export async function chat(messages: unknown[], temperature: number, maxTokens: 
       method: 'POST',
       signal: AbortSignal.timeout(30_000),
       headers: { Authorization: `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: Deno.env.get('DEEPSEEK_MODEL') ?? 'deepseek-flash', messages, response_format: { type: 'json_object' }, temperature, max_tokens: maxTokens }),
+      body: JSON.stringify({ model: Deno.env.get('DEEPSEEK_MODEL') ?? 'deepseek-flash', messages, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, temperature, max_tokens: maxTokens }),
     })
     if (!res.ok) return { text: null, inTok: 0, outTok: 0 }
     const b = await res.json()
