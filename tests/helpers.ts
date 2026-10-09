@@ -101,6 +101,6 @@ export async function loadDataset(): Promise<Dataset> {
 }
 
 export const MOCK = `http://localhost:${process.env.SAHTE_DEEPSEEK_PORT ?? 54399}`
-export const mockLog = async () => (await (await fetch(`${MOCK}/__log`)).json()) as { body: { messages: { content: string }[] } }[]
+export const mockLog = async () => (await (await fetch(`${MOCK}/__log`)).json()) as { body: { messages: { content: string }[]; thinking?: { type: string } } }[]
 export const mockMode = (mode: 'ok' | 'bad' | 'down') => fetch(`${MOCK}/__mode`, { method: 'POST', body: JSON.stringify({ mode }) })
 export const mockReset = () => fetch(`${MOCK}/__reset`, { method: 'POST' })
