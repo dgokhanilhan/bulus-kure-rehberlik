@@ -23,6 +23,13 @@ test.describe.serial('Devamsızlık', () => {
   })
 
   test('rehber: sınıra yaklaşanlar kartı → öğrenci devamsızlık sekmesi → rapor ve PDF', async ({ page }) => {
+    // Seed'deki raporlu günler bugünün tarihine bağlıdır; rapor bütün
+    // kayıtları gösterirken raporsuz sınır hesabı yalnız 8 devamsız günü sayar.
+    const { data: seededAttendance, error } = await svc.from('attendance')
+      .select('status').eq('student_id', '00000000-0000-4000-8001-000000001190')
+    expect(error).toBeNull()
+    expect(seededAttendance?.filter((entry) => entry.status === 'devamsiz')).toHaveLength(8)
+    const attendanceCount = seededAttendance!.length
     await login(page, ...DEMO.rehber)
     const card = page.getByRole('region', { name: 'Devamsızlık sınırına yaklaşanlar' })
     const row = card.getByTestId('watch-row').filter({ hasText: 'Kaan Polat' })
@@ -31,12 +38,12 @@ test.describe.serial('Devamsızlık', () => {
     await axe(page, 'bugün (devamsızlık kartı)')
     await row.click()
     await expect(page.getByRole('tab', { name: 'Devamsızlık', selected: true })).toBeVisible()
-    await expect(page.getByTestId('att-row')).toHaveCount(8)
+    await expect(page.getByTestId('att-row')).toHaveCount(attendanceCount)
     await expect(page.getByTestId('limit-bar').first()).toContainText('8/10 gün')
     await axe(page, 'öğrenci devamsızlık sekmesi')
     await page.getByRole('button', { name: 'Devamsızlık raporu' }).click()
     const dlg = page.getByRole('dialog', { name: 'Devamsızlık raporu' })
-    await expect(dlg.getByTestId('report-row')).toHaveCount(8)
+    await expect(dlg.getByTestId('report-row')).toHaveCount(attendanceCount)
     await expect(dlg).toContainText('Raporsuz (gelmedi): 8')
     await dlg.getByRole('button', { name: '2. dönem' }).click()
     await expect(dlg.getByTestId('report-row')).toHaveCount(0)
