@@ -123,10 +123,11 @@ export async function readMealImage(file: File, month: string, progress: (n:numb
       const food=foodLines(result.data)
       const day=dateOf(anchor.text),fallback=initial.find(r=>r.day===day)
       if(food.length!==4&&fallback&&!fallback.review&&fallback.items.split('\n').length===4&&fallback.items.split(/\s+/).every(w=>/[A-Za-zÇĞİÖŞÜçğıöşü]{2}/.test(w)))rows.push(fallback)
-      else rows.push({day,items:food.join('\n'),review:food.length!==4||result.data.confidence<80})
+      else rows.push({day,items:food.join('\n'),review:food.length!==4||result.data.confidence<80||anchor.confidence<70})
       progress(20+Math.round((row*5+col+1)/(tops.length*5)*80))
     }
     rows.sort((a,b)=>a.day.localeCompare(b.day))
+    if(new Set(rows.map(r=>r.day)).size!==rows.length)throw new Error('Aynı tarih tekrar okundu. Daha net bir görsel seçip tarihleri kontrol et.')
     if(!rows.length)throw new Error('Seçilen aya ait tarihler okunamadı. Ayı kontrol et veya daha net bir görsel seç.')
     return rows
   } finally {signal.removeEventListener('abort',abort);await worker?.terminate().catch(()=>{});URL.revokeObjectURL(url)}

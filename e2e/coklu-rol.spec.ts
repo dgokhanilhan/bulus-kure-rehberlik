@@ -70,6 +70,9 @@ test.describe.serial('Çoklu rol', () => {
     await svc.from('notifications').insert({user_id:T.id,type:'nobet',text:'Çift rol nöbet hatırlatması',link:{page:'nobet-takip'}})
     await page.reload()
     await expectNotification(page,'Çift rol nöbet hatırlatması')
+    await page.getByRole('button',{name:/^Bildirimler/}).click()
+    await page.getByRole('dialog',{name:'Bildirimler'}).getByText('Çift rol nöbet hatırlatması').click()
+    await expect(page.getByRole('heading',{name:'Nöbet Takip',exact:true})).toBeVisible()
 
     const cls = (await svc.from('classes').select('id,name').in('name',['8/A','8/B'])).data!
     const school = (await svc.from('profiles').select('school_id').eq('id',T.id).single()).data!.school_id

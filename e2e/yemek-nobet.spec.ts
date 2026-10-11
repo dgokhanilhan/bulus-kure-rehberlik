@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 import {DEMO,login,loginAdmin,resetAdminMfa,menu,service,shot} from './helpers'
 
 test('gerçek aylık görsel düzenlenebilir önizlemeye gelir; aktarım veritabanına yazmaz',async({page})=>{
@@ -40,6 +41,8 @@ test('öğretmen nöbet ekler, düzenler ve kaldırır; veli menüsünde nöbet 
  await page.getByRole('button',{name:'Nöbeti kaydet'}).click()
  await expect(page.getByRole('paragraph').filter({hasText:/^Arka bahçe$/})).toBeVisible()
  await page.setViewportSize({width:390,height:844});await shot(page,'nobet-mobil')
+ const accessibility=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa']).analyze()
+ expect(accessibility.violations.filter(v=>v.impact==='serious'||v.impact==='critical').map(v=>v.id)).toEqual([])
  page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'Nöbeti kaldır'}).click()
  await expect(page.getByText('Henüz nöbet kaydın yok.')).toBeVisible()
  }finally{await svc.from('teacher_duties').delete().eq('teacher_id',p.data!.id)}
