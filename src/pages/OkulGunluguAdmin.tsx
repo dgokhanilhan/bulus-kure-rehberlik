@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
-import { ATT_TR, MEAL_TR, useAssignments, useAttendance, useBellTimes, useCourses, useMeals, useTimetable, type AttendanceStatus, type Lesson, type MealKind } from '@/lib/data'
+import { ATT_TR, useAssignments, useAttendance, useBellTimes, useCourses, useTimetable, type AttendanceStatus, type Lesson } from '@/lib/data'
 import { isTeacherP, LEVEL_TR, LEVELS } from '@/lib/roles'
-import { GUN, addDays, todayISO, trD, trDW, weekStart } from '@/lib/format'
+import { GUN, addDays, todayISO, trDW } from '@/lib/format'
 import type { ClassRow, Profile } from '@/lib/types'
 import { Seg } from '@/components/Indicator'
 import { Modal } from '@/components/Modal'
@@ -331,111 +331,4 @@ function LessonModal({ cls, level, cName, weekday, period, l, teachers, onClose 
   )
 }
 
-// ---------------------------------------------------------------- Yemek listesi
-const KINDS: MealKind[] = ['kahvalti', 'ogle', 'ikindi']
-
-export function YemekAdmin() {
-  const { profile } = useAuth()
-  const qc = useQueryClient()
-  const toast = useToast()
-  const [week, setWeek] = useState(weekStart(todayISO()))
-  const days = [0, 1, 2, 3, 4].map((i) => addDays(week, i))
-  const meals = useMeals(days[0]!, days[4]!)
-  const [draft, setDraft] = useState<Record<string, string>>({})
-  const [busy, setBusy] = useState(false)
-  useEffect(() => setDraft({}), [week])
-  const saved = (d: string, k: MealKind) => meals.data?.find((m) => m.day === d && m.meal === k)
-  const val = (d: string, k: MealKind) => draft[`${d}|${k}`] ?? saved(d, k)?.items ?? ''
-
-  async function save() {
-    setBusy(true)
-    const keys = Object.keys(draft).filter((key) => {
-      const [d, k] = key.split('|') as [string, MealKind]
-      return (draft[key] ?? '').trim() !== (saved(d, k)?.items ?? '')
-    })
-    const up = keys.filter((key) => draft[key]!.trim()).map((key) => {
-      const [d, k] = key.split('|') as [string, MealKind]
-      return { school_id: profile!.school_id, day: d, meal: k, items: draft[key]!.trim() }
-    })
-    const del = keys
-      .filter((key) => !draft[key]!.trim())
-      .map((key) => {
-        const [d, k] = key.split('|') as [string, MealKind]
-        return saved(d, k)?.id
-      })
-      .filter(Boolean) as string[]
-    const r1 = up.length ? await supabase.from('meals').upsert(up, { onConflict: 'school_id,day,meal' }) : { error: null }
-    const r2 = del.length ? await supabase.from('meals').delete().in('id', del) : { error: null }
-    setBusy(false)
-    const e = r1.error ?? r2.error
-    if (e) return toast(errText(e)!, 'warn')
-    setDraft({})
-    qc.invalidateQueries({ queryKey: ['meals'] })
-    toast('Yemek listesi kaydedildi')
-  }
-
-  return (
-    <>
-      <div className="kv a">
-        <div className="btns">
-          <button className="btn sm" onClick={() => setWeek(addDays(week, -7))} aria-label="Önceki hafta">
-            <Icon name="back" size={16} />
-          </button>
-          <b>
-            {trD(days[0]!)} – {trD(days[4]!)}
-          </b>
-          <button className="btn sm" onClick={() => setWeek(addDays(week, 7))} aria-label="Sonraki hafta">
-            <Icon name="right" size={16} />
-          </button>
-        </div>
-        <button className="btn pri" onClick={save} disabled={busy || !Object.keys(draft).length}>
-          {busy && <span className="spinner" aria-hidden="true" />} Haftayı kaydet
-        </button>
-      </div>
-      <section className="card a" style={{ ['--d' as string]: 1, overflow: 'hidden' }}>
-        <div className="tbl">
-          <table>
-            <thead>
-              <tr>
-                <th>Gün</th>
-                {KINDS.map((k) => (
-                  <th key={k}>{MEAL_TR[k]}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {days.map((d) => (
-                <tr key={d}>
-                  <td style={{ whiteSpace: 'nowrap' }}>
-                    <b>{trDW(d).split(' ').slice(-1)[0]}</b>
-                    <br />
-                    <span className="m" style={{ fontSize: 12 }}>
-                      {trD(d)}
-                    </span>
-                  </td>
-                  {KINDS.map((k) => (
-                    <td key={k} style={{ minWidth: 180 }}>
-                      <label className="field">
-                        <textarea
-                          rows={2}
-                          style={{ minHeight: 56 }}
-                          aria-label={`${trD(d)} ${MEAL_TR[k]}`}
-                          placeholder={k === 'ogle' ? 'Mercimek çorbası, pilav…' : ''}
-                          value={val(d, k)}
-                          onChange={(e) => setDraft((x) => ({ ...x, [`${d}|${k}`]: e.target.value }))}
-                        />
-                      </label>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <p className="m a" style={{ fontSize: 13, ['--d' as string]: 2 }}>
-        Boş bırakılan öğün velilere gösterilmez. Kaydedilen liste veli ve öğrenci panelinde “Okul” sayfasında görünür.
-      </p>
-    </>
-  )
-}
+export { default as YemekAdmin } from './YemekAdmin'

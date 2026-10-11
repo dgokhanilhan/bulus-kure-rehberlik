@@ -521,3 +521,7 @@ h2.sec{font-size:17px;font-weight:600}
  :root:not([data-theme="light"])[data-accent="mavi"] {--primary:#99c6f0;--primary-soft:#25384c}
  :root:not([data-theme="light"])[data-accent="mor"] {--primary:#d1b0eb;--primary-soft:#392b44}
 }
+
+.meal-month{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}
+.meal-month .card{padding:14px}.meal-month textarea{width:100%;min-height:108px}
+.duty-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px}

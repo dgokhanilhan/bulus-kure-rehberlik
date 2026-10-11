@@ -154,7 +154,7 @@ test.describe.serial('Yönetim paneli', () => {
 
   test('rehber: Yönetim menüsü yok, adresle de açılmaz', async ({ page }) => {
     await login(page, ...DEMO.rehber)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', 'Duyurular', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Denemeler', 'Sınıflar', 'Duyurular', /^İletişim/])
     await page.goto('/yonetim')
     await expect(page).toHaveURL(/\/bugun$/)
   })

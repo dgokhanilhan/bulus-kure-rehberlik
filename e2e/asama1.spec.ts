@@ -12,7 +12,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('rehber öğretmen: Bugün, Öğrenciler, Denemeler, Sınıflar — Onaylar yok', async ({ page }) => {
     await login(page, ...DEMO.rehber)
     await expect(page).toHaveURL(/\/bugun$/)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', 'Duyurular', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Denemeler', 'Sınıflar', 'Duyurular', /^İletişim/])
     await page.goto('/onaylar')
     await expect(page).toHaveURL(/\/bugun$/)
     await expect(page.getByText('Rehber öğretmen').first()).toBeVisible()
@@ -26,7 +26,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('branş öğretmeni yalnız Öğrenciler sekmesini görür', async ({ page }) => {
     await login(page, ...DEMO.matematik)
     await expect(page).toHaveURL(/\/panel$/)
-    await expect(menu(page)).toHaveText(['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', 'Duyurular', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Duyurular', /^İletişim/])
     for (const p of ['/bugun', '/denemeler', '/siniflar', '/onaylar', '/ozet']) {
       await page.goto(p)
       await expect(page).toHaveURL(/\/panel$/)

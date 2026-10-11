@@ -60,14 +60,14 @@ test.describe.serial('Okul günlüğü', () => {
     await shot(page, 'o2-ders-programi')
 
     await tab(page, /^Yemek listesi/).click()
-    const box = page.getByRole('textbox', { name: /Kahvaltı/ }).first()
+    const box = page.getByRole('textbox', { name: /Öğle yemeği/ }).first()
     await box.fill('Peynir, zeytin, domates')
-    await page.getByRole('button', { name: 'Haftayı kaydet' }).click()
+    await page.getByRole('button', { name: 'Ayı kaydet' }).click()
     await expect(page.getByText('Yemek listesi kaydedildi')).toBeVisible()
     await axe(page, 'yemek listesi')
     await shot(page, 'o3-yemek-listesi')
     await box.fill('')
-    await page.getByRole('button', { name: 'Haftayı kaydet' }).click()
+    await page.getByRole('button', { name: 'Ayı kaydet' }).click()
   })
 
   test('veli: devamsızlık bildirimi, Okul sayfasında program, yemek ve devamsızlık', async ({ page }) => {

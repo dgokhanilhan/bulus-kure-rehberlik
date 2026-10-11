@@ -44,7 +44,7 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'odevler' | 'takvim' | 'bildirimler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
-  | 'okul-yonetimi' | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler' | 'galeri'
+  | 'nobet-takip' | 'okul-yonetimi' | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler' | 'galeri'
 
 export interface NavItem {
   id: PageId
@@ -117,6 +117,7 @@ function withGallery(list: NavItem[]): NavItem[] {
  */
 export function navItems(r: Role, mods: Modules = MODULE_DEFAULTS, fam: { lgs: boolean } = { lgs: true }, schoolRole = false): NavItem[] {
   const base = navFor(r)
+  if (r === 'brans' || r === 'rehber') base.splice(base.findIndex(n => n.id === 'takvim') + 1, 0, { id: 'nobet-takip', label: 'Nöbet Takip', icon: 'cal' })
   if (r === 'admin' || (schoolRole && (r === 'brans' || r === 'rehber'))) base.push({id:'okul-yonetimi',label:'Okul yönetimi',icon:'grid'})
   return withGallery(base)
     .filter((n) => !PAGE_MODULES[n.id] || PAGE_MODULES[n.id]!.some((m) => mods[m]))

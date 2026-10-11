@@ -1,7 +1,7 @@
 // Çoklu rol (0020): yönetici öğretmene veli rolü ekler; iki rollü hesap girişte rolünü seçer, çıkış yapmadan rol değiştirir.
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { DEMO, login, loginAdmin, logout, menu, resetAdminMfa, service, shot } from './helpers'
+import { DEMO, expectNotification, login, loginAdmin, logout, menu, resetAdminMfa, service, shot } from './helpers'
 
 async function axe(page: Page, label: string) {
   await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -13,7 +13,7 @@ async function axe(page: Page, label: string) {
 const svc = service()
 const stamp = Date.now() % 100000
 const T = { name: `Deniz Çiftrol ${stamp}`, email: `e2e-ciftrol-${stamp}@ornek.com`, pass: 'Ciftrol123!', id: '' }
-const TEACHER_MENU = ['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', 'Duyurular', /^İletişim/]
+const TEACHER_MENU = ['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Duyurular', /^İletişim/]
 const FAMILY_MENU = ['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Takvim', 'Duyurular', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler']
 const role = (page: Page) => page.getByRole('button', { name: /^Profil:/ })
 
@@ -67,6 +67,9 @@ test.describe.serial('Çoklu rol', () => {
     await page.getByRole('button', { name: 'Öğretmen olarak devam et' }).click()
     await expect(menu(page)).toHaveText(TEACHER_MENU)
     await expect(role(page)).toContainText('Branş öğretmeni')
+    await svc.from('notifications').insert({user_id:T.id,type:'nobet',text:'Çift rol nöbet hatırlatması',link:{page:'nobet-takip'}})
+    await page.reload()
+    await expectNotification(page,'Çift rol nöbet hatırlatması')
 
     const cls = (await svc.from('classes').select('id,name').in('name',['8/A','8/B'])).data!
     const school = (await svc.from('profiles').select('school_id').eq('id',T.id).single()).data!.school_id
@@ -88,6 +91,9 @@ test.describe.serial('Çoklu rol', () => {
     await expect(menu(page)).toHaveText(FAMILY_MENU)
     await expect(role(page)).toContainText('Veli')
     await expect(page).toHaveURL(/\/panel$/)
+    await page.getByRole('button',{name:/^Bildirimler/}).click()
+    await expect(page.getByRole('dialog',{name:'Bildirimler'}).getByText('Çift rol nöbet hatırlatması')).toHaveCount(0)
+    await page.keyboard.press('Escape')
     await page.goto('/takvim')
     await expect(page.getByTestId('upcoming').filter({hasText:'Rol denemesi 8/B'})).toBeVisible()
     await expect(page.getByTestId('upcoming').filter({hasText:'Rol denemesi 8/A'})).toHaveCount(0)
@@ -105,6 +111,7 @@ test.describe.serial('Çoklu rol', () => {
     await expect(menu(page)).toHaveText(TEACHER_MENU)
 
     // Çıkış seçimi temizler: yeni girişte yine sorulur
+    await expectNotification(page,'Çift rol nöbet hatırlatması')
     await logout(page)
     await login(page, T.email, T.pass)
     await expect(page.getByRole('heading', { name: 'Nasıl devam etmek istersiniz?' })).toBeVisible()
