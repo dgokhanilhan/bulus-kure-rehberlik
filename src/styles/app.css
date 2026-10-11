@@ -121,7 +121,7 @@ details.dd[open] .dd-body{animation:drop .35s var(--ease)}
 
 /* app shell */
 .app{display:flex;min-height:calc(100vh - 62px)}
-.side{width:224px;flex-shrink:0;background:var(--nav);color:var(--on-nav);display:flex;flex-direction:column;gap:18px;padding:18px 12px;position:sticky;top:62px;height:calc(100vh - 62px)}
+.side{width:224px;flex-shrink:0;background:var(--nav);color:var(--on-nav);display:flex;flex-direction:column;gap:18px;padding:18px 12px;position:sticky;top:62px;height:calc(100vh - 62px);overflow-y:auto}
 .nav{position:relative;display:flex;flex-direction:column;gap:4px}
 .nav .ind{background:var(--nav-active);box-shadow:none;border-radius:10px;left:0;right:0;top:0;bottom:auto;width:auto;height:46px}
 .nav button{position:relative;z-index:1;display:flex;align-items:center;gap:12px;min-height:46px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--on-nav-muted);font-size:15px;text-align:left;transition:color .25s}
