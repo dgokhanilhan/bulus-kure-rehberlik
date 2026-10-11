@@ -502,3 +502,22 @@ h2.sec{font-size:17px;font-weight:600}
 .glbottom .m{color:#cfd6d4}
 .glbottom input,.glbottom textarea{width:100%;color:var(--ink)}
 .gover{position:fixed;inset:0;pointer-events:none;border:4px dashed var(--primary);z-index:150}
+
+/* Yönetilebilir okul görünümü; raporun baskı renkleri bağımsızdır. */
+.pcard .pcard-title {font-size:18px;font-weight:700;color:var(--primary)}
+:root[data-card-title="kalin"] .pcard .pcard-title {color:var(--ink)}
+.school-welcome {padding:16px 20px;border-left:4px solid var(--primary);background:var(--primary-soft);border-radius:8px}
+:root[data-text-size="buyuk"] body {font-size:17px}
+:root[data-density="rahat"] .pcard {padding:22px;gap:12px}
+:root[data-density="rahat"] .pgrid {gap:22px}
+:root[data-corners="yuvarlak"] .card {border-radius:24px}
+:root[data-corners="duz"] .card {border-radius:6px}
+:root[data-motion="false"] *, :root[data-motion="false"] *::before, :root[data-motion="false"] *::after {animation:none!important;transition:none!important}
+:root[data-accent="mavi"] {--primary:#245c8a;--primary-soft:#e6eef8}
+:root[data-accent="mor"] {--primary:#6d4489;--primary-soft:#f0e8f6}
+:root[data-theme="dark"][data-accent="mavi"] {--primary:#99c6f0;--primary-soft:#25384c}
+:root[data-theme="dark"][data-accent="mor"] {--primary:#d1b0eb;--primary-soft:#392b44}
+@media (prefers-color-scheme:dark) {
+ :root:not([data-theme="light"])[data-accent="mavi"] {--primary:#99c6f0;--primary-soft:#25384c}
+ :root:not([data-theme="light"])[data-accent="mor"] {--primary:#d1b0eb;--primary-soft:#392b44}
+}

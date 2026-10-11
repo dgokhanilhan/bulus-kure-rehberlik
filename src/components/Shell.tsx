@@ -1,10 +1,11 @@
+import { useSchoolRoles } from '@/pages/OkulKontrolleri'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase, SOURCE_URL } from '@/lib/supabase'
 import { gateOf, useAuth } from '@/auth/AuthProvider'
 import { navItems, ROLE_HINT, ROLE_TR, SWITCH_TR } from '@/lib/roles'
-import { useConversations, useFamilyTracks, useModules } from '@/lib/data'
+import { useConversations, useFamilyTracks, useModules, useSettings } from '@/lib/data'
 import type { Notification } from '@/lib/types'
 import { ago, initials } from '@/lib/format'
 import { Icon, SchoolLogo } from './Icon'
@@ -15,12 +16,13 @@ import { useToast } from './Toast'
 
 function Brand() {
   const info = useSchoolInfo()
+  const settings = useSettings()
   return (
     <div className="brandline">
       <SchoolLogo url={info.data?.logo} />
       <div>
         <b>{info.data?.name ?? 'Buluş Küre Koleji'}</b>
-        <small>Rehberlik &amp; Mentörlük</small>
+        <small>{String(settings.data?.['genel.alt_baslik'] ?? 'Rehberlik & Mentörlük')}</small>
       </div>
     </div>
   )
@@ -295,7 +297,8 @@ export function AppShell() {
   const loc = useLocation()
   const mods = useModules()
   const fam = useFamilyTracks(role === 'veli' || role === 'ogrenci')
-  const items = navItems(role!, mods, fam)
+  const schoolRoles = useSchoolRoles()
+  const items = navItems(role!, mods, fam, !!schoolRoles.data?.some(r => r.permissions.length > 0))
   const pending = usePendingCount(role === 'admin')
   const convs = useConversations(role !== 'ogrenci')
   const unread = (convs.data ?? []).reduce((n, c) => n + c.unread, 0)

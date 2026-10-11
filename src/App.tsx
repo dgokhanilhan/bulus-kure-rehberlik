@@ -1,3 +1,4 @@
+import SchoolOverview, { SchoolAppearance, useSchoolRoles } from '@/pages/OkulKontrolleri'
 import { Suspense, lazy, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { gateOf, useAuth } from '@/auth/AuthProvider'
@@ -41,6 +42,7 @@ const Wait = () => (
 )
 
 const PAGES: Record<PageId, JSX.Element> = {
+  'okul-yonetimi': <SchoolOverview />,
   bugun: <BugunPage />,
   ogrenciler: <OgrencilerPage />,
   denemeler: <DenemelerPage />,
@@ -102,6 +104,7 @@ export default function App() {
     )
   return (
     <>
+      <SchoolAppearance />
       <TopBar />
       {gate === 'loading' && (
         <main className="view" aria-busy="true" style={{ alignItems: 'center', paddingTop: 80 }}>
@@ -126,10 +129,11 @@ function RoleRoutes() {
   const mods = useModules()
   const settings = useSettings()
   const fam = useFamilyTracks(role === 'veli' || role === 'ogrenci')
-  const allowed = navItems(role!, mods, fam).map((n) => n.id)
+  const schoolRoles = useSchoolRoles()
+  const allowed = navItems(role!, mods, fam, !!schoolRoles.data?.some(r => r.permissions.length > 0)).map((n) => n.id)
   const home = `/${allowed[0]}`
   // Modül ayarları yüklenmeden yönlendirme kararı verilmez (varsayılanı kapalı modülün sayfasına doğrudan gelen ana sayfaya atılmasın)
-  if (settings.isLoading) return <Wait />
+  if (settings.isLoading || schoolRoles.isLoading) return <Wait />
   return (
     <Routes>
       <Route element={<AppShell />}>

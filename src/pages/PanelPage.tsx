@@ -103,7 +103,7 @@ function Card({ id, title, to, children, d }: { id: CardId; title: string; to?: 
   return (
     <section className={`card a pcard${wide ? ' wide' : ''}`} style={{ ['--d' as string]: d }} aria-label={title} data-card={id}>
       <div className="kv">
-        <h2 style={{ fontSize: 16 }}>{title}</h2>
+        <h2 className="pcard-title">{title}</h2>
         {to && (
           <Link to={to} className="m" style={{ fontSize: 13 }}>
             Tümü →
@@ -118,6 +118,7 @@ function Card({ id, title, to, children, d }: { id: CardId; title: string; to?: 
 export default function PanelPage() {
   const { profile, activeStudent, switchStudent } = useAuth()
   const role: PanelRole = profile?.role === 'veli' ? 'veli' : profile?.role === 'ogrenci' ? 'ogrenci' : 'ogretmen'
+  const settings = useSettings()
   const layout = usePanelLayout(role)
   const mods = useModules()
   const students = useStudents()
@@ -137,6 +138,7 @@ export default function PanelPage() {
           <h1 className="hd">Merhaba {first}</h1>
         </div>
       </div>
+      {!!settings.data?.['okul.karsilama'] && <p className="school-welcome">{String(settings.data['okul.karsilama'])}</p>}
       {role === 'veli' && list.length > 1 && s && (
         <Seg className="a" label="Çocuk" value={s.id} onChange={switchStudent} options={list.map((x) => [x.id, x.full_name.split(' ')[0]!] as const)} style={{ alignSelf: 'flex-start' }} />
       )}

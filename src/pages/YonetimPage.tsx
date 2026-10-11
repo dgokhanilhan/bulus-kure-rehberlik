@@ -21,6 +21,7 @@ import { AnaSayfaDuzeni, TopluAktarim } from './YonetimAktarim'
 import { InviteChip, InviteParentModal, InviteTeacherModal } from './YonetimDavet'
 import { RolesSection } from './YonetimRoller'
 import { DenemeMerkezi } from './DenemeMerkezi'
+import { AppearanceSettings, SchoolRoleAdmin } from './OkulKontrolleri'
 import { DenemeBilgi, DuyuruListesi, EtkinlikListesi, GuvenlikOzeti, MesajAyarlari } from './YonetimIcerik'
 import { BildirimAyarlari, YoklamaAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari, OgretmenAtamalari } from './YonetimMerkezi'
 
@@ -67,14 +68,14 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
 const TABS = GROUPS.flatMap((g) => g.items)
 /** Aramada bölüm adına ek olarak eşleşen sözcükler (ayar adları, sık kullanılan terimler). */
 const KEYWORDS: Partial<Record<Tab, string>> = {
-  genel: 'okul adı telefon e-posta adres logo',
+  genel: 'okul adı telefon e-posta adres logo tema renk tasarım görünüm yazı kart karşılama animasyon',
   moduller: 'aç kapat modül özellik',
   yillar: 'dönem tatil yıl aktif',
   dosya: 'dosya boyut mb duyuru ek',
   bildirim: 'bildirim e-posta push',
   anasayfa: 'kart panel dashboard düzen sıra genişlik veli öğrenci öğretmen bugün',
   galeri: 'fotoğraf video albüm kategori',
-  guvenlik: 'yetki rol mfa işlem geçmişi audit erişim',
+  guvenlik: 'yetki rol mfa işlem geçmişi audit erişim kurucu müdür özel rol',
   siniflar: 'şube sınıf öğretmeni pasif aktif',
   dersler: 'ders kataloğu sıra renk',
   saatler: 'zil ders saati teneffüs',
@@ -198,7 +199,7 @@ export default function YonetimPage() {
             <div className="empty">Yönetim verisi yüklenemedi. Sayfayı yenile.</div>
           ) : (
             <>
-              {tab === 'genel' && <GenelAyarlar schoolName={school.data ?? ''} />}
+              {tab === 'genel' && <><GenelAyarlar schoolName={school.data ?? ''} /><AppearanceSettings /></>}
               {tab === 'moduller' && <Moduller />}
               {tab === 'yillar' && <EgitimYillari />}
               {tab === 'dosya' && <DosyaDuyuruAyarlari />}
@@ -221,7 +222,7 @@ export default function YonetimPage() {
               {tab === 'galeri' && <GaleriAyarlari />}
               {tab === 'anasayfa' && <AnaSayfaDuzeni />}
               {tab === 'aktarim' && <TopluAktarim />}
-              {tab === 'guvenlik' && <GuvenlikOzeti />}
+              {tab === 'guvenlik' && <><GuvenlikOzeti /><SchoolRoleAdmin profiles={data.data!.profiles} /></>}
               {tab === 'denemeler' && (
                 <>
                   <DenemeBilgi />
