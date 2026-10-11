@@ -61,4 +61,3 @@ create function setting_spec() returns jsonb language sql immutable as $$ select
  "gorunum.hareket":{"type":"bool","default":true},
  "okul.karsilama":{"type":"text","max":250,"default":""}
  }'::jsonb $$;
-
