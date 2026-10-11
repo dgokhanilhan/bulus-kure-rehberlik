@@ -187,12 +187,12 @@ function ProfileMenu() {
 }
 
 function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
-  const { profile } = useAuth()
+  const { profile, role } = useAuth()
   const qc = useQueryClient()
   const nav = useNavigate()
   const ref = useRef<HTMLDivElement>(null)
   const q = useQuery({
-    queryKey: ['notifications', profile?.id],
+    queryKey: ['notifications', profile?.id, role],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notifications')
@@ -200,7 +200,7 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
         .order('created_at', { ascending: false })
         .limit(40)
       if (error) throw error
-      return data as Notification[]
+      return (data as Notification[]).filter(n=>n.type!=='nobet'||role==='brans'||role==='rehber')
     },
     refetchInterval: 60_000,
   })

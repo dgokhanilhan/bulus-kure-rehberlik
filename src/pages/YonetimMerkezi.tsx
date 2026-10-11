@@ -100,7 +100,7 @@ const MODULES: [ModuleId, string, string][] = [
   ['lgs', 'LGS / Deneme', 'Deneme yükleme, analiz, sınıf ısı haritası, veli raporları'],
   ['yoklama', 'Yoklama', 'Günlük yoklama ve devamsızlık bildirimleri'],
   ['ders_programi', 'Ders programı', 'Sınıf programları, veli ve öğrenci görünümü'],
-  ['yemek', 'Yemek listesi', 'Haftalık yemek listesi'],
+  ['yemek', 'Yemek listesi', 'Aylık öğle yemeği listesi'],
   ['duyuru', 'Duyurular', 'Okul, kademe ve sınıf duyuruları'],
   ['mesaj', 'Mesajlaşma', 'Veli–öğretmen yazışmaları'],
   ['odev', 'Ödev sistemi', 'Ödev verme, kontrol, veli ve öğrenci görünümü'],
@@ -1124,6 +1124,7 @@ export function DosyaDuyuruAyarlari() {
 const NOTIF: [string, string, string][] = [
   ['odev.bildirim_yeni', 'Yeni ödev', 'Ödev verilince öğrenci ve veliye'],
   ['odev.bildirim_kontrol', 'Ödev kontrol edildi', 'Öğretmen durum işaretleyince'],
+  ['bildirim.nobet', 'Nöbet hatırlatması', 'Yalnız öğretmene, kendi nöbet gününde'],
   ['bildirim.mesaj', 'Yeni mesaj', 'Veli–öğretmen yazışmalarında'],
   ['bildirim.duyuru', 'Yeni duyuru', 'Duyurunun hedef kitlesine'],
   ['bildirim.sinav', 'Sınav eklendi', 'Takvime yazılı, deneme ya da bursluluk eklenince'],

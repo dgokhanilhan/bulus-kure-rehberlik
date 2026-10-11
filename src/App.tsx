@@ -18,6 +18,7 @@ const IletisimPage = lazy(() => import('@/pages/IletisimPage'))
 const DuyurularPage = lazy(() => import('@/pages/IletisimPage').then((m) => ({ default: m.DuyurularPage })))
 const GaleriPage = lazy(() => import('@/pages/GaleriPage'))
 const OdevlerPage = lazy(() => import('@/pages/OdevlerPage'))
+const NobetTakipPage = lazy(() => import('@/pages/NobetTakipPage'))
 const PanelPage = lazy(() => import('@/pages/PanelPage'))
 const TakvimPage = lazy(() => import('@/pages/TakvimPage'))
 const BildirimlerPage = lazy(() => import('@/pages/BildirimlerPage'))
@@ -43,6 +44,7 @@ const Wait = () => (
 
 const PAGES: Record<PageId, JSX.Element> = {
   'okul-yonetimi': <SchoolOverview />,
+  'nobet-takip': <NobetTakipPage />,
   bugun: <BugunPage />,
   ogrenciler: <OgrencilerPage />,
   denemeler: <DenemelerPage />,

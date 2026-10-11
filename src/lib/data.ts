@@ -315,7 +315,7 @@ export interface Meal {
 export function useMeals(from: string, to: string) {
   return useQuery({
     queryKey: ['meals', from, to],
-    queryFn: () => all<Meal>(supabase.from('meals').select('id, day, meal, items').gte('day', from).lte('day', to).order('day')),
+    queryFn: () => all<Meal>(supabase.from('meals').select('id, day, meal, items').eq('meal', 'ogle').gte('day', from).lte('day', to).order('day')),
   })
 }
 

@@ -10,17 +10,17 @@ import { Seg } from '@/components/Indicator'
 import { Icon } from '@/components/Icon'
 
 export default function BildirimlerPage() {
-  const { profile } = useAuth()
+  const { profile, role } = useAuth()
   const qc = useQueryClient()
   const openN = useOpenNotification()
   const [only, setOnly] = useState<'all' | 'unread'>('all')
   const [type, setType] = useState('all')
   const q = useQuery({
-    queryKey: ['notifications', profile?.id, 'all'],
+    queryKey: ['notifications', profile?.id, role, 'all'],
     queryFn: async () => {
       const { data, error } = await supabase.from('notifications').select('id, text, link, read_at, created_at, type').order('created_at', { ascending: false }).limit(300)
       if (error) throw error
-      return data as Notification[]
+      return (data as Notification[]).filter(n=>n.type!=='nobet'||role==='brans'||role==='rehber')
     },
   })
   const mark = useMutation({
