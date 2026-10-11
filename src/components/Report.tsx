@@ -465,10 +465,12 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
             </tbody>
           </table>
         </div>
+        {!V && <>
         {(['official','pdf'] as const).map(source=>{
           const rows=R.lastWrong.filter(w=>(w.source??'official')===source)
           return rows.length ? <div className="sec" key={source}><h3>{source==='pdf'?'Okulun PDF’den eklediği çalışma hedefleri':'Resmî programdaki çalışma hedefleri'}</h3><p className="m" style={{fontSize:12}}>{source==='pdf'?'Bu hedefler deneme PDF’sinden okul tarafından eklenmiştir; resmî program eşleşmesi olarak değerlendirilmez.':'Bu denemede yanlış yanıtlanan soruların eşleştiği kazanım ve öğrenme çıktıları.'}</p><table><thead><tr><th>Ders</th><th>Hedef</th><th>Tür</th>{!V&&<th>Kod</th>}</tr></thead><tbody>{rows.map((w,i)=><tr key={`${w.subject}:${w.code}:${i}`}><td>{R.subjects.find(d=>d.code===w.subject)?.ad??w.subject}</td><td>{w.title}</td><td>{w.outcomeType==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım'}</td>{!V&&<td>{w.code}</td>}</tr>)}</tbody></table></div> : null
         })}
+        </>}
         {V ? (
           <>
             <div className="sec" id="rapor-genel">
@@ -511,6 +513,10 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
                 {tx('rehber', 3, 'Rehber öğretmen yorumu', 'Rehber öğretmen gözlemi (boş bırakılırsa raporda yer almaz)')}
               </div>
             )}
+        {(['official','pdf'] as const).map(source=>{
+          const rows=R.lastWrong.filter(w=>(w.source??'official')===source)
+          return rows.length ? <div className="sec" key={source}><h3>{source==='pdf'?'Okulun PDF’den eklediği çalışma hedefleri':'Resmî programdaki çalışma hedefleri'}</h3><p className="m" style={{fontSize:12}}>{source==='pdf'?'Bu hedefler deneme PDF’sinden okul tarafından eklenmiştir; resmî program eşleşmesi olarak değerlendirilmez.':'Bu denemede yanlış yanıtlanan soruların eşleştiği kazanım ve öğrenme çıktıları.'}</p><table><thead><tr><th>Ders</th><th>Hedef</th><th>Tür</th>{!V&&<th>Kod</th>}</tr></thead><tbody>{rows.map((w,i)=><tr key={`${w.subject}:${w.code}:${i}`}><td>{R.subjects.find(d=>d.code===w.subject)?.ad??w.subject}</td><td>{w.title}</td><td>{w.outcomeType==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım'}</td>{!V&&<td>{w.code}</td>}</tr>)}</tbody></table></div> : null
+        })}
             <div className="foot">
               <span>Bu rapor öğrencinin yalnızca kendi önceki denemeleriyle karşılaştırılmasına dayanır.</span>
               <span>Buluş Küre Koleji Rehberlik &amp; Mentörlük</span>

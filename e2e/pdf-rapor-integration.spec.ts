@@ -62,12 +62,14 @@ test('tek denemelik PDF eksiği görev, veli/öğretmen raporu ve PDF’de göst
  const report=page.getByRole('dialog',{name:'Rapor',exact:true})
  await expect(report.getByRole('heading',{name:'Okulun PDF’den eklediği çalışma hedefleri',exact:true})).toBeVisible()
  await expect(report.locator('[data-testid="report-paper"]')).toContainText('PDF’den eklenen özgün çalışma hedefi')
+ const headings=await report.getByRole('heading').allTextContents();expect(headings.indexOf('Genel Değerlendirme')).toBeLessThan(headings.indexOf('Okulun PDF’den eklediği çalışma hedefleri'))
  const download=page.waitForEvent('download');await report.getByRole('button',{name:'PDF indir',exact:true}).click();const file=await download;expect(file.suggestedFilename()).toContain('Veli-Raporu')
  const path='e2e-artifacts/pdf-hedef-veli-raporu.pdf';await file.saveAs(path)
  // @ts-expect-error — mevcut saf JS PDF motoru
  const {default:mupdf}=await import('../public/engine/mupdf/mupdf.js')
  const doc=mupdf.Document.openDocument(new Uint8Array(readFileSync(path)),'application/pdf')
  const text=Array.from({length:doc.countPages()},(_,i)=>doc.loadPage(i).toStructuredText().asText()).join('\n')
+ expect(text.indexOf('GENEL DEĞERLENDİRME')).toBeLessThan(text.indexOf('OKULUN PDF’DEN EKLEDİĞİ ÇALIŞMA HEDEFLERİ'));
  expect(text).toContain('PDF’den eklenen özgün çalışma hedefi');expect(text).toContain('OKULUN PDF’DEN EKLEDİĞİ ÇALIŞMA HEDEFLERİ')
  await report.getByRole('button',{name:'Kapat',exact:true}).click()
  await first.getByRole('button',{name:'Öğretmen raporu',exact:true}).click()

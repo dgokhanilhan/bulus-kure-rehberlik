@@ -1,3 +1,5 @@
+import { AppearanceSettings } from './OkulKontrolleri'
+import { BildirimAyarlari, TakvimAyarlari, OdevAyarlari, YoklamaAyarlari } from './YonetimMerkezi'
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -125,6 +127,10 @@ export default function AyarlarPage() {
           Kaydet
         </button>
       </section>
+      <AppearanceSettings />
+      <Dropdown title="Takvim ve etkinlik kuralları" sub="Görünürlük ve bildirimler" icon={<Icon name="cal" size={22} />} delay={2}><TakvimAyarlari /></Dropdown>
+      <Dropdown title="Ödev kuralları" sub="Öğretmen yetkileri ve teslim ayarları" icon={<Icon name="book" size={22} />} delay={2}><OdevAyarlari /></Dropdown>
+      <Dropdown title="Yoklama ve bildirim kuralları" sub="Kayıt yetkileri ve aile bilgilendirmesi" icon={<Icon name="shield" size={22} />} delay={2}><YoklamaAyarlari /><BildirimAyarlari /></Dropdown>
       <Dropdown title="İşlem kayıtları" sub={`Son ${audit.data?.length ?? 0} kayıt`} icon={<Icon name="shield" size={22} />} delay={2}>
         <div className="tbl">
           <table>

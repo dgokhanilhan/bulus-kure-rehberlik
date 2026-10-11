@@ -68,7 +68,7 @@ test.describe.serial('Okul ayarları', () => {
     await page.getByLabel('Düşüş eşiği (net)').fill('50')
     await page.getByLabel('Kalıcı hata (deneme sayısı)').fill('50')
     await page.getByLabel('Gelişim eşiği (net)').fill('50')
-    await page.getByRole('button', { name: 'Kaydet' }).click()
+    await page.getByRole('button', { name: 'Kaydet', exact: true }).click()
     await expect(page.getByText('Ayarlar kaydedildi')).toBeVisible()
     await page.getByText('İşlem kayıtları').click()
     await expect(page.getByTestId('audit-row').filter({ hasText: 'Okul ayarlarını değiştirdi' }).first()).toBeVisible()
