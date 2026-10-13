@@ -94,7 +94,7 @@ export default function MfaPage() {
             <img className="qr" src={st.qr} alt="Authenticator için QR kodu" />
             <div className="stack" style={{ flex: 1, minWidth: 180, gap: 6 }}>
               <span className="m" style={{ fontSize: 13 }}>
-                Yönetici hesabı iki adımlı doğrulama ister. QR kodunu Google veya Microsoft Authenticator ile tara ya da anahtarı elle gir:
+                Mevcut e-posta ve şifrenle giriş yaptıktan sonra ikinci doğrulama Authenticator uygulamasıyla yapılır. Google veya Microsoft Authenticator'da hesap ekleyip QR kodunu tara ya da aşağıdaki anahtarı elle gir. Anahtarını ve kodlarını paylaşma:
               </span>
               <b className="mono" style={{ letterSpacing: 2 }} data-testid="totp-secret">
                 {st.secret.replace(/(.{4})/g, '$1 ').trim()}

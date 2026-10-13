@@ -1,4 +1,4 @@
-import SchoolOverview, { SchoolAppearance, useSchoolRoles } from '@/pages/OkulKontrolleri'
+import { SchoolAppearance } from '@/pages/OkulKontrolleri'
 import { Suspense, lazy, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { gateOf, useAuth } from '@/auth/AuthProvider'
@@ -43,7 +43,7 @@ const Wait = () => (
 )
 
 const PAGES: Record<PageId, JSX.Element> = {
-  'okul-yonetimi': <SchoolOverview />,
+
   'nobet-takip': <NobetTakipPage />,
   bugun: <BugunPage />,
   ogrenciler: <OgrencilerPage />,
@@ -74,7 +74,7 @@ export default function App() {
   const loc = useLocation()
   const toast = useToast()
   useEffect(() => {
-    if (auth.profile?.role !== 'admin' || !auth.session) return
+    if (!auth.roles.includes('admin') || !auth.session) return
     const check = () => {
       const t = Date.parse(auth.session!.user.last_sign_in_at ?? '')
       if (t && Date.now() - t > ADMIN_MAX_MS) {
@@ -85,7 +85,7 @@ export default function App() {
     check()
     const i = setInterval(check, 60_000)
     return () => clearInterval(i)
-  }, [auth.profile?.role, auth.session, toast])
+  }, [auth.roles, auth.session, toast])
   if (loc.pathname === '/bursluluk')
     return (
       <>
@@ -131,11 +131,10 @@ function RoleRoutes() {
   const mods = useModules()
   const settings = useSettings()
   const fam = useFamilyTracks(role === 'veli' || role === 'ogrenci')
-  const schoolRoles = useSchoolRoles()
-  const allowed = navItems(role!, mods, fam, !!schoolRoles.data?.some(r => r.permissions.length > 0)).map((n) => n.id)
+  const allowed = navItems(role!, mods, fam).map((n) => n.id)
   const home = `/${allowed[0]}`
   // Modül ayarları yüklenmeden yönlendirme kararı verilmez (varsayılanı kapalı modülün sayfasına doğrudan gelen ana sayfaya atılmasın)
-  if (settings.isLoading || schoolRoles.isLoading) return <Wait />
+  if (settings.isLoading) return <Wait />
   return (
     <Routes>
       <Route element={<AppShell />}>

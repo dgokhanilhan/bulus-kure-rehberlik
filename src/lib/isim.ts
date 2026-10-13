@@ -43,27 +43,20 @@ export function nameDistance(a: string, b: string) {
 }
 
 /**
- * 1) Şube + okul no aynıysa ve ad makul ölçüde benziyorsa → aynı öğrenci.
- * 2) Ad (Türkçe katlanmış) birebir ve tekse → aynı öğrenci.
+ * 1) Ad-soyad ve varsa sınıf birebir ve tekse → aynı öğrenci.
+ * 2) Okul numarası tekrarlanabilir; kimlik veya öncelik belirlemez.
  * 3) Tek bir adayla en çok 2 harf fark (ve ikinci en yakın aday belirgin uzakta) → yazım düzeltmesi.
  * 4) Aksi halde kontrol ister; en yakın 3 aday önerilir.
  */
 export function matchStudent(read: { name: string; number?: string | null; class?: string | null }, roster: RosterStudent[]): MatchResult {
-  const no = (read.number ?? '').replace(/\D/g, '')
   const cls = (read.class ?? '').toLocaleUpperCase('tr').replace(/\s/g, '')
-  const byNo = no ? roster.filter((s) => s.school_no === no && (!cls || s.class_name === cls)) : []
-  if (byNo.length === 1) {
-    const d = nameDistance(read.name, byNo[0]!.full_name)
-    if (d === 0) return { kind: 'exact', id: byNo[0]!.id, via: 'no' }
-    if (d <= Math.max(3, Math.floor(normName(byNo[0]!.full_name).length / 4))) return { kind: 'fixed', id: byNo[0]!.id, via: 'no' }
-  }
   const n = normName(read.name)
   const same = roster.filter((s) => normName(s.full_name) === n)
-  const sameCls = cls ? same.filter((s) => s.class_name === cls) : same
+  const sameCls = cls ? same.filter((s) => s.class_name.toLocaleUpperCase('tr').replace(/\s/g, '') === cls) : same
   if (sameCls.length === 1) return { kind: 'exact', id: sameCls[0]!.id, via: 'name' }
   if (same.length === 1 && !cls) return { kind: 'exact', id: same[0]!.id, via: 'name' }
 
-  const pool = cls && roster.some((s) => s.class_name === cls) ? roster.filter((s) => s.class_name === cls) : roster
+  const pool = cls ? roster.filter((s) => s.class_name.toLocaleUpperCase('tr').replace(/\s/g, '') === cls) : roster
   const ranked = pool.map((s) => ({ s, d: nameDistance(read.name, s.full_name) })).sort((a, b) => a.d - b.d)
   const best = ranked[0]
   const second = ranked[1]

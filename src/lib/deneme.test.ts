@@ -25,8 +25,8 @@ describe('deneme kontrolü', () => {
   it('yalnız gerçek sorunlar karar ister: listede olmayan isim, D+Y+B tutarsızlığı, tanınmayan sayfa', () => {
     const rv = buildReview(load(), roster)
     const by = (n: string) => rv.rows.find((r) => r.read.name === n)!
-    expect(by('ELİF YILDIZ').match).toEqual({ kind: 'exact', id: 'elif', via: 'no' })
-    expect(by('ZEGNEP KAYA').match).toEqual({ kind: 'fixed', id: 'zeynep', via: 'no' })
+    expect(by('ELİF YILDIZ').match).toEqual({ kind: 'exact', id: 'elif', via: 'name' })
+    expect(by('ZEGNEP KAYA').match).toEqual({ kind: 'fixed', id: 'zeynep', via: 'name' })
     expect(by('KERM AYDIN').match).toEqual({ kind: 'fixed', id: 'kerem', via: 'name' })
     expect(by('BORA TAN').choice).toBeNull()
     const mert = by('MERT DEMİR')

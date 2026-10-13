@@ -52,7 +52,7 @@ export function Modal({
             <Icon name="x" size={18} stroke={2.4} />
           </button>
         </div>
-        <div className="modal-b">{children}</div>
+        <div className="modal-b" tabIndex={0}>{children}</div>
         {footer && <div className="modal-f">{footer}</div>}
       </div>
     </div>,
