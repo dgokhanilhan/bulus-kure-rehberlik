@@ -13,6 +13,33 @@ import { AssignmentPicker, StudentPicker, type AssignRow, type KidRow } from './
 
 const ROLE_NAME: Record<string, string> = { admin: 'Yönetici', ogretmen: 'Öğretmen', veli: 'Veli', ogrenci: 'Öğrenci' }
 
+export function AccountRolesAdmin({ profiles }: { profiles: Profile[] }) {
+  const [selected, setSelected] = useState('')
+  const person = profiles.find((p) => p.id === selected && p.status === 'approved')
+  return (
+    <section className="card stack" style={{ padding: 20 }}>
+      <h3>Hesap rolleri ve yönetici atama</h3>
+      <p className="m">
+        Mevcut bir hesabı seçerek yönetici rolü verebilirsin. Yönetici rolü tüm yönetim yetkilerini açar ve her girişte Authenticator doğrulaması gerektirir.
+      </p>
+      <label className="field">
+        Kullanıcı
+        <select aria-label="Kullanıcı" value={selected} onChange={(e) => setSelected(e.target.value)}>
+          <option value="">Kullanıcı seç</option>
+          {profiles
+            .filter((p) => p.status === 'approved')
+            .map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.full_name} · {p.email} · {ROLE_NAME[p.role]}
+              </option>
+            ))}
+        </select>
+      </label>
+      {person && <RolesSection key={person.id} p={person} />}
+    </section>
+  )
+}
+
 function useReload() {
   const qc = useQueryClient()
   return () => {
@@ -58,7 +85,8 @@ export function RolesSection({ p }: { p: Profile }) {
   const [busy, setBusy] = useState(false)
   const stu = (id: string) => students.data?.find((s) => s.id === id)
   const mine = (assigns.data ?? []).filter((a) => a.teacher_id === p.id)
-  const missing: SwitchRole | null = p.role === 'ogretmen' && !roles.includes('veli') ? 'veli' : p.role === 'veli' && !roles.includes('ogretmen') ? 'ogretmen' : null
+  const missing: SwitchRole | null =
+    p.role === 'ogretmen' && !roles.includes('veli') ? 'veli' : p.role === 'veli' && !roles.includes('ogretmen') ? 'ogretmen' : null
 
   async function remove(r: string) {
     setErr(null)
@@ -82,7 +110,14 @@ export function RolesSection({ p }: { p: Profile }) {
                 (ana rol)
               </span>
             ) : (
-              <button type="button" className="xbtn" style={{ width: 22, height: 22 }} disabled={busy} onClick={() => remove(r)} aria-label={`${ROLE_NAME[r]} rolünü kaldır`}>
+              <button
+                type="button"
+                className="xbtn"
+                style={{ width: 22, height: 22 }}
+                disabled={busy}
+                onClick={() => remove(r)}
+                aria-label={`${ROLE_NAME[r]} rolünü kaldır`}
+              >
                 <Icon name="x" size={12} stroke={2.6} />
               </button>
             )}
@@ -91,6 +126,11 @@ export function RolesSection({ p }: { p: Profile }) {
         {missing && (
           <button type="button" className="btn sm" onClick={() => setAdd(missing)}>
             <Icon name="plus" size={15} /> {SWITCH_TR[missing]} rolü ekle
+          </button>
+        )}
+        {!roles.includes('admin') && (
+          <button type="button" className="btn sm" onClick={() => setAdd('admin')}>
+            Yönetici rolü ekle
           </button>
         )}
       </div>
@@ -155,9 +195,11 @@ function AddRoleModal({ p, role, onClose }: { p: Profile; role: SwitchRole; onCl
   async function save() {
     setErr(null)
     const payload =
-      role === 'veli'
-        ? { students: kids.filter((k) => k.student_id) }
-        : { branch, assignments: rows.filter((r) => r.class_id && r.course_id), homeroom_class_id: homeroom || null }
+      role === 'admin'
+        ? {}
+        : role === 'veli'
+          ? { students: kids.filter((k) => k.student_id) }
+          : { branch, assignments: rows.filter((r) => r.class_id && r.course_id), homeroom_class_id: homeroom || null }
     if (role === 'veli' && !payload.students!.length) return setErr('En az bir öğrenci seç.')
     setBusy(true)
     const { error } = await supabase.rpc('admin_add_role', { p_profile: p.id, p_role: role, p: payload })
@@ -171,7 +213,7 @@ function AddRoleModal({ p, role, onClose }: { p: Profile; role: SwitchRole; onCl
   return (
     <Modal
       title={`${SWITCH_TR[role]} rolü ekle`}
-      sub={`${p.full_name} aynı hesapla ${role === 'veli' ? 'veli' : 'öğretmen'} olarak da girebilir; girişte ve profil menüsünde rolünü seçer. Yeni hesap açılmaz.`}
+      sub={`${p.full_name} mevcut hesabıyla ${SWITCH_TR[role].toLocaleLowerCase('tr')} olarak da giriş yapabilir. Yeni hesap açılmaz.`}
       avatar={p.full_name}
       width={620}
       onClose={onClose}
@@ -186,7 +228,12 @@ function AddRoleModal({ p, role, onClose }: { p: Profile; role: SwitchRole; onCl
         </>
       }
     >
-      {role === 'veli' ? (
+      {role === 'admin' ? (
+        <p>
+          Bu kullanıcı seninle aynı yönetici yetkilerine sahip olacak. İlk girişinde Authenticator kurup 6 haneli kodu doğrulaması zorunludur. Kurulum anahtarı
+          e-postayla gönderilmez; yalnız kendi oturumunda gösterilir.
+        </p>
+      ) : role === 'veli' ? (
         <StudentPicker students={students.data ?? []} kids={kids} setKids={setKids} />
       ) : (
         <>

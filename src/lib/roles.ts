@@ -26,11 +26,11 @@ export function roleOf(p: Pick<Profile, 'role' | 'branch'>): Role {
 /** Kişinin bütün rolleri (0020 profile_roles). Liste yüklenmemişse ana rol. */
 export const rolesOf = (p: { role: string; roles?: string[] | null }) => (p.roles?.length ? p.roles : [p.role])
 /** Öğretmen listelerinde görünür mü: yönetici ya da öğretmen rolü olan (ana rolü veli olsa da). */
-export const isTeacherP = (p: { role: string; roles?: string[] | null }) => p.role === 'admin' || rolesOf(p).includes('ogretmen')
+export const isTeacherP = (p: { role: string; roles?: string[] | null }) => rolesOf(p).includes('admin') || rolesOf(p).includes('ogretmen')
 export const isParentP = (p: { role: string; roles?: string[] | null }) => rolesOf(p).includes('veli')
-/** Tek hesapta geçiş yapılabilen roller (yalnız öğretmen + veli birlikteyse). */
-export type SwitchRole = 'ogretmen' | 'veli'
-export const SWITCH_TR: Record<SwitchRole, string> = { ogretmen: 'Öğretmen', veli: 'Veli' }
+/** Tek hesapta geçiş yapılabilen roller; yönetici de ek rol olabilir. */
+export type SwitchRole = 'admin' | 'ogretmen' | 'veli' | 'ogrenci'
+export const SWITCH_TR: Record<SwitchRole, string> = { admin: 'Yönetici', ogretmen: 'Öğretmen', veli: 'Veli', ogrenci: 'Öğrenci' }
 
 export const ROLE_TR: Record<Role, string> = {
   admin: 'Yönetici',
@@ -44,7 +44,7 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'odevler' | 'takvim' | 'bildirimler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
-  | 'nobet-takip' | 'okul-yonetimi' | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler' | 'galeri'
+  | 'nobet-takip' | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler' | 'galeri'
 
 export interface NavItem {
   id: PageId
@@ -115,10 +115,9 @@ function withGallery(list: NavItem[]): NavItem[] {
  * fam.lgs: veli/öğrenci için LGS'ye uygun (8. sınıf) çocuk var mı. Yoksa ya da LGS modülü kapalıysa sayfa "Özet" adını alır
  * ve LGS bölümü gösterilmez; görevler, görüşmeler, raporlar, öğretmen notları ve etütler herkes için kalır.
  */
-export function navItems(r: Role, mods: Modules = MODULE_DEFAULTS, fam: { lgs: boolean } = { lgs: true }, schoolRole = false): NavItem[] {
+export function navItems(r: Role, mods: Modules = MODULE_DEFAULTS, fam: { lgs: boolean } = { lgs: true }): NavItem[] {
   const base = navFor(r)
   if (r === 'brans' || r === 'rehber') base.splice(base.findIndex(n => n.id === 'takvim') + 1, 0, { id: 'nobet-takip', label: 'Nöbet Takip', icon: 'cal' })
-  if (r === 'admin' || (schoolRole && (r === 'brans' || r === 'rehber'))) base.push({id:'okul-yonetimi',label:'Okul yönetimi',icon:'grid'})
   return withGallery(base)
     .filter((n) => !PAGE_MODULES[n.id] || PAGE_MODULES[n.id]!.some((m) => mods[m]))
     .map((n) => (n.id === 'ozet' && !(fam.lgs && mods.lgs) ? { ...n, label: 'Özet' } : n))

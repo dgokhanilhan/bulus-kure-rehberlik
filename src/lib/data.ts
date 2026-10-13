@@ -32,7 +32,7 @@ export function useStudents(enabled = true) {
   // Veli olarak: yalnız bağlı çocuklar (öğretmen rolü olan velinin okulun tüm öğrencilerini görmesi ekranda istenmez)
   const parentOf = profile?.role === 'veli' ? profile.id : null
   // İki rollü hesap öğretmen modunda: yalnız öğretmen olarak atandığı sınıflar (veli olarak gördüğü kendi çocukları listelenmez)
-  const teacherOnly = !parentOf && profile?.role === 'ogretmen' && switchable.length > 0 ? profile.id : null
+  const teacherOnly = !parentOf && profile?.role === 'ogretmen' && profile.branch !== 'Rehberlik' && switchable.length > 0 ? profile.id : null
   return useQuery({
     queryKey: ['students', parentOf ? 'veli' : teacherOnly ? 'ogretmen' : 'hepsi', profile?.id],
     staleTime: STALE,
@@ -43,6 +43,8 @@ export function useStudents(enabled = true) {
         const { data, error } = await supabase.from('parent_links').select('student_id').eq('parent_id', parentOf)
         if (error) throw new Error(error.message)
         q = q.in('id', (data ?? []).map((r) => r.student_id as string))
+      } else if (profile?.role === 'ogrenci') {
+        q = q.eq('id', profile.student_id ?? '00000000-0000-0000-0000-000000000000')
       } else if (teacherOnly) {
         const { data, error } = await supabase.rpc('teacher_classes', { uid: teacherOnly })
         if (error) throw new Error(error.message)
@@ -110,8 +112,8 @@ export function useCalendar(from: string, to: string) {
 }
 
 // ---------- Ödev (0013) ----------
-export type HwStatus = 'bekliyor' | 'yapti' | 'yapmadi' | 'eksik' | 'gelmedi' | 'izinli'
-export const HW_TR: Record<HwStatus, string> = { bekliyor: 'Bekliyor', yapti: 'Yaptı', yapmadi: 'Yapmadı', eksik: 'Eksik', gelmedi: 'Gelmedi', izinli: 'İzinli' }
+export type HwStatus = 'bekliyor' | 'yapti' | 'yapmadi' | 'getirmedi' | 'eksik' | 'gelmedi' | 'izinli'
+export const HW_TR: Record<HwStatus, string> = { bekliyor: 'Bekliyor', yapti: 'Yaptı', yapmadi: 'Yapmadı', getirmedi: 'Getirmedi', eksik: 'Eksik', gelmedi: 'Gelmedi', izinli: 'İzinli' }
 export interface Homework {
   id: string
   class_id: string

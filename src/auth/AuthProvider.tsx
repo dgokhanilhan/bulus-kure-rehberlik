@@ -11,7 +11,7 @@ const ROLE_KEY = 'bk.rol'
 function readChoice(uid: string): SwitchRole | null {
   try {
     const v = JSON.parse(localStorage.getItem(ROLE_KEY) ?? 'null') as { uid?: string; role?: string } | null
-    return v?.uid === uid && (v.role === 'ogretmen' || v.role === 'veli') ? v.role : null
+    return v?.uid === uid && (v.role === 'admin' || v.role === 'ogretmen' || v.role === 'veli' || v.role === 'ogrenci') ? v.role : null
   } catch {
     return null
   }
@@ -114,7 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearRoleChoice()
         qc.clear()
       }
-      if (event === 'MFA_CHALLENGE_VERIFIED' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (event === 'MFA_CHALLENGE_VERIFIED') {
+        // MFA öncesinde boş dönen okul/öğrenci sorguları yeni yetkiyle yeniden alınır.
+        qc.invalidateQueries()
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         qc.invalidateQueries({ queryKey: ['me'] })
       }
     })
@@ -140,11 +143,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const base = me.data?.profile ?? null
   const roles = base?.roles ?? []
-  const switchable: SwitchRole[] = roles.includes('ogretmen') && roles.includes('veli') ? ['ogretmen', 'veli'] : []
+  const available = (['admin', 'ogretmen', 'veli', 'ogrenci'] as SwitchRole[]).filter(r => roles.includes(r))
+  const switchable: SwitchRole[] = available.length > 1 ? available : []
   const [picked, setPicked] = useState<{ uid: string; role: SwitchRole } | null>(null)
   const choice = uid ? (picked?.uid === uid ? picked.role : readChoice(uid)) : null
   const active = switchable.length && choice && switchable.includes(choice) ? choice : null
-  const profile = base && active ? { ...base, role: active } : base
+  const profile = base ? { ...base, role: active ?? (roles.includes('admin') ? 'admin' as const : base.role) } : null
   // Veli modunda bağlı çocuklar: yetki parent_links + RLS'te; burada yalnız seçim ekranı ve doğrulama için okunur
   const asParent = profile?.role === 'veli' && profile.status === 'approved'
   const kids = useQuery({
@@ -232,7 +236,7 @@ export function gateOf(a: AuthState): Gate {
   if (a.profile.status !== 'approved') return 'pending'
   // Yöneticinin davetiyle açılan hesap KVKK metnini ilk girişte onaylar (0017)
   if (a.profile.invited_at && !a.profile.consent_version) return 'consent'
-  if (a.profile.role === 'admin' && a.aal !== 'aal2') return 'mfa'
+  if ((a.profile.role === 'admin' || a.roles.includes('admin')) && a.aal !== 'aal2') return 'mfa'
   if (a.needRole) return 'rol'
   if (a.needStudent) return 'cocuk'
   return 'app'

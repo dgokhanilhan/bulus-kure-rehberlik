@@ -33,7 +33,7 @@ import { AttachmentList, FilePick, PickedFiles } from '@/components/Files'
 import { uploadFiles, useAttachments, useFileRules, type Attachment } from '@/lib/files'
 
 const errText = (e: { message?: string } | null) => (e ? (/row-level security/i.test(e.message ?? '') ? 'Bu sınıf ve derse ödev verme yetkin yok.' : (e.message ?? 'Kaydedilemedi.')) : null)
-const CHIP: Record<HwStatus, string> = { bekliyor: 'n', yapti: 'up', yapmadi: 'down', eksik: 'down', gelmedi: 'n', izinli: 'n' }
+const CHIP: Record<HwStatus, string> = { bekliyor: 'n', yapti: 'up', yapmadi: 'down', getirmedi: 'down', eksik: 'down', gelmedi: 'n', izinli: 'n' }
 
 /** Ödev ayarları (Yönetim Merkezi → Ödev ayarları); yüklenirken varsayılanlar. */
 export function useHwSettings() {
@@ -383,6 +383,7 @@ function HomeworkModal({
 const MARKS: [HwStatus, string][] = [
   ['yapti', 'Yaptı'],
   ['yapmadi', 'Yapmadı'],
+  ['getirmedi', 'Getirmedi'],
   ['eksik', 'Eksik'],
   ['gelmedi', 'Gelmedi'],
   ['izinli', 'İzinli'],
@@ -615,7 +616,7 @@ function AileOdev() {
         const r = byHw.get(h.id)
         const status: HwStatus = r?.status ?? 'bekliyor'
         const overdue = !!h.due_on && h.due_on < today
-        const group = status === 'bekliyor' ? (overdue ? 'geciken' : 'bekleyen') : status === 'yapmadi' || status === 'eksik' ? 'geciken' : 'tamam'
+        const group = status === 'bekliyor' ? (overdue ? 'geciken' : 'bekleyen') : status === 'getirmedi' || status === 'yapmadi' || status === 'eksik' ? 'geciken' : 'tamam'
         return { h, r, status, overdue, group }
       })
       .sort((a, b) => (a.h.due_on ?? '9999').localeCompare(b.h.due_on ?? '9999'))
@@ -673,7 +674,7 @@ function AileOdev() {
         <div className="stack">
           {shown.map(({ h, r, status, overdue }, i) => {
             const c = co(h.course_id)
-            const red = overdue && settings.lateRed && (status === 'bekliyor' || status === 'yapmadi' || status === 'eksik')
+            const red = overdue && settings.lateRed && (status === 'bekliyor' || status === 'getirmedi' || status === 'yapmadi' || status === 'eksik')
             return (
               <article key={h.id} className="card a" style={{ ['--d' as string]: Math.min(i + 2, 8), padding: 16, display: 'flex', flexDirection: 'column', gap: 6, borderLeft: `4px solid ${c?.color ?? 'var(--line-strong)'}`, outline: h.id === focus ? '2px solid var(--primary)' : undefined }} aria-label={h.title} data-testid="family-homework">
                 <div className="kv" style={{ alignItems: 'flex-start' }}>

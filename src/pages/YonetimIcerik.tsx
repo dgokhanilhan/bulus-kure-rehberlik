@@ -293,7 +293,7 @@ export function GuvenlikOzeti() {
           Bu kurallar arayüzde değil <b>veritabanında</b> (satır düzeyi güvenlik) uygulanır; bir düğmenin gizli olması tek başına koruma değildir.
         </span>
         <span>
-          Temel öğretmen/veli rolü ekleme / kaldırma: <b>Öğretmenler</b> ya da <b>Veliler</b> → Düzenle. Ders ataması: <b>Ders atamaları</b> ya da öğretmenin Düzenle penceresi.
+          Yönetici dahil mevcut hesapların rollerini aşağıdaki <b>Hesap rolleri ve yönetici atama</b> bölümünden düzenleyebilirsin. Yönetici rolü zorunlu Authenticator doğrulaması ister. Ders ataması: <b>Ders atamaları</b> ya da öğretmenin Düzenle penceresi.
         </span>
         <span>
           Kim neyi değiştirdi: <Link to="/ayarlar">Sistem ayarları → İşlem kayıtları</Link>.

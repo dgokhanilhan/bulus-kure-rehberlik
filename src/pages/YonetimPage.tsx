@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { useClasses, useModules } from '@/lib/data'
-import { BRANS, isParentP, isTeacherP, LEVEL_TR, LEVELS, ROLE_TR, roleOf, type ModuleId } from '@/lib/roles'
+import { BRANS, isParentP, isTeacherP, LEVEL_TR, LEVELS, ROLE_TR, roleOf, rolesOf, type ModuleId } from '@/lib/roles'
 import { fold, initials } from '@/lib/format'
 import type { ClassRow, Profile } from '@/lib/types'
 import { Modal } from '@/components/Modal'
@@ -19,9 +19,9 @@ import { BurslulukAdmin } from './BurslulukAdmin'
 import { GaleriAyarlari } from './YonetimGaleri'
 import { AnaSayfaDuzeni, TopluAktarim } from './YonetimAktarim'
 import { InviteChip, InviteParentModal, InviteTeacherModal } from './YonetimDavet'
-import { RolesSection } from './YonetimRoller'
+import { RolesSection, AccountRolesAdmin } from './YonetimRoller'
 import { DenemeMerkezi } from './DenemeMerkezi'
-import { AppearanceSettings, SchoolRoleAdmin } from './OkulKontrolleri'
+import { AppearanceSettings } from './OkulKontrolleri'
 import { DenemeBilgi, DuyuruListesi, EtkinlikListesi, GuvenlikOzeti, MesajAyarlari } from './YonetimIcerik'
 import { BildirimAyarlari, YoklamaAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari, OgretmenAtamalari } from './YonetimMerkezi'
 
@@ -222,7 +222,7 @@ export default function YonetimPage() {
               {tab === 'galeri' && <GaleriAyarlari />}
               {tab === 'anasayfa' && <AnaSayfaDuzeni />}
               {tab === 'aktarim' && <TopluAktarim />}
-              {tab === 'guvenlik' && <><GuvenlikOzeti /><SchoolRoleAdmin profiles={data.data!.profiles} /></>}
+              {tab === 'guvenlik' && <><GuvenlikOzeti /><AccountRolesAdmin profiles={data.data!.profiles} /></>}
               {tab === 'denemeler' && (
                 <>
                   <DenemeBilgi />
@@ -736,7 +736,7 @@ function Ogretmenler({ classes, profiles }: { classes: ClassRow[]; profiles: Pro
                     </div>
                   </td>
                   <td>
-                    {t.role === 'admin' ? ROLE_TR.admin : `${ROLE_TR[roleOf({ role: 'ogretmen', branch: t.branch })]} · ${t.branch}`}
+                    {t.role === 'admin' || t.roles?.includes('admin') ? ROLE_TR.admin : `${ROLE_TR[roleOf({ role: 'ogretmen', branch: t.branch })]} · ${t.branch}`}
                     {isParentP(t) && <span className="chip n" style={{ marginLeft: 6 }}>+ Veli</span>}
                   </td>
                   <td>
@@ -780,7 +780,7 @@ function ProfileModal({ p, classes, onClose }: { p: Profile; classes?: ClassRow[
   const [branch, setBranch] = useState(p.branch ?? '')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const teacher = p.role !== 'admin' && isTeacherP(p)
+  const teacher = rolesOf(p).includes('ogretmen')
   async function save() {
     setBusy(true)
     const { error } = await supabase.rpc('admin_update_profile', { p_profile: p.id, p_full_name: name, p_branch: teacher ? branch : null })
@@ -827,7 +827,7 @@ function ProfileModal({ p, classes, onClose }: { p: Profile; classes?: ClassRow[
         </div>
       )}
       {classes && isTeacherP(p) && p.status === 'approved' && <OgretmenAtamalari teacherId={p.id} classes={classes} />}
-      {(p.role === 'ogretmen' || p.role === 'veli') && p.status === 'approved' && <RolesSection p={p} />}
+      {p.status === 'approved' && <RolesSection p={p} />}
     </Modal>
   )
 }
@@ -951,7 +951,7 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
                     <span>
                       <b style={{ display: 'block' }}>
                         {p.full_name}
-                        {isTeacherP(p) && <span className="chip n" style={{ marginLeft: 6 }}>+ Öğretmen</span>}
+                        {(p.roles?.includes('admin') || p.role === 'admin') ? <span className="chip n" style={{ marginLeft: 6 }}>+ Yönetici</span> : isTeacherP(p) && <span className="chip n" style={{ marginLeft: 6 }}>+ Öğretmen</span>}
                       </b>
                       <span className="m" style={{ fontSize: 13 }}>
                         {p.declared.relation ?? 'Veli'} · {p.email}

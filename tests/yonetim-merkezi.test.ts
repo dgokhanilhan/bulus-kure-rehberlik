@@ -81,9 +81,9 @@ describe('Eğitim yılları', () => {
     const active = years!.find((y) => y.is_active)!
     expect(active).toBeTruthy()
     expect((await admin.from('academic_years').insert({ school_id: SCHOOL, name: '2030-2031', starts: '2030-09-08', term1_ends: '2030-06-01', term2_starts: '2031-02-01', ends: '2031-06-20' })).error).not.toBeNull()
-    const { data: y } = await admin.from('academic_years').insert({ school_id: SCHOOL, name: '2030-2031', starts: '2030-09-08', term1_ends: '2031-01-20', term2_starts: '2031-02-03', ends: '2031-06-20', is_active: true }).select('id').single()
-    expect((await svc.from('academic_years').select('is_active').eq('id', active.id).single()).data!.is_active).toBe(false)
-    await admin.from('academic_years').update({ is_active: true }).eq('id', active.id)
+    expect((await admin.from('academic_years').insert({ school_id: SCHOOL, name: '2030-2031', starts: '2030-09-08', term1_ends: '2031-01-20', term2_starts: '2031-02-03', ends: '2031-06-20', is_active: true })).error).not.toBeNull()
+    const { data: y } = await admin.from('academic_years').insert({ school_id: SCHOOL, name: '2030-2031', starts: '2030-09-08', term1_ends: '2031-01-20', term2_starts: '2031-02-03', ends: '2031-06-20' }).select('id').single()
+    expect((await svc.from('academic_years').select('is_active').eq('id', active.id).single()).data!.is_active).toBe(true)
     await svc.from('academic_years').delete().eq('id', y!.id)
     expect((await (await signIn('matematik')).from('academic_years').insert({ school_id: SCHOOL, name: '2031-2032', starts: '2031-09-08', term1_ends: '2032-01-20', term2_starts: '2032-02-03', ends: '2032-06-20' })).error).not.toBeNull()
   })

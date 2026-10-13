@@ -1,4 +1,3 @@
-import { useSchoolRoles } from '@/pages/OkulKontrolleri'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -297,8 +296,7 @@ export function AppShell() {
   const loc = useLocation()
   const mods = useModules()
   const fam = useFamilyTracks(role === 'veli' || role === 'ogrenci')
-  const schoolRoles = useSchoolRoles()
-  const items = navItems(role!, mods, fam, !!schoolRoles.data?.some(r => r.permissions.length > 0))
+  const items = navItems(role!, mods, fam)
   const pending = usePendingCount(role === 'admin')
   const convs = useConversations(role !== 'ogrenci')
   const unread = (convs.data ?? []).reduce((n, c) => n + c.unread, 0)

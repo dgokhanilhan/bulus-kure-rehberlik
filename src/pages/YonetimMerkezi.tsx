@@ -14,6 +14,7 @@ import { Confirm } from '@/components/Confirm'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { SchoolLogo } from '@/components/Icon'
+import { YearTransition, YearArchives } from './YeniDonem'
 import { useSchoolInfo } from '@/lib/files'
 
 const errText = (e: { code?: string; message?: string } | null, dup = 'Bu kayıt zaten var.') =>
@@ -174,22 +175,12 @@ export function EgitimYillari() {
   const years = useAcademicYears()
   const [edit, setEdit] = useState<AcademicYear | 'new' | null>(null)
   const [act, setAct] = useState<AcademicYear | null>(null)
-  const toast = useToast()
-  const inv = useInvalidate()
   const cur = years.data?.find((y) => y.is_active)
-  async function activate(y: AcademicYear) {
-    const { error } = await supabase.from('academic_years').update({ is_active: true }).eq('id', y.id)
-    if (error) return errText(error)
-    inv('academic_years')
-    toast(`${y.name} aktif eğitim yılı yapıldı`)
-    setAct(null)
-    return null
-  }
   return (
     <>
       <div className="kv a">
         <span className="m" style={{ fontSize: 13 }}>
-          Dönem tarihleri devamsızlık limitleri ve raporlarında kullanılır. Aynı anda tek bir yıl aktiftir.
+          Mevcut dönem devam eder. Yıl eklemek kayıtları sıfırlamaz. Gelecek dönemi yalnız başlangıç tarihi geldiğinde, önizlemeyi kontrol edip yıl adını yazarak başlatabilirsin.
         </span>
         <button className="btn pri" onClick={() => setEdit('new')}>
           <Icon name="plus" size={18} stroke={2} /> Eğitim yılı ekle
@@ -222,9 +213,9 @@ export function EgitimYillari() {
                   <td>{y.is_active ? <span className="chip up">Aktif</span> : <span className="chip n">Pasif</span>}</td>
                   <td>
                     <div className="btns" style={{ justifyContent: 'flex-end' }}>
-                      {!y.is_active && (
-                        <button className="btn sm" onClick={() => setAct(y)} aria-label={`${y.name} aktif yap`}>
-                          Aktif yap
+                      {!y.is_active && cur && y.starts > cur.ends && (
+                        <button className="btn sm" onClick={() => setAct(y)} aria-label={`${y.name} yeni dönemi başlat`}>
+                          Yeni dönemi başlat
                         </button>
                       )}
                       <button className="btn sm" onClick={() => setEdit(y)} aria-label={`${y.name} düzenle`}>
@@ -239,11 +230,8 @@ export function EgitimYillari() {
         </div>
       </section>
       {edit && <YearModal y={edit === 'new' ? null : edit} onClose={() => setEdit(null)} />}
-      {act && (
-        <Confirm title="Aktif eğitim yılını değiştir" action={`${act.name} aktif yap`} warn onClose={() => setAct(null)} onConfirm={() => activate(act)}>
-          Aktif yıl <b>{cur?.name ?? '—'}</b> → <b>{act.name}</b> olacak. Devamsızlık sınırları, dönem raporları ve takvim yeni yılın tarihlerine göre hesaplanır. Eski yılın kayıtları silinmez.
-        </Confirm>
-      )}
+      {act && <YearTransition year={act} onClose={() => setAct(null)} />}
+      <YearArchives />
     </>
   )
 }

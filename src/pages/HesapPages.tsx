@@ -112,7 +112,7 @@ export function RolePickPage() {
       <div className="stack a">
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>Nasıl devam etmek istersiniz?</h2>
         <p className="m">
-          {profile ? `${profile.full_name}, ` : ''}hesabınızda öğretmen ve veli rolleri var. İstediğiniz zaman profil menüsündeki <b>Rol değiştir</b> ile geçebilirsiniz.
+          {profile ? `${profile.full_name}, ` : ''}hesabınızda birden fazla rol var. İstediğiniz zaman profil menüsündeki <b>Rol değiştir</b> ile geçebilirsiniz.
         </p>
         {switchable.map((r) => (
           <button key={r} className={`btn ${r === 'ogretmen' ? 'pri' : ''}`} style={{ minHeight: 54, fontSize: 16 }} onClick={() => switchRole(r)}>

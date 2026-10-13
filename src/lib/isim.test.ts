@@ -17,7 +17,7 @@ describe('isim eşleştirme', () => {
     expect(matchStudent({ name: 'KAYA ZEYNEP', class: '8/A' }, R).kind).toBe('fixed')
   })
   it('şube + okul no ile yazım hatası düzeltilir', () => {
-    expect(matchStudent({ name: 'Zegnep Kaya', number: '1187', class: '8/A' }, R)).toEqual({ kind: 'fixed', id: 'zeynep', via: 'no' })
+    expect(matchStudent({ name: 'Zegnep Kaya', number: '1187', class: '8/A' }, R)).toEqual({ kind: 'fixed', id: 'zeynep', via: 'name' })
   })
   it('no yoksa tek ve yakın aday varsa düzeltilir', () => {
     expect(matchStudent({ name: 'Kerm Aydın' }, R)).toEqual({ kind: 'fixed', id: 'kerem', via: 'name' })
@@ -38,5 +38,13 @@ describe('isim eşleştirme', () => {
   })
   it('kelime sırası farkı', () => {
     expect(nameDistance('Aydın Kerem', 'Kerem Aydın')).toBe(0)
+  })
+  it('tekrarlanan okul numarası ad ve sınıf eşleştirmesini değiştirmez', () => {
+    const repeated = R.map(s => ({ ...s, school_no: '10' }))
+    expect(matchStudent({name:'İrem Tekin',number:'10',class:'8/C'},repeated)).toEqual({kind:'exact',id:'irem',via:'name'})
+    expect(matchStudent({name:'İrem Tekin',number:'1187',class:'8/A'},repeated).kind).toBe('unknown')
+    const same = [{id:'a',full_name:'Ali Kaya',class_name:'8/A',school_no:'10'},{id:'b',full_name:'Ali Kaya',class_name:'8/B',school_no:'10'}]
+    expect(matchStudent({name:'Ali Kaya',number:'10'},same).kind).toBe('unknown')
+    expect(matchStudent({name:'Ali Kaya',number:'10',class:'8/B'},same)).toEqual({kind:'exact',id:'b',via:'name'})
   })
 })

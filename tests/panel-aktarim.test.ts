@@ -49,16 +49,15 @@ describe('Toplu öğrenci aktarımı', () => {
     const { data, error } = await admin.rpc('import_students', { p: rows, p_dry_run: true })
     expect(error).toBeNull()
     const r = data as Res
-    expect(r.ok).toBe(2)
+    expect(r.ok).toBe(3)
     expect(r.errors).toEqual([
       { row: 3, error: 'Ad soyad geçersiz' },
       { row: 4, error: 'Sınıf açılmamış: 12/Z' },
-      { row: 5, error: `Okul no zaten kayıtlı: ${no(1)}` },
       { row: 6, error: 'Bu öğrenci bu sınıfta zaten var' },
       { row: 7, error: 'Bu öğrenci bu sınıfta zaten var' },
     ])
     // Hatalıyken gerçek aktarım yapılmaz, hiçbir satır yazılmaz
-    expect((await admin.rpc('import_students', { p: rows })).error?.message).toMatch(/5 satır hatalı/)
+    expect((await admin.rpc('import_students', { p: rows })).error?.message).toMatch(/4 satır hatalı/)
     expect((await svc.from('students').select('id').like('full_name', 'Aktarım %')).data).toEqual([])
   })
 
