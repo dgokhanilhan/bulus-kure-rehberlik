@@ -4,11 +4,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { Icon } from '@/components/Icon'
 import { AuthLayout } from './AuthPage'
 
-type State =
-  | { k: 'loading' }
-  | { k: 'verify'; factorId: string }
-  | { k: 'enroll'; factorId: string; qr: string; secret: string }
-  | { k: 'error'; msg: string }
+type State = { k: 'loading' } | { k: 'verify'; factorId: string } | { k: 'enroll'; factorId: string; qr: string; secret: string } | { k: 'error'; msg: string }
 
 // Aynı kullanıcı için kurulum bir kez başlatılır (StrictMode efekti iki kez çalıştırır).
 const pending = new Map<string, Promise<State>>()
@@ -38,7 +34,7 @@ async function loadFactor(): Promise<State> {
  * Doğrulanmış faktör yoksa QR ile kurulum yapılır; varsa kod istenir.
  * Veritabanı tarafı: is_admin() aal2 ister — bu ekran atlanırsa bile admin verisi okunamaz.
  */
-export default function MfaPage() {
+export default function MfaPage({ embedded = false, onCancel }: { embedded?: boolean; onCancel?: () => void } = {}) {
   const { signOut, session } = useAuth()
   const [st, setSt] = useState<State>({ k: 'loading' })
   const [code, setCode] = useState('')
@@ -64,84 +60,86 @@ export default function MfaPage() {
     setBusy(false)
     if (error) {
       setCode('')
-      setErr(error.status === 429 ? 'Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar dene.' : 'Kod hatalı ya da süresi doldu. Uygulamadaki güncel kodu yaz.')
+      setErr(
+        error.status === 429 ? 'Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar dene.' : 'Kod hatalı ya da süresi doldu. Uygulamadaki güncel kodu yaz.',
+      )
     }
     // Başarılıysa oturum aal2'ye yükselir; yönlendirmeyi oturum durumu yapar.
   }
 
-  return (
-    <AuthLayout>
-      <form className="stack a" noValidate onSubmit={submit}>
-        <div className="chip dark" style={{ alignSelf: 'flex-start' }}>
-          <Icon name="shield" size={14} stroke={2} />
-          İki adımlı doğrulama
+  const form = (
+    <form className="stack a" noValidate onSubmit={submit}>
+      <div className="chip dark" style={{ alignSelf: 'flex-start' }}>
+        <Icon name="shield" size={14} stroke={2} />
+        İki adımlı doğrulama
+      </div>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>
+        {st.k === 'enroll' ? 'Authenticator kurulumu' : 'Authenticator kodu'}
+      </h2>
+      {st.k === 'loading' && (
+        <p className="m">
+          <span className="spinner" aria-hidden="true" /> Hazırlanıyor…
+        </p>
+      )}
+      {st.k === 'error' && (
+        <div className="err" role="alert">
+          {st.msg}
         </div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>
-          {st.k === 'enroll' ? 'Authenticator kurulumu' : 'Authenticator kodu'}
-        </h2>
-        {st.k === 'loading' && (
-          <p className="m">
-            <span className="spinner" aria-hidden="true" /> Hazırlanıyor…
-          </p>
-        )}
-        {st.k === 'error' && (
-          <div className="err" role="alert">
-            {st.msg}
+      )}
+      {st.k === 'enroll' && (
+        <section className="card" style={{ padding: 16, display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <img className="qr" src={st.qr} alt="Authenticator için QR kodu" />
+          <div className="stack" style={{ flex: 1, minWidth: 180, gap: 6 }}>
+            <span className="m" style={{ fontSize: 13 }}>
+              Mevcut e-posta ve şifrenle giriş yaptıktan sonra ikinci doğrulama Authenticator uygulamasıyla yapılır. Google veya Microsoft Authenticator'da
+              hesap ekleyip QR kodunu tara ya da aşağıdaki anahtarı elle gir. Anahtarını ve kodlarını paylaşma:
+            </span>
+            <b className="mono" style={{ letterSpacing: 2 }} data-testid="totp-secret">
+              {st.secret.replace(/(.{4})/g, '$1 ').trim()}
+            </b>
           </div>
-        )}
-        {st.k === 'enroll' && (
-          <section className="card" style={{ padding: 16, display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <img className="qr" src={st.qr} alt="Authenticator için QR kodu" />
-            <div className="stack" style={{ flex: 1, minWidth: 180, gap: 6 }}>
-              <span className="m" style={{ fontSize: 13 }}>
-                Mevcut e-posta ve şifrenle giriş yaptıktan sonra ikinci doğrulama Authenticator uygulamasıyla yapılır. Google veya Microsoft Authenticator'da hesap ekleyip QR kodunu tara ya da aşağıdaki anahtarı elle gir. Anahtarını ve kodlarını paylaşma:
-              </span>
-              <b className="mono" style={{ letterSpacing: 2 }} data-testid="totp-secret">
-                {st.secret.replace(/(.{4})/g, '$1 ').trim()}
-              </b>
+        </section>
+      )}
+      {(st.k === 'verify' || st.k === 'enroll') && (
+        <>
+          <p className="m">
+            {st.k === 'enroll'
+              ? 'Ekledikten sonra uygulamada görünen 6 haneli kodu yaz.'
+              : `Telefonundaki Authenticator uygulamasında “Buluş Küre” hesabının 6 haneli kodunu yaz.`}
+          </p>
+          <label className="field" htmlFor="tCode">
+            Kod
+            <input
+              id="tCode"
+              className="codebox"
+              inputMode="numeric"
+              maxLength={6}
+              autoComplete="one-time-code"
+              autoFocus
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            />
+          </label>
+          {err && (
+            <div className="err" role="alert">
+              {err}
             </div>
-          </section>
-        )}
-        {(st.k === 'verify' || st.k === 'enroll') && (
-          <>
-            <p className="m">
-              {st.k === 'enroll'
-                ? 'Ekledikten sonra uygulamada görünen 6 haneli kodu yaz.'
-                : `Telefonundaki Authenticator uygulamasında “Buluş Küre” hesabının 6 haneli kodunu yaz.`}
-            </p>
-            <label className="field" htmlFor="tCode">
-              Kod
-              <input
-                id="tCode"
-                className="codebox"
-                inputMode="numeric"
-                maxLength={6}
-                autoComplete="one-time-code"
-                autoFocus
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              />
-            </label>
-            {err && (
-              <div className="err" role="alert">
-                {err}
-              </div>
-            )}
-            <button className="btn pri" style={{ minHeight: 50, fontSize: 16 }} type="submit" disabled={busy}>
-              {busy ? <span className="spinner" aria-hidden="true" /> : null}
-              Doğrula ve gir
-            </button>
-          </>
-        )}
-        <button type="button" className="btn ghost" onClick={() => signOut()}>
-          Geri
-        </button>
-        {session && (
-          <span className="m" style={{ fontSize: 12, textAlign: 'center' }}>
-            {session.user.email}
-          </span>
-        )}
-      </form>
-    </AuthLayout>
+          )}
+          <button className="btn pri" style={{ minHeight: 50, fontSize: 16 }} type="submit" disabled={busy}>
+            {busy ? <span className="spinner" aria-hidden="true" /> : null}
+            Doğrula ve gir
+          </button>
+        </>
+      )}
+      <button type="button" className="btn ghost" onClick={() => (onCancel ? onCancel() : signOut())}>
+        Geri
+      </button>
+      {session && (
+        <span className="m" style={{ fontSize: 12, textAlign: 'center' }}>
+          {session.user.email}
+        </span>
+      )}
+    </form>
   )
+  return embedded ? form : <AuthLayout>{form}</AuthLayout>
 }

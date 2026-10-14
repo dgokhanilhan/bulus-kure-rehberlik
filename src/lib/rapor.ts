@@ -1,6 +1,20 @@
+import { questionsFor } from './analiz'
 // Veli raporu: kural tabanlı taslak + yapay zekâ için anonim veri (docs/veli-raporu-kurallari.md).
 // Regresyon kilidi: yalnız metin üretir; D/Y/B, net, puan ve eşleştirmeleri değiştirmez.
-import { indexResults, repeats, studentExams, totalNet, wrongOutcomes, fmt, outcomeCode, type Dataset, type Repeat, type Result, type Subject, type SubjectDef } from './analiz'
+import {
+  indexResults,
+  repeats,
+  studentExams,
+  totalNet,
+  wrongOutcomes,
+  fmt,
+  outcomeCode,
+  type Dataset,
+  type Repeat,
+  type Result,
+  type Subject,
+  type SubjectDef,
+} from './analiz'
 import { gen } from './format'
 import { FORBIDDEN, findForbidden } from '../../supabase/functions/_shared/rapor-ai'
 
@@ -20,15 +34,31 @@ export interface OgretmenBody {
 }
 
 const LOC_TR: Record<string, string> = {
-  TUR: 'Türkçede', MAT: 'Matematikte', FEN: 'Fen Bilimlerinde', INK: 'İnkılap Tarihinde', DIN: 'Din Kültüründe', ING: 'İngilizcede',
-  TDE: 'Türk Dili ve Edebiyatında', SOS: 'Sosyal Bilgilerde', TAR: 'Tarihte', COG: 'Coğrafyada', FEL: 'Felsefede', FIZ: 'Fizikte', KIM: 'Kimyada', BIY: 'Biyolojide',
+  TUR: 'Türkçede',
+  MAT: 'Matematikte',
+  FEN: 'Fen Bilimlerinde',
+  INK: 'İnkılap Tarihinde',
+  DIN: 'Din Kültüründe',
+  ING: 'İngilizcede',
+  TDE: 'Türk Dili ve Edebiyatında',
+  SOS: 'Sosyal Bilgilerde',
+  TAR: 'Tarihte',
+  COG: 'Coğrafyada',
+  FEL: 'Felsefede',
+  FIZ: 'Fizikte',
+  KIM: 'Kimyada',
+  BIY: 'Biyolojide',
 }
 /** "Matematikte" gibi bulunma hâli: LGS ve genel dersler; bölüm anahtarı farklıysa (FEL2) ders kodundan, yoksa "X dersinde". */
 const loc = (s: SubjectDef) => LOC_TR[s.code] ?? (s.base ? LOC_TR[s.base] : undefined) ?? `${s.ad} dersinde`
 const lj = (a: string[]) => (a.length < 2 ? a.join('') : `${a.slice(0, -1).join(', ')} ve ${a.at(-1)}`)
 const dz = (a: string[]) => lj(a) + (a.length > 1 ? ' derslerinde' : ' dersinde')
 /** Konu adını cümle içine alır: ilk harf küçülür, "DNA" gibi kısaltmalar korunur. */
-const lc = (t: string) => t.split(' ').map((w) => (w.length > 1 && w === w.toLocaleUpperCase('tr') ? w : w.toLocaleLowerCase('tr'))).join(' ')
+const lc = (t: string) =>
+  t
+    .split(' ')
+    .map((w) => (w.length > 1 && w === w.toLocaleUpperCase('tr') ? w : w.toLocaleLowerCase('tr')))
+    .join(' ')
 const hash = (s: string) => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0
 
 export interface ReportData {
@@ -47,12 +77,12 @@ export function reportData(ds: Dataset, sid: string, eid: string): ReportData | 
   const target = ds.exams.find((e) => e.id === eid)
   if (!target) return null
   const all = studentExams(ds, sid, idx)
-  const targetIndex = all.findIndex(x => x.exam.id === eid)
+  const targetIndex = all.findIndex((x) => x.exam.id === eid)
   if (targetIndex < 0) return null
   const ex = all.slice(0, targetIndex + 1)
   const cur = ex.at(-1)!
   const w = wrongOutcomes(ds, cur.result)
-  const qs = ds.questionsByExam.get(eid) ?? []
+  const qs = questionsFor(ds, cur.result)
   const reliable =
     (!!cur.result.kazanim && Object.keys(cur.result.kazanim.g).length > 0) ||
     (cur.result.outcomes_ok && qs.some((q) => q.outcome_code && ['code_exact', 'code_inferred', 'text_exact', 'text_match'].includes(q.match)))
@@ -62,7 +92,14 @@ export function reportData(ds: Dataset, sid: string, eid: string): ReportData | 
     cur: cur.result,
     prev: ex.at(-2)?.result,
     rep: repeats(ds, sid, eid, idx),
-    lastWrong: w.wrong.map((o) => ({ subject: o.subject, title: o.title, rawTitle: o.rawTitle, code: outcomeCode(o), source: o.source, outcomeType: o.outcomeType })),
+    lastWrong: w.wrong.map((o) => ({
+      subject: o.subject,
+      title: o.title,
+      rawTitle: o.rawTitle,
+      code: outcomeCode(o),
+      source: o.source,
+      outcomeType: o.outcomeType,
+    })),
     kzMissing: !reliable,
   }
 }
@@ -75,18 +112,20 @@ function analyse(R: ReportData) {
   const max = R.subjects.reduce((a, s) => a + s.q, 0) || 90
   const level: Level = net >= (78 / 90) * max - 1e-9 ? 'high' : net >= (55 / 90) * max - 1e-9 ? 'mid' : 'low'
   const dn = R.prev ? net - totalNet(R.prev) : 0
-  const dd = R.subjects.map((s) => {
-    const q = x.subjects[s.code]
-    return {
-      s,
-      n: q?.net ?? 0,
-      p: R.prev?.subjects[s.code]?.net,
-      b: q?.b ?? 0,
-      r: (q?.net ?? 0) / s.q,
-      hist: R.exams.slice(-3).map((e) => e.result.subjects[s.code]?.net ?? 0),
-      has: !!q,
-    }
-  }).filter((d) => d.has)
+  const dd = R.subjects
+    .map((s) => {
+      const q = x.subjects[s.code]
+      return {
+        s,
+        n: q?.net ?? 0,
+        p: R.prev?.subjects[s.code]?.net,
+        b: q?.b ?? 0,
+        r: (q?.net ?? 0) / s.q,
+        hist: R.exams.slice(-3).map((e) => e.result.subjects[s.code]?.net ?? 0),
+        has: !!q,
+      }
+    })
+    .filter((d) => d.has)
   const rising = dd.filter((q) => q.hist.length >= 3 && q.hist[2]! > q.hist[1]! && q.hist[1]! > q.hist[0]!)
   const falling = dd.filter((q) => q.p != null && q.n - q.p <= -1.5).sort((a, b) => a.n - a.p! - (b.n - b.p!))
   const strong = dd.filter((q) => q.r >= 0.8 && !falling.includes(q))
@@ -125,9 +164,12 @@ export function genVeli(R: ReportData, fullName: string, seed: string): VeliBody
     } ${strong.length ? `${lj(strong.map((q) => q.s.ad).slice(0, 2))} tarafında performans korunuyor.` : ''} Tek bir denemeden kesin sonuç çıkarmak doğru olmaz; önümüzdeki denemede bu tabloyu birlikte izleyeceğiz.`
   else
     genel = `${pick(openers.flat)} ${gen(first)} toplam neti önceki denemeye çok yakın. ${strong.length ? `${lj(strong.map((q) => q.s.ad).slice(0, 2))} tarafında güçlü duruşunu koruyor.` : ''} ${
-      relRep.length ? 'Burada büyük bir konu eksiğinden çok birkaç yanlışın neti etkilediği bir tablo var.' : 'Önümüzdeki süreçte hedef, mevcut seviyeyi koruyarak küçük ama istikrarlı artışlar yakalamak.'
+      relRep.length
+        ? 'Burada büyük bir konu eksiğinden çok birkaç yanlışın neti etkilediği bir tablo var.'
+        : 'Önümüzdeki süreçte hedef, mevcut seviyeyi koruyarak küçük ama istikrarlı artışlar yakalamak.'
     }`
-  if (level === 'high') genel += ' Genel performans oldukça güçlü; bu aşamada büyük konu tekrarlarından çok, kalan birkaç yanlışın nedenini doğru belirlemek önemli.'
+  if (level === 'high')
+    genel += ' Genel performans oldukça güçlü; bu aşamada büyük konu tekrarlarından çok, kalan birkaç yanlışın nedenini doğru belirlemek önemli.'
   if (level === 'low') genel += ' Şu aşamada bütün dersleri aynı anda yükseltmeye çalışmak yerine birkaç temel hedef belirlemek daha doğru olacak.'
 
   const bestDd = dd.slice().sort((a, b) => b.r - a.r)[0]
@@ -158,7 +200,9 @@ export function genVeli(R: ReportData, fullName: string, seed: string): VeliBody
         const three = rs.filter((r) => r.count >= 3)
         const sd = R.subjects.find((x) => x.code === code) ?? { code, ad: code, short: code, q: 0 }
         return `${f ? `${loc(sd)} bu denemede önceki sınava göre bir miktar düşüş var ve` : loc(sd)} yanlışların ${lj(rs.slice(0, 2).map((r) => lc(r.outcome.title)))} çevresinde toplandığını görüyoruz. ${
-          three.length ? `${rs.length > 1 ? 'Bu konular' : 'Bu konu'} artık tek bir sınava özgü bir hata gibi görünmüyor; farklı denemelerde tekrar ediyor.` : 'Hata iki farklı denemede tekrar etmiş; takip etmekte fayda var.'
+          three.length
+            ? `${rs.length > 1 ? 'Bu konular' : 'Bu konu'} artık tek bir sınava özgü bir hata gibi görünmüyor; farklı denemelerde tekrar ediyor.`
+            : 'Hata iki farklı denemede tekrar etmiş; takip etmekte fayda var.'
         }`
       })
       .join(' ')
@@ -177,17 +221,24 @@ export function genVeli(R: ReportData, fullName: string, seed: string): VeliBody
     gelisim += ` ${lj(blanks.map((q) => q.s.ad))} bölümünde boş bırakılan sorular bulunuyor. Bunun konu bilgisinden mi yoksa süre yönetiminden mi kaynaklandığını ${first} ile birlikte değerlendirmek faydalı olacaktır.`
 
   const oneriler: string[] = []
-  relRep.slice(0, 2).forEach((r) => oneriler.push(`${r.outcome.title} ile ilgili yanlış sorular yeniden çözülmeli; ardından bu konudan kısa bir tarama testi uygulanabilir.`))
+  relRep
+    .slice(0, 2)
+    .forEach((r) => oneriler.push(`${r.outcome.title} ile ilgili yanlış sorular yeniden çözülmeli; ardından bu konudan kısa bir tarama testi uygulanabilir.`))
   if (R.kzMissing) oneriler.push('Bu denemedeki yanlış sorular öğretmenle birlikte tek tek incelenmeli; hangi soru türünde zorlanıldığı böylece netleşir.')
   if (blanks.length) oneriler.push(`${blanks[0]!.s.ad} için bu hafta süre tutarak kısa çalışmalar yapılabilir; boş bırakma nedenini anlamamıza yardım eder.`)
-  if (rising.length) oneriler.push(`${loc(rising[0]!.s)} son denemelerdeki yükseliş korunuyor; çalışma düzenini değiştirmek yerine yanlış çıkan birkaç soruya kısa tekrar yeterli.`)
+  if (rising.length)
+    oneriler.push(
+      `${loc(rising[0]!.s)} son denemelerdeki yükseliş korunuyor; çalışma düzenini değiştirmek yerine yanlış çıkan birkaç soruya kısa tekrar yeterli.`,
+    )
   if (level === 'high') oneriler.push('Soruyu bitirdikten sonra şıkları bir kez daha okuma alışkanlığı, kalan dikkat kaynaklı yanlışları azaltabilir.')
   if (level === 'low') oneriler.push('Önce en hızlı net artışı gelebilecek bir iki alana odaklanmak, ilerlemeyi görmeyi kolaylaştırır.')
   if (oneriler.length < 3) oneriler.push('Her denemeden sonra yanlış soruların bir deftere yazılıp hafta içinde tekrar çözülmesi faydalı olacaktır.')
   if (oneriler.length < 3) oneriler.push('Haftalık çalışma planında her güne kısa ve düzenli bir soru çözüm zamanı ayrılması yeterli.')
 
   const mentor = `${first} ile ${kind === 'down' ? 'bu denemenin sonuçlarını birlikte inceleyeceğiz' : 'çalışma düzenini birlikte gözden geçirdik'}. ${
-    relRep.length ? `Önümüzdeki süreçte özellikle ${lc(relRep[0]!.outcome.title)} konusunu takip edeceğiz.` : 'Hedefimiz mevcut düzeni koruyarak küçük ama istikrarlı adımlarla ilerlemek.'
+    relRep.length
+      ? `Önümüzdeki süreçte özellikle ${lc(relRep[0]!.outcome.title)} konusunu takip edeceğiz.`
+      : 'Hedefimiz mevcut düzeni koruyarak küçük ama istikrarlı adımlarla ilerlemek.'
   }`
   const clean = (s: string) => s.replace(/\s+/g, ' ').trim()
   return { genel: clean(genel), guclu: clean(guclu), gelisim: clean(gelisim), oneriler: oneriler.slice(0, 5).join('\n'), mentor, rehber: '', ai: false }
@@ -210,9 +261,28 @@ export function aiPayload(R: ReportData) {
       const p = R.prev?.subjects[s.code]
       return { ders: s.ad, soru: s.q, dogru: q?.d ?? null, yanlis: q?.y ?? null, bos: q?.b ?? null, net: q ? r2(q.net) : null, oncekiNet: p ? r2(p.net) : null }
     }),
-    gecmis: R.exams.slice(-60).map((e, i) => ({ deneme: `Deneme ${Math.max(0,n-60)+i+1}`, toplamNet: r2(totalNet(e.result)), dersNetleri: Object.fromEntries(R.subjects.map((s) => [s.ad, e.result.subjects[s.code] ? r2(e.result.subjects[s.code]!.net) : null])) })),
-    guvenilirTekrarEdenHatalar: R.kzMissing ? [] : R.rep.slice(0,80).map((r) => ({ ders: (R.subjects.find((s) => s.code === r.outcome.subject)?.ad ?? r.outcome.subject), konu: r.outcome.rawTitle ?? r.outcome.title, kacDenemedeYanlis: r.count, kaynak:r.outcome.source??'official' })),
-    buDenemedeYanlisKonular: R.kzMissing ? [] : R.lastWrong.slice(0,80).map((w) => ({ ders: (R.subjects.find((s) => s.code === w.subject)?.ad ?? w.subject), konu: w.rawTitle ?? w.title, kaynak:w.source??'official' })),
+    gecmis: R.exams
+      .slice(-60)
+      .map((e, i) => ({
+        deneme: `Deneme ${Math.max(0, n - 60) + i + 1}`,
+        toplamNet: r2(totalNet(e.result)),
+        dersNetleri: Object.fromEntries(R.subjects.map((s) => [s.ad, e.result.subjects[s.code] ? r2(e.result.subjects[s.code]!.net) : null])),
+      })),
+    guvenilirTekrarEdenHatalar: R.kzMissing
+      ? []
+      : R.rep
+          .slice(0, 80)
+          .map((r) => ({
+            ders: R.subjects.find((s) => s.code === r.outcome.subject)?.ad ?? r.outcome.subject,
+            konu: r.outcome.rawTitle ?? r.outcome.title,
+            kacDenemedeYanlis: r.count,
+            kaynak: r.outcome.source ?? 'official',
+          })),
+    buDenemedeYanlisKonular: R.kzMissing
+      ? []
+      : R.lastWrong
+          .slice(0, 80)
+          .map((w) => ({ ders: R.subjects.find((s) => s.code === w.subject)?.ad ?? w.subject, konu: w.rawTitle ?? w.title, kaynak: w.source ?? 'official' })),
     konuBilgisiOkunamadi: R.kzMissing,
   }
 }

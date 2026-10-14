@@ -42,7 +42,10 @@ export function useStudents(enabled = true) {
       if (parentOf) {
         const { data, error } = await supabase.from('parent_links').select('student_id').eq('parent_id', parentOf)
         if (error) throw new Error(error.message)
-        q = q.in('id', (data ?? []).map((r) => r.student_id as string))
+        q = q.in(
+          'id',
+          (data ?? []).map((r) => r.student_id as string),
+        )
       } else if (profile?.role === 'ogrenci') {
         q = q.eq('id', profile.student_id ?? '00000000-0000-0000-0000-000000000000')
       } else if (teacherOnly) {
@@ -71,12 +74,28 @@ export function useFamilyTracks(enabled = true) {
 // ---------- Takvim (0015) ----------
 export type EventType = 'yazili' | 'deneme' | 'bursluluk' | 'gezi' | 'veli_toplantisi' | 'kulup' | 'tatil' | 'odev_teslim' | 'proje' | 'diger'
 export const EVENT_TR: Record<EventType, string> = {
-  yazili: 'Yazılı', deneme: 'Deneme', bursluluk: 'Bursluluk sınavı', gezi: 'Gezi', veli_toplantisi: 'Veli toplantısı',
-  kulup: 'Kulüp etkinliği', tatil: 'Tatil', odev_teslim: 'Ödev teslimi', proje: 'Proje', diger: 'Diğer',
+  yazili: 'Yazılı',
+  deneme: 'Deneme',
+  bursluluk: 'Bursluluk sınavı',
+  gezi: 'Gezi',
+  veli_toplantisi: 'Veli toplantısı',
+  kulup: 'Kulüp etkinliği',
+  tatil: 'Tatil',
+  odev_teslim: 'Ödev teslimi',
+  proje: 'Proje',
+  diger: 'Diğer',
 }
 export const EVENT_COLOR: Record<EventType, string> = {
-  yazili: '#b5541a', deneme: '#9c36b5', bursluluk: '#c92a2a', gezi: '#2b8a3e', veli_toplantisi: '#3b5bdb',
-  kulup: '#0c8599', tatil: '#868e96', odev_teslim: '#1f5f5b', proje: '#e67700', diger: '#495057',
+  yazili: '#b5541a',
+  deneme: '#9c36b5',
+  bursluluk: '#c92a2a',
+  gezi: '#2b8a3e',
+  veli_toplantisi: '#3b5bdb',
+  kulup: '#0c8599',
+  tatil: '#868e96',
+  odev_teslim: '#1f5f5b',
+  proje: '#e67700',
+  diger: '#495057',
 }
 export interface CalEvent {
   id: string
@@ -103,17 +122,33 @@ export function useCalendar(from: string, to: string) {
   const students = useStudents(profile?.role === 'veli' || profile?.role === 'ogrenci')
   return useQuery({
     queryKey: ['calendar', from, to, profile?.id, profile?.role],
-    select: (l: CalEvent[]) => l.filter(e => calendarInScope(e, profile?.role, profile?.id, students.data ?? [])),
+    select: (l: CalEvent[]) => l.filter((e) => calendarInScope(e, profile?.role, profile?.id, students.data ?? [])),
     queryFn: () =>
       all<CalEvent>(
-        supabase.from('calendar_events').select('id, title, description, type, starts_on, ends_on, starts_at, ends_at, location, target, level, class_id, class_ids, student_id, teacher_id, course_id, audience, created_by').lte('starts_on', to).gte('ends_on', from).order('starts_on').order('starts_at', { nullsFirst: true }),
+        supabase
+          .from('calendar_events')
+          .select(
+            'id, title, description, type, starts_on, ends_on, starts_at, ends_at, location, target, level, class_id, class_ids, student_id, teacher_id, course_id, audience, created_by',
+          )
+          .lte('starts_on', to)
+          .gte('ends_on', from)
+          .order('starts_on')
+          .order('starts_at', { nullsFirst: true }),
       ),
   })
 }
 
 // ---------- Ödev (0013) ----------
 export type HwStatus = 'bekliyor' | 'yapti' | 'yapmadi' | 'getirmedi' | 'eksik' | 'gelmedi' | 'izinli'
-export const HW_TR: Record<HwStatus, string> = { bekliyor: 'Bekliyor', yapti: 'Yaptı', yapmadi: 'Yapmadı', getirmedi: 'Getirmedi', eksik: 'Eksik', gelmedi: 'Gelmedi', izinli: 'İzinli' }
+export const HW_TR: Record<HwStatus, string> = {
+  bekliyor: 'Bekliyor',
+  yapti: 'Yaptı',
+  yapmadi: 'Yapmadı',
+  getirmedi: 'Getirmedi',
+  eksik: 'Eksik',
+  gelmedi: 'Gelmedi',
+  izinli: 'İzinli',
+}
 export interface Homework {
   id: string
   class_id: string
@@ -128,7 +163,15 @@ export interface Homework {
 export function useHomework() {
   return useQuery({
     queryKey: ['homework'],
-    queryFn: () => all<Homework>(supabase.from('homework').select('id, class_id, course_id, teacher_id, title, description, assigned_on, due_on, created_at').order('due_on', { ascending: false, nullsFirst: true }).order('created_at', { ascending: false }).limit(500)),
+    queryFn: () =>
+      all<Homework>(
+        supabase
+          .from('homework')
+          .select('id, class_id, course_id, teacher_id, title, description, assigned_on, due_on, created_at')
+          .order('due_on', { ascending: false, nullsFirst: true })
+          .order('created_at', { ascending: false })
+          .limit(500),
+      ),
   })
 }
 export interface HwRow {
@@ -195,7 +238,10 @@ export function useAcademicYears() {
   return useQuery({
     queryKey: ['academic_years'],
     staleTime: STALE,
-    queryFn: () => all<AcademicYear>(supabase.from('academic_years').select('id, name, starts, term1_ends, term2_starts, ends, is_active').order('starts', { ascending: false })),
+    queryFn: () =>
+      all<AcademicYear>(
+        supabase.from('academic_years').select('id, name, starts, term1_ends, term2_starts, ends, is_active').order('starts', { ascending: false }),
+      ),
   })
 }
 
@@ -218,11 +264,12 @@ export function useCourses() {
 
 export function useMyTeachingClasses(enabled: boolean) {
   return useQuery({
-    queryKey: ['my_classes'], enabled,
+    queryKey: ['my_classes'],
+    enabled,
     queryFn: async (): Promise<string[]> => {
       const { data, error } = await supabase.rpc('my_classes')
       if (error) throw error
-      return ((data ?? []) as (string | { my_classes: string })[]).map((x) => typeof x === 'string' ? x : x.my_classes)
+      return ((data ?? []) as (string | { my_classes: string })[]).map((x) => (typeof x === 'string' ? x : x.my_classes))
     },
   })
 }
@@ -246,7 +293,8 @@ export function useClasses() {
   return useQuery({
     queryKey: ['classes'],
     staleTime: STALE,
-    queryFn: () => all<ClassRow>(supabase.from('classes').select('id, name, grade, section, level, homeroom_teacher_id, active').order('grade').order('section')),
+    queryFn: () =>
+      all<ClassRow>(supabase.from('classes').select('id, name, grade, section, track, level, homeroom_teacher_id, active').order('grade').order('section')),
   })
 }
 
@@ -287,7 +335,15 @@ export function useTimetable(classId?: string | null) {
   return useQuery({
     queryKey: ['timetable', classId ?? ''],
     enabled: !!classId,
-    queryFn: () => all<Lesson>(supabase.from('timetable').select('id, class_id, weekday, period, subject, teacher_id, course_id').eq('class_id', classId!).order('weekday').order('period')),
+    queryFn: () =>
+      all<Lesson>(
+        supabase
+          .from('timetable')
+          .select('id, class_id, weekday, period, subject, teacher_id, course_id')
+          .eq('class_id', classId!)
+          .order('weekday')
+          .order('period'),
+      ),
   })
 }
 
@@ -340,8 +396,20 @@ export function useAnnouncements() {
   const students = useStudents(profile?.role === 'veli' || profile?.role === 'ogrenci')
   return useQuery({
     queryKey: ['announcements', profile?.id, profile?.role],
-    select: (l: Announcement[]) => l.filter(a => calendarInScope({ ...a, target: a.scope, student_id: null }, profile?.role, profile?.id, students.data ?? []) && (!dual || dual.as !== 'ogretmen' || a.created_by === dual.uid || a.audience.includes('ogretmen'))),
-    queryFn: () => all<Announcement>(supabase.from('announcements').select('id, title, body, scope, level, class_id, audience, created_by, author_name, created_at').order('created_at', { ascending: false }).limit(200)),
+    select: (l: Announcement[]) =>
+      l.filter(
+        (a) =>
+          calendarInScope({ ...a, target: a.scope, student_id: null }, profile?.role, profile?.id, students.data ?? []) &&
+          (!dual || dual.as !== 'ogretmen' || a.created_by === dual.uid || a.audience.includes('ogretmen')),
+      ),
+    queryFn: () =>
+      all<Announcement>(
+        supabase
+          .from('announcements')
+          .select('id, title, body, scope, level, class_id, audience, created_by, author_name, created_at')
+          .order('created_at', { ascending: false })
+          .limit(200),
+      ),
   })
 }
 
@@ -415,14 +483,49 @@ export function useDataset(enabled = true) {
     queryFn: async () => {
       const [exams, questions, outcomes, results, items] = await Promise.all([
         // Yalnız yayındaki LGS denemeleri: 5–7 / 9–12 genel denemeleri ve arşiv LGS Atlas'a karışmaz (genel denemeler: useGenelDataset)
-        all<Exam>(supabase.from('exams').select('id, name, publisher, exam_date').not('published_at', 'is', null).eq('exam_type', 'LGS').eq('status', 'yayinda').order('exam_date')),
+        all<Exam>(
+          supabase
+            .from('exams')
+            .select('id, name, publisher, exam_date')
+            .not('published_at', 'is', null)
+            .eq('exam_type', 'LGS')
+            .eq('status', 'yayinda')
+            .order('exam_date'),
+        ),
         // Sayfalı: tek istek en çok 1000 satır döner (önceki .limit(20000) sessizce 1000'de kesiliyordu); sıra sabit
-        pages<Question>((a, b) => supabase.from('exam_questions').select('exam_id, subject, q_no, correct_answer, outcome_code, match').order('exam_id').order('subject').order('q_no').range(a, b)),
+        pages<Question>((a, b) =>
+          supabase
+            .from('exam_questions')
+            .select('exam_id, subject, q_no, correct_answer, outcome_code, match')
+            .order('exam_id')
+            .order('subject')
+            .order('q_no')
+            .range(a, b),
+        ),
         all<Outcome>(supabase.from('outcomes').select('code, subject, title').order('code')),
-        pages<Result & { exams?: unknown }>(
-          (a, b) => supabase.from('exam_results').select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim, exams!inner(exam_type, status)').eq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').order('exam_id').order('student_id').range(a, b),
+        pages<Result & { exams?: unknown }>((a, b) =>
+          supabase
+            .from('exam_results')
+            .select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim, exams!inner(exam_type, status)')
+            .eq('exams.exam_type', 'LGS')
+            .eq('exams.status', 'yayinda')
+            .order('exam_id')
+            .order('student_id')
+            .range(a, b),
         ).then((rows) => rows.map(({ exams: _e, ...r }) => r as Result)),
-        pages<ItemRow>((a,b) => supabase.from('exam_items').select('exam_id, section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title, outcome_type, curriculum_versions(curriculum_type)), exams!inner(exam_type, status)').eq('exams.exam_type','LGS').eq('exams.status','yayinda').order('exam_id').order('section_key').order('q_no').range(a,b)),
+        pages<ItemRow>((a, b) =>
+          supabase
+            .from('exam_items')
+            .select(
+              'exam_id, section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title, outcome_type, curriculum_versions(curriculum_type)), exams!inner(exam_type, status)',
+            )
+            .eq('exams.exam_type', 'LGS')
+            .eq('exams.status', 'yayinda')
+            .order('exam_id')
+            .order('section_key')
+            .order('q_no')
+            .range(a, b),
+        ),
       ])
       const questionsByExam = new Map<string, Question[]>()
       for (const x of questions) {
@@ -481,7 +584,11 @@ export function useMeetings(sid?: string) {
   return useQuery({
     queryKey: ['meetings', sid ?? 'all'],
     queryFn: () => {
-      let q = supabase.from('meetings').select('id, student_id, with_whom, starts_at, note, reply, canceled_at, created_by').is('canceled_at', null).order('starts_at', { ascending: false })
+      let q = supabase
+        .from('meetings')
+        .select('id, student_id, with_whom, starts_at, note, reply, canceled_at, created_by')
+        .is('canceled_at', null)
+        .order('starts_at', { ascending: false })
       if (sid) q = q.eq('student_id', sid)
       return all<Meeting>(q)
     },
@@ -523,9 +630,14 @@ export function usePeople() {
     queryKey: ['people'],
     staleTime: STALE,
     queryFn: async () =>
-      (await all<PersonLite & { profile_roles?: { role: string }[] }>(
-        supabase.from('profiles').select('id, full_name, role, branch, student_id, profile_roles!profile_roles_profile_id_fkey(role)').eq('status', 'approved'),
-      )).map(({ profile_roles, ...p }) => ({ ...p, roles: (profile_roles ?? []).map((r) => r.role) })),
+      (
+        await all<PersonLite & { profile_roles?: { role: string }[] }>(
+          supabase
+            .from('profiles')
+            .select('id, full_name, role, branch, student_id, profile_roles!profile_roles_profile_id_fkey(role)')
+            .eq('status', 'approved'),
+        )
+      ).map(({ profile_roles, ...p }) => ({ ...p, roles: (profile_roles ?? []).map((r) => r.role) })),
   })
 }
 
@@ -553,9 +665,23 @@ export function useReports(sid?: string) {
   return useQuery({
     queryKey: ['reports', sid ?? 'all'],
     queryFn: () => {
-      let q = supabase.from('reports_view').select('id, type, student_id, exam_id, status, sent_at, updated_at, created_by, sent_to_parent, sent_to_student').order('updated_at', { ascending: false })
+      let q = supabase
+        .from('reports_view')
+        .select('id, type, student_id, exam_id, status, sent_at, updated_at, created_by, sent_to_parent, sent_to_student')
+        .order('updated_at', { ascending: false })
       if (sid) q = q.eq('student_id', sid)
-      return all<{ id: string; type: 'veli' | 'ogretmen'; student_id: string; exam_id: string; status: 'draft' | 'sent'; sent_at: string | null; updated_at: string; created_by: string; sent_to_parent: boolean; sent_to_student: boolean }>(q)
+      return all<{
+        id: string
+        type: 'veli' | 'ogretmen'
+        student_id: string
+        exam_id: string
+        status: 'draft' | 'sent'
+        sent_at: string | null
+        updated_at: string
+        created_by: string
+        sent_to_parent: boolean
+        sent_to_student: boolean
+      }>(q)
     },
   })
 }
@@ -592,9 +718,10 @@ export function useSchoolSettings() {
 export function useRefresh() {
   const qc = useQueryClient()
   return useMemo(
-    () => (...keys: string[]) => {
-      for (const k of [...keys, 'notifications']) qc.invalidateQueries({ queryKey: [k] })
-    },
+    () =>
+      (...keys: string[]) => {
+        for (const k of [...keys, 'notifications']) qc.invalidateQueries({ queryKey: [k] })
+      },
     [qc],
   )
 }

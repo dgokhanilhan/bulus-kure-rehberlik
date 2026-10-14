@@ -39,3 +39,6 @@ public/program-ocr/
 # Mobil (Capacitor) derleme çıktısı ve yerel ortam
 dist-mobil
 !.env.mobil.example
+
+# Yerel PDF inceleme ve onarım ara dosyaları (öğrenci verisi içerir)
+/tmp/

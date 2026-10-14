@@ -41,6 +41,7 @@ export interface Student {
 }
 
 export interface ClassRow {
+  track?: 'SAY' | 'EA' | 'SOZ' | 'DIL' | null
   id: string
   name: string
   grade: number
@@ -54,7 +55,19 @@ export interface ClassRow {
 export interface Notification {
   id: string
   text: string
-  link: { page?: string; sid?: string; tab?: string; report?: string; meeting?: string; conversation?: string; announcement?: string; homework?: string; event?: string; kind?: string; album?: string }
+  link: {
+    page?: string
+    sid?: string
+    tab?: string
+    report?: string
+    meeting?: string
+    conversation?: string
+    announcement?: string
+    homework?: string
+    event?: string
+    kind?: string
+    album?: string
+  }
   read_at: string | null
   created_at: string
   type?: string | null
