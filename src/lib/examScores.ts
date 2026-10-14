@@ -18,7 +18,7 @@ export function examScores(source: unknown): ExamScores {
   return out
 }
 export function scoreText(r: { score: number | null; scores?: ExamScores }) {
-  const values = Object.entries(r.scores ?? {})
+  const values = (['SAY','EA','SOZ','DIL'] as const).flatMap(key=>{const value=r.scores?.[key];return value===undefined?[]:[[key,value] as const]})
   if (values.length)
     return values.map(([k, v]) => `${k === 'SOZ' ? 'SÖZ' : k === 'DIL' ? 'DİL' : k}: ${v.toLocaleString('tr-TR', { maximumFractionDigits: 3 })}`).join(' · ')
   return r.score !== null ? r.score.toLocaleString('tr-TR', { maximumFractionDigits: 3 }) : '—'
