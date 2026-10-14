@@ -58,6 +58,7 @@ test('sınıfta alan seçilir, adında görünür; 10. sınıfta alan yok', asyn
   await page.getByLabel('Şube', { exact: true }).selectOption('Z')
   await page.getByLabel('Alan', { exact: true }).selectOption('EA')
   await page.getByRole('button', { name: 'Kaydet', exact: true }).click()
+  await expect(page.getByText('11/Z · EA', { exact: true })).toBeVisible()
   const c = await svc.from('classes').select('id,name').eq('school_id', school).eq('grade', 11).eq('section', 'Z').single()
   if (c.error) throw c.error
   cls = c.data.id
