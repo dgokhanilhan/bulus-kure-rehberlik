@@ -25,6 +25,7 @@ const BildirimlerPage = lazy(() => import('@/pages/BildirimlerPage'))
 const BugunPage = lazy(() => import('@/pages/BugunPage'))
 const DenemelerPage = lazy(() => import('@/pages/DenemelerPage'))
 const SiniflarPage = lazy(() => import('@/pages/SiniflarPage'))
+const HesapAyarlari = lazy(() => import('@/pages/HesapAyarlari'))
 const AyarlarPage = lazy(() => import('@/pages/AyarlarPage'))
 const KvkkPage = lazy(() => import('@/pages/KvkkPage'))
 const BurslulukBasvuru = lazy(() => import('@/pages/BurslulukBasvuru'))
@@ -43,7 +44,6 @@ const Wait = () => (
 )
 
 const PAGES: Record<PageId, JSX.Element> = {
-
   'nobet-takip': <NobetTakipPage />,
   bugun: <BugunPage />,
   ogrenciler: <OgrencilerPage />,
@@ -158,6 +158,14 @@ function RoleRoutes() {
           element={
             <Suspense fallback={<Wait />}>
               <BildirimlerPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="hesap-ayarlari"
+          element={
+            <Suspense fallback={<Wait />}>
+              <HesapAyarlari />
             </Suspense>
           }
         />

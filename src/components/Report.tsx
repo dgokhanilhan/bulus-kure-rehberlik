@@ -1,3 +1,4 @@
+import { scoreText } from '@/lib/examScores'
 // Rapor ekranı (veli / öğretmen): prototipteki tam ekran "kâğıt" görünümü.
 // Tam yetkili düzenler, yapay zekâyla yazdırır, kaydeder, gönderir; alıcılar yalnız okur ve PDF indirir.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
@@ -93,7 +94,21 @@ function ReportLoader({ target, onClose }: { target: Target; onClose: () => void
   )
 }
 
-function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' | 'ogretmen'; student: Student; eid: string; ds: Dataset; row: Row | null; onClose: () => void }) {
+function ReportView({
+  type,
+  student: s,
+  eid,
+  ds,
+  row,
+  onClose,
+}: {
+  type: 'veli' | 'ogretmen'
+  student: Student
+  eid: string
+  ds: Dataset
+  row: Row | null
+  onClose: () => void
+}) {
   const { role, profile } = useAuth()
   const toast = useToast()
   const refresh = useRefresh()
@@ -102,7 +117,8 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
   const R = useMemo(() => reportData(ds, s.id, eid), [ds, s.id, eid])
   const exam = ds.exams.find((e) => e.id === eid)!
   const [body, setBody] = useState<VeliBody | OgretmenBody>(() => {
-    if (row) return V ? ({ ...(row.body as unknown as VeliBody), rehber: row.rehber ?? '', ai: row.ai_generated } as VeliBody) : (row.body as unknown as OgretmenBody)
+    if (row)
+      return V ? ({ ...(row.body as unknown as VeliBody), rehber: row.rehber ?? '', ai: row.ai_generated } as VeliBody) : (row.body as unknown as OgretmenBody)
     if (V && R) return genVeli(R, s.full_name, s.id + eid)
     return V ? ({ genel: '', guclu: '', gelisim: '', oneriler: '', mentor: '', rehber: '', ai: false } as VeliBody) : { toplanti: '' }
   })
@@ -116,17 +132,30 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
   const links = useParentLinks(E)
   const [rec, setRec] = useState({ veli: true, ogrenci: false, users: [] as string[] })
 
-  if (!R) return <div className="rbar"><b>Bu öğrencinin bu denemede sonucu yok.</b><button className="btn sm" onClick={onClose} aria-label="Kapat"><Icon name="x" size={16}/></button></div>
+  if (!R)
+    return (
+      <div className="rbar">
+        <b>Bu öğrencinin bu denemede sonucu yok.</b>
+        <button className="btn sm" onClick={onClose} aria-label="Kapat">
+          <Icon name="x" size={16} />
+        </button>
+      </div>
+    )
   const vb = body as VeliBody
   const ob = body as OgretmenBody
   const set = (k: string, v: string) => setBody((b) => ({ ...b, [k]: v }))
 
   async function save(quiet = false): Promise<string | null> {
     setBusy(true)
-    const payload = V ? { genel: vb.genel, guclu: vb.guclu, gelisim: vb.gelisim, oneriler: vb.oneriler, mentor: vb.mentor, rehber: vb.rehber } : { toplanti: ob.toplanti }
+    const payload = V
+      ? { genel: vb.genel, guclu: vb.guclu, gelisim: vb.gelisim, oneriler: vb.oneriler, mentor: vb.mentor, rehber: vb.rehber }
+      : { toplanti: ob.toplanti }
     const { data, error } = await supabase
       .from('reports')
-      .upsert({ type, student_id: s.id, exam_id: eid, body: payload, ai_generated: V ? vb.ai : false, created_by: profile!.id }, { onConflict: 'type,student_id,exam_id' })
+      .upsert(
+        { type, student_id: s.id, exam_id: eid, body: payload, ai_generated: V ? vb.ai : false, created_by: profile!.id },
+        { onConflict: 'type,student_id,exam_id' },
+      )
       .select('id')
       .single()
     setBusy(false)
@@ -145,25 +174,40 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
     if (error || !data?.report) {
       const ctx = (error as { context?: Response } | null)?.context
       const st = ctx?.status
-      const unavailable = st === 503 ? await ctx!.clone().json().then((b: { error?: string }) => b.error, () => '') : ''
-      const why = st === 422 ? await ctx!.json().then((b: { detail?: string[] }) => (b.detail ?? []).map((d) => d.replace(/^yasak:/, '')).join(', '), () => '') : ''
+      const unavailable =
+        st === 503
+          ? await ctx!
+              .clone()
+              .json()
+              .then(
+                (b: { error?: string }) => b.error,
+                () => '',
+              )
+          : ''
+      const why =
+        st === 422
+          ? await ctx!.json().then(
+              (b: { detail?: string[] }) => (b.detail ?? []).map((d) => d.replace(/^yasak:/, '')).join(', '),
+              () => '',
+            )
+          : ''
       setAi({
         err:
           st === 401
             ? 'Oturumun süresi dolmuş; çıkış yapıp yeniden gir. Kural tabanlı taslak duruyor.'
             : st === 400
-            ? 'Rapor verisi doğrulanamadı. Sayfayı yenileyip yeniden dene; kural tabanlı taslak duruyor.'
-            : st === 403
-            ? 'Bu öğrenci için yapay zekâ raporu oluşturma yetkin yok. Kural tabanlı taslak duruyor.'
-            : st === 429
-            ? 'Yapay zekâ kotası doldu (günlük ya da aylık sınır). Kural tabanlı taslak duruyor.'
-            : st === 503
-              ? unavailable === 'legal_transfer_pending'
-                ? 'Yapay zekâ için veri aktarım süreci henüz tamamlanmadığından bu özellik kapalı. Kural tabanlı taslağı düzenleyip kullanabilirsin.'
-                : 'Yapay zekâ henüz yapılandırılmadı. Kural tabanlı taslak duruyor.'
-              : st === 422
-                ? `Yapay zekânın metni yazım kurallarına uymadığı için kullanılmadı${why ? ` (${why})` : ''}. Kural tabanlı taslak duruyor.`
-                : 'Yapay zekâ şu an yanıt vermedi; kural tabanlı taslak duruyor. Birazdan tekrar deneyebilirsin.',
+              ? 'Rapor verisi doğrulanamadı. Sayfayı yenileyip yeniden dene; kural tabanlı taslak duruyor.'
+              : st === 403
+                ? 'Bu öğrenci için yapay zekâ raporu oluşturma yetkin yok. Kural tabanlı taslak duruyor.'
+                : st === 429
+                  ? 'Yapay zekâ kotası doldu (günlük ya da aylık sınır). Kural tabanlı taslak duruyor.'
+                  : st === 503
+                    ? unavailable === 'legal_transfer_pending'
+                      ? 'Yapay zekâ için veri aktarım süreci henüz tamamlanmadığından bu özellik kapalı. Kural tabanlı taslağı düzenleyip kullanabilirsin.'
+                      : 'Yapay zekâ henüz yapılandırılmadı. Kural tabanlı taslak duruyor.'
+                    : st === 422
+                      ? `Yapay zekânın metni yazım kurallarına uymadığı için kullanılmadı${why ? ` (${why})` : ''}. Kural tabanlı taslak duruyor.`
+                      : 'Yapay zekâ şu an yanıt vermedi; kural tabanlı taslak duruyor. Birazdan tekrar deneyebilirsin.',
       })
       return
     }
@@ -171,7 +215,15 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
     // Yapay zekâ denemeleri "Deneme 1…n" olarak gördü; metinde geçerse gerçek adlarına çevir.
     const un = (t: string) => t.replace(/Deneme (\d{1,3})\b/g, (m, n) => R!.exams[Number(n) - 1]?.name ?? m)
     const r = { genel: un(raw.genel), guclu: un(raw.guclu), gelisim: un(raw.gelisim), oneriler: raw.oneriler.map(un), mentorOneri: un(raw.mentorOneri) }
-    setBody((b) => ({ ...(b as VeliBody), genel: r.genel, guclu: r.guclu, gelisim: r.gelisim, oneriler: r.oneriler.join('\n'), mentor: mentorEdited ? (b as VeliBody).mentor : r.mentorOneri, ai: true }))
+    setBody((b) => ({
+      ...(b as VeliBody),
+      genel: r.genel,
+      guclu: r.guclu,
+      gelisim: r.gelisim,
+      oneriler: r.oneriler.join('\n'),
+      mentor: mentorEdited ? (b as VeliBody).mentor : r.mentorOneri,
+      ai: true,
+    }))
     setAi(null)
     toast('Rapor yapay zekâ ile yazıldı', 'spark')
     // Metin sayfanın aşağısındaki bölümlere yazılır; oraya kaydır ki görülsün.
@@ -198,18 +250,20 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
   const x = R.cur
   const P = R.prev
   // Genel bağlamda bu denemede olmayan bölüm satırı gösterilmez (ör. 5. sınıf şablonunda olmayan ders)
-  const subjRows = R.subjects.filter((d) => R.subjects === SUBJECTS || R.exams.some((e) => e.result.subjects[d.code])).map((d) => {
-    const q = x.subjects[d.code]
-    const p = P?.subjects[d.code]
-    const df = q && p ? q.net - p.net : 0
-    return { d, q, p, trend: (q && p ? (df > 1 ? 'up' : df < -1 ? 'down' : null) : null) as 'up' | 'down' | null }
-  })
+  const subjRows = R.subjects
+    .filter((d) => R.subjects === SUBJECTS || R.exams.some((e) => e.result.subjects[d.code]))
+    .map((d) => {
+      const q = x.subjects[d.code]
+      const p = P?.subjects[d.code]
+      const df = q && p ? q.net - p.net : 0
+      return { d, q, p, trend: (q && p ? (df > 1 ? 'up' : df < -1 ? 'down' : null) : null) as 'up' | 'down' | null }
+    })
   const info: [string, string][] = [
     ['Ad Soyad', s.full_name],
     ['Şube', s.class_name],
     ['Deneme', `${exam.name}${exam.publisher ? ` · ${exam.publisher}` : ''}`],
     ['Tarih', trD(exam.exam_date)],
-    ['Puan', x.score != null ? fmt(x.score) : '—'],
+    ['Puan', scoreText(x)],
     ['Toplam Net', fmt(totalNet(x), 2)],
   ]
   const name = (uid: string) => people.data?.find((p) => p.id === uid)
@@ -228,23 +282,67 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
       score: info[4]![1],
       totalNet: info[5]![1],
       reportDate: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
-      subjects: subjRows.map((r) => ({ ad: r.d.ad, d: String(r.q?.d ?? '—'), y: String(r.q?.y ?? '—'), b: String(r.q?.b ?? '—'), net: r.q ? fmt(r.q.net, 2) : '—', prev: r.p ? fmt(r.p.net, 2) : '—', trend: r.trend })),
-      weaknesses: R!.lastWrong.map(w=>({konu:w.title,kod:w.code,ders:R!.subjects.find(d=>d.code===w.subject)?.ad??w.subject,source:w.source??'official',type:w.outcomeType??'KAZANIM'})),
+      subjects: subjRows.map((r) => ({
+        ad: r.d.ad,
+        d: String(r.q?.d ?? '—'),
+        y: String(r.q?.y ?? '—'),
+        b: String(r.q?.b ?? '—'),
+        net: r.q ? fmt(r.q.net, 2) : '—',
+        prev: r.p ? fmt(r.p.net, 2) : '—',
+        trend: r.trend,
+      })),
+      weaknesses: R!.lastWrong.map((w) => ({
+        konu: w.title,
+        kod: w.code,
+        ders: R!.subjects.find((d) => d.code === w.subject)?.ad ?? w.subject,
+        source: w.source ?? 'official',
+        type: w.outcomeType ?? 'KAZANIM',
+      })),
     }
     const data: PdfVeli | PdfOgretmen = V
-      ? { ...common, kind: 'veli', genel: vb.genel, guclu: vb.guclu, gelisim: vb.gelisim, oneriler: vb.oneriler.split('\n').map((o) => o.trim()).filter(Boolean), mentor: vb.mentor, rehber: vb.rehber ?? '' }
+      ? {
+          ...common,
+          kind: 'veli',
+          genel: vb.genel,
+          guclu: vb.guclu,
+          gelisim: vb.gelisim,
+          oneriler: vb.oneriler
+            .split('\n')
+            .map((o) => o.trim())
+            .filter(Boolean),
+          mentor: vb.mentor,
+          rehber: vb.rehber ?? '',
+        }
       : {
           ...common,
           kind: 'ogretmen',
           history: {
             exams: R!.exams.map((e) => e.name),
-            rows: subjRows.map(({ d }) => ({ ad: d.ad, nets: R!.exams.map((e) => (e.result.subjects[d.code] ? fmt(e.result.subjects[d.code]!.net, 2) : '—')) })),
+            rows: subjRows.map(({ d }) => ({
+              ad: d.ad,
+              nets: R!.exams.map((e) => (e.result.subjects[d.code] ? fmt(e.result.subjects[d.code]!.net, 2) : '—')),
+            })),
             totals: R!.exams.map((e) => fmt(totalNet(e.result), 2)),
           },
-          repeats: R!.kzMissing ? [] : R!.rep.map((r) => ({ konu: r.outcome.title, kod: outcomeCode(r.outcome), ders: R!.subjects.find((q) => q.code === r.outcome.subject)?.ad ?? r.outcome.subject, denemeler: r.examNames.join(', ') })),
+          repeats: R!.kzMissing
+            ? []
+            : R!.rep.map((r) => ({
+                konu: r.outcome.title,
+                kod: outcomeCode(r.outcome),
+                ders: R!.subjects.find((q) => q.code === r.outcome.subject)?.ad ?? r.outcome.subject,
+                denemeler: r.examNames.join(', '),
+              })),
           repeatsNote: R!.kzMissing ? 'Konu bilgisi okunamadığı için tekrar eden hata analizi yapılamadı.' : 'Tekrar eden hata yok.',
-          tasks: myTasks.map((t) => ({ konu: t.topic, son: trD(t.due_date), ilerleme: `${t.solved}/${t.question_count}`, durum: t.completed_at ? 'Tamamlandı' : t.due_date < today ? 'Gecikti' : 'Devam ediyor' })),
-          notes: teacherNotes.map((n) => ({ yazar: `${name(n.author_id)?.full_name ?? 'Öğretmen'}${name(n.author_id)?.branch ? ` (${name(n.author_id)!.branch})` : ''}`, metin: n.body ?? '' })),
+          tasks: myTasks.map((t) => ({
+            konu: t.topic,
+            son: trD(t.due_date),
+            ilerleme: `${t.solved}/${t.question_count}`,
+            durum: t.completed_at ? 'Tamamlandı' : t.due_date < today ? 'Gecikti' : 'Devam ediyor',
+          })),
+          notes: teacherNotes.map((n) => ({
+            yazar: `${name(n.author_id)?.full_name ?? 'Öğretmen'}${name(n.author_id)?.branch ? ` (${name(n.author_id)!.branch})` : ''}`,
+            metin: n.body ?? '',
+          })),
           toplanti: ob.toplanti,
         }
     try {
@@ -283,7 +381,11 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
       <div className="rbar">
         <b>
           {V ? 'Veli raporu' : 'Öğretmen raporu'} · {s.full_name} · {exam.name}
-          {row?.status === 'sent' && <span className="chip up" style={{ marginLeft: 8 }}>Gönderildi</span>}
+          {row?.status === 'sent' && (
+            <span className="chip up" style={{ marginLeft: 8 }}>
+              Gönderildi
+            </span>
+          )}
         </b>
         {E && V && (
           <button className={`btn sm ${ai === 'run' ? '' : 'gold'}`} onClick={writeAi} disabled={ai === 'run'}>
@@ -321,12 +423,27 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
       </div>
 
       {sendOpen && (
-        <div className="card" style={{ maxWidth: 840, margin: '0 auto 14px', padding: 16, display: 'flex', flexDirection: 'column', gap: 10, animation: 'drop .3s var(--ease)' }} role="group" aria-label="Alıcılar">
+        <div
+          className="card"
+          style={{ maxWidth: 840, margin: '0 auto 14px', padding: 16, display: 'flex', flexDirection: 'column', gap: 10, animation: 'drop .3s var(--ease)' }}
+          role="group"
+          aria-label="Alıcılar"
+        >
           <b>Kime gönderilsin?</b>
           {V ? (
             <>
-              <Check on={rec.veli} onClick={() => setRec({ ...rec, veli: !rec.veli })} label="Veli" hint={hasParent ? 'Onaylı hesap var' : 'Onaylı hesap yok'} />
-              <Check on={rec.ogrenci} onClick={() => setRec({ ...rec, ogrenci: !rec.ogrenci })} label="Öğrenci" hint={hasStudent ? 'Onaylı hesap var' : 'Onaylı hesap yok'} />
+              <Check
+                on={rec.veli}
+                onClick={() => setRec({ ...rec, veli: !rec.veli })}
+                label="Veli"
+                hint={hasParent ? 'Onaylı hesap var' : 'Onaylı hesap yok'}
+              />
+              <Check
+                on={rec.ogrenci}
+                onClick={() => setRec({ ...rec, ogrenci: !rec.ogrenci })}
+                label="Öğrenci"
+                hint={hasStudent ? 'Onaylı hesap var' : 'Onaylı hesap yok'}
+              />
             </>
           ) : (
             <>
@@ -383,7 +500,9 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
           <div style={{ textAlign: 'right', fontSize: 12.5, color: '#56636a' }}>
             Rapor tarihi
             <br />
-            <b style={{ color: '#1b2a2f' }}>{new Date(row?.sent_at ?? Date.now()).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</b>
+            <b style={{ color: '#1b2a2f' }}>
+              {new Date(row?.sent_at ?? Date.now()).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </b>
           </div>
         </div>
         <div className="info">
@@ -465,12 +584,43 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
             </tbody>
           </table>
         </div>
-        {!V && <>
-        {(['official','pdf'] as const).map(source=>{
-          const rows=R.lastWrong.filter(w=>(w.source??'official')===source)
-          return rows.length ? <div className="sec" key={source}><h3>{source==='pdf'?'Okulun PDF’den eklediği çalışma hedefleri':'Resmî programdaki çalışma hedefleri'}</h3><p className="m" style={{fontSize:12}}>{source==='pdf'?'Bu hedefler deneme PDF’sinden okul tarafından eklenmiştir; resmî program eşleşmesi olarak değerlendirilmez.':'Bu denemede yanlış yanıtlanan soruların eşleştiği kazanım ve öğrenme çıktıları.'}</p><table><thead><tr><th>Ders</th><th>Hedef</th><th>Tür</th>{!V&&<th>Kod</th>}</tr></thead><tbody>{rows.map((w,i)=><tr key={`${w.subject}:${w.code}:${i}`}><td>{R.subjects.find(d=>d.code===w.subject)?.ad??w.subject}</td><td>{w.title}</td><td>{w.outcomeType==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım'}</td>{!V&&<td>{w.code}</td>}</tr>)}</tbody></table></div> : null
-        })}
-        </>}
+        {!V && (
+          <>
+            {(['official', 'pdf'] as const).map((source) => {
+              const rows = R.lastWrong.filter((w) => (w.source ?? 'official') === source)
+              return rows.length ? (
+                <div className="sec" key={source}>
+                  <h3>{source === 'pdf' ? 'Okulun PDF’den eklediği çalışma hedefleri' : 'Resmî programdaki çalışma hedefleri'}</h3>
+                  <p className="m" style={{ fontSize: 12 }}>
+                    {source === 'pdf'
+                      ? 'Bu hedefler deneme PDF’sinden okul tarafından eklenmiştir; resmî program eşleşmesi olarak değerlendirilmez.'
+                      : 'Bu denemede yanlış yanıtlanan soruların eşleştiği kazanım ve öğrenme çıktıları.'}
+                  </p>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Ders</th>
+                        <th>Hedef</th>
+                        <th>Tür</th>
+                        {!V && <th>Kod</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((w, i) => (
+                        <tr key={`${w.subject}:${w.code}:${i}`}>
+                          <td>{R.subjects.find((d) => d.code === w.subject)?.ad ?? w.subject}</td>
+                          <td>{w.title}</td>
+                          <td>{w.outcomeType === 'OGRENME_CIKTISI' ? 'Öğrenme çıktısı' : 'Kazanım'}</td>
+                          {!V && <td>{w.code}</td>}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null
+            })}
+          </>
+        )}
         {V ? (
           <>
             <div className="sec" id="rapor-genel">
@@ -489,7 +639,13 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
               <h3>Çalışma Önerileri</h3>
               {E ? (
                 <>
-                  <textarea className="ptxt" rows={5} aria-label="Çalışma önerileri (her satıra bir öneri)" value={vb.oneriler} onChange={(e) => set('oneriler', e.target.value)} />
+                  <textarea
+                    className="ptxt"
+                    rows={5}
+                    aria-label="Çalışma önerileri (her satıra bir öneri)"
+                    value={vb.oneriler}
+                    onChange={(e) => set('oneriler', e.target.value)}
+                  />
                   <span style={{ fontSize: 11.5, color: '#56636a' }}>Her satır bir öneri olarak yazdırılır.</span>
                 </>
               ) : (
@@ -513,10 +669,39 @@ function ReportView({ type, student: s, eid, ds, row, onClose }: { type: 'veli' 
                 {tx('rehber', 3, 'Rehber öğretmen yorumu', 'Rehber öğretmen gözlemi (boş bırakılırsa raporda yer almaz)')}
               </div>
             )}
-        {(['official','pdf'] as const).map(source=>{
-          const rows=R.lastWrong.filter(w=>(w.source??'official')===source)
-          return rows.length ? <div className="sec" key={source}><h3>{source==='pdf'?'Okulun PDF’den eklediği çalışma hedefleri':'Resmî programdaki çalışma hedefleri'}</h3><p className="m" style={{fontSize:12}}>{source==='pdf'?'Bu hedefler deneme PDF’sinden okul tarafından eklenmiştir; resmî program eşleşmesi olarak değerlendirilmez.':'Bu denemede yanlış yanıtlanan soruların eşleştiği kazanım ve öğrenme çıktıları.'}</p><table><thead><tr><th>Ders</th><th>Hedef</th><th>Tür</th>{!V&&<th>Kod</th>}</tr></thead><tbody>{rows.map((w,i)=><tr key={`${w.subject}:${w.code}:${i}`}><td>{R.subjects.find(d=>d.code===w.subject)?.ad??w.subject}</td><td>{w.title}</td><td>{w.outcomeType==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım'}</td>{!V&&<td>{w.code}</td>}</tr>)}</tbody></table></div> : null
-        })}
+            {(['official', 'pdf'] as const).map((source) => {
+              const rows = R.lastWrong.filter((w) => (w.source ?? 'official') === source)
+              return rows.length ? (
+                <div className="sec" key={source}>
+                  <h3>{source === 'pdf' ? 'Okulun PDF’den eklediği çalışma hedefleri' : 'Resmî programdaki çalışma hedefleri'}</h3>
+                  <p className="m" style={{ fontSize: 12 }}>
+                    {source === 'pdf'
+                      ? 'Bu hedefler deneme PDF’sinden okul tarafından eklenmiştir; resmî program eşleşmesi olarak değerlendirilmez.'
+                      : 'Bu denemede yanlış yanıtlanan soruların eşleştiği kazanım ve öğrenme çıktıları.'}
+                  </p>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Ders</th>
+                        <th>Hedef</th>
+                        <th>Tür</th>
+                        {!V && <th>Kod</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((w, i) => (
+                        <tr key={`${w.subject}:${w.code}:${i}`}>
+                          <td>{R.subjects.find((d) => d.code === w.subject)?.ad ?? w.subject}</td>
+                          <td>{w.title}</td>
+                          <td>{w.outcomeType === 'OGRENME_CIKTISI' ? 'Öğrenme çıktısı' : 'Kazanım'}</td>
+                          {!V && <td>{w.code}</td>}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null
+            })}
             <div className="foot">
               <span>Bu rapor öğrencinin yalnızca kendi önceki denemeleriyle karşılaştırılmasına dayanır.</span>
               <span>Buluş Küre Koleji Rehberlik &amp; Mentörlük</span>

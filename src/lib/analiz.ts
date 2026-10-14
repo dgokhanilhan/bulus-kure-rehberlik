@@ -10,7 +10,13 @@ export type LgsSubject = 'TUR' | 'MAT' | 'FEN' | 'INK' | 'DIN' | 'ING'
 export type MatchLevel = 'code_exact' | 'code_inferred' | 'text_exact' | 'text_match' | 'semantic' | 'none'
 
 /** base: görev/etüt için ders kodu (subject_code); bölüm anahtarı dersle aynı değilse (FEL2 → FEL). */
-export interface SubjectDef { code: Subject; ad: string; short: string; q: number; base?: string }
+export interface SubjectDef {
+  code: Subject
+  ad: string
+  short: string
+  q: number
+  base?: string
+}
 
 export const SUBJECTS: SubjectDef[] = [
   { code: 'TUR', ad: 'Türkçe', short: 'Türkçe', q: 20 },
@@ -22,7 +28,8 @@ export const SUBJECTS: SubjectDef[] = [
 ]
 export const SUBJECT = Object.fromEntries(SUBJECTS.map((s) => [s.code, s])) as Record<LgsSubject, SubjectDef>
 /** Veri setinin dersi (LGS: 6 sabit ders; genel: şablon bölümleri). */
-export const subjectOf = (ds: Pick<Dataset, 'subjects'>, code: Subject): SubjectDef => ds.subjects.find((s) => s.code === code) ?? { code, ad: code, short: code, q: 0 }
+export const subjectOf = (ds: Pick<Dataset, 'subjects'>, code: Subject): SubjectDef =>
+  ds.subjects.find((s) => s.code === code) ?? { code, ad: code, short: code, q: 0 }
 
 export interface Exam {
   id: string
@@ -37,6 +44,7 @@ export interface SubjectResult {
   net: number
 }
 export interface Result {
+  scores?: import('./examScores').ExamScores
   exam_id: string
   student_id: string
   score: number | null
@@ -69,8 +77,8 @@ export interface Outcome {
   source?: 'official' | 'pdf'
   outcomeType?: 'KAZANIM' | 'OGRENME_CIKTISI'
 }
-export const outcomeCode = (o: Outcome) => o.outcomeId ? o.display ?? '—' : o.code
-export const outcomeSourceLabel = (o: Pick<Outcome, 'source'>) => o.source === 'pdf' ? 'Okulun PDF’den eklediği hedef' : 'Resmî program hedefi'
+export const outcomeCode = (o: Outcome) => (o.outcomeId ? (o.display ?? '—') : o.code)
+export const outcomeSourceLabel = (o: Pick<Outcome, 'source'>) => (o.source === 'pdf' ? 'Okulun PDF’den eklediği hedef' : 'Resmî program hedefi')
 
 export const RELIABLE: MatchLevel[] = ['code_exact', 'code_inferred', 'text_exact', 'text_match']
 
@@ -133,9 +141,13 @@ export interface Dataset {
   subjects: SubjectDef[]
   exams: Exam[] // tarihe göre artan
   questionsByExam: Map<string, Question[]>
+  questionsByResult?: Map<string, Question[]>
   outcomes: Outcome[]
   results: Result[]
 }
+
+export const questionsFor = (ds: Dataset, r: Pick<Result, 'exam_id' | 'student_id'>) =>
+  ds.questionsByResult?.get(r.exam_id + '|' + r.student_id) ?? ds.questionsByExam.get(r.exam_id) ?? []
 
 export const indexResults = (results: Result[]) => {
   const m = new Map<string, Result>()
@@ -156,13 +168,13 @@ export function repeats(ds: Dataset, sid: string, uptoExamId?: string, idx = ind
   let ex = studentExams(ds, sid, idx)
   if (uptoExamId) {
     const upto = ds.exams.find((e) => e.id === uptoExamId)
-    const position = ex.findIndex(x=>x.exam.id===uptoExamId)
-    if (position>=0) ex=ex.slice(0,position+1)
+    const position = ex.findIndex((x) => x.exam.id === uptoExamId)
+    if (position >= 0) ex = ex.slice(0, position + 1)
     else if (upto) ex = ex.filter((x) => x.exam.exam_date <= upto.exam_date)
   }
   const out: Repeat[] = []
   for (const o of ds.outcomes) {
-    const hist = ex.map((x) => konuStatus(x.result, ds.questionsByExam.get(x.exam.id) ?? [], o.subject, o.code))
+    const hist = ex.map((x) => konuStatus(x.result, questionsFor(ds, x.result), o.subject, o.code))
     const count = hist.filter((h) => h === 'y').length
     if (count >= minCount)
       out.push({ outcome: o, count, hist, examNames: ex.filter((_, i) => hist[i] === 'y').map((x) => x.exam.name), lastWrong: hist[hist.length - 1] === 'y' })
@@ -172,7 +184,7 @@ export function repeats(ds: Dataset, sid: string, uptoExamId?: string, idx = ind
 
 /** Bir denemede yanlış yapılan kazanımlar (güvenilir eşleşmeler) ve okunamayan bilgi var mı. */
 export function wrongOutcomes(ds: Dataset, r: Result) {
-  const qs = ds.questionsByExam.get(r.exam_id) ?? []
+  const qs = questionsFor(ds, r)
   const wrong: Outcome[] = []
   let unreadable = false
   for (const o of ds.outcomes) {
@@ -215,13 +227,7 @@ export interface Attention {
 const f0 = (n: number) => fmt(n, 0)
 
 /** Bugün ilgilenilmesi gereken öğrenciler (prototipteki attention()). */
-export function attention(
-  ds: Dataset,
-  students: { id: string }[],
-  tasks: TaskLite[],
-  today: string,
-  st: TodaySettings = DEFAULT_TODAY,
-): Attention[] {
+export function attention(ds: Dataset, students: { id: string }[], tasks: TaskLite[], today: string, st: TodaySettings = DEFAULT_TODAY): Attention[] {
   const idx = indexResults(ds.results)
   const L = ds.exams[ds.exams.length - 1]
   const P = ds.exams[ds.exams.length - 2]
@@ -288,7 +294,10 @@ export interface HeatRow {
 export function classHeat(ds: Dataset, studentIds: string[], subject: Subject, exams: Exam[]): HeatRow[] {
   const idx = indexResults(ds.results)
   const codes = new Set<string>()
-  for (const e of exams) for (const q of ds.questionsByExam.get(e.id) ?? []) if (q.subject === subject && q.outcome_code && RELIABLE.includes(q.match)) codes.add(q.outcome_code)
+  for (const e of exams)
+    for (const sid of studentIds)
+      for (const q of questionsFor(ds, { exam_id: e.id, student_id: sid }))
+        if (q.subject === subject && q.outcome_code && RELIABLE.includes(q.match)) codes.add(q.outcome_code)
   for (const e of exams)
     for (const sid of studentIds) {
       const k = idx.get(`${e.id}|${sid}`)?.kazanim
@@ -298,7 +307,6 @@ export function classHeat(ds: Dataset, studentIds: string[], subject: Subject, e
   return outs.map((o) => ({
     outcome: o,
     cells: exams.map((e) => {
-      const qs = (ds.questionsByExam.get(e.id) ?? []).filter((q) => q.subject === subject && q.outcome_code === o.code && RELIABLE.includes(q.match) && q.correct_answer)
       let total = 0
       let correct = 0
       const wrong: string[] = []
@@ -314,6 +322,9 @@ export function classHeat(ds: Dataset, studentIds: string[], subject: Subject, e
           }
           continue
         }
+        const qs = r
+          ? questionsFor(ds, r).filter((q) => q.subject === subject && q.outcome_code === o.code && RELIABLE.includes(q.match) && q.correct_answer)
+          : []
         if (!qs.length) continue
         const ans = r?.answers?.[subject]
         if (!r || !r.outcomes_ok || !ans) continue

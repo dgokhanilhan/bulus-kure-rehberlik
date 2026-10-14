@@ -1,3 +1,4 @@
+import { scoreText } from '@/lib/examScores'
 // Veli ve öğrenci ekranları: yalnız bağlı öğrencinin verisi (RLS). Sınıf sıralaması yok (CLAUDE.md §3).
 // Hitap: öğrenciye "sen", veliye "siz".
 import { useMemo, useState } from 'react'
@@ -5,7 +6,25 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { fmt, indexResults, studentExams, totalNet } from '@/lib/analiz'
 import { SUBJECT_SHORT } from '@/components/Tasks'
-import { ATT_TR, MEAL_TR, useAttendance, useBellTimes, useChildContacts, useModules, useDataset, useMeals, useMeetings, useNotes, useReports, useReportExamNames, useStudents, useStudySessions, useTasks, useTimetable, type AttendanceStatus } from '@/lib/data'
+import {
+  ATT_TR,
+  MEAL_TR,
+  useAttendance,
+  useBellTimes,
+  useChildContacts,
+  useModules,
+  useDataset,
+  useMeals,
+  useMeetings,
+  useNotes,
+  useReports,
+  useReportExamNames,
+  useStudents,
+  useStudySessions,
+  useTasks,
+  useTimetable,
+  type AttendanceStatus,
+} from '@/lib/data'
 import { GUN, addDays, ago, gen, isoDow, localDate, localHM, todayISO, trD, trDW, weekStart } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { examTrack } from '@/lib/roles'
@@ -30,7 +49,16 @@ function useMyStudent() {
 
 function ChildPicker({ list, s, choose }: { list: Student[]; s: Student; choose: (id: string) => void }) {
   if (list.length < 2) return null
-  return <Seg className="a" label="Çocuk" value={s.id} onChange={choose} options={list.map((x) => [x.id, x.full_name.split(' ')[0]!] as const)} style={{ alignSelf: 'flex-start' }} />
+  return (
+    <Seg
+      className="a"
+      label="Çocuk"
+      value={s.id}
+      onChange={choose}
+      options={list.map((x) => [x.id, x.full_name.split(' ')[0]!] as const)}
+      style={{ alignSelf: 'flex-start' }}
+    />
+  )
 }
 
 function Wait({ loading }: { loading: boolean }) {
@@ -116,7 +144,7 @@ export function OzetPage() {
                 Puan
               </span>
               <span className="big" style={{ fontSize: 27 }}>
-                {L?.result.score != null ? fmt(L.result.score) : '—'}
+                {L ? scoreText(L.result) : '—'}
               </span>
               <span className="m" style={{ fontSize: 13 }}>
                 {s.target_score ? `Hedef ${s.target_score}` : ''}
@@ -138,11 +166,19 @@ export function OzetPage() {
       </div>
       <div className={lgs || genel ? 'cols' : 'stack'}>
         {lgs && (
-          <section className="card a" style={{ ['--d' as string]: 3, padding: 20, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }} aria-label="LGS gelişimi">
+          <section
+            className="card a"
+            style={{ ['--d' as string]: 3, padding: 20, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}
+            aria-label="LGS gelişimi"
+          >
             <h2 className="sec">Gelişim</h2>
             <div style={{ overflowX: 'auto' }}>
               <div style={{ minWidth: 460 }}>
-                {ex.length ? <LineChart values={nets} labels={ex.map((x) => x.exam.name)} onSelect={(i) => setExam(ex[i]!.exam.id)} /> : <div className="empty">Henüz deneme yok.</div>}
+                {ex.length ? (
+                  <LineChart values={nets} labels={ex.map((x) => x.exam.name)} onSelect={(i) => setExam(ex[i]!.exam.id)} />
+                ) : (
+                  <div className="empty">Henüz deneme yok.</div>
+                )}
               </div>
             </div>
             <span className="m" style={{ fontSize: 13 }}>
@@ -154,7 +190,13 @@ export function OzetPage() {
         )}
         {genel && <GenelDenemeler studentId={s.id} grade={s.grade} />}
         <aside className="stack" style={{ gap: 12 }}>
-          <Dropdown title="Raporlar" sub={rs.length ? `${rs.length} rapor` : 'Henüz rapor yok'} icon={<Icon name="doc" size={22} />} delay={4} right={rs.length ? <span className="chip gold">{rs.length}</span> : undefined}>
+          <Dropdown
+            title="Raporlar"
+            sub={rs.length ? `${rs.length} rapor` : 'Henüz rapor yok'}
+            icon={<Icon name="doc" size={22} />}
+            delay={4}
+            right={rs.length ? <span className="chip gold">{rs.length}</span> : undefined}
+          >
             {rs.length ? (
               rs.map((r) => (
                 <button key={r.id} className="btn sm" style={{ justifyContent: 'space-between' }} onClick={() => openReport({ id: r.id })}>
@@ -166,7 +208,12 @@ export function OzetPage() {
               <span className="m">Rapor gönderildiğinde burada görünür.</span>
             )}
           </Dropdown>
-          <Dropdown title="Görüşmeler" sub={gs.length ? `${gs.length} yaklaşan görüşme` : 'Yaklaşan görüşme yok'} icon={<Icon name="cal" size={22} />} delay={5}>
+          <Dropdown
+            title="Görüşmeler"
+            sub={gs.length ? `${gs.length} yaklaşan görüşme` : 'Yaklaşan görüşme yok'}
+            icon={<Icon name="cal" size={22} />}
+            delay={5}
+          >
             {gs.length ? (
               gs.map((g) => (
                 <div className="kv" key={g.id}>
@@ -216,7 +263,16 @@ export function OzetPage() {
           )}
         </aside>
       </div>
-      {cur >= 0 && dsq.data && <ExamModal ds={dsq.data} exam={ex[cur]!.exam} result={ex[cur]!.result} prev={ex[cur - 1]?.result} studentName={s.full_name} onClose={() => setExam(null)} />}
+      {cur >= 0 && dsq.data && (
+        <ExamModal
+          ds={dsq.data}
+          exam={ex[cur]!.exam}
+          result={ex[cur]!.result}
+          prev={ex[cur - 1]?.result}
+          studentName={s.full_name}
+          onClose={() => setExam(null)}
+        />
+      )}
     </>
   )
 }
@@ -324,66 +380,70 @@ export function OkulPage() {
         <section className="stack">
           {mods.ders_programi ? (
             <>
-          <article className="card a" style={{ ['--d' as string]: 1, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }} aria-label="Bugünün dersleri">
-            <h2 style={{ fontSize: 17 }}>Bugünün dersleri</h2>
-            {todayL.length ? (
-              todayL.map((l) => (
-                <div key={l.id} className="kv" data-testid="today-lesson">
-                  <span>
-                    <b>{l.subject}</b>
-                    {tName(l.teacher_id) && (
-                      <span className="m" style={{ fontSize: 12 }}>
-                        {' '}
-                        · {tName(l.teacher_id)}
+              <article
+                className="card a"
+                style={{ ['--d' as string]: 1, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}
+                aria-label="Bugünün dersleri"
+              >
+                <h2 style={{ fontSize: 17 }}>Bugünün dersleri</h2>
+                {todayL.length ? (
+                  todayL.map((l) => (
+                    <div key={l.id} className="kv" data-testid="today-lesson">
+                      <span>
+                        <b>{l.subject}</b>
+                        {tName(l.teacher_id) && (
+                          <span className="m" style={{ fontSize: 12 }}>
+                            {' '}
+                            · {tName(l.teacher_id)}
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                  <span className="m mono" style={{ fontSize: 13 }}>
-                    {hm(l.period)}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <span className="m">{dow > 5 && !lessons.some((l) => l.weekday === dow) ? 'Bugün okul yok.' : 'Bugün için ders programı girilmemiş.'}</span>
-            )}
-          </article>
-          <article className="card a" style={{ ['--d' as string]: 2, overflow: 'hidden' }} aria-label="Haftalık ders programı">
-            <h2 style={{ fontSize: 17, padding: '16px 18px 4px' }}>Haftalık ders programı</h2>
-            {nPer ? (
-              <div className="tbl" tabIndex={0} role="region" aria-label="Haftalık ders programı tablosu (yana kaydırılabilir)">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Ders</th>
-                      {days.map((d) => (
-                        <th key={d} style={d === dow ? { color: 'var(--primary)' } : undefined}>
-                          {GUN[d]}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Array.from({ length: nPer }, (_, i) => i + 1).map((p) => (
-                      <tr key={p}>
-                        <td className="mono" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                          {hm(p)}
-                        </td>
-                        {days.map((d) => (
-                          <td key={d} style={d === dow ? { background: 'var(--primary-soft)' } : undefined}>
-                            {lessons.find((l) => l.weekday === d && l.period === p)?.subject ?? ''}
-                          </td>
+                      <span className="m mono" style={{ fontSize: 13 }}>
+                        {hm(l.period)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <span className="m">{dow > 5 && !lessons.some((l) => l.weekday === dow) ? 'Bugün okul yok.' : 'Bugün için ders programı girilmemiş.'}</span>
+                )}
+              </article>
+              <article className="card a" style={{ ['--d' as string]: 2, overflow: 'hidden' }} aria-label="Haftalık ders programı">
+                <h2 style={{ fontSize: 17, padding: '16px 18px 4px' }}>Haftalık ders programı</h2>
+                {nPer ? (
+                  <div className="tbl" tabIndex={0} role="region" aria-label="Haftalık ders programı tablosu (yana kaydırılabilir)">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Ders</th>
+                          {days.map((d) => (
+                            <th key={d} style={d === dow ? { color: 'var(--primary)' } : undefined}>
+                              {GUN[d]}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.from({ length: nPer }, (_, i) => i + 1).map((p) => (
+                          <tr key={p}>
+                            <td className="mono" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                              {hm(p)}
+                            </td>
+                            {days.map((d) => (
+                              <td key={d} style={d === dow ? { background: 'var(--primary-soft)' } : undefined}>
+                                {lessons.find((l) => l.weekday === d && l.period === p)?.subject ?? ''}
+                              </td>
+                            ))}
+                          </tr>
                         ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="empty" style={{ margin: 16 }}>
-                Ders programı henüz girilmemiş.
-              </div>
-            )}
-          </article>
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="empty" style={{ margin: 16 }}>
+                    Ders programı henüz girilmemiş.
+                  </div>
+                )}
+              </article>
             </>
           ) : (
             <div className="empty">Ders programı okul yönetimince kapatıldı.</div>
@@ -392,64 +452,68 @@ export function OkulPage() {
         <aside className="stack" style={{ gap: 14 }}>
           {mods.yemek && (
             <>
-          <article className="card a" style={{ ['--d' as string]: 2, padding: 18, display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Bugünün yemeği">
-            <h2 style={{ fontSize: 17 }}>Bugünün yemeği</h2>
-            {todayM.length ? (
-              todayM.map((m) => (
-                <div key={m.id}>
-                  <span className="label">{MEAL_TR[m.meal]}</span>
-                  <div style={{ fontSize: 14, whiteSpace: 'pre-line' }}>{m.items}</div>
-                </div>
-              ))
-            ) : (
-              <span className="m">Bugün için yemek listesi yok.</span>
-            )}
-          </article>
-          <Dropdown title="Bu haftanın yemek listesi" sub={`${trD(week)} – ${trD(addDays(week, 4))}`} icon={<Icon name="cal" size={22} />} delay={3}>
-            {(meals.data ?? []).length ? (
-              [0, 1, 2, 3, 4].map((i) => {
-                const d = addDays(week, i)
-                const ms = (meals.data ?? []).filter((m) => m.day === d)
-                return ms.length ? (
-                  <div key={d} className="stack" style={{ gap: 2 }}>
-                    <b style={{ fontSize: 14 }}>{GUN[i + 1]}</b>
-                    {ms.map((m) => (
-                      <span key={m.id} style={{ fontSize: 13 }}>
-                        <span className="m">{MEAL_TR[m.meal]}:</span> {m.items}
-                      </span>
-                    ))}
-                  </div>
-                ) : null
-              })
-            ) : (
-              <span className="m">Bu hafta için liste girilmemiş.</span>
-            )}
-          </Dropdown>
+              <article
+                className="card a"
+                style={{ ['--d' as string]: 2, padding: 18, display: 'flex', flexDirection: 'column', gap: 8 }}
+                aria-label="Bugünün yemeği"
+              >
+                <h2 style={{ fontSize: 17 }}>Bugünün yemeği</h2>
+                {todayM.length ? (
+                  todayM.map((m) => (
+                    <div key={m.id}>
+                      <span className="label">{MEAL_TR[m.meal]}</span>
+                      <div style={{ fontSize: 14, whiteSpace: 'pre-line' }}>{m.items}</div>
+                    </div>
+                  ))
+                ) : (
+                  <span className="m">Bugün için yemek listesi yok.</span>
+                )}
+              </article>
+              <Dropdown title="Bu haftanın yemek listesi" sub={`${trD(week)} – ${trD(addDays(week, 4))}`} icon={<Icon name="cal" size={22} />} delay={3}>
+                {(meals.data ?? []).length ? (
+                  [0, 1, 2, 3, 4].map((i) => {
+                    const d = addDays(week, i)
+                    const ms = (meals.data ?? []).filter((m) => m.day === d)
+                    return ms.length ? (
+                      <div key={d} className="stack" style={{ gap: 2 }}>
+                        <b style={{ fontSize: 14 }}>{GUN[i + 1]}</b>
+                        {ms.map((m) => (
+                          <span key={m.id} style={{ fontSize: 13 }}>
+                            <span className="m">{MEAL_TR[m.meal]}:</span> {m.items}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null
+                  })
+                ) : (
+                  <span className="m">Bu hafta için liste girilmemiş.</span>
+                )}
+              </Dropdown>
             </>
           )}
           {mods.yoklama && (
-          <Dropdown
-            title="Devamsızlık"
-            sub={recs.length ? `${cnt('devamsiz')} gün gelmedi · ${cnt('gec')} geç` : 'Kayıt yok'}
-            icon={<Icon name="task" size={22} />}
-            delay={4}
-            right={cnt('devamsiz') ? <span className="chip down">{cnt('devamsiz')}</span> : undefined}
-          >
-            {lim.data && <LimitBars l={lim.data} compact />}
-            <div className="btns">
-              {(['devamsiz', 'gec', 'izinli', 'raporlu'] as AttendanceStatus[]).map((k) => (
-                <span key={k} className={`chip ${k === 'devamsiz' && cnt(k) ? 'down' : 'n'}`}>
-                  {ATT_TR[k]}: {cnt(k)}
-                </span>
-              ))}
-            </div>
-            {recs.slice(0, 12).map((a) => (
-              <div key={a.id} className="kv" data-testid="att-record">
-                <span>{trDW(a.day)}</span>
-                <span className={`chip ${a.status === 'devamsiz' ? 'down' : 'n'}`}>{ATT_TR[a.status]}</span>
+            <Dropdown
+              title="Devamsızlık"
+              sub={recs.length ? `${cnt('devamsiz')} gün gelmedi · ${cnt('gec')} geç` : 'Kayıt yok'}
+              icon={<Icon name="task" size={22} />}
+              delay={4}
+              right={cnt('devamsiz') ? <span className="chip down">{cnt('devamsiz')}</span> : undefined}
+            >
+              {lim.data && <LimitBars l={lim.data} compact />}
+              <div className="btns">
+                {(['devamsiz', 'gec', 'izinli', 'raporlu'] as AttendanceStatus[]).map((k) => (
+                  <span key={k} className={`chip ${k === 'devamsiz' && cnt(k) ? 'down' : 'n'}`}>
+                    {ATT_TR[k]}: {cnt(k)}
+                  </span>
+                ))}
               </div>
-            ))}
-          </Dropdown>
+              {recs.slice(0, 12).map((a) => (
+                <div key={a.id} className="kv" data-testid="att-record">
+                  <span>{trDW(a.day)}</span>
+                  <span className={`chip ${a.status === 'devamsiz' ? 'down' : 'n'}`}>{ATT_TR[a.status]}</span>
+                </div>
+              ))}
+            </Dropdown>
           )}
         </aside>
       </div>

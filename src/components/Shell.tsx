@@ -112,8 +112,18 @@ function ProfileMenu() {
               {session?.user.email}
             </span>
           </div>
+          <Link className="pitem" role="menuitem" to="/hesap-ayarlari" onClick={() => setOpen(false)}>
+            <Icon name="shield" size={18} />
+            Hesap ayarları
+          </Link>
           {role === 'admin' && (
-            <Link className="pitem" role="menuitem" to="/ayarlar" onClick={() => setOpen(false)} style={{ color: 'var(--ink)', fontWeight: 500, textDecoration: 'none' }}>
+            <Link
+              className="pitem"
+              role="menuitem"
+              to="/ayarlar"
+              onClick={() => setOpen(false)}
+              style={{ color: 'var(--ink)', fontWeight: 500, textDecoration: 'none' }}
+            >
               <Icon name="shield" size={18} />
               Okul ayarları
             </Link>
@@ -140,7 +150,10 @@ function ProfileMenu() {
                 >
                   <Icon name="user" size={18} />
                   <span style={{ flex: 1 }}>
-                    {c.full_name} <span className="m" style={{ fontWeight: 400 }}>· {c.class_name}</span>
+                    {c.full_name}{' '}
+                    <span className="m" style={{ fontWeight: 400 }}>
+                      · {c.class_name}
+                    </span>
                   </span>
                   {activeStudent?.id === c.id && <Icon name="check" size={16} stroke={2.4} />}
                 </button>
@@ -171,7 +184,14 @@ function ProfileMenu() {
                 {SWITCH_TR[r]} olarak devam et
               </button>
             ))}
-          <a className="pitem" role="menuitem" href={SOURCE_URL} target="_blank" rel="noreferrer" style={{ color: 'var(--ink-muted)', fontWeight: 500, fontSize: 13, textDecoration: 'none' }}>
+          <a
+            className="pitem"
+            role="menuitem"
+            href={SOURCE_URL}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'var(--ink-muted)', fontWeight: 500, fontSize: 13, textDecoration: 'none' }}
+          >
             <Icon name="doc" size={18} />
             Kaynak kodu (AGPL-3.0)
           </a>
@@ -199,7 +219,7 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
         .order('created_at', { ascending: false })
         .limit(40)
       if (error) throw error
-      return (data as Notification[]).filter(n=>n.type!=='nobet'||role==='brans'||role==='rehber')
+      return (data as Notification[]).filter((n) => n.type !== 'nobet' || role === 'brans' || role === 'rehber')
     },
     refetchInterval: 60_000,
   })
@@ -335,7 +355,13 @@ export function AppShell() {
             </NavLink>
           ))}
           {overflow && (
-            <button type="button" className={`navbtn morebtn${extra.some((x) => x.id === active) ? ' on' : ''}`} aria-expanded={more} aria-haspopup="menu" onClick={() => setMore((x) => !x)}>
+            <button
+              type="button"
+              className={`navbtn morebtn${extra.some((x) => x.id === active) ? ' on' : ''}`}
+              aria-expanded={more}
+              aria-haspopup="menu"
+              onClick={() => setMore((x) => !x)}
+            >
               <Icon name="more" />
               <span className="lbl">Daha</span>
               {extraBadge > 0 && (
@@ -396,7 +422,16 @@ export function PendingPage() {
       <section className="card a" style={{ padding: 36, display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-start' }}>
         <span
           className="floaty"
-          style={{ width: 64, height: 64, borderRadius: 18, background: 'var(--highlight)', color: 'var(--ink-fixed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 18,
+            background: 'var(--highlight)',
+            color: 'var(--ink-fixed)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           <Icon name="lock" size={30} />
         </span>

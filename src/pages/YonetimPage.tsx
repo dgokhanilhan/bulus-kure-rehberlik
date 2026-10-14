@@ -23,13 +23,50 @@ import { RolesSection, AccountRolesAdmin } from './YonetimRoller'
 import { DenemeMerkezi } from './DenemeMerkezi'
 import { AppearanceSettings } from './OkulKontrolleri'
 import { DenemeBilgi, DuyuruListesi, EtkinlikListesi, GuvenlikOzeti, MesajAyarlari } from './YonetimIcerik'
-import { BildirimAyarlari, YoklamaAyarlari, DersAtamalari, DersSaatleri, Dersler, DosyaDuyuruAyarlari, TakvimAyarlari, EgitimYillari, GenelAyarlar, Moduller, OdevAyarlari, OgretmenAtamalari } from './YonetimMerkezi'
+import {
+  BildirimAyarlari,
+  YoklamaAyarlari,
+  DersAtamalari,
+  DersSaatleri,
+  Dersler,
+  DosyaDuyuruAyarlari,
+  TakvimAyarlari,
+  EgitimYillari,
+  GenelAyarlar,
+  Moduller,
+  OdevAyarlari,
+  OgretmenAtamalari,
+} from './YonetimMerkezi'
 
 type Tab =
-  | 'genel' | 'moduller' | 'yillar' | 'dosya' | 'bildirim' | 'takvim' | 'guvenlik'
-  | 'siniflar' | 'dersler' | 'saatler' | 'atamalar' | 'program' | 'yoklama' | 'yoklama_ayar' | 'yemek' | 'odev' | 'denemeler'
-  | 'mesaj' | 'duyurular' | 'etkinlikler'
-  | 'ogrenciler' | 'ogretmenler' | 'veliler' | 'kapali' | 'bursluluk' | 'anasayfa' | 'aktarim' | 'galeri'
+  | 'genel'
+  | 'moduller'
+  | 'yillar'
+  | 'dosya'
+  | 'bildirim'
+  | 'takvim'
+  | 'guvenlik'
+  | 'siniflar'
+  | 'dersler'
+  | 'saatler'
+  | 'atamalar'
+  | 'program'
+  | 'yoklama'
+  | 'yoklama_ayar'
+  | 'yemek'
+  | 'odev'
+  | 'denemeler'
+  | 'mesaj'
+  | 'duyurular'
+  | 'etkinlikler'
+  | 'ogrenciler'
+  | 'ogretmenler'
+  | 'veliler'
+  | 'kapali'
+  | 'bursluluk'
+  | 'anasayfa'
+  | 'aktarim'
+  | 'galeri'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
   {
@@ -61,8 +98,24 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['denemeler', 'Denemeler / Tanıma Merkezi', 'lgs'],
     ],
   },
-  { title: 'İletişim', items: [['mesaj', 'Mesajlaşma', 'mesaj'], ['duyurular', 'Duyurular', 'duyuru'], ['etkinlikler', 'Takvim etkinlikleri', 'takvim']] },
-  { title: 'Kişiler', items: [['ogrenciler', 'Öğrenciler'], ['ogretmenler', 'Öğretmenler'], ['veliler', 'Veliler'], ['kapali', 'Kapalı hesaplar'], ['aktarim', 'Toplu aktarım']] },
+  {
+    title: 'İletişim',
+    items: [
+      ['mesaj', 'Mesajlaşma', 'mesaj'],
+      ['duyurular', 'Duyurular', 'duyuru'],
+      ['etkinlikler', 'Takvim etkinlikleri', 'takvim'],
+    ],
+  },
+  {
+    title: 'Kişiler',
+    items: [
+      ['ogrenciler', 'Öğrenciler'],
+      ['ogretmenler', 'Öğretmenler'],
+      ['veliler', 'Veliler'],
+      ['kapali', 'Kapalı hesaplar'],
+      ['aktarim', 'Toplu aktarım'],
+    ],
+  },
   { title: 'Kayıt', items: [['bursluluk', 'Bursluluk', 'bursluluk']] },
 ]
 const TABS = GROUPS.flatMap((g) => g.items)
@@ -132,7 +185,10 @@ function useAdminData() {
       if (p.error) throw p.error
       if (s.error) throw s.error
       if (l.error) throw l.error
-      const profiles = (p.data as (Profile & { profile_roles?: { role: Profile['role'] }[] })[]).map(({ profile_roles, ...x }) => ({ ...x, roles: (profile_roles ?? []).map((r) => r.role) }))
+      const profiles = (p.data as (Profile & { profile_roles?: { role: Profile['role'] }[] })[]).map(({ profile_roles, ...x }) => ({
+        ...x,
+        roles: (profile_roles ?? []).map((r) => r.role),
+      }))
       return { profiles: profiles as Profile[], students: s.data as Stu[], links: l.data as Link2[] }
     },
   })
@@ -158,8 +214,8 @@ export default function YonetimPage() {
         <div className="stack" style={{ gap: 4 }}>
           <h1 className="hd">Yönetim Merkezi</h1>
           <span className="m">
-            Okulun ayarlarını, ders yapısını ve kişilerini kod gerektirmeden buradan yönetirsin. Yeni kayıtlar için <Link to="/onaylar">Onaylar</Link>, yapay zekâ ve işlem geçmişi için{' '}
-            <Link to="/ayarlar">Sistem ayarları</Link>.
+            Okulun ayarlarını, ders yapısını ve kişilerini kod gerektirmeden buradan yönetirsin. Yeni kayıtlar için <Link to="/onaylar">Onaylar</Link>, yapay
+            zekâ ve işlem geçmişi için <Link to="/ayarlar">Sistem ayarları</Link>.
           </span>
         </div>
       </div>
@@ -169,7 +225,11 @@ export default function YonetimPage() {
             <span className="sr-only">Yönetimde ara</span>
             <input id="ySearch" type="search" placeholder="Ayar ya da bölüm ara…" value={q} onChange={(e) => setQ(e.target.value)} />
           </label>
-          {needle && !TABS.some(match) && <span className="m" style={{ fontSize: 13 }}>Eşleşen bölüm yok.</span>}
+          {needle && !TABS.some(match) && (
+            <span className="m" style={{ fontSize: 13 }}>
+              Eşleşen bölüm yok.
+            </span>
+          )}
           {GROUPS.filter((g) => g.items.some(match)).map((g) => (
             <div key={g.title} className="ygrp">
               <span className="label">{g.title}</span>
@@ -188,7 +248,11 @@ export default function YonetimPage() {
           </h2>
           {off && (
             <div className="card a" style={{ padding: 12, fontSize: 14 }}>
-              Bu modül kapalı: veliler, öğrenciler ve öğretmenler göremez. Açmak için <button className="linkbtn" onClick={() => setTab('moduller')}>Modüller</button>.
+              Bu modül kapalı: veliler, öğrenciler ve öğretmenler göremez. Açmak için{' '}
+              <button className="linkbtn" onClick={() => setTab('moduller')}>
+                Modüller
+              </button>
+              .
             </div>
           )}
           {data.isLoading || classes.isLoading ? (
@@ -199,7 +263,12 @@ export default function YonetimPage() {
             <div className="empty">Yönetim verisi yüklenemedi. Sayfayı yenile.</div>
           ) : (
             <>
-              {tab === 'genel' && <><GenelAyarlar schoolName={school.data ?? ''} /><AppearanceSettings /></>}
+              {tab === 'genel' && (
+                <>
+                  <GenelAyarlar schoolName={school.data ?? ''} />
+                  <AppearanceSettings />
+                </>
+              )}
               {tab === 'moduller' && <Moduller />}
               {tab === 'yillar' && <EgitimYillari />}
               {tab === 'dosya' && <DosyaDuyuruAyarlari />}
@@ -222,7 +291,12 @@ export default function YonetimPage() {
               {tab === 'galeri' && <GaleriAyarlari />}
               {tab === 'anasayfa' && <AnaSayfaDuzeni />}
               {tab === 'aktarim' && <TopluAktarim />}
-              {tab === 'guvenlik' && <><GuvenlikOzeti /><AccountRolesAdmin profiles={data.data!.profiles} /></>}
+              {tab === 'guvenlik' && (
+                <>
+                  <GuvenlikOzeti />
+                  <AccountRolesAdmin profiles={data.data!.profiles} />
+                </>
+              )}
               {tab === 'denemeler' && (
                 <>
                   <DenemeBilgi />
@@ -299,7 +373,11 @@ function Siniflar({ classes, profiles, students }: { classes: ClassRow[]; profil
                         <td>{c.active === false ? <span className="chip n">Pasif</span> : <span className="chip up">Aktif</span>}</td>
                         <td>
                           <div className="btns" style={{ justifyContent: 'flex-end' }}>
-                            <button className="btn sm" onClick={() => setFlip(c)} aria-label={`${c.name} sınıfını ${c.active === false ? 'aktif' : 'pasif'} yap`}>
+                            <button
+                              className="btn sm"
+                              onClick={() => setFlip(c)}
+                              aria-label={`${c.name} sınıfını ${c.active === false ? 'aktif' : 'pasif'} yap`}
+                            >
                               {c.active === false ? 'Aktif yap' : 'Pasif yap'}
                             </button>
                             <button className="btn sm" onClick={() => setEdit(c)} aria-label={`${c.name} sınıfını düzenle`}>
@@ -345,7 +423,8 @@ function Siniflar({ classes, profiles, students }: { classes: ClassRow[]; profil
             </>
           ) : (
             <>
-              <b>{flip.name}</b> kayıt formundan ve yeni öğrenci / ders ataması seçimlerinden kalkar. Öğrencileri, yoklama, ödev ve deneme kayıtları silinmez; sınıf istediğin zaman yeniden aktif yapılabilir.
+              <b>{flip.name}</b> kayıt formundan ve yeni öğrenci / ders ataması seçimlerinden kalkar. Öğrencileri, yoklama, ödev ve deneme kayıtları silinmez;
+              sınıf istediğin zaman yeniden aktif yapılabilir.
               {students.some((st) => st.class_id === flip.id) && ' Bu sınıfta hâlâ öğrenci var; mezun olduysa önce arşivlemek ya da taşımak isteyebilirsin.'}
             </>
           )}
@@ -378,13 +457,16 @@ function ClassModal({ c, teachers, onClose }: { c: ClassRow | null; teachers: Pr
   const toast = useToast()
   const [grade, setGrade] = useState(c?.grade ?? 1)
   const [section, setSection] = useState(c?.section ?? 'A')
+  const [track, setTrack] = useState(c?.track ?? '')
   const [teacher, setTeacher] = useState(c?.homeroom_teacher_id ?? '')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   async function save() {
     setBusy(true)
-    const row = { grade, section, homeroom_teacher_id: teacher || null }
-    const { error } = c ? await supabase.from('classes').update(row).eq('id', c.id) : await supabase.from('classes').insert({ ...row, school_id: profile!.school_id })
+    const row = { grade, section, track: grade >= 11 ? track || null : null, homeroom_teacher_id: teacher || null }
+    const { error } = c
+      ? await supabase.from('classes').update(row).eq('id', c.id)
+      : await supabase.from('classes').insert({ ...row, school_id: profile!.school_id })
     setBusy(false)
     if (error) return setErr(msg(error, `${grade}/${section} sınıfı zaten var.`))
     toast(c ? `${grade}/${section} güncellendi` : `${grade}/${section} açıldı`)
@@ -394,7 +476,9 @@ function ClassModal({ c, teachers, onClose }: { c: ClassRow | null; teachers: Pr
   return (
     <Modal
       title={c ? `${c.name} sınıfını düzenle` : 'Sınıf ekle'}
-      sub={c ? 'Düzey ya da şube değişirse öğrencilerin sınıf bilgisi de değişir.' : 'Kademe düzeyden otomatik belirlenir: 1–4 ilkokul, 5–8 ortaokul, 9–12 lise.'}
+      sub={
+        c ? 'Düzey ya da şube değişirse öğrencilerin sınıf bilgisi de değişir.' : 'Kademe düzeyden otomatik belirlenir: 1–4 ilkokul, 5–8 ortaokul, 9–12 lise.'
+      }
       onClose={onClose}
       footer={
         <>
@@ -410,7 +494,7 @@ function ClassModal({ c, teachers, onClose }: { c: ClassRow | null; teachers: Pr
       <div className="grid2">
         <label className="field" htmlFor="cGrade">
           Düzey
-          <select id="cGrade" value={grade} onChange={(e) => setGrade(Number(e.target.value))}>
+          <select aria-label="Düzey" id="cGrade" value={grade} onChange={(e) => setGrade(Number(e.target.value))}>
             {LEVELS.map((lv) => (
               <optgroup key={lv} label={LEVEL_TR[lv]}>
                 {Array.from({ length: 12 }, (_, i) => i + 1)
@@ -426,13 +510,25 @@ function ClassModal({ c, teachers, onClose }: { c: ClassRow | null; teachers: Pr
         </label>
         <label className="field" htmlFor="cSection">
           Şube
-          <select id="cSection" value={section} onChange={(e) => setSection(e.target.value)}>
+          <select aria-label="Şube" id="cSection" value={section} onChange={(e) => setSection(e.target.value)}>
             {HARF.map((h) => (
               <option key={h}>{h}</option>
             ))}
           </select>
         </label>
       </div>
+      {grade >= 11 && (
+        <label className="field" htmlFor="cTrack">
+          Alan
+          <select aria-label="Alan" id="cTrack" value={track} onChange={(e) => setTrack(e.target.value as typeof track)}>
+            <option value="">Henüz belirlenmedi</option>
+            <option value="SAY">SAY · Sayısal</option>
+            <option value="EA">EA · Eşit Ağırlık</option>
+            <option value="SOZ">SÖZ · Sözel</option>
+            <option value="DIL">DİL · Dil</option>
+          </select>
+        </label>
+      )}
       <label className="field" htmlFor="cTeacher">
         Sınıf öğretmeni (isteğe bağlı)
         <select id="cTeacher" value={teacher} onChange={(e) => setTeacher(e.target.value)}>
@@ -464,7 +560,11 @@ function Ogrenciler({ classes, profiles, students, links }: { classes: ClassRow[
   const archived = useQuery({
     queryKey: ['yonetim', 'arsiv'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('students').select('id, full_name, class_id, class_name, school_no, archived_at').not('archived_at', 'is', null).order('archived_at', { ascending: false })
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, full_name, class_id, class_name, school_no, archived_at')
+        .not('archived_at', 'is', null)
+        .order('archived_at', { ascending: false })
       if (error) throw error
       return data as (Stu & { archived_at: string })[]
     },
@@ -472,7 +572,9 @@ function Ogrenciler({ classes, profiles, students, links }: { classes: ClassRow[
   const reload = useReload()
   const toast = useToast()
   const needle = fold(q)
-  const list = (view === 'arsiv' ? (archived.data ?? []) : students).filter((s) => (cls === 'all' || s.class_id === cls) && (!needle || fold(s.full_name).includes(needle) || (s.school_no ?? '').includes(q.trim())))
+  const list = (view === 'arsiv' ? (archived.data ?? []) : students).filter(
+    (s) => (cls === 'all' || s.class_id === cls) && (!needle || fold(s.full_name).includes(needle) || (s.school_no ?? '').includes(q.trim())),
+  )
   const account = (sid: string) => profiles.find((p) => p.role === 'ogrenci' && p.student_id === sid && p.status === 'approved')
   return (
     <>
@@ -558,11 +660,22 @@ function Ogrenciler({ classes, profiles, students, links }: { classes: ClassRow[
           </div>
         ) : (
           <div className="empty" style={{ margin: 16 }}>
-            {view === 'arsiv' ? 'Arşivde öğrenci yok.' : students.length ? 'Bu filtrede öğrenci yok.' : 'Henüz öğrenci yok. Öğrenci ekleyebilir ya da kayıtları onaylayabilirsin.'}
+            {view === 'arsiv'
+              ? 'Arşivde öğrenci yok.'
+              : students.length
+                ? 'Bu filtrede öğrenci yok.'
+                : 'Henüz öğrenci yok. Öğrenci ekleyebilir ya da kayıtları onaylayabilirsin.'}
           </div>
         )}
       </section>
-      {edit && <StudentModal s={edit === 'new' ? null : edit} classes={classes} defaultClass={cls === 'all' ? classes.find((c) => c.active !== false)?.id : cls} onClose={() => setEdit(null)} />}
+      {edit && (
+        <StudentModal
+          s={edit === 'new' ? null : edit}
+          classes={classes}
+          defaultClass={cls === 'all' ? classes.find((c) => c.active !== false)?.id : cls}
+          onClose={() => setEdit(null)}
+        />
+      )}
       {arc && (
         <Confirm
           title={view === 'arsiv' ? 'Öğrenciyi arşivden çıkar' : 'Öğrenciyi arşivle'}
@@ -587,7 +700,8 @@ function Ogrenciler({ classes, profiles, students, links }: { classes: ClassRow[
             </>
           ) : (
             <>
-              <b>{arc.full_name}</b> ({arc.class_name}) listelerden, yoklamadan ve yeni ödevlerden kalkar. Hiçbir kayıt silinmez: denemeler, görüşmeler, raporlar ve veli bağları korunur; Arşiv görünümünden geri alınabilir. Mezun ya da nakil giden öğrenciler için silme yerine bunu kullan.
+              <b>{arc.full_name}</b> ({arc.class_name}) listelerden, yoklamadan ve yeni ödevlerden kalkar. Hiçbir kayıt silinmez: denemeler, görüşmeler,
+              raporlar ve veli bağları korunur; Arşiv görünümünden geri alınabilir. Mezun ya da nakil giden öğrenciler için silme yerine bunu kullan.
             </>
           )}
         </Confirm>
@@ -606,7 +720,8 @@ function Ogrenciler({ classes, profiles, students, links }: { classes: ClassRow[
             return null
           }}
         >
-          <b>{del.full_name}</b> ({del.class_name}) ve bütün kayıtları kalıcı olarak silinecek: deneme sonuçları, görevler, görüşmeler, notlar, raporlar, veli bağları. Öğrenci hesabı varsa onay bekleyen duruma döner.
+          <b>{del.full_name}</b> ({del.class_name}) ve bütün kayıtları kalıcı olarak silinecek: deneme sonuçları, görevler, görüşmeler, notlar, raporlar, veli
+          bağları. Öğrenci hesabı varsa onay bekleyen duruma döner.
         </ConfirmDelete>
       )}
     </>
@@ -650,7 +765,9 @@ function StudentModal({ s, classes, defaultClass, onClose }: { s: Stu | null; cl
     const nr = no.replace(/\D/g, '').slice(0, 10) || null
     setBusy(true)
     const row = { full_name: n, class_id: cls, school_no: nr }
-    const { error } = s ? await supabase.from('students').update(row).eq('id', s.id) : await supabase.from('students').insert({ ...row, school_id: profile!.school_id })
+    const { error } = s
+      ? await supabase.from('students').update(row).eq('id', s.id)
+      : await supabase.from('students').insert({ ...row, school_id: profile!.school_id })
     setBusy(false)
     if (error) return setErr(msg(error, `${nr} okul numarası başka bir öğrencide kayıtlı.`))
     toast(s ? `${n} güncellendi` : `${n} eklendi`)
@@ -660,7 +777,9 @@ function StudentModal({ s, classes, defaultClass, onClose }: { s: Stu | null; cl
   return (
     <Modal
       title={s ? 'Öğrenciyi düzenle' : 'Öğrenci ekle'}
-      sub={s ? 'Sınıfını değiştirerek öğrenciyi başka sınıfa taşıyabilirsin.' : 'Öğrenci hesabı gerekmez; öğrenci ve veli sonradan kayıt olup bu kayda bağlanır.'}
+      sub={
+        s ? 'Sınıfını değiştirerek öğrenciyi başka sınıfa taşıyabilirsin.' : 'Öğrenci hesabı gerekmez; öğrenci ve veli sonradan kayıt olup bu kayda bağlanır.'
+      }
       onClose={onClose}
       footer={
         <>
@@ -708,7 +827,8 @@ function Ogretmenler({ classes, profiles }: { classes: ClassRow[]; profiles: Pro
       <div className="card a" style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <Icon name="users" size={22} />
         <span style={{ flex: 1, fontSize: 14, minWidth: 240 }}>
-          <b>Öğretmen ekle</b> ile hesabı sen açarsın; öğretmene şifresini belirleyeceği bir davet e-postası gider. Öğretmen kendisi de <b>Kayıt ol → Öğretmen</b> ile başvurabilir; onu <Link to="/onaylar">Onaylar</Link>'dan onaylarsın.
+          <b>Öğretmen ekle</b> ile hesabı sen açarsın; öğretmene şifresini belirleyeceği bir davet e-postası gider. Öğretmen kendisi de{' '}
+          <b>Kayıt ol → Öğretmen</b> ile başvurabilir; onu <Link to="/onaylar">Onaylar</Link>'dan onaylarsın.
         </span>
         <button className="btn pri" onClick={() => setInvite(true)}>
           <Icon name="plus" size={18} stroke={2} /> Öğretmen ekle
@@ -736,8 +856,14 @@ function Ogretmenler({ classes, profiles }: { classes: ClassRow[]; profiles: Pro
                     </div>
                   </td>
                   <td>
-                    {t.role === 'admin' || t.roles?.includes('admin') ? ROLE_TR.admin : `${ROLE_TR[roleOf({ role: 'ogretmen', branch: t.branch })]} · ${t.branch}`}
-                    {isParentP(t) && <span className="chip n" style={{ marginLeft: 6 }}>+ Veli</span>}
+                    {t.role === 'admin' || t.roles?.includes('admin')
+                      ? ROLE_TR.admin
+                      : `${ROLE_TR[roleOf({ role: 'ogretmen', branch: t.branch })]} · ${t.branch}`}
+                    {isParentP(t) && (
+                      <span className="chip n" style={{ marginLeft: 6 }}>
+                        + Veli
+                      </span>
+                    )}
                   </td>
                   <td>
                     {classes
@@ -867,7 +993,8 @@ function CloseAccount({ p, onClose }: { p: Profile; onClose: () => void }) {
       }
     >
       <p style={{ fontSize: 14 }}>
-        {p.full_name} artık uygulamaya giremez; sınıf öğretmenliği varsa boşalır. Yazdığı notlar ve raporlar silinmez. Hesabı istediğin zaman <b>Kapalı hesaplar</b> bölümünden yeniden açabilirsin.
+        {p.full_name} artık uygulamaya giremez; sınıf öğretmenliği varsa boşalır. Yazdığı notlar ve raporlar silinmez. Hesabı istediğin zaman{' '}
+        <b>Kapalı hesaplar</b> bölümünden yeniden açabilirsin.
       </p>
       {err && (
         <div className="err" role="alert">
@@ -935,7 +1062,11 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
           }
         >
           <p style={{ margin: 0, fontSize: 14 }}>
-            <b>{unlinkReq.p.full_name}</b> ile <b>{stu(unlinkReq.sid)?.full_name} · {stu(unlinkReq.sid)?.class_name}</b> arasındaki veli bağlantısı kaldırılacak. Veli bu öğrencinin bilgilerini artık göremez. Gerekirse yeniden bağlayabilirsin.
+            <b>{unlinkReq.p.full_name}</b> ile{' '}
+            <b>
+              {stu(unlinkReq.sid)?.full_name} · {stu(unlinkReq.sid)?.class_name}
+            </b>{' '}
+            arasındaki veli bağlantısı kaldırılacak. Veli bu öğrencinin bilgilerini artık göremez. Gerekirse yeniden bağlayabilirsin.
           </p>
         </Modal>
       )}
@@ -944,14 +1075,29 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
           {veliler.map((p, i) => {
             const kids = links.filter((l) => l.parent_id === p.id)
             return (
-              <article key={p.id} className="card a" style={{ ['--d' as string]: Math.min(i, 6), padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }} data-testid="parent-row">
+              <article
+                key={p.id}
+                className="card a"
+                style={{ ['--d' as string]: Math.min(i, 6), padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}
+                data-testid="parent-row"
+              >
                 <div className="kv" style={{ flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <span className="av s">{initials(p.full_name)}</span>
                     <span>
                       <b style={{ display: 'block' }}>
                         {p.full_name}
-                        {(p.roles?.includes('admin') || p.role === 'admin') ? <span className="chip n" style={{ marginLeft: 6 }}>+ Yönetici</span> : isTeacherP(p) && <span className="chip n" style={{ marginLeft: 6 }}>+ Öğretmen</span>}
+                        {p.roles?.includes('admin') || p.role === 'admin' ? (
+                          <span className="chip n" style={{ marginLeft: 6 }}>
+                            + Yönetici
+                          </span>
+                        ) : (
+                          isTeacherP(p) && (
+                            <span className="chip n" style={{ marginLeft: 6 }}>
+                              + Öğretmen
+                            </span>
+                          )
+                        )}
                       </b>
                       <span className="m" style={{ fontSize: 13 }}>
                         {p.declared.relation ?? 'Veli'} · {p.email}
@@ -973,7 +1119,12 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
                   {kids.map((l) => (
                     <span key={l.student_id} className="chip up" style={{ paddingRight: 4 }}>
                       {stu(l.student_id)?.full_name} · {stu(l.student_id)?.class_name}
-                      <button className="xbtn" style={{ width: 22, height: 22 }} onClick={() => setUnlinkReq({ p, sid: l.student_id })} aria-label={`${stu(l.student_id)?.full_name} bağlantısını kaldır`}>
+                      <button
+                        className="xbtn"
+                        style={{ width: 22, height: 22 }}
+                        onClick={() => setUnlinkReq({ p, sid: l.student_id })}
+                        aria-label={`${stu(l.student_id)?.full_name} bağlantısını kaldır`}
+                      >
                         <Icon name="x" size={12} stroke={2.6} />
                       </button>
                     </span>

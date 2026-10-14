@@ -4,8 +4,26 @@
 import { matchStudent, type MatchResult, type RosterStudent } from './isim'
 import { resolveOptional, totals, validateResult, type ExamTemplate, type ExamType, type SectionResults, type YksPart } from './denemeGenel'
 
-export interface GenelSection { label: string; n: number; d: number; y: number; b: number; net: number }
-export interface GenelItem { label: string; section: string | null; booklet: string | null; q: number; testQ: number; key: string | null; answer: string | null; mark: string | null; rawCode: string | null; rawText: string | null }
+export interface GenelSection {
+  label: string
+  n: number
+  d: number
+  y: number
+  b: number
+  net: number
+}
+export interface GenelItem {
+  label: string
+  section: string | null
+  booklet: string | null
+  q: number
+  testQ: number
+  key: string | null
+  answer: string | null
+  mark: string | null
+  rawCode: string | null
+  rawText: string | null
+}
 export interface GenelRecord {
   page: number
   pages: number[]
@@ -17,7 +35,11 @@ export interface GenelRecord {
   items: GenelItem[]
   warnings: string[]
 }
-export interface Signal<T> { value: T; confidence: number; evidence: string[] }
+export interface Signal<T> {
+  value: T
+  confidence: number
+  evidence: string[]
+}
 export interface Detection {
   family: string
   format: string | null
@@ -31,7 +53,15 @@ export interface Detection {
   exam?: { title: string | null; code: string | null }
   wrongPerCorrect?: number
 }
-export interface GenelPack { engine: string; sha256: string; filename: string; pageCount?: number; detection: Detection; records: GenelRecord[]; failedPages: { page: number; error: string }[] }
+export interface GenelPack {
+  engine: string
+  sha256: string
+  filename: string
+  pageCount?: number
+  detection: Detection
+  records: GenelRecord[]
+  failedPages: { page: number; error: string }[]
+}
 
 // ---------------------------------------------------------------- bölüm etiketi → şablon bölümü
 const nl = (t: string) => t.toLocaleUpperCase('tr').replace(/[^A-ZÇĞİÖŞÜ0-9]/g, '')
@@ -39,15 +69,21 @@ const letters = (t: string) => nl(t).replace(/\d+$/, '')
 const digit = (t: string) => (nl(t).match(/(\d)$/) ?? [])[1] ?? ''
 
 export function mapSections(tpl: ExamTemplate, labels: string[]) {
-  const map: Record<string, string> = {}, unmapped: string[] = [], ambiguous: string[] = []
+  const map: Record<string, string> = {},
+    unmapped: string[] = [],
+    ambiguous: string[] = []
   for (const lab of labels) {
-    const base = letters(lab), num = digit(lab)
+    const base = letters(lab),
+      num = digit(lab)
     const exact = tpl.sections.filter((s) => nl(s.label) === nl(lab) || nl(s.key) === nl(lab))
-    const cands = exact.length ? exact : tpl.sections.filter((s) => {
-      const sb = letters(s.label), sn = digit(s.label) || digit(s.key)
-      const nameOk = sb.startsWith(base) || base.startsWith(sb) || (base.length >= 5 && sb.startsWith(base.slice(0, Math.max(5, base.length - 2))))
-      return nameOk && (num === sn || (num === '1' && sn === ''))
-    })
+    const cands = exact.length
+      ? exact
+      : tpl.sections.filter((s) => {
+          const sb = letters(s.label),
+            sn = digit(s.label) || digit(s.key)
+          const nameOk = sb.startsWith(base) || base.startsWith(sb) || (base.length >= 5 && sb.startsWith(base.slice(0, Math.max(5, base.length - 2))))
+          return nameOk && (num === sn || (num === '1' && sn === ''))
+        })
     // Aynı etikete birden çok bölüm uyuyorsa (ör. TYT "FELSEFE-1" ↔ Felsefe), rakamı tam uyan tercih edilir
     const pick = cands.length > 1 ? cands.filter((s) => (digit(s.label) || digit(s.key)) === num) : cands
     if (pick.length === 1) map[lab] = pick[0]!.key
@@ -102,19 +138,49 @@ export function buildGenelReview(pack: GenelPack, tpl: ExamTemplate, roster: Ros
     if (badItemSections.length) notes.push(`${badItemSections.join(', ')}: soru-kazanım bilgisi sonuçla tutarsız; bu bölümlerin kazanım analizi yapılmaz.`)
     const match = matchStudent({ name: r.student.name ?? '', number: r.student.number, class: r.student.class }, roster)
     const gradeMismatch = r.student.classGrade !== null && r.student.classGrade !== tpl.grade
-    return { key: `${pack.sha256.slice(0, 12)}-${i}`, page: r.page, read: r.student, match, choice: match.kind === 'unknown' ? null : { kind: 'student', id: match.id }, sections, errors, notes, badItemSections, gradeMismatch, record: r }
+    return {
+      key: `${pack.sha256.slice(0, 12)}-${i}`,
+      page: r.page,
+      read: r.student,
+      match,
+      choice: match.kind === 'unknown' ? null : { kind: 'student', id: match.id },
+      sections,
+      errors,
+      notes,
+      badItemSections,
+      gradeMismatch,
+      record: r,
+    }
   })
   // Aynı öğrenciye iki satır eşleşirse ikisi de karar ister
   const seen = new Map<string, GenelRow[]>()
   for (const row of rows) if (row.choice?.kind === 'student') seen.set(row.choice.id, [...(seen.get(row.choice.id) ?? []), row])
-  for (const list of seen.values()) if (list.length > 1) for (const row of list) { row.choice = null; row.match = { kind: 'unknown', candidates: [] }; row.notes.push('Aynı öğrenciye birden fazla sayfa eşleşti; seçim yap.') }
-  return { sha256: pack.sha256, filename: pack.filename, detection: pack.detection, template: tpl, sectionMap: map, mapErrors, rows, failedPages: pack.failedPages.map((f) => ({ ...f, skip: false })) }
+  for (const list of seen.values())
+    if (list.length > 1)
+      for (const row of list) {
+        row.choice = null
+        row.match = { kind: 'unknown', candidates: [] }
+        row.notes.push('Aynı öğrenciye birden fazla sayfa eşleşti; seçim yap.')
+      }
+  return {
+    sha256: pack.sha256,
+    filename: pack.filename,
+    detection: pack.detection,
+    template: tpl,
+    sectionMap: map,
+    mapErrors,
+    rows,
+    failedPages: pack.failedPages.map((f) => ({ ...f, skip: false })),
+  }
 }
 
 /** Karar bekleyen konu sayısı (0 olunca içe aktarma açılır). */
 export function genelPending(rv: GenelReview) {
   let n = rv.mapErrors.length + rv.failedPages.filter((f) => !f.skip).length
-  for (const r of rv.rows) { if (!r.choice) n++; else if (r.choice.kind !== 'skip' && r.errors.length) n++ }
+  for (const r of rv.rows) {
+    if (!r.choice) n++
+    else if (r.choice.kind !== 'skip' && r.errors.length) n++
+  }
   return n
 }
 
@@ -134,22 +200,38 @@ export interface ImportMeta {
 }
 
 /** Soru düzeyi: aynı deneme için ilk tutarlı kaydın anahtarı + kod/metin (soru ↔ kazanım denemenin özelliğidir). */
+export function recordBooklets(r: GenelRecord, map: Record<string, string>) {
+  const explicit = [...new Set(r.items.map((q) => q.booklet).filter(Boolean))]
+  const fallback = explicit.length === 1 ? explicit[0]! : 'A'
+  return Object.fromEntries(Object.entries(map).map(([lab, key]) => [key, r.items.find((q) => q.section === lab && q.booklet)?.booklet ?? fallback]))
+}
 export function examItems(rv: GenelReview) {
-  const out = new Map<string, { section_key: string; q_no: number; correct_answer: string | null; raw_code: string | null; raw_text: string | null }>()
+  const out = new Map<
+    string,
+    { section_key: string; q_no: number; booklet: string; correct_answer: string | null; raw_code: string | null; raw_text: string | null }
+  >()
   for (const row of rv.rows) {
     if (row.choice?.kind === 'skip') continue
     for (const q of row.record.items) {
       const key = q.section ? rv.sectionMap[q.section] : undefined
       if (!key || row.badItemSections.includes(key)) continue
-      const id = `${key}|${q.q}`
-      if (!out.has(id) && (q.rawCode || q.rawText || q.key)) out.set(id, { section_key: key, q_no: q.q, correct_answer: q.key, raw_code: q.rawCode, raw_text: q.rawText })
+      const booklet = recordBooklets(row.record, rv.sectionMap)[key] ?? 'A'
+      const id = `${key}|${booklet}|${q.q}`
+      if (!out.has(id) && (q.rawCode || q.rawText || q.key))
+        out.set(id, { section_key: key, q_no: q.q, booklet, correct_answer: q.key, raw_code: q.rawCode, raw_text: q.rawText })
     }
   }
   return [...out.values()]
 }
 
 const sourceKind = (rv: GenelReview) =>
-  rv.detection.family === 'MANUEL' ? ('manuel' as const) : rv.detection.family === 'TABLO' ? (/\.csv$|\.txt$/i.test(rv.filename) ? ('csv' as const) : ('excel' as const)) : ('pdf' as const)
+  rv.detection.family === 'MANUEL'
+    ? ('manuel' as const)
+    : rv.detection.family === 'TABLO'
+      ? /\.csv$|\.txt$/i.test(rv.filename)
+        ? ('csv' as const)
+        : ('excel' as const)
+      : ('pdf' as const)
 
 export function toImportPayload(rv: GenelReview, meta: ImportMeta) {
   const rows = rv.rows.filter((r) => r.choice && r.choice.kind !== 'skip' && !r.errors.length)
@@ -159,16 +241,38 @@ export function toImportPayload(rv: GenelReview, meta: ImportMeta) {
     filename: rv.filename,
     source_kind: sourceKind(rv),
     format_code: rv.detection.format,
-    detection: { family: rv.detection.family, confidence: rv.detection.confidence, grade: rv.detection.grade, examType: rv.detection.examType, publisher: rv.detection.publisher, evidence: rv.detection.evidence },
+    detection: {
+      family: rv.detection.family,
+      confidence: rv.detection.confidence,
+      grade: rv.detection.grade,
+      examType: rv.detection.examType,
+      publisher: rv.detection.publisher,
+      evidence: rv.detection.evidence,
+    },
     items: examItems(rv),
     results: rows.map((r) => ({
-      ...(r.choice!.kind === 'student' ? { student_id: r.choice!.id } : { new_student: { full_name: r.read.name ?? '', class_id: (r.choice as { class_id: string }).class_id, school_no: r.read.number } }),
+      ...(r.choice!.kind === 'student'
+        ? { student_id: r.choice!.id }
+        : { new_student: { full_name: r.read.name ?? '', class_id: (r.choice as { class_id: string }).class_id, school_no: r.read.number } }),
       score: r.record.score,
       sections: r.sections,
       answers: Object.fromEntries(
-        Object.entries(rv.sectionMap).map(([lab, key]) => [key, r.record.items.filter((q) => q.section === lab).sort((a, b) => a.q - b.q).map((q) => (q.mark === '+' ? (q.key ?? '?') : q.answer ? q.answer.toLowerCase() : '_')).join('')]),
+        Object.entries(rv.sectionMap).map(([lab, key]) => [
+          key,
+          r.record.items
+            .filter((q) => q.section === lab)
+            .sort((a, b) => a.q - b.q)
+            .map((q) => (q.mark === '+' ? (q.key ?? '?') : q.answer ? q.answer.toLowerCase() : '_'))
+            .join(''),
+        ]),
       ),
-      source: { page: r.page, pages: r.record.pages, format: rv.detection.format, scores: r.record.scores ?? null },
+      source: {
+        booklets: recordBooklets(r.record, rv.sectionMap),
+        page: r.page,
+        pages: r.record.pages,
+        format: rv.detection.format,
+        scores: r.record.scores ?? null,
+      },
     })),
   }
 }

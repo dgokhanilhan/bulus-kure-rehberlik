@@ -49,17 +49,24 @@ export function nameDistance(a: string, b: string) {
  * 4) Aksi halde kontrol ister; en yakın 3 aday önerilir.
  */
 export function matchStudent(read: { name: string; number?: string | null; class?: string | null }, roster: RosterStudent[]): MatchResult {
-  const cls = (read.class ?? '').toLocaleUpperCase('tr').replace(/\s/g, '')
+  const classKey = (value: string) => value.toLocaleUpperCase('tr').split('·')[0]!.replace(/\s/g, '')
+  const cls = classKey(read.class ?? '')
   const n = normName(read.name)
   const same = roster.filter((s) => normName(s.full_name) === n)
-  const sameCls = cls ? same.filter((s) => s.class_name.toLocaleUpperCase('tr').replace(/\s/g, '') === cls) : same
+  const sameCls = cls ? same.filter((s) => classKey(s.class_name) === cls) : same
   if (sameCls.length === 1) return { kind: 'exact', id: sameCls[0]!.id, via: 'name' }
   if (same.length === 1 && !cls) return { kind: 'exact', id: same[0]!.id, via: 'name' }
 
-  const pool = cls ? roster.filter((s) => s.class_name.toLocaleUpperCase('tr').replace(/\s/g, '') === cls) : roster
+  const pool = cls ? roster.filter((s) => classKey(s.class_name) === cls) : roster
   const ranked = pool.map((s) => ({ s, d: nameDistance(read.name, s.full_name) })).sort((a, b) => a.d - b.d)
   const best = ranked[0]
   const second = ranked[1]
   if (best && best.d <= 2 && n.length >= 6 && (!second || second.d - best.d >= 2)) return { kind: 'fixed', id: best.s.id, via: 'name' }
-  return { kind: 'unknown', candidates: ranked.slice(0, 3).filter((x) => x.d <= Math.max(4, n.length / 3)).map((x) => x.s.id) }
+  return {
+    kind: 'unknown',
+    candidates: ranked
+      .slice(0, 3)
+      .filter((x) => x.d <= Math.max(4, n.length / 3))
+      .map((x) => x.s.id),
+  }
 }

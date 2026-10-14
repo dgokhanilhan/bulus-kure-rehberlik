@@ -21,8 +21,18 @@ export function useGenelItems(enabled = true) {
     staleTime: 60_000,
     queryFn: () =>
       pages<ItemRow & { exams?: unknown }>((a, b) =>
-        supabase.from('exam_items').select('exam_id, section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title, outcome_type, curriculum_versions(curriculum_type)), exams!inner(exam_type, status)')
-          .neq('exams.exam_type', 'LGS').eq('exams.status', 'yayinda').order('exam_id').order('section_key').order('q_no').range(a, b),
+        supabase
+          .from('exam_items')
+          .select(
+            'exam_id, booklet, section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title, outcome_type, curriculum_versions(curriculum_type)), exams!inner(exam_type, status)',
+          )
+          .neq('exams.exam_type', 'LGS')
+          .eq('exams.status', 'yayinda')
+          .order('exam_id')
+          .order('section_key')
+          .order('q_no')
+          .order('booklet')
+          .range(a, b),
       ).then((rows) => rows.map(({ exams: _e, ...r }) => r as ItemRow)),
   })
 }
@@ -30,11 +40,16 @@ export function useGenelItems(enabled = true) {
 /** Genel bağlamın veri seti (5–7 okul denemeleri ya da 9–12 TYT/AYT); grade profil ve ders adları için. */
 export function useGenelContextDataset(kind: ExamCtxKind, fam: YksFamily, grade: number | null | undefined, enabled = true) {
   const on = enabled && kind !== 'LGS'
-  const ds = useGenelDataset(on), items = useGenelItems(on), tpls = useExamTemplates(), profiles = useExamProfiles()
+  const ds = useGenelDataset(on),
+    items = useGenelItems(on),
+    tpls = useExamTemplates(),
+    profiles = useExamProfiles()
   const data = useMemo(() => {
     if (!on || !ds.data || !items.data || !tpls.data) return undefined
     const exams = ds.data.exams.filter((e) => inContext(e, kind, fam))
-    const year = exams.length ? Number(exams.at(-1)!.exam_date.slice(0, 4)) - (Number(exams.at(-1)!.exam_date.slice(5, 7)) >= 9 ? 0 : 1) : new Date().getFullYear()
+    const year = exams.length
+      ? Number(exams.at(-1)!.exam_date.slice(0, 4)) - (Number(exams.at(-1)!.exam_date.slice(5, 7)) >= 9 ? 0 : 1)
+      : new Date().getFullYear()
     return genelDataset({ exams, results: ds.data.results, items: items.data, templates: tpls.data, profile: profileFor(profiles.data ?? [], grade, year) })
   }, [on, ds.data, items.data, tpls.data, profiles.data, kind, fam, grade])
   return { data, isLoading: on && (ds.isLoading || items.isLoading || tpls.isLoading), isError: ds.isError || items.isError }

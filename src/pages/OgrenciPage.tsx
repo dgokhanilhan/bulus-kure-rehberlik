@@ -1,10 +1,23 @@
+import { scoreText } from '@/lib/examScores'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { isFullAccess, ROLE_TR, roleOf } from '@/lib/roles'
 import { fmt, indexResults, outcomeCode, outcomeSourceLabel, repeats, studentExams, subjectOf, totalNet, type Subject } from '@/lib/analiz'
-import { useMeetings, useNotes, useParentLinks, usePeople, useRefresh, useReports, useStudents, useTasks, type Meeting, type Task, useModules } from '@/lib/data'
+import {
+  useMeetings,
+  useNotes,
+  useParentLinks,
+  usePeople,
+  useRefresh,
+  useReports,
+  useStudents,
+  useTasks,
+  type Meeting,
+  type Task,
+  useModules,
+} from '@/lib/data'
 import { ago, initials, todayISO, trD } from '@/lib/format'
 import { Icon } from '@/components/Icon'
 import { Seg, useIndicator } from '@/components/Indicator'
@@ -31,7 +44,11 @@ const TABS = [
 ] as const
 type Tab = (typeof TABS)[number][0]
 
-type ModalState = { t: 'task'; edit?: Task; preset?: { subject: Subject; code?: string } } | { t: 'meeting'; edit?: Meeting } | { t: 'exam'; eid: string } | null
+type ModalState =
+  | { t: 'task'; edit?: Task; preset?: { subject: Subject; code?: string } }
+  | { t: 'meeting'; edit?: Meeting }
+  | { t: 'exam'; eid: string }
+  | null
 
 const HIST_TR = { y: 'Yanlış', d: 'Doğru', b: 'Boş', o: 'Okunamadı', n: 'Soru yok', x: 'Girmedi' } as const
 
@@ -149,15 +166,27 @@ export default function OgrenciPage() {
             return null
           }}
         >
-          <b>{s.full_name}</b> ({s.class_name}) ve bütün kayıtları kalıcı olarak silinecek: deneme sonuçları, görevler, görüşmeler, notlar, raporlar ve veli bağlantıları.
-          Öğrencinin kendi hesabı silinmez; yeniden eşleştirilmek üzere onay bekleyen duruma döner.
+          <b>{s.full_name}</b> ({s.class_name}) ve bütün kayıtları kalıcı olarak silinecek: deneme sonuçları, görevler, görüşmeler, notlar, raporlar ve veli
+          bağlantıları. Öğrencinin kendi hesabı silinmez; yeniden eşleştirilmek üzere onay bekleyen duruma döner.
         </ConfirmDelete>
       )}
 
       {dsq.kind !== 'LGS' && (
         <div className="kv a" style={{ ['--d' as string]: 2, alignItems: 'center' }} data-testid="sinav-baglami">
           <h2 className="sec">{dsq.title}</h2>
-          {yks && <Seg label="YKS oturumu" value={dsq.fam} onChange={dsq.setFam} options={[['TYT', 'TYT'], ['AYT', 'AYT']] as const} />}
+          {yks && (
+            <Seg
+              label="YKS oturumu"
+              value={dsq.fam}
+              onChange={dsq.setFam}
+              options={
+                [
+                  ['TYT', 'TYT'],
+                  ['AYT', 'AYT'],
+                ] as const
+              }
+            />
+          )}
         </div>
       )}
       <div className="stats">
@@ -166,9 +195,15 @@ export default function OgrenciPage() {
             Puan{L ? ` · ${L.exam.name}` : ''}
           </span>
           <span className="big" style={{ fontSize: 27 }}>
-            {L?.result.score != null ? fmt(L.result.score) : '—'}
+            {L ? scoreText(L.result) : '—'}
           </span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: scoreDelta != null && scoreDelta < 0 ? 'var(--signal)' : scoreDelta != null ? 'var(--primary)' : 'var(--ink-muted)' }}>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: scoreDelta != null && scoreDelta < 0 ? 'var(--signal)' : scoreDelta != null ? 'var(--primary)' : 'var(--ink-muted)',
+            }}
+          >
             {scoreDelta != null ? `${scoreDelta >= 0 ? '↑' : '↓'} ${fmt(Math.abs(scoreDelta))}` : '—'}
           </span>
         </div>
@@ -201,7 +236,9 @@ export default function OgrenciPage() {
           <span className="big" style={{ fontSize: 27 }}>
             {openT.length}
           </span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: lateAny ? 'var(--signal)' : 'var(--ink-muted)' }}>{lateAny ? '↓ Gecikmiş var' : 'Zamanında'}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: lateAny ? 'var(--signal)' : 'var(--ink-muted)' }}>
+            {lateAny ? '↓ Gecikmiş var' : 'Zamanında'}
+          </span>
         </div>
       </div>
 
@@ -238,25 +275,50 @@ export default function OgrenciPage() {
               Dersler · son deneme
             </h2>
             {L ? (
-              ds.subjects.filter((d) => dsq.kind === 'LGS' || L.result.subjects[d.code] != null).map((d) => {
-                const n = L.result.subjects[d.code]?.net ?? 0
-                const pv = P?.result.subjects[d.code]?.net
-                const df = pv == null ? 0 : n - pv
-                return (
-                  <div key={d.code} style={{ display: 'grid', gridTemplateColumns: '96px minmax(0,1fr) 54px 56px', gap: 10, alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--line)' }}>
-                    <span style={{ fontSize: 14 }} title={d.ad}>{d.short}</span>
-                    <div className="prog" style={{ height: 8 }}>
-                      <i className="bar-g" style={{ width: `${(Math.max(0, n) / (d.q || 1)) * 100}%`, ...(df < -1 ? { background: 'var(--signal)' } : {}) }} />
+              ds.subjects
+                .filter((d) => dsq.kind === 'LGS' || L.result.subjects[d.code] != null)
+                .map((d) => {
+                  const n = L.result.subjects[d.code]?.net ?? 0
+                  const pv = P?.result.subjects[d.code]?.net
+                  const df = pv == null ? 0 : n - pv
+                  return (
+                    <div
+                      key={d.code}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '96px minmax(0,1fr) 54px 56px',
+                        gap: 10,
+                        alignItems: 'center',
+                        padding: '7px 0',
+                        borderBottom: '1px solid var(--line)',
+                      }}
+                    >
+                      <span style={{ fontSize: 14 }} title={d.ad}>
+                        {d.short}
+                      </span>
+                      <div className="prog" style={{ height: 8 }}>
+                        <i
+                          className="bar-g"
+                          style={{ width: `${(Math.max(0, n) / (d.q || 1)) * 100}%`, ...(df < -1 ? { background: 'var(--signal)' } : {}) }}
+                        />
+                      </div>
+                      <span className="mono" style={{ textAlign: 'right', fontSize: 14 }}>
+                        {fmt(n, 2)}
+                      </span>
+                      <span
+                        className="mono"
+                        style={{
+                          textAlign: 'right',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: df < -1 ? 'var(--signal)' : df > 1 ? 'var(--primary)' : 'var(--ink-muted)',
+                        }}
+                      >
+                        {pv == null ? '' : `${df > 0 ? '↑' : df < 0 ? '↓' : ''}${fmt(Math.abs(df))}`}
+                      </span>
                     </div>
-                    <span className="mono" style={{ textAlign: 'right', fontSize: 14 }}>
-                      {fmt(n, 2)}
-                    </span>
-                    <span className="mono" style={{ textAlign: 'right', fontSize: 13, fontWeight: 600, color: df < -1 ? 'var(--signal)' : df > 1 ? 'var(--primary)' : 'var(--ink-muted)' }}>
-                      {pv == null ? '' : `${df > 0 ? '↑' : df < 0 ? '↓' : ''}${fmt(Math.abs(df))}`}
-                    </span>
-                  </div>
-                )
-              })
+                  )
+                })
             ) : (
               <div className="empty">{yks ? `${dsq.fam} denemesi yok` : 'Deneme yok'}</div>
             )}
@@ -293,7 +355,7 @@ export default function OgrenciPage() {
                       </td>
                       <td>{trD(exam.exam_date)}</td>
                       <td className="num">{fmt(totalNet(result), 2)}</td>
-                      <td className="num">{result.score != null ? fmt(result.score) : '—'}</td>
+                      <td className="num">{scoreText(result)}</td>
                       <td>
                         <div className="btns" style={{ justifyContent: 'flex-end' }}>
                           {F ? (
@@ -343,7 +405,10 @@ export default function OgrenciPage() {
                   {weaknesses.map((k) => (
                     <tr key={k.outcome.code}>
                       <td>
-                        <b>{k.outcome.title}</b><div className="m" style={{fontSize:12}}>{outcomeSourceLabel(k.outcome)}</div>{' '}
+                        <b>{k.outcome.title}</b>
+                        <div className="m" style={{ fontSize: 12 }}>
+                          {outcomeSourceLabel(k.outcome)}
+                        </div>{' '}
                         <span className="m mono" style={{ fontSize: 12 }}>
                           {outcomeCode(k.outcome)}
                         </span>
@@ -352,7 +417,14 @@ export default function OgrenciPage() {
                       <td>
                         <div className="hist">
                           {k.hist.map((h, i) => (
-                            <i key={i} role="img" className={`h-${h === 'x' ? 'n' : h} pp`} style={{ ['--d' as string]: i }} title={`${ex[i]?.exam.name}: ${HIST_TR[h]}`} aria-label={`${ex[i]?.exam.name}: ${HIST_TR[h]}`} />
+                            <i
+                              key={i}
+                              role="img"
+                              className={`h-${h === 'x' ? 'n' : h} pp`}
+                              style={{ ['--d' as string]: i }}
+                              title={`${ex[i]?.exam.name}: ${HIST_TR[h]}`}
+                              aria-label={`${ex[i]?.exam.name}: ${HIST_TR[h]}`}
+                            />
                           ))}
                         </div>
                       </td>
@@ -373,7 +445,14 @@ export default function OgrenciPage() {
             </div>
           ) : (
             <div className="empty" style={{ margin: 16 }}>
-              {!ex.length && yks ? none : <>Güvenilir hedef bilgisiyle belirlenen yanlış konu yok{ex.length && ex.every((x) => !x.result.outcomes_ok) ? ' · bu öğrencinin konu bilgisi okunamadı' : ''}.</>}
+              {!ex.length && yks ? (
+                none
+              ) : (
+                <>
+                  Güvenilir hedef bilgisiyle belirlenen yanlış konu yok
+                  {ex.length && ex.every((x) => !x.result.outcomes_ok) ? ' · bu öğrencinin konu bilgisi okunamadı' : ''}.
+                </>
+              )}
             </div>
           )}
           <div className="legend" style={{ padding: '12px 16px', borderTop: '1px solid var(--line)' }}>
@@ -403,13 +482,25 @@ export default function OgrenciPage() {
         </>
       )}
 
-      {tab === 'gorusmeler' && <MeetingsTab sid={s.id} F={F} name={s.full_name} onPlan={() => setModal({ t: 'meeting' })} onChange={(g) => setModal({ t: 'meeting', edit: g })} />}
+      {tab === 'gorusmeler' && (
+        <MeetingsTab sid={s.id} F={F} name={s.full_name} onPlan={() => setModal({ t: 'meeting' })} onChange={(g) => setModal({ t: 'meeting', edit: g })} />
+      )}
       {tab === 'notlar' && <NotesTab sid={s.id} F={F} />}
       {tab === 'devamsizlik' && <DevamsizlikTab s={s} />}
       {tab === 'raporlar' && <ReportsTab sid={s.id} examName={(eid) => ds.exams.find((e) => e.id === eid)?.name ?? ''} />}
 
       {modal?.t === 'task' && (
-        <TaskModal student={s} subjects={ds.subjects} outcomes={ds.outcomes} usedCodes={used} repeats={rep} openTasks={openT} edit={modal.edit} preset={modal.preset} onClose={() => setModal(null)} />
+        <TaskModal
+          student={s}
+          subjects={ds.subjects}
+          outcomes={ds.outcomes}
+          usedCodes={used}
+          repeats={rep}
+          openTasks={openT}
+          edit={modal.edit}
+          preset={modal.preset}
+          onClose={() => setModal(null)}
+        />
       )}
       {modal?.t === 'meeting' && <MeetingModal student={s} edit={modal.edit} hasParent={hasParent} onClose={() => setModal(null)} />}
       {modal?.t === 'exam' &&
@@ -417,7 +508,17 @@ export default function OgrenciPage() {
           const i = ex.findIndex((x) => x.exam.id === modal.eid)
           const cur = ex[i]
           if (!cur) return null
-          return <ExamModal ds={ds} exam={cur.exam} result={cur.result} prev={ex[i - 1]?.result} studentName={s.full_name} onClose={() => setModal(null)} onReport={F ? (t) => (setModal(null), openReport({ type: t, sid: s.id, eid: cur.exam.id })) : undefined} />
+          return (
+            <ExamModal
+              ds={ds}
+              exam={cur.exam}
+              result={cur.result}
+              prev={ex[i - 1]?.result}
+              studentName={s.full_name}
+              onClose={() => setModal(null)}
+              onReport={F ? (t) => (setModal(null), openReport({ type: t, sid: s.id, eid: cur.exam.id })) : undefined}
+            />
+          )
         })()}
     </>
   )
@@ -512,7 +613,12 @@ function NotesTab({ sid, F }: { sid: string; F: boolean }) {
         notes.data.map((n, i) => {
           const a = author(n.author_id)
           return (
-            <article key={n.id} className="card a" data-testid="note" style={{ ['--d' as string]: i + 4, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <article
+              key={n.id}
+              className="card a"
+              data-testid="note"
+              style={{ ['--d' as string]: i + 4, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}
+            >
               <div className="kv">
                 <b style={{ fontSize: 14 }}>
                   {a.name}{' '}

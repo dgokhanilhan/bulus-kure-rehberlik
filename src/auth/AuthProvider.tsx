@@ -65,6 +65,7 @@ interface AuthState {
   switchStudent: (id: string) => void
   /** Oturumun mevcut güvence seviyesi: aal2 = TOTP doğrulandı. */
   aal: 'aal1' | 'aal2' | null
+  nextAal?: 'aal1' | 'aal2'
   /** Davet/sıfırlama bağlantısıyla gelindi: önce şifre belirlenir. */
   needPassword: boolean
   passwordSet: () => void
@@ -101,7 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const expected = sessionStorage.getItem(PW_FLAG)
         if (expected && data.session?.user.id === expected) setNeedPassword(true)
         else sessionStorage.removeItem(PW_FLAG)
-      } catch { /* depolama kapalı */ }
+      } catch {
+        /* depolama kapalı */
+      }
       setSession(data.session)
       setLoaded(true)
     })
@@ -110,11 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'PASSWORD_RECOVERY') setNeedPassword(true)
       if (event === 'SIGNED_OUT') {
         setNeedPassword(false)
-        try { sessionStorage.removeItem(PW_FLAG) } catch { /* depolama kapalı */ }
+        try {
+          sessionStorage.removeItem(PW_FLAG)
+        } catch {
+          /* depolama kapalı */
+        }
         clearRoleChoice()
         qc.clear()
       }
-      if (event === 'MFA_CHALLENGE_VERIFIED') {
+      if (event === 'MFA_CHALLENGE_VERIFIED' || event === 'USER_UPDATED') {
         // MFA öncesinde boş dönen okul/öğrenci sorguları yeni yetkiyle yeniden alınır.
         qc.invalidateQueries()
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -137,18 +144,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ])
       if (error) throw error
       const list = (roles ?? []).map((r) => r.role as DbRole)
-      return { profile: profile ? { ...profile, roles: list.length ? list : [profile.role] } : null, aal: (aal?.currentLevel ?? 'aal1') as 'aal1' | 'aal2' }
+      return {
+        profile: profile ? { ...profile, roles: list.length ? list : [profile.role] } : null,
+        nextAal: aal?.nextLevel === 'aal2' ? ('aal2' as const) : ('aal1' as const),
+        aal: (aal?.currentLevel ?? 'aal1') as 'aal1' | 'aal2',
+      }
     },
   })
 
   const base = me.data?.profile ?? null
   const roles = base?.roles ?? []
-  const available = (['admin', 'ogretmen', 'veli', 'ogrenci'] as SwitchRole[]).filter(r => roles.includes(r))
+  const available = (['admin', 'ogretmen', 'veli', 'ogrenci'] as SwitchRole[]).filter((r) => roles.includes(r))
   const switchable: SwitchRole[] = available.length > 1 ? available : []
   const [picked, setPicked] = useState<{ uid: string; role: SwitchRole } | null>(null)
   const choice = uid ? (picked?.uid === uid ? picked.role : readChoice(uid)) : null
   const active = switchable.length && choice && switchable.includes(choice) ? choice : null
-  const profile = base ? { ...base, role: active ?? (roles.includes('admin') ? 'admin' as const : base.role) } : null
+  const profile = base ? { ...base, role: active ?? (roles.includes('admin') ? ('admin' as const) : base.role) } : null
   // Veli modunda bağlı çocuklar: yetki parent_links + RLS'te; burada yalnız seçim ekranı ve doğrulama için okunur
   const asParent = profile?.role === 'veli' && profile.status === 'approved'
   const kids = useQuery({
@@ -208,6 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPicked({ uid, role: r })
     },
     aal: me.data?.aal ?? null,
+    nextAal: me.data?.nextAal ?? 'aal1',
     needPassword,
     passwordSet: () => {
       try {
@@ -236,7 +248,7 @@ export function gateOf(a: AuthState): Gate {
   if (a.profile.status !== 'approved') return 'pending'
   // Yöneticinin davetiyle açılan hesap KVKK metnini ilk girişte onaylar (0017)
   if (a.profile.invited_at && !a.profile.consent_version) return 'consent'
-  if ((a.profile.role === 'admin' || a.roles.includes('admin')) && a.aal !== 'aal2') return 'mfa'
+  if ((a.profile.role === 'admin' || a.roles.includes('admin') || a.nextAal === 'aal2') && a.aal !== 'aal2') return 'mfa'
   if (a.needRole) return 'rol'
   if (a.needStudent) return 'cocuk'
   return 'app'

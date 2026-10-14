@@ -22,7 +22,7 @@ test('toplu kazanım eşleme: müfredat, seçim, belirsizlik ve kısmi hata sonr
       expect(url.searchParams.get('curriculum_version_id')).not.toContain('44444444')
       return json(outcomes)
     }
-    if (path.endsWith('/rpc/set_item_outcome')) {
+    if (path.endsWith('/rpc/set_booklet_item_outcome')) {
       const body = route.request().postDataJSON(); calls.push(body.p_q)
       expect(body.p_alias).toBe(false)
       if (body.p_q === 2 && !failed) { failed = true; return json({ message: 'Geçici kayıt hatası', code: 'XX000' }, 400) }

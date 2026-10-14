@@ -1,3 +1,4 @@
+import { readPreference } from '@/lib/preferences'
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -46,9 +47,7 @@ export function SchoolRoleAdmin({ profiles }: { profiles: Profile[] }) {
       return data
     },
   })
-  const eligible = profiles.filter(
-    (p) => p.status === 'approved' && (p.role === 'admin' || p.roles?.includes('ogretmen') || p.role === 'ogretmen')
-  )
+  const eligible = profiles.filter((p) => p.status === 'approved' && (p.role === 'admin' || p.roles?.includes('ogretmen') || p.role === 'ogretmen'))
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
   function edit(r: SchoolRole) {
     setId(r.id)
@@ -76,8 +75,8 @@ export function SchoolRoleAdmin({ profiles }: { profiles: Profile[] }) {
     <section className="card stack" style={{ padding: 18 }} aria-label="Özel okul rolleri">
       <h3>Kurucu, müdür ve özel okul rolleri</h3>
       <p className="m">
-        Bu roller seçtiğin okul bilgilerini Okul yönetimi ekranında görüntüler. Mevcut öğretmen/veli rolünü değiştirmez; rehberlik
-        notlarına, mesajlara veya kayıt değiştirme yetkisine erişim vermez. Hesabı önce Öğretmenler bölümünden davet edebilirsin.
+        Bu roller seçtiğin okul bilgilerini Okul yönetimi ekranında görüntüler. Mevcut öğretmen/veli rolünü değiştirmez; rehberlik notlarına, mesajlara veya
+        kayıt değiştirme yetkisine erişim vermez. Hesabı önce Öğretmenler bölümünden davet edebilirsin.
       </p>
       {roles.isError || assigned.isError ? (
         <p role="alert">Rol bilgileri yüklenemedi. Veritabanı güncellemesini kontrol et.</p>
@@ -149,9 +148,7 @@ export function SchoolRoleAdmin({ profiles }: { profiles: Profile[] }) {
             </label>
           ))}
       </fieldset>
-      <p className="m">
-        Bir yetkiyi kaldırmak veya kullanıcı seçimini kaldırmak, özel rolün erişimini kapatır. Başka rollerde verilen yetkiler korunur.
-      </p>
+      <p className="m">Bir yetkiyi kaldırmak veya kullanıcı seçimini kaldırmak, özel rolün erişimini kapatır. Başka rollerde verilen yetkiler korunur.</p>
       <button
         className="btn pri"
         disabled={busy || name.trim().length < 2 || roles.isLoading || assigned.isLoading || roles.isError || assigned.isError}
@@ -219,27 +216,15 @@ export function AppearanceSettings() {
       </div>
       <label className="field">
         Üst çubuk alt başlığı
-        <input
-          maxLength={120}
-          value={String(form['genel.alt_baslik'])}
-          onChange={(e) => setForm({ ...form, 'genel.alt_baslik': e.target.value })}
-        />
+        <input maxLength={120} value={String(form['genel.alt_baslik'])} onChange={(e) => setForm({ ...form, 'genel.alt_baslik': e.target.value })} />
       </label>
       <label className="field">
         Ana sayfa karşılama mesajı
-        <textarea
-          maxLength={250}
-          value={String(form['okul.karsilama'])}
-          onChange={(e) => setForm({ ...form, 'okul.karsilama': e.target.value })}
-        />
+        <textarea maxLength={250} value={String(form['okul.karsilama'])} onChange={(e) => setForm({ ...form, 'okul.karsilama': e.target.value })} />
       </label>
       <label>
-        <input
-          type="checkbox"
-          checked={Boolean(form['gorunum.hareket'])}
-          onChange={(e) => setForm({ ...form, 'gorunum.hareket': e.target.checked })}
-        />{' '}
-        Geçiş animasyonları (cihazın azaltılmış hareket tercihi önceliklidir)
+        <input type="checkbox" checked={Boolean(form['gorunum.hareket'])} onChange={(e) => setForm({ ...form, 'gorunum.hareket': e.target.checked })} /> Geçiş
+        animasyonları (cihazın azaltılmış hareket tercihi önceliklidir)
       </label>
       <div className="btns">
         <button className="btn" disabled={busy} onClick={() => setForm({ ...DEFAULTS })}>
@@ -254,6 +239,13 @@ export function AppearanceSettings() {
 }
 export function SchoolAppearance() {
   const settings = useSettings()
+  const { session } = useAuth()
+  const [prefVersion, setPrefVersion] = useState(0)
+  useEffect(() => {
+    const update = () => setPrefVersion((v) => v + 1)
+    window.addEventListener('bk-preferences', update)
+    return () => window.removeEventListener('bk-preferences', update)
+  }, [])
   useEffect(() => {
     const root = document.documentElement
     for (const [key, attr] of [
@@ -265,15 +257,18 @@ export function SchoolAppearance() {
       ['gorunum.kose', 'corners'],
       ['gorunum.hareket', 'motion'],
     ] as const) {
-      const value = settings.data?.[key] ?? DEFAULTS[key]
+      const personal =
+        session?.user.id && (key === 'gorunum.tema' || key === 'gorunum.yazi')
+          ? readPreference(session.user.id, key === 'gorunum.tema' ? 'theme' : 'text')
+          : null
+      const value = personal && personal !== 'school' ? personal : (settings.data?.[key] ?? DEFAULTS[key])
       if (key === 'gorunum.tema' && value === 'auto') root.removeAttribute(`data-${attr}`)
       else root.setAttribute(`data-${attr}`, String(value))
     }
     return () => {
-      for (const attr of ['theme', 'accent', 'text-size', 'density', 'card-title', 'corners', 'motion'])
-        root.removeAttribute(`data-${attr}`)
+      for (const attr of ['theme', 'accent', 'text-size', 'density', 'card-title', 'corners', 'motion']) root.removeAttribute(`data-${attr}`)
     }
-  }, [settings.data])
+  }, [settings.data, session?.user.id, prefVersion])
   return null
 }
 
@@ -293,8 +288,8 @@ export default function SchoolOverview() {
     <div className="stack">
       <h1>Okul yönetimi</h1>
       <p className="m">
-        {role === 'admin' ? 'Yönetici' : roles.data?.map((r) => r.name).join(' · ')} — Yetkilerin kapsamındaki okul bilgileri. Kişisel
-        rehberlik notları ve yazışmalar bu ekranda yer almaz.
+        {role === 'admin' ? 'Yönetici' : roles.data?.map((r) => r.name).join(' · ')} — Yetkilerin kapsamındaki okul bilgileri. Kişisel rehberlik notları ve
+        yazışmalar bu ekranda yer almaz.
       </p>
       {data.isLoading ? (
         <p>Yükleniyor…</p>
