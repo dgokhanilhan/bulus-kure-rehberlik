@@ -99,11 +99,11 @@ it('eksik PDF bilgileri eklenir; puan/net/DYB ve sonuç kimliği aynı kalır; t
 it('PDF çift/geçersiz işareti yanlış durumuna aktarılır; şık ve sayısal sonuç uydurulmaz', async () => {
   const before = (await svc.from('exam_results').select('score,subjects,total_net,success_pct').eq('exam_id', exam)).data
   const p = payload()
-  p.results[0].answers.MAT = 'B*'
+  p.results[0]!.answers.MAT = 'B*'
   expect((await admin.rpc('repair_exam_pdf', { p_exam: exam, p })).error).toBeNull()
   expect((await svc.from('exam_results').select('answers').eq('exam_id', exam).single()).data!.answers).toEqual({ MAT: 'Bx' })
   expect((await svc.from('exam_results').select('score,subjects,total_net,success_pct').eq('exam_id', exam)).data).toEqual(before)
-  p.results[0].answers.MAT = 'B?'
+  p.results[0]!.answers.MAT = 'B?'
   expect((await admin.rpc('repair_exam_pdf', { p_exam: exam, p })).error).not.toBeNull()
   expect((await anon().rpc('pdf_status_answers', { p: { MAT: 'B*' } })).error).not.toBeNull()
 })
