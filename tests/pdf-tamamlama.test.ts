@@ -96,6 +96,17 @@ it('eksik PDF bilgileri eklenir; puan/net/DYB ve sonuç kimliği aynı kalır; t
   expect(r.source.scores).toEqual({ SAY: 312.985, EA: 263.056, SOZ: 327.917 })
   expect(r.answers).toEqual({ MAT: 'Bc' })
 })
+it('PDF çift/geçersiz işareti yanlış durumuna aktarılır; şık ve sayısal sonuç uydurulmaz', async () => {
+  const before = (await svc.from('exam_results').select('score,subjects,total_net,success_pct').eq('exam_id', exam)).data
+  const p = payload()
+  p.results[0]!.answers.MAT = 'B*'
+  expect((await admin.rpc('repair_exam_pdf', { p_exam: exam, p })).error).toBeNull()
+  expect((await svc.from('exam_results').select('answers').eq('exam_id', exam).single()).data!.answers).toEqual({ MAT: 'Bx' })
+  expect((await svc.from('exam_results').select('score,subjects,total_net,success_pct').eq('exam_id', exam)).data).toEqual(before)
+  p.results[0]!.answers.MAT = 'B?'
+  expect((await admin.rpc('repair_exam_pdf', { p_exam: exam, p })).error).not.toBeNull()
+  expect((await anon().rpc('pdf_status_answers', { p: { MAT: 'B*' } })).error).not.toBeNull()
+})
 it('Alan yalnız 11–12 için geçerli; sınıf adı alanı içerir', async () => {
   const c = await admin.from('classes').insert({ school_id: school, grade: 11, section: 'Z', track: 'SAY' }).select('*').single()
   expect(c.error).toBeNull()
