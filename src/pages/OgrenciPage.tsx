@@ -1,3 +1,4 @@
+import { ScoreCards } from '@/components/ScoreCards'
 import { scoreText } from '@/lib/examScores'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
@@ -189,14 +190,12 @@ export default function OgrenciPage() {
           )}
         </div>
       )}
-      <div className="stats">
+      <div className={`stats${Object.keys(L?.result.scores ?? {}).length ? ' has-field-scores' : ''}`}>
         <div className="card stat a lift" style={{ ['--d' as string]: 2 }}>
           <span className="m" style={{ fontSize: 13 }}>
             Puan{L ? ` · ${L.exam.name}` : ''}
           </span>
-          <span className="big" style={{ fontSize: 27 }}>
-            {L ? scoreText(L.result) : '—'}
-          </span>
+          <ScoreCards score={L?.result.score ?? null} scores={L?.result.scores} compact={!Object.keys(L?.result.scores ?? {}).length} />
           <span
             style={{
               fontSize: 13,
@@ -261,7 +260,7 @@ export default function OgrenciPage() {
               </span>
             </div>
             <div style={{ overflowX: 'auto' }}>
-              <div style={{ minWidth: 460 }}>
+              <div>
                 {ex.length ? (
                   <LineChart values={nets} labels={ex.map((x) => x.exam.name)} avg onSelect={(i) => setModal({ t: 'exam', eid: ex[i]!.exam.id })} />
                 ) : (

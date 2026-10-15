@@ -1,3 +1,5 @@
+import { AnalysisDisclosure } from './AnalysisDisclosure'
+import { ScoreCards } from './ScoreCards'
 import { SUBJECTS, fmt, subjectOf, totalNet, wrongOutcomes, type Dataset, type Exam, type Result } from '@/lib/analiz'
 import { trD } from '@/lib/format'
 import { Modal } from './Modal'
@@ -10,7 +12,7 @@ export function ExamModal({ ds, exam, result, prev, studentName, onClose, onRepo
     <Modal
       title={`${exam.name} · ${studentName}`}
       sub={sub}
-      width={720}
+      width={920}
       onClose={onClose}
       footer={
         <>
@@ -30,7 +32,9 @@ export function ExamModal({ ds, exam, result, prev, studentName, onClose, onRepo
         </>
       }
     >
-      <div className="tbl">
+      <ScoreCards score={result.score} scores={result.scores} />
+      <h3 className="sec">Ders sonuçları</h3>
+      <div className="tbl result-table" role="region" aria-label="Ders sonuçları" tabIndex={0}>
         <table>
           <thead>
             <tr>
@@ -62,25 +66,24 @@ export function ExamModal({ ds, exam, result, prev, studentName, onClose, onRepo
           </tbody>
         </table>
       </div>
-      <div className="stack" style={{ gap: 6 }}>
-        <span className="label">Yanlış yapılan konular</span>
+      <AnalysisDisclosure title="Yanlış yapılan konular" count={wrong.length}>
         {wrong.length ? (
-          <div className="btns">
-            {wrong.map((o) => (
-              <span className="chip down" key={o.code}>
-                {subjectOf(ds, o.subject).short} · {o.title}
-              </span>
-            ))}
+          <div className="outcome-groups">
+            {[...new Set(wrong.map(o => o.subject))].map(subject => {
+              const targets = wrong.filter(o => o.subject === subject)
+              return <details className="outcome-group" key={subject}>
+                <summary><strong>{subjectOf(ds, subject).ad}</strong><span className="chip down">{targets.length} konu</span></summary>
+                <ul>{targets.map(o => <li key={o.code}><span>{o.title}</span><small className="m">{o.source === 'pdf' ? 'Okulun PDF’den eklediği hedef' : 'Resmî program hedefi'}</small></li>)}</ul>
+              </details>
+            })}
           </div>
-        ) : (
-          <span className="m">Güvenilir konu verisinde yanlış yok.</span>
-        )}
+        ) : <p className="m">Güvenilir konu verisinde yanlış yok.</p>}
         {unreadable && (
           <span className="m" style={{ fontSize: 13 }}>
             Bu denemenin bazı konu bilgileri okunamadı; bunlar tahmin edilmez.
           </span>
         )}
-      </div>
+      </AnalysisDisclosure>
     </Modal>
   )
 }
