@@ -4,6 +4,7 @@
 -- DİKKAT: Kaydedilmiş gözetmen görevleri (geçmiş dahil) silinir. Gerekirse önce Gözetmen Bul → Geçmiş'ten PDF'leri indir.
 -- Ön yüz: src/pages/GozetmenPage.tsx, src/pages/Gozetmen.css, src/lib/gozetmen.ts, src/lib/gozetmen.test.ts,
 -- src/lib/gozetmenPdf.tsx dosyalarını sil; src/lib/roles.ts ve src/App.tsx içindeki 'gozetmen' satırlarını kaldır.
+drop table if exists gozetmen_haric; -- 0049
 drop function if exists gozetmen_kaydet(uuid, jsonb, boolean);
 drop table if exists gozetmen_gorevler;
 drop table if exists gozetmen_siniflar;

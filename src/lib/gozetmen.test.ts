@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addMin, oneri, presetOturumlar, sorunlar, uygunluk, type DersSatiri, type Gorev, type Oturum, type Uygunluk } from './gozetmen'
+import { addMin, dersOgretmeniAta, kadro, oneri, presetOturumlar, sorunlar, uygunluk, type DersSatiri, type Gorev, type Oturum, type Uygunluk } from './gozetmen'
 
 const bells = [
   { period: 1, starts: '08:40', ends: '09:20' },
@@ -120,4 +120,58 @@ it('Gözetmen Bul menüsü yalnız yöneticide', async () => {
   const { navItems } = await import('./roles')
   expect(navItems('admin').map((n) => n.id)).toContain('gozetmen')
   for (const r of ['rehber', 'brans', 'veli', 'ogrenci'] as const) expect(navItems(r).map((n) => n.id)).not.toContain('gozetmen')
+})
+
+describe('sınıfa giren öğretmen ve kademe kuralı', () => {
+  const lessons = [L('a', '8a', 2), L('b', '9a', 3), L('c', '8b', 3), L('d', '9a', 1, 4)]
+  const k = kadro(lessons, new Map([['8a', 'ortaokul'], ['8b', 'ortaokul'], ['9a', 'lise']]))
+  const bos = new Map(teachers.map((t) => [t.id, { durum: 'bos', dersler: [] } as Uygunluk]))
+  it('o sınıfa giren öğretmen önce seçilir; liseye girmeyen lise sınıfına atanmaz', () => {
+    const g = oneri({
+      oturumlar: [sozel],
+      siniflar: [
+        { class_id: '8b', class_name: '8/B', level: 'ortaokul' },
+        { class_id: '9a', class_name: '9/A', level: 'lise' },
+      ],
+      teachers,
+      uygun: new Map([['s', bos]]),
+      gecmis: new Map([['c', { gozetmen: 9, dinlendirici: 0 }]]),
+      gorevler: [],
+      dinlendiriciBasina: 0,
+      kadro: k,
+    })
+    expect(g.find((x) => x.class_name === '8/B')!.teacher_id).toBe('c') // geçmişi fazla olsa da sınıfın öğretmeni
+    expect(['b', 'd']).toContain(g.find((x) => x.class_name === '9/A')!.teacher_id) // yalnız lisede dersi olanlar
+  })
+  it('lise sınıfına liseye girmeyen öğretmen elle atanırsa uyarır', () => {
+    const s = sorunlar({
+      oturumlar: [sozel],
+      siniflar: [{ class_id: '9a', class_name: '9/A', level: 'lise' }],
+      gorevler: [{ oturum_key: 's', role: 'gozetmen', class_id: '9a', class_name: '9/A', teacher_id: 'a', teacher_name: 'Ayşe' }],
+      uygun: new Map([['s', bos]]),
+      dinlendiriciBasina: 0,
+      kadro: k,
+    })
+    expect(s.map((x) => x.tip)).toContain('kademe')
+  })
+  it('dersin öğretmeni: oturumla en çok örtüşen dersin öğretmeni o sınıfa yazılır', () => {
+    const ls = [L('a', '8a', 2), L('c', '8a', 3), L('b', '8b', 4)]
+    const g = dersOgretmeniAta({
+      weekday: 2,
+      oturumlar: [sozel],
+      siniflar: [
+        { class_id: '8a', class_name: '8/A' },
+        { class_id: '8b', class_name: '8/B' },
+      ],
+      bells,
+      lessons: ls,
+      teachers,
+      gorevler: [],
+      haric: new Set(),
+    })
+    // Sözel 09:30–10:45: 2. ders 09:30–10:10 (40 dk) > 3. ders 10:20–11:00 (25 dk); 8/B'nin dersi oturum dışında
+    expect(g).toHaveLength(1)
+    expect(g[0]).toMatchObject({ class_name: '8/A', teacher_id: 'a' })
+    expect(dersOgretmeniAta({ weekday: 2, oturumlar: [sozel], siniflar: [{ class_id: '8a', class_name: '8/A' }], bells, lessons: ls, teachers, gorevler: [], haric: new Set(['a']) })[0]!.teacher_id).toBe('c')
+  })
 })

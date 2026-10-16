@@ -7,6 +7,7 @@ import { DEMO, login, loginAdmin, menu, resetAdminMfa, service, shot } from './h
 test('yönetici sınav oluşturur, akıllı dağıtır, atar, geçmişte görür ve PDF indirir', async ({ page }) => {
   test.setTimeout(150_000)
   await service().from('gozetmen_sinavlar').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  await service().from('gozetmen_haric').delete().neq('teacher_id', '00000000-0000-0000-0000-000000000000')
   await resetAdminMfa()
   await loginAdmin(page)
   await menu(page).filter({ hasText: 'Gözetmen Bul' }).click()
@@ -21,12 +22,24 @@ test('yönetici sınav oluşturur, akıllı dağıtır, atar, geçmişte görür
   await expect(page.getByText('2 sınıf', { exact: true })).toBeVisible()
   await expect(page.getByText('8/A, 8/B için gözetmen atanmadı', { exact: false }).first()).toBeVisible()
 
-  await page.getByRole('button', { name: 'Akıllı dağıt' }).click()
+  page.on('dialog', (d) => d.accept())
+  // Kalıcı "görev verilmez" listesi: listeye alınan öğretmen seçim listelerinde ve otomatik atamada yer almaz
+  const first = page.locator('.gz-avail .gz-t').first()
+  const excluded = (await first.locator('.gz-tn').innerText()).trim()
+  await first.click()
+  await expect(page.getByText(`${excluded} görev verilmeyenler listesine alındı`)).toBeVisible()
   const cell = page.getByLabel('1. Oturum · Sözel · 8/A gözetmeni')
+  await expect(cell.locator('option', { hasText: excluded })).toHaveCount(0)
+
+  // Dersin öğretmeni, sonra kalan boş hücreler için akıllı dağıtım
+  await page.getByRole('button', { name: 'Dersin öğretmenine ata' }).click()
+  await expect(page.getByText(/dersin öğretmeni yazıldı|ders bulunamadı/)).toBeVisible()
+  await page.getByRole('button', { name: 'Akıllı dağıt' }).click()
   await expect(cell).not.toHaveValue('')
   await shot(page, 'gozetmen-plan')
+  const { data: ex } = await service().from('gozetmen_haric').select('teacher_id')
+  expect(ex).toHaveLength(1)
 
-  page.on('dialog', (d) => d.accept())
   await page.getByRole('button', { name: 'ATAMAYI YAP' }).click()
   await expect(page.getByText('Atama yapıldı ve kaydedildi')).toBeVisible()
 
@@ -65,4 +78,17 @@ test('rehber öğretmen Gözetmen Bul sayfasını ve verisini göremez', async (
   const { data } = await c.from('gozetmen_sinavlar').select('id')
   const rows = data?.length ?? -1
   expect(rows).toBe(0)
+})
+
+test('duyurularda ana rolü yönetici olan yazar "Yönetici" olarak görünür', async () => {
+  const svc = service()
+  const { data: admin } = await svc.from('profiles').select('id, school_id, full_name').eq('email', DEMO.admin[0]).single()
+  const { data: a, error } = await svc
+    .from('announcements')
+    .insert({ school_id: admin!.school_id, created_by: admin!.id, title: 'E2E yazar etiketi', body: 'Deneme', scope: 'okul' })
+    .select('id, author_name')
+    .single()
+  expect(error).toBeNull()
+  expect(a!.author_name).toBe(`${admin!.full_name} · Yönetici`)
+  await svc.from('announcements').delete().eq('id', a!.id)
 })

@@ -16,7 +16,12 @@ import {
   TYPE_TR,
   addMin,
   duration,
+  dersOgretmeniAta,
+  kadro as kadroOf,
+  kademeUygun,
   oneri,
+  sinifaGirer,
+  type Kadro,
   presetOturumlar,
   sorunlar,
   uygunluk,
@@ -94,14 +99,16 @@ export default function GozetmenPage() {
       return (data ?? []) as unknown as SavedRow[]
     },
   })
+  const teachingIds = useMemo(() => new Set((lessons.data ?? []).map((l) => l.teacher_id).filter(Boolean)), [lessons.data])
   const activeClasses = useMemo(() => (classes.data ?? []).filter((c) => c.active !== false), [classes.data])
   const teachers: Ogretmen[] = useMemo(
     () =>
       (people.data ?? [])
-        .filter((p) => rolesOf(p).includes('ogretmen'))
+        // Öğretmen rolü olanlar ve ders programında dersi olan herkes (ör. derse de giren yönetici)
+        .filter((p) => rolesOf(p).includes('ogretmen') || teachingIds.has(p.id))
         .map((p) => ({ id: p.id, full_name: p.full_name, branch: p.branch }))
         .sort((a, b) => a.full_name.localeCompare(b.full_name, 'tr')),
-    [people.data],
+    [people.data, teachingIds],
   )
   const gradesOfType = (t: ExamType) => activeClasses.filter((c) => PRESETS[t].grades.includes(c.grade)).map((c) => c.id)
   const [form, setForm] = useState<Form | null>(null)
@@ -192,11 +199,32 @@ function Planla(p: {
   const qc = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [dinPer, setDinPer] = useState(8)
-  const [haric, setHaric] = useState<Set<string>>(new Set())
+  // Kalıcı "görev verilmez" listesi (ör. okul kurucuları): otomatik atamaya ve seçim listelerine girmez
+  const haricQ = useQuery({
+    queryKey: ['gozetmen', 'haric'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('gozetmen_haric').select('teacher_id')
+      if (error) throw error
+      return new Set((data ?? []).map((r) => r.teacher_id as string))
+    },
+  })
+  const haric = haricQ.data ?? new Set<string>()
+  const aday = teachers.filter((t) => !haric.has(t.id))
+  async function toggleHaric(t: Ogretmen) {
+    const on = haric.has(t.id)
+    if (!on && !window.confirm(`${t.full_name} sınav görevlerinde hiç önerilmesin ve seçilemesin mi? (Kalıcıdır; istediğin zaman geri alabilirsin.)`)) return
+    const { error } = on
+      ? await supabase.from('gozetmen_haric').delete().eq('teacher_id', t.id)
+      : await supabase.from('gozetmen_haric').insert({ teacher_id: t.id })
+    if (error) return toast(error.message || 'Kaydedilemedi.', 'warn')
+    await qc.invalidateQueries({ queryKey: ['gozetmen', 'haric'] })
+    toast(on ? `${t.full_name} yeniden görev alabilir` : `${t.full_name} görev verilmeyenler listesine alındı`)
+  }
+  const kadro: Kadro = useMemo(() => kadroOf(p.lessons, new Map(classes.map((c) => [c.id, c.level]))), [p.lessons, classes])
   const [view, setView] = useState<string | null>(null)
   const weekday = isoDow(f.date)
   const cls = useMemo(() => classes.filter((c) => f.classIds.includes(c.id)), [classes, f.classIds])
-  const siniflar = cls.map((c) => ({ class_id: c.id, class_name: c.name, room: f.rooms[c.id] ?? null }))
+  const siniflar = cls.map((c) => ({ class_id: c.id, class_name: c.name, room: f.rooms[c.id] ?? null, level: c.level }))
   const classNames = useMemo(() => new Map(classes.map((c) => [c.id, c.name])), [classes])
   const name = useMemo(() => new Map(teachers.map((t) => [t.id, t.full_name])), [teachers])
 
@@ -227,7 +255,7 @@ function Planla(p: {
     const g = gecmis.get(tid)
     return g ? g.gozetmen + g.dinlendirici : 0
   }
-  const issues = sorunlar({ oturumlar: f.oturumlar, siniflar, gorevler: f.gorevler, uygun, dinlendiriciBasina: dinPer })
+  const issues = sorunlar({ oturumlar: f.oturumlar, siniflar, gorevler: f.gorevler, uygun, dinlendiriciBasina: dinPer, kadro })
   const serious = issues.filter((i) => i.ciddi)
   const conflictIds = useMemo(() => {
     const s = new Set<string>()
@@ -271,10 +299,22 @@ function Planla(p: {
   const updDin = (g: Gorev, x: Partial<Gorev> | null) =>
     set({ gorevler: x ? f.gorevler.map((y) => (y === g ? { ...y, ...x } : y)) : f.gorevler.filter((y) => y !== g) })
   const autoFill = () => {
-    const next = oneri({ oturumlar: f.oturumlar, siniflar, teachers, uygun, gecmis, gorevler: f.gorevler, dinlendiriciBasina: dinPer, haric })
+    const next = oneri({ oturumlar: f.oturumlar, siniflar, teachers: aday, uygun, gecmis, gorevler: f.gorevler, dinlendiriciBasina: dinPer, haric, kadro })
     const added = next.length - f.gorevler.length
     set({ gorevler: next })
     toast(added ? `${added} görev önerildi. Gözden geçirip "Atamayı yap"a bas.` : 'Boş hücre kalmadı ya da uygun öğretmen yok.', added ? 'spark' : 'warn')
+  }
+  const lessonTeachers = () => {
+    const next = dersOgretmeniAta({ weekday, oturumlar: f.oturumlar, siniflar, bells: p.bells, lessons: p.lessons, teachers: aday, gorevler: f.gorevler, haric })
+    const added = next.length - f.gorevler.length
+    set({ gorevler: next })
+    const empty = f.oturumlar.length * siniflar.length - next.filter((g) => g.role === 'gozetmen').length
+    toast(
+      added
+        ? `${added} sınıfa o saatteki dersin öğretmeni yazıldı.${empty > 0 ? ` ${empty} hücre boş; "Akıllı dağıt" ile doldurabilirsin.` : ''}`
+        : 'Sınav saatinde bu sınıflarda ders bulunamadı ya da hücreler dolu.',
+      added ? 'spark' : 'warn',
+    )
   }
   const applyType = (t: ExamType) => {
     if (t === f.type) return
@@ -481,7 +521,8 @@ function Planla(p: {
           </div>
         )}
         <p className="m gz-hint">
-          Bir öğretmene dokunarak bu sınavda görev verilmeyecekler arasına alabilirsin (izin, rapor vb.). Rakam: son 12 ayda aldığı görev sayısı.
+          Bir öğretmene dokunarak kalıcı olarak görev verilmeyenler listesine alabilir ya da listeden çıkarabilirsin (ör. kurucular). Rakam: son 12 ayda
+          aldığı görev sayısı.
         </p>
         <div className="gz-avail">
           {groups.map((d) => {
@@ -500,8 +541,8 @@ function Planla(p: {
                         <button
                           className={`gz-t${x ? ' off' : ''}`}
                           aria-pressed={x}
-                          title={x ? 'Görev verilmeyecek; tekrar dokun' : 'Görev verilmeyecekler arasına al'}
-                          onClick={() => setHaric((h) => { const n = new Set(h); if (n.has(t.id)) n.delete(t.id); else n.add(t.id); return n })}
+                          title={x ? 'Görev verilmiyor; yeniden görev alabilsin diye dokun' : 'Görev verilmeyenler listesine al'}
+                          onClick={() => toggleHaric(t)}
                         >
                           <span className="gz-tn">{t.full_name}</span>
                           <span className="gz-tc">{past(t.id)}</span>
@@ -511,7 +552,7 @@ function Planla(p: {
                             {u.dersler.map((l) => `${l.period}. ders ${l.class_name} ${l.subject}${l.inExam ? ' (sınavda)' : ''}`).join(' · ')}
                           </span>
                         )}
-                        {x && <span className="gz-ders">Görev verilmeyecek</span>}
+                        {x && <span className="gz-ders">Görev verilmiyor</span>}
                       </li>
                     )
                   })}
@@ -535,6 +576,9 @@ function Planla(p: {
           <button className="btn gold" onClick={autoFill} disabled={!siniflar.length}>
             <Icon name="spark" size={16} /> Akıllı dağıt
           </button>
+          <button className="btn" onClick={lessonTeachers} disabled={!siniflar.length}>
+            <Icon name="users" size={16} /> Dersin öğretmenine ata
+          </button>
           <label className="gz-din">
             Her
             <input type="number" min={0} max={40} value={dinPer} onChange={(e) => setDinPer(Math.max(0, Math.min(40, Number(e.target.value) || 0)))} />
@@ -545,8 +589,9 @@ function Planla(p: {
           </button>
         </div>
         <p className="m gz-hint">
-          Akıllı dağıt yalnız boş hücreleri doldurur: dersi olan öğretmeni seçmez, aynı kişiyi çakışan oturumlara yazmaz, geçmişte daha az görev almış
-          öğretmenlere öncelik verir. Seçtiğin görevlere dokunmaz.
+          Akıllı dağıt yalnız boş hücreleri doldurur: önce o sınıfa derse giren öğretmeni seçer, liseye girmeyen öğretmeni lise sınıfına yazmaz,
+          dersi olanı ve aynı anda başka görevi olanı seçmez, geçmişte daha az görev almışlara öncelik verir. Dersin öğretmenine ata: sınav saatinde o
+          sınıfta dersi olan öğretmeni gözetmen yazar. İkisi de seçtiğin görevlere dokunmaz.
         </p>
         {siniflar.length ? (
           <div className="tbl gz-tbl">
@@ -584,16 +629,20 @@ function Planla(p: {
                     {f.oturumlar.map((o) => {
                       const g = f.gorevler.find((x) => x.oturum_key === o.key && x.role === 'gozetmen' && x.class_name === c.name)
                       const u = g?.teacher_id ? uygun.get(o.key)?.get(g.teacher_id) : undefined
-                      const bad = !!g?.teacher_id && (u?.durum === 'dersi_var' || conflictIds.has(`${o.key}|${g.teacher_id}`))
+                      const bad =
+                        !!g?.teacher_id &&
+                        (u?.durum === 'dersi_var' || conflictIds.has(`${o.key}|${g.teacher_id}`) || !kademeUygun(kadro, g.teacher_id, c.level))
                       return (
                         <td key={o.key}>
                           <TeacherSelect
                             label={`${o.name} · ${c.name} gözetmeni`}
                             value={g?.teacher_id ?? ''}
                             bad={bad}
-                            teachers={teachers}
+                            teachers={aday}
                             uyg={uygun.get(o.key)}
                             past={past}
+                            kadro={kadro}
+                            cls={{ id: c.id, level: c.level }}
                             onChange={(tid) => setCell(o.key, c.name, c.id, tid)}
                           />
                         </td>
@@ -624,7 +673,7 @@ function Planla(p: {
                             </button>
                           </div>
                         ))}
-                      <TeacherSelect label={`${o.name} dinlendirici ekle`} value="" teachers={teachers} uyg={uygun.get(o.key)} past={past} onChange={(tid) => addDin(o.key, tid)} placeholder="+ Dinlendirici ekle" />
+                      <TeacherSelect label={`${o.name} dinlendirici ekle`} value="" teachers={aday} uyg={uygun.get(o.key)} past={past} onChange={(tid) => addDin(o.key, tid)} placeholder="+ Dinlendirici ekle" />
                     </td>
                   ))}
                 </tr>
@@ -691,20 +740,30 @@ function TeacherSelect(p: {
   onChange: (tid: string) => void
   bad?: boolean
   placeholder?: string
+  kadro?: Kadro
+  cls?: { id: string; level: string }
 }) {
-  const by = (d: Durum) => p.teachers.filter((t) => (p.uyg?.get(t.id)?.durum ?? 'bos') === d)
+  const durum = (t: Ogretmen) => p.uyg?.get(t.id)?.durum ?? 'bos'
+  const ok = (t: Ogretmen) => kademeUygun(p.kadro, t.id, p.cls?.level)
+  // Önce o sınıfa derse girenler; lise sınıfında liseye girmeyenler seçilemez (en altta, pasif)
+  const own = p.cls ? p.teachers.filter((t) => sinifaGirer(p.kadro, t.id, p.cls!.id) && durum(t) !== 'dersi_var' && ok(t)) : []
+  const rest = p.teachers.filter((t) => !own.includes(t) && ok(t))
+  const no = p.teachers.filter((t) => !ok(t))
+  const opt = (t: Ogretmen, d: Durum, off = false) => (
+    <option key={t.id} value={t.id} disabled={off && t.id !== p.value}>
+      {t.full_name} ({p.past(t.id)}){d === 'dersi_var' ? ' · dersi var' : d === 'serbest' ? ' · sınav nedeniyle boş' : ''}
+    </option>
+  )
   return (
     <select className={`gz-sel${p.bad ? ' bad' : ''}${p.value ? ' set' : ''}`} aria-label={p.label} value={p.value} onChange={(e) => p.onChange(e.target.value)}>
       <option value="">{p.placeholder ?? '— Seç —'}</option>
+      {own.length > 0 && <optgroup label="Bu sınıfa derse girenler">{own.map((t) => opt(t, durum(t)))}</optgroup>}
       {(['bos', 'serbest', 'dersi_var'] as Durum[]).map((d) => (
         <optgroup key={d} label={DURUM_TR[d]}>
-          {by(d).map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.full_name} ({p.past(t.id)}){d === 'dersi_var' ? ' · dersi var' : ''}
-            </option>
-          ))}
+          {rest.filter((t) => durum(t) === d).map((t) => opt(t, d))}
         </optgroup>
       ))}
+      {no.length > 0 && <optgroup label="Liseye girmiyor">{no.map((t) => opt(t, durum(t), true))}</optgroup>}
     </select>
   )
 }

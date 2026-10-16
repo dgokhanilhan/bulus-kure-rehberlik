@@ -15,6 +15,8 @@ export interface SinavSinif {
   class_id: string | null
   class_name: string
   room?: string | null
+  /** Kademe (ortaokul / lise): liseye girmeyen öğretmen lise sınıfına atanmaz. */
+  level?: string | null
 }
 export interface Gorev {
   oturum_key: string
@@ -121,6 +123,33 @@ export function uygunluk(p: {
   return out
 }
 
+// ---------- Öğretmen–sınıf ilişkisi (ders programından) ----------
+export interface Kadro {
+  /** sınıf → o sınıfa derse giren öğretmenler */
+  sinifOgr: Map<string, Set<string>>
+  /** öğretmen → derse girdiği kademeler */
+  kademe: Map<string, Set<string>>
+}
+export function kadro(lessons: DersSatiri[], classLevel: Map<string, string>): Kadro {
+  const sinifOgr = new Map<string, Set<string>>()
+  const kademe = new Map<string, Set<string>>()
+  for (const l of lessons) {
+    if (!l.teacher_id) continue
+    if (!sinifOgr.has(l.class_id)) sinifOgr.set(l.class_id, new Set())
+    sinifOgr.get(l.class_id)!.add(l.teacher_id)
+    const lv = classLevel.get(l.class_id)
+    if (lv) {
+      if (!kademe.has(l.teacher_id)) kademe.set(l.teacher_id, new Set())
+      kademe.get(l.teacher_id)!.add(lv)
+    }
+  }
+  return { sinifOgr, kademe }
+}
+/** Lise sınıfına yalnız lisede dersi olan öğretmen atanır; diğer kademelerde kısıt yok. */
+export const kademeUygun = (k: Kadro | undefined, tid: string, level?: string | null) =>
+  !k || level !== 'lise' || !!k.kademe.get(tid)?.has('lise')
+export const sinifaGirer = (k: Kadro | undefined, tid: string, classId?: string | null) => !!(k && classId && k.sinifOgr.get(classId)?.has(tid))
+
 // ---------- Dengeli dağıtım ----------
 export interface Gecmis {
   gozetmen: number
@@ -130,7 +159,8 @@ const yuk = (g?: Gecmis) => (g ? g.gozetmen + g.dinlendirici * 0.75 : 0)
 
 /**
  * Boş hücreleri doldurur; dolu (elle seçilmiş) görevler korunur.
- * Öncelik: dersi olmayan öğretmenler; aralarında geçmiş görevi ve bu sınavdaki yükü en az olan.
+ * Öncelik: o sınıfa derse giren öğretmen, sonra aynı kademede dersi olan; aralarında geçmiş görevi ve bu sınavdaki yükü
+ * en az olan. Dersi olan öğretmen seçilmez; liseye girmeyen öğretmen lise sınıfına atanmaz.
  * Aynı öğretmen çakışan iki oturumda görev almaz; arka arkaya oturumlarda aynı sınıfa yazılmaz.
  */
 export function oneri(p: {
@@ -142,6 +172,7 @@ export function oneri(p: {
   gorevler: Gorev[]
   dinlendiriciBasina: number // kaç sınıfa bir dinlendirici (0 = yok)
   haric?: Set<string> // görev verilmeyecek öğretmenler
+  kadro?: Kadro
 }): Gorev[] {
   const res = [...p.gorevler]
   const name = new Map(p.teachers.map((t) => [t.id, t.full_name]))
@@ -154,12 +185,17 @@ export function oneri(p: {
   }
   const score = (tid: string, u: Uygunluk | undefined, avoidClass?: string | null) =>
     yuk(p.gecmis.get(tid)) + (load.get(tid) ?? 0) * 1.5 + (u?.durum === 'serbest' ? 0.1 : 0) + (avoidClass ? 0.6 : 0)
-  const pick = (key: string, avoid: (tid: string) => boolean) => {
+  const levels = new Set(p.siniflar.map((c) => c.level ?? ''))
+  const pick = (key: string, avoid: (tid: string) => boolean, c?: SinavSinif) => {
     const busy = busyIn(key)
     const u = p.uygun.get(key)
+    // Dinlendirici (sınıfsız): bütün sınıflar lise ise liseye giren öğretmen
+    const lv = c ? c.level : levels.size === 1 ? [...levels][0] : null
+    const bonus = (tid: string) =>
+      c && sinifaGirer(p.kadro, tid, c.class_id) ? -100 : lv && p.kadro?.kademe.get(tid)?.has(lv) ? -0.5 : 0
     const cands = p.teachers
-      .filter((t) => !busy.has(t.id) && !p.haric?.has(t.id) && u?.get(t.id)?.durum !== 'dersi_var')
-      .map((t) => ({ t, s: score(t.id, u?.get(t.id), avoid(t.id) ? 'x' : null) }))
+      .filter((t) => !busy.has(t.id) && !p.haric?.has(t.id) && u?.get(t.id)?.durum !== 'dersi_var' && kademeUygun(p.kadro, t.id, lv))
+      .map((t) => ({ t, s: score(t.id, u?.get(t.id), avoid(t.id) ? 'x' : null) + bonus(t.id) }))
       .sort((a, b) => a.s - b.s || a.t.full_name.localeCompare(b.t.full_name, 'tr'))
     return cands[0]?.t
   }
@@ -170,7 +206,7 @@ export function oneri(p: {
       const prevT = new Set(
         prev ? res.filter((g) => g.oturum_key === prev.key && g.class_name === c.class_name).map((g) => g.teacher_id) : [],
       )
-      const t = pick(o.key, (tid) => prevT.has(tid))
+      const t = pick(o.key, (tid) => prevT.has(tid), c)
       if (!t) continue
       res.push({ oturum_key: o.key, role: 'gozetmen', class_id: c.class_id, class_name: c.class_name, teacher_id: t.id, teacher_name: name.get(t.id)! })
       load.set(t.id, (load.get(t.id) ?? 0) + 1)
@@ -188,9 +224,51 @@ export function oneri(p: {
   return res
 }
 
+/**
+ * "Dersin öğretmeni gözetmen olsun": oturum saatinde sınıfta dersi olan öğretmen o sınıfa gözetmen yazılır
+ * (oturumla en çok örtüşen ders; eşitlikte önceki ders saati). Dolu hücreler, görev verilmeyenler ve aynı anda
+ * başka görevi olanlar atlanır; kalan boş hücreler "Akıllı dağıt" ile doldurulabilir.
+ */
+export function dersOgretmeniAta(p: {
+  weekday: number
+  oturumlar: Oturum[]
+  siniflar: SinavSinif[]
+  bells: Zil[]
+  lessons: DersSatiri[]
+  teachers: Ogretmen[]
+  gorevler: Gorev[]
+  haric?: Set<string>
+}): Gorev[] {
+  const res = [...p.gorevler]
+  const name = new Map(p.teachers.map((t) => [t.id, t.full_name]))
+  const bell = new Map(p.bells.filter((b) => b.active !== false).map((b) => [b.period, b]))
+  for (const o of p.oturumlar) {
+    const s = toMin(o.starts)
+    const e = toMin(o.ends)
+    const overl = new Set(p.oturumlar.filter((x) => oturumOverlap(x, o)).map((x) => x.key))
+    for (const c of p.siniflar) {
+      if (!c.class_id || res.some((g) => g.oturum_key === o.key && g.role === 'gozetmen' && g.class_name === c.class_name)) continue
+      const cands = p.lessons
+        .filter((l) => l.class_id === c.class_id && l.weekday === p.weekday && l.teacher_id && name.has(l.teacher_id) && !p.haric?.has(l.teacher_id))
+        .map((l) => {
+          const b = bell.get(l.period)
+          return { l, ov: b ? Math.min(e, toMin(b.ends)) - Math.max(s, toMin(b.starts)) : 0 }
+        })
+        .filter((x) => x.ov > 0)
+        .sort((a, b) => b.ov - a.ov || a.l.period - b.l.period)
+      const busy = new Set(res.filter((g) => overl.has(g.oturum_key) && g.teacher_id).map((g) => g.teacher_id!))
+      const hit = cands.find((x) => !busy.has(x.l.teacher_id!))
+      if (!hit) continue
+      const tid = hit.l.teacher_id!
+      res.push({ oturum_key: o.key, role: 'gozetmen', class_id: c.class_id, class_name: c.class_name, teacher_id: tid, teacher_name: name.get(tid)! })
+    }
+  }
+  return res
+}
+
 // ---------- Sorunlar ----------
 export interface Sorun {
-  tip: 'eksik' | 'cakisma' | 'ders' | 'dinlendirici' | 'oturum'
+  tip: 'eksik' | 'cakisma' | 'ders' | 'dinlendirici' | 'oturum' | 'kademe'
   ciddi: boolean
   text: string
 }
@@ -200,6 +278,7 @@ export function sorunlar(p: {
   gorevler: Gorev[]
   uygun: Map<string, Map<string, Uygunluk>>
   dinlendiriciBasina: number
+  kadro?: Kadro
 }): Sorun[] {
   const out: Sorun[] = []
   p.oturumlar.forEach((o, i) => {
@@ -214,6 +293,11 @@ export function sorunlar(p: {
       out.push({ tip: 'eksik', ciddi: true, text: `${o.name}: ${missing.map((c) => c.class_name).join(', ')} için gözetmen atanmadı.` })
     if (p.dinlendiriciBasina > 0 && p.siniflar.length && !gs.some((g) => g.role === 'dinlendirici'))
       out.push({ tip: 'dinlendirici', ciddi: false, text: `${o.name}: dinlendirici öğretmen yok.` })
+    for (const g of gs) {
+      const c = g.role === 'gozetmen' ? p.siniflar.find((x) => x.class_name === g.class_name) : undefined
+      if (c && g.teacher_id && !kademeUygun(p.kadro, g.teacher_id, c.level))
+        out.push({ tip: 'kademe', ciddi: true, text: `${g.teacher_name} lisede derse girmiyor; ${o.name} · ${c.class_name} için başka öğretmen seç.` })
+    }
     const u = p.uygun.get(o.key)
     for (const g of gs) {
       const d = g.teacher_id ? u?.get(g.teacher_id) : undefined
