@@ -64,7 +64,7 @@ const RESOLVED = new Set(['CODE_EXACT', 'CODE_NORMALIZED', 'CONTEXT_EXACT', 'TEX
  * sorularıyla değerlendirilir. Sonucun outcomes_ok değeri değiştirilmez: yayında "konu analizi yapılmaz" denen sonuç
  * (ör. anahtarı kitapçığıyla uyuşmayan) sonradan açılmaz.
  */
-export function withCatalogItems(ds: Dataset & { results: (Result & { source?: unknown })[] }, items: ItemRow[]): Dataset {
+export function withCatalogItems(ds: Omit<Dataset, 'results'> & { results: (Result & { source?: unknown })[] }, items: ItemRow[]): Dataset {
   const ids = new Set(ds.exams.map((e) => e.id)),
     outcomes = new Map(ds.outcomes.map((o) => [o.code, o])),
     extra = new Map<string, Question[]>() // sınav|kitapçık → çözümlenmiş yeni katalog soruları
