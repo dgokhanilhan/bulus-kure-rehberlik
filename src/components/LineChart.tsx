@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { fmt } from '@/lib/analiz'
 import { chartLabel } from '@/lib/chartLabel'
 
@@ -20,8 +21,20 @@ export function LineChart({
   width?: number
   height?: number
 }) {
+  const container = useRef<HTMLDivElement>(null)
+  const [availableWidth, setAvailableWidth] = useState(width)
+  useEffect(() => {
+    const element = container.current
+    if (!element) return
+    const observer = new ResizeObserver(entries => {
+      const next = Math.floor(entries[0]?.contentRect.width ?? width)
+      setAvailableWidth(current => current === next ? current : next)
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [width, values.length])
   if (!values.length) return null
-  const W = Math.max(width, values.length * 150),
+  const W = Math.max(width, availableWidth, values.length * 150),
     H = height,
     top = 28,
     bot = H - 34
@@ -37,7 +50,7 @@ export function LineChart({
   const mean = values.reduce((a, b) => a + b, 0) / values.length
   return (
     // Tıklanabilir deneme adları varsa "group" (img rolü içindeki düğmeleri ekran okuyucu görmez).
-    <div style={{ overflowX: 'auto' }}><svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: W, height: 'auto' }} role={onSelect ? 'group' : 'img'} aria-label={`Toplam net: ${values.map((v) => fmt(v)).join(', ')}`}>
+    <div ref={container} className="net-chart" tabIndex={0} role="region" aria-label="Net gelişim grafiği, yana kaydırılabilir"><svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: W, height: H }} role={onSelect ? 'group' : 'img'} aria-label={`Toplam net: ${values.map((v) => fmt(v)).join(', ')}`}>
       {grid.map((v) => (
         <g key={v}>
           <line x1="42" x2={W - 10} y1={Y(v)} y2={Y(v)} stroke="var(--line)" />

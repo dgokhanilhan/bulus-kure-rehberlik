@@ -28,7 +28,8 @@ export function useIndicator<T extends HTMLElement>(active: string | undefined) 
     const ro = new ResizeObserver(place)
     if (el) {
       ro.observe(el)
-      for (const child of Array.from(el.children)) ro.observe(child)
+      // Gösterge kendi genişliğini değiştirir; onu gözlemlemek yeniden boyutlama döngüsü oluşturur.
+      for (const child of Array.from(el.children)) if (child !== ind.current) ro.observe(child)
     }
     document.fonts?.ready.then(place).catch(() => {})
     return () => ro.disconnect()

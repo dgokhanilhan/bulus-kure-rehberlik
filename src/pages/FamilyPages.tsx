@@ -116,7 +116,7 @@ export function OzetPage() {
         </div>
       </div>
       <ChildPicker list={list} s={s} choose={choose} />
-      <div className="stats">
+      <div className={`stats${!lgs ? ' family-task-summary' : ''}`}>
         {lgs && (
           <>
             <div className="card stat a lift" style={{ ['--d' as string]: 1 }}>
@@ -164,7 +164,7 @@ export function OzetPage() {
           </Link>
         </div>
       </div>
-      <div className={lgs || genel ? 'cols' : 'stack'}>
+      <div className={lgs || genel ? 'cols family-overview' : 'stack'}>
         {lgs && (
           <section
             className="card a"

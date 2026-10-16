@@ -1,4 +1,6 @@
-import { examScores, scoreText } from '@/lib/examScores'
+import { AnalysisDisclosure } from './AnalysisDisclosure'
+import { ScoreCards } from './ScoreCards'
+import { examScores } from '@/lib/examScores'
 // 5–7 Deneme Analizi · 9–10 TYT · 11 AYT · 12 YKS (TYT/AYT sekmeleri). 8. sınıf LGS Atlas'ı ayrı ve değişmeden kalır.
 // Son deneme kartı yalnız karşılaştırılabilir önceki denemeyle kıyaslar (TYT ↔ AYT, Genel ↔ TYT kıyaslanmaz).
 import { useMemo, useState } from 'react'
@@ -44,8 +46,8 @@ export function GenelDenemeler({ studentId, grade, delay = 3 }: { studentId: str
 
   return (
     <section
-      className="card a"
-      style={{ ['--d' as string]: delay, padding: 20, display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}
+      className="card a exam-overview"
+      style={{ ['--d' as string]: delay }}
       aria-label={title}
       data-testid="genel-denemeler"
     >
@@ -59,7 +61,7 @@ export function GenelDenemeler({ studentId, grade, delay = 3 }: { studentId: str
         <div className="empty">Henüz yayınlanmış {tabs.length ? `${part} ` : ''}deneme yok.</div>
       ) : (
         <>
-          <div className="card" style={{ padding: 14, display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'baseline' }} data-testid="son-deneme">
+          <div className="exam-latest" data-testid="son-deneme">
             <div>
               <span className="label">Son deneme</span>
               <div>
@@ -97,8 +99,8 @@ export function GenelDenemeler({ studentId, grade, delay = 3 }: { studentId: str
             </div>
           </div>
           {mine.exams.length > 1 && (
-            <div style={{ overflowX: 'auto' }}>
-              <div style={{ minWidth: 420 }}>
+            <div className="exam-chart">
+              <div>
                 <LineChart
                   values={mine.exams.map((e) => mine.res.get(e.id)!.total_net ?? 0)}
                   labels={mine.exams.map((e) => e.name)}
@@ -109,7 +111,12 @@ export function GenelDenemeler({ studentId, grade, delay = 3 }: { studentId: str
           )}
           {shown && (
             <>
-              <p style={{ fontWeight: 600 }}>Puan: {scoreText({ ...mine.res.get(shown.id)!, scores: examScores(mine.res.get(shown.id)?.source) })}</p>
+              <div className="exam-selected">
+                <div className="section-heading"><div><span className="label">Seçili deneme</span><h3>{shown.name}</h3></div>
+                  <label className="field">Deneme seç<select value={shown.id} onChange={e => setSel(e.target.value)}>{mine.exams.map(e => <option key={e.id} value={e.id}>{e.name} · {trD(e.exam_date)}</option>)}</select></label>
+                </div>
+                <ScoreCards score={mine.res.get(shown.id)!.score} scores={examScores(mine.res.get(shown.id)?.source)} />
+              </div>
               <Bolumler
                 exam={shown}
                 result={mine.res.get(shown.id)!}
@@ -135,7 +142,7 @@ function Bolumler({ exam, result, sections, profile }: { exam: GenelExam; result
           {reportTitle(exam)} · {exam.name}
           {exam.publisher ? ` · ${exam.publisher}` : ''}
         </div>
-        <div className="tbl" tabIndex={0} role="region" aria-label={`${exam.name} bölüm sonuçları`}>
+        <div className="tbl result-table" tabIndex={0} role="region" aria-label={`${exam.name} bölüm sonuçları`}>
           <table>
             <thead>
               <tr>
@@ -193,7 +200,7 @@ function Bolumler({ exam, result, sections, profile }: { exam: GenelExam; result
           </table>
         </div>
       </div>
-      <Analiz exam={exam} result={result} profile={profile} sections={sections} />
+      <Analiz key={exam.id} exam={exam} result={result} profile={profile} sections={sections} />
     </div>
   )
 }
@@ -201,6 +208,8 @@ function Bolumler({ exam, result, sections, profile }: { exam: GenelExam; result
 /** Öğrenme Çıktısı Analizi (TYMM) / Kazanım Analizi (eski program): yalnız soru düzeyinde ölçülmüş ve eşleşmiş sorular. */
 function Analiz({ exam, result, profile, sections }: { exam: GenelExam; result: GenelResult; profile: Profile | null; sections: TemplateSection[] }) {
   const [onlyMissing, setOnlyMissing] = useState(true)
+  const [search, setSearch] = useState('')
+  const [section, setSection] = useState('')
   const items = useExamItems(exam.id)
   if (items.isLoading || !items.data?.length) return null
   const booklets = (result.source as { booklets?: Record<string, string> } | undefined)?.booklets ?? {}
@@ -209,11 +218,13 @@ function Analiz({ exam, result, profile, sections }: { exam: GenelExam; result: 
     result.answers,
   )
   const label = (k: string) => sections.find((s) => s.key === k)?.label ?? k
+  const visibleRows = a.rows.filter(r => (!onlyMissing || r.y > 0 || r.b > 0) && (!section || r.sections.includes(section)) && `${r.code ?? ''} ${r.title}`.toLocaleLowerCase('tr-TR').includes(search.toLocaleLowerCase('tr-TR').trim()))
   return (
-    <details key={exam.id} data-testid="kazanim-analizi">
-      <summary style={{ cursor: 'pointer', padding: '10px 0' }}>
-        Yanlış ve boş yapılan kazanım / öğrenme çıktılarını göster ({a.rows.filter((r) => r.y > 0 || r.b > 0).length} hedef)
-      </summary>
+    <AnalysisDisclosure testId="kazanim-analizi" title="Yanlış ve boş yapılan kazanım / öğrenme çıktılarını göster" count={a.rows.filter(r => r.y > 0 || r.b > 0).length}>
+      <div className="analysis-filters">
+        <label className="field">Hedeflerde ara<input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Konu veya kazanım kodu" /></label>
+        <label className="field">Ders<select value={section} onChange={e => setSection(e.target.value)}><option value="">Tüm dersler</option>{[...new Set(a.rows.flatMap(r => r.sections))].map(k => <option key={k} value={k}>{label(k)}</option>)}</select></label>
+      </div>
       <label className="check">
         <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />
         Yalnız yanlış veya boş yapılan hedefler
@@ -222,7 +233,7 @@ function Analiz({ exam, result, profile, sections }: { exam: GenelExam; result: 
         {outcomeTerm(profile)}
       </h3>
       {a.rows.length ? (
-        <div className="tbl" tabIndex={0} role="region" aria-label={outcomeTerm(profile)}>
+        <div className="tbl outcome-table" tabIndex={0} role="region" aria-label={outcomeTerm(profile)}>
           <table>
             <thead>
               <tr>
@@ -234,9 +245,7 @@ function Analiz({ exam, result, profile, sections }: { exam: GenelExam; result: 
               </tr>
             </thead>
             <tbody>
-              {a.rows
-                .filter((r) => !onlyMissing || r.y > 0 || r.b > 0)
-                .map((r) => (
+              {visibleRows.map((r) => (
                   <tr key={r.id}>
                     <td style={{ fontSize: 13 }}>
                       <span className="mono">{r.code ?? ''}</span> {r.title} <span className="m">· {r.sections.map(label).join(', ')}</span>
@@ -258,13 +267,14 @@ function Analiz({ exam, result, profile, sections }: { exam: GenelExam; result: 
           Bu denemede {outcomeTerm(profile, 'tekil')} ile eşleşmiş soru verisi yok.
         </p>
       )}
+      {a.rows.length > 0 && visibleRows.length === 0 && <p className="empty" role="status">Seçili filtrelere uygun hedef yok. Aramayı veya ders filtresini değiştirebilirsiniz.</p>}
       <p className="m" style={{ fontSize: 12 }}>
         Yalnız bu denemede ölçülen ve bir hedefe bağlanan sorular gösterilir. Resmî program hedefleri ve okulun PDF’den eklediği hedefler kaynak etiketiyle
         ayrılır; listede olmayan hedefler ölçülmemiştir, eksik sayılmaz.
         {a.unresolved ? ` ${a.unresolved} soru henüz eşleşmediği için analiz dışı.` : ''}
         {a.skipped.length ? ` ${a.skipped.map(label).join(', ')}: soru verisi sonuçla tutmadığı için hesaplanmadı.` : ''}
       </p>
-    </details>
+    </AnalysisDisclosure>
   )
 }
 
