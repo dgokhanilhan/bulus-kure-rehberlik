@@ -13,7 +13,8 @@ import { useNotes, usePeople, useRefresh, useStudents, useTasks, useParentLinks 
 import { aiPayload, genVeli, reportData, type OgretmenBody, type VeliBody } from '@/lib/rapor'
 import { fold, todayISO, trD } from '@/lib/format'
 import type { Student } from '@/lib/types'
-import { Icon, Logo } from './Icon'
+import { Icon } from './Icon'
+import okulLogo from '@/assets/okul-logo.jpg'
 import { useToast } from './Toast'
 import type { PdfOgretmen, PdfVeli } from '@/lib/pdf'
 
@@ -516,7 +517,7 @@ function ReportView({
       <article className="paper" data-testid="report-paper">
         <div className="rh">
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <Logo />
+            <img src={okulLogo} alt="Buluş Küre Koleji logosu" width={44} height={44} style={{ borderRadius: '50%' }} />
             <div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 21, fontWeight: 600, lineHeight: 1.2 }}>Buluş Küre Koleji</div>
               <div style={{ color: '#56636a', fontSize: 13 }}>Rehberlik &amp; Mentörlük · {V ? 'Veli Gelişim Raporu' : 'Öğretmen Bilgilendirme Raporu'}</div>
