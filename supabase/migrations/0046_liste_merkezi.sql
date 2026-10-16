@@ -20,7 +20,7 @@ alter table parent_contact_details enable row level security;
 alter table school_list_documents enable row level security;
 revoke all on parent_contact_details,school_list_documents from anon,authenticated;
 grant select on parent_contact_details,school_list_documents to authenticated;
-create policy contacts_admin_read on parent_contact_details for select to authenticated using(is_admin() and school_id=my_school());
+create policy contacts_admin_read on parent_contact_details for select to authenticated using(is_admin() and school_id=my_school() and exists(select 1 from profiles p where p.id=profile_id and p.school_id=my_school()));
 create policy lists_admin_read on school_list_documents for select to authenticated using(is_admin() and school_id=my_school());
 
 create function school_list_sources() returns jsonb language plpgsql stable security definer set search_path=public as $$
@@ -42,7 +42,7 @@ begin
  if sid is null or not is_admin() then raise exception 'Yönetici ve iki adımlı doğrulama gerekir.' using errcode='42501'; end if;
  perform 1 from profiles where id=p_parent and school_id=sid and status='approved' and has_role(id,'veli') for update;
  if not found then raise exception 'Veli bulunamadı.' using errcode='42501'; end if;
- select updated_at into old_updated from parent_contact_details where profile_id=p_parent;
+ select updated_at into old_updated from parent_contact_details where profile_id=p_parent and school_id=sid;
  if old_updated is distinct from p_expected then raise exception 'İletişim bilgisi başka bir yönetici tarafından değiştirildi. Yenileyip tekrar dene.' using errcode='PT409'; end if;
  if nullif(btrim(p_phone),'') is not null then
   if p_phone !~ '^[+0-9 ()-]+$' then raise exception 'Telefon biçimi geçersiz.' using errcode='22023'; end if;
@@ -55,7 +55,7 @@ begin
  end if;
  if email_value is not null and (length(email_value)>254 or email_value !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$') then raise exception 'İletişim e-postası geçersiz.' using errcode='22023'; end if;
  insert into parent_contact_details(profile_id,school_id,phone,contact_email,updated_by) values(p_parent,sid,phone_value,email_value,auth.uid())
- on conflict(profile_id) do update set phone=excluded.phone,contact_email=excluded.contact_email,updated_at=clock_timestamp(),updated_by=auth.uid();
+ on conflict(profile_id) do update set school_id=excluded.school_id,phone=excluded.phone,contact_email=excluded.contact_email,updated_at=clock_timestamp(),updated_by=auth.uid();
  insert into audit_log(user_id,action,entity,entity_id,meta) values(auth.uid(),'contact_update','profiles',p_parent,jsonb_build_object('phone_changed',true,'contact_email_changed',true));
 end $$;
 

@@ -164,6 +164,18 @@ describe('Liste merkezi yönetici/MFA/okul sınırı', () => {
             .eq('id', u.data.user!.id)
         ).error,
       ).toBeNull()
+      const ownSchool = (await svc.from('profiles').select('school_id').eq('id', parentId).single()).data!.school_id
+      // Okul taşımasından kalan eski iletişim satırı da görünmemeli.
+      expect(
+        (
+          await svc
+            .from('parent_contact_details')
+            .insert({ profile_id: u.data.user!.id, school_id: ownSchool, phone: '+905551234567' })
+        ).error,
+      ).toBeNull()
+      expect(
+        (await admin.from('parent_contact_details').select('phone').eq('profile_id', u.data.user!.id)).data,
+      ).toEqual([])
       const d = await svc
         .from('school_list_documents')
         .insert({
