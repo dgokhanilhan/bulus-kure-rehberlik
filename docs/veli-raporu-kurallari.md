@@ -54,7 +54,7 @@ Ayrı alan, elle düzenlenir, PDF'e **aynen** gider. Sistem başlangıç öneris
 
 ## 15. Rehber öğretmen yorumu
 Ayrı alan, elle düzenlenir, PDF'e aynen gider. Kaygı, motivasyon, çalışma alışkanlığı, planlama… **Öğretmen gözlemi yoksa psikolojik çıkarım yapılmaz.** Boşsa PDF'te bölüm görünmez.
-Sistem, deneme verisine göre günlük dille bir başlangıç taslağı önerir (`genRehber`: çalışma düzeni, motivasyon, evdeki destek, boş sorularda süre takibi). Taslak yalnız henüz rehber yorumu kaydedilmemiş, gönderilmemiş raporda düzenleyebilen kişiye gösterilir; rehber öğretmen dilediği gibi değiştirir.
+Bu alan kural tabanlı taslakta da yapay zekâ ile yazımda da **boş başlar**; metni rehber öğretmen kendisi yazar.
 
 ## 16. Yasak ifadeler
 Öğrenciyi etiketleyen: başarısız, yetersiz, tembel, çok kötü, seviyesi düşük, başarısı zayıf, bu konuyu bilmiyor, kesinlikle dikkat hatası, kesinlikle süre problemi.

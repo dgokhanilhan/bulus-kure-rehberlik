@@ -10,7 +10,7 @@ import { isFullAccess, isTeacherP, ROLE_TR, roleOf } from '@/lib/roles'
 import { SUBJECTS, fmt, outcomeCode, totalNet, type Dataset } from '@/lib/analiz'
 import { useDatasetForExam } from '@/lib/sinavBaglami'
 import { useNotes, usePeople, useRefresh, useStudents, useTasks, useParentLinks } from '@/lib/data'
-import { aiPayload, genRehber, genVeli, reportData, type OgretmenBody, type VeliBody } from '@/lib/rapor'
+import { aiPayload, genVeli, reportData, type OgretmenBody, type VeliBody } from '@/lib/rapor'
 import { fold, todayISO, trD } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { Icon, Logo } from './Icon'
@@ -123,8 +123,7 @@ function ReportView({
       return V
         ? ({
             ...(row.body as unknown as VeliBody),
-            // Henüz rehber yorumu yazılmamış taslakta, düzenleyebilen kişiye başlangıç taslağı önerilir.
-            rehber: row.rehber ?? (E && row.status === 'draft' && R ? genRehber(R, s.id + eid) : ''),
+            rehber: row.rehber ?? '',
             ai: row.ai_generated,
           } as VeliBody)
         : (row.body as unknown as OgretmenBody)
@@ -159,22 +158,39 @@ function ReportView({
     const payload = V
       ? { genel: vb.genel, guclu: vb.guclu, gelisim: vb.gelisim, oneriler: vb.oneriler, mentor: vb.mentor, rehber: vb.rehber }
       : { toplanti: ob.toplanti }
-    const { data, error } = await supabase
-      .from('reports')
-      .upsert(
-        { type, student_id: s.id, exam_id: eid, body: payload, ai_generated: V ? vb.ai : false, created_by: profile!.id },
-        { onConflict: 'type,student_id,exam_id' },
-      )
-      .select('id')
-      .single()
+    // Upsert kullanılmaz: çakışmada güncellenen satırda rehber yorumu (gövdeden ayrılıp şifrelenen alan, 0005) yazılmıyordu.
+    // Önce var olan rapor güncellenir, yoksa eklenir; ikisinde de tetikleyici gövdedeki rehber yorumunu şifreleyip saklar.
+    const fields = { body: payload, ai_generated: V ? vb.ai : false }
+    const upd = await supabase.from('reports').update(fields).eq('type', type).eq('student_id', s.id).eq('exam_id', eid).select('id')
+    let id = upd.data?.[0]?.id as string | undefined
+    let error = upd.error
+    if (!error && !id) {
+      const ins = await supabase
+        .from('reports')
+        .insert({ ...fields, type, student_id: s.id, exam_id: eid, created_by: profile!.id })
+        .select('id')
+        .single()
+      id = ins.data?.id
+      error = ins.error
+    }
+    // Kaydedilen son hâl veritabanından geri okunur; ekrandakiyle birebir aynı değilse "kaydedildi" denmez.
+    let mismatch = false
+    if (!error && id) {
+      const back = await supabase.from('reports_view').select('body, rehber').eq('id', id).single()
+      const b = (back.data?.body ?? {}) as Record<string, unknown>
+      mismatch =
+        !!back.error ||
+        Object.entries(payload).some(([k, v]) => (k === 'rehber' ? (back.data?.rehber ?? '') !== (v ?? '').trim() : (b[k] ?? '') !== v))
+    }
     setBusy(false)
-    if (error) {
-      toast(error.message || 'Kaydedilemedi.', 'warn')
+    if (error || !id || mismatch) {
+      toast(error?.message || 'Rapor kaydedilemedi; değişikliklerin ekranda duruyor. Tekrar "Kaydet"e bas.', 'warn')
+      if (id) refresh('reports')
       return null
     }
     if (!quiet) toast('Rapor kaydedildi')
     refresh('reports', 'report')
-    return data.id as string
+    return id
   }
 
   async function writeAi() {

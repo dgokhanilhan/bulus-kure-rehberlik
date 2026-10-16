@@ -294,91 +294,9 @@ export function genVeli(R: ReportData, _fullName: string, seed: string): VeliBod
     gelisim: clean(gelisim),
     oneriler: oneriler.slice(0, 5).join('\n'),
     mentor: clean(mentor),
-    rehber: genRehber(R, seed),
+    rehber: '', // rehber öğretmen yorumu her zaman boş başlar; rehber öğretmen kendisi yazar (§15)
     ai: false,
   }
-}
-
-/**
- * Rehber öğretmen yorumu için başlangıç taslağı (§15): çalışma alışkanlığı, günlük düzen, motivasyon ve evdeki destek.
- * Yalnız deneme verisine dayanır; gözlem olmadan kaygı vb. psikolojik çıkarım yapmaz. Rehber öğretmen dilediği gibi düzenler.
- */
-export function genRehber(R: ReportData, seed: string): string {
-  const { level, rising, falling, strong, blanks, kind } = analyse(R)
-  const h = hash(seed + 'rehber')
-  const pick = (arr: string[], o = 0) => arr[(h + o) % arr.length]!
-  const parts: string[] = []
-
-  if (!R.prev)
-    parts.push(
-      pick([
-        `Öğrencimiz bu denemeyle sınav ortamını ve soru düzenini tanımaya başladı. İlk denemelerde asıl kazanç, oturup sınavı baştan sona tamamlama alışkanlığıdır.`,
-        `İlk denemeler, öğrencimizin hem kendini hem de sınavın temposunu tanıdığı bir dönem. Bu sonuç bir başlangıç fotoğrafı; asıl önemli olan buradan sonraki adımlar.`,
-      ]),
-    )
-  else if (kind === 'up')
-    parts.push(
-      pick([
-        `Öğrencimizin son dönemde emek verdiği görülüyor; netlerdeki artış bunun karşılığı. Bu çabayı fark edip kendisine söylemeniz, motivasyonunu korumasına çok yardımcı olur.`,
-        `Bu denemedeki yükseliş, öğrencimizin düzenli çalışmasının sonuç vermeye başladığını gösteriyor. Evde sonuçtan çok bu emeği takdir etmek, devam etme isteğini güçlendirir.`,
-      ]),
-    )
-  else if (kind === 'down')
-    parts.push(
-      pick([
-        `Her deneme aynı geçmeyebilir; bir denemedeki düşüş öğrencimizin çalışmasının boşa gittiği anlamına gelmez. Evde sonucu konuşurken suçlayıcı olmaktan çok "Bir dahakine neyi farklı yapabiliriz?" sorusu üzerinden ilerlemek daha faydalı olur.`,
-        `Bu denemede netler bir miktar geriledi. Bu tür dalgalanmalar süreçte sık görülür; öğrencimizle sonucu sakin bir dille konuşup bir sonraki denemeye küçük ve net hedeflerle hazırlanmak en sağlıklısı.`,
-      ]),
-    )
-  else
-    parts.push(
-      pick([
-        `Öğrencimiz genel olarak düzenini koruyor. Bu dönemde büyük değişiklikler yerine mevcut çalışma alışkanlığını istikrarlı biçimde sürdürmesi önemli.`,
-        `Netlerin önceki denemeye yakın olması, öğrencimizin belli bir düzen oturttuğunu gösteriyor. Şimdi bu düzeni küçük adımlarla bir üst seviyeye taşımanın zamanı.`,
-      ]),
-    )
-
-  if (strong.length || rising.length) {
-    const ds = (strong.length ? strong : rising).map((q) => q.s.ad).slice(0, 2)
-    parts.push(`${lj(ds)} tarafındaki emeğini kendisine hatırlatmak, diğer derslere de aynı özenle yaklaşmasını kolaylaştırır.`)
-  }
-
-  if (blanks.length)
-    parts.push(
-      `${bolum(blanks.map((q) => q.s.ad).slice(0, 2))} boş bırakılan sorular var. Evde soru çözerken süreyi birlikte tutmak, hangi soruda takıldığını ve zamanı nasıl kullandığını görmemize yardımcı olur.`,
-    )
-
-  if (level === 'low')
-    parts.push(
-      `Bu aşamada her gün kısa ama düzenli bir çalışma zamanı belirlemek, uzun ve yorucu çalışmalardan daha etkili olur. Küçük hedeflere ulaştıkça kendine olan güveni de artacaktır.`,
-    )
-  else if (level === 'high')
-    parts.push(
-      `Performansı güçlü olduğu için çalışma ile dinlenme arasındaki dengeyi korumak önemli; dinlenmeye, spora ve sevdiği etkinliklere de zaman ayırması, sınav gününde zihnini açık tutmasına yardım eder.`,
-    )
-  else if (falling.length)
-    parts.push(`${loc(falling[0]!.s)} kısa ve sık tekrarlar yapmak, konuları uzun aralıklarla toplu çalışmaktan daha kalıcı olur.`)
-
-  parts.push(
-    pick(
-      [
-        'Günlük hayatta ders çalışırken telefonun başka bir odada durması, belli saatlerde çalışıp ara vermesi ve hafta sonu da kısa bir tekrar saati ayırması bu düzeni destekler.',
-        'Her gün aynı saatlerde çalışmaya oturmak, çalışma sırasında telefonu uzak tutmak ve günün sonunda ne yaptığını kısaca konuşmak, düzenli bir alışkanlık kazanmasına yardım eder.',
-        'Akşamları sabit bir çalışma saati, yeterli uyku ve çalışırken dikkat dağıtan ekranlardan uzak durmak, bu dönemde en çok fark yaratacak alışkanlıklar.',
-      ],
-      1,
-    ),
-  )
-  parts.push(
-    pick(
-      [
-        'Rehberlik servisi olarak süreci birlikte takip ediyoruz; aklınıza takılan her konuda bizimle görüşebilirsiniz.',
-        'Süreci birlikte izlemeye devam edeceğiz; dilediğiniz zaman rehberlik servisimizle görüşebilirsiniz.',
-      ],
-      2,
-    ),
-  )
-  return parts.join(' ').replace(/\s+/g, ' ').trim()
 }
 
 /**

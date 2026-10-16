@@ -31,8 +31,7 @@ describe('Kural tabanlı veli raporu (kabul testi)', () => {
     const texts = TYPES.map(([no, name]) => {
       const b = genVeli(reportData(ds, sid(no), lastExam())!, name, sid(no) + lastExam())
       const all = [b.genel, b.guclu, b.gelisim, b.oneriler, b.mentor, b.rehber].join('\n')
-      expect(b.rehber, name).not.toBe('')
-      expect(b.rehber, name).not.toMatch(/kaygı|stres|endişe|psikoloj/i) // gözlem olmadan psikolojik çıkarım yok (§15)
+      expect(b.rehber, name).toBe('') // rehber öğretmen yorumu boş başlar (§15)
       expect(findForbidden(all), name).toEqual([])
       expect(b.oneriler.split('\n').length, name).toBeGreaterThanOrEqual(3)
       return { name, b, words: new Set(norm(all)) }
