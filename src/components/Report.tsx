@@ -10,7 +10,7 @@ import { isFullAccess, isTeacherP, ROLE_TR, roleOf } from '@/lib/roles'
 import { SUBJECTS, fmt, outcomeCode, totalNet, type Dataset } from '@/lib/analiz'
 import { useDatasetForExam } from '@/lib/sinavBaglami'
 import { useNotes, usePeople, useRefresh, useStudents, useTasks, useParentLinks } from '@/lib/data'
-import { aiPayload, genVeli, reportData, type OgretmenBody, type VeliBody } from '@/lib/rapor'
+import { aiPayload, genRehber, genVeli, reportData, type OgretmenBody, type VeliBody } from '@/lib/rapor'
 import { fold, todayISO, trD } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { Icon, Logo } from './Icon'
@@ -56,6 +56,8 @@ function ReportLoader({ target, onClose }: { target: Target; onClose: () => void
       if (error) throw error
       return data as Row | null
     },
+    // Önbellekteki eski kayıt gösterilmesin: rapor her açılışta güncel hâliyle okunur (kaydedilen rehber yorumu dahil).
+    gcTime: 0,
   })
   const students = useStudents()
   const sid0 = q.data?.student_id ?? ('sid' in target ? target.sid : null)
@@ -118,7 +120,14 @@ function ReportView({
   const exam = ds.exams.find((e) => e.id === eid)!
   const [body, setBody] = useState<VeliBody | OgretmenBody>(() => {
     if (row)
-      return V ? ({ ...(row.body as unknown as VeliBody), rehber: row.rehber ?? '', ai: row.ai_generated } as VeliBody) : (row.body as unknown as OgretmenBody)
+      return V
+        ? ({
+            ...(row.body as unknown as VeliBody),
+            // Henüz rehber yorumu yazılmamış taslakta, düzenleyebilen kişiye başlangıç taslağı önerilir.
+            rehber: row.rehber ?? (E && row.status === 'draft' && R ? genRehber(R, s.id + eid) : ''),
+            ai: row.ai_generated,
+          } as VeliBody)
+        : (row.body as unknown as OgretmenBody)
     if (V && R) return genVeli(R, s.full_name, s.id + eid)
     return V ? ({ genel: '', guclu: '', gelisim: '', oneriler: '', mentor: '', rehber: '', ai: false } as VeliBody) : { toplanti: '' }
   })
@@ -164,7 +173,7 @@ function ReportView({
       return null
     }
     if (!quiet) toast('Rapor kaydedildi')
-    refresh('reports')
+    refresh('reports', 'report')
     return data.id as string
   }
 
@@ -243,7 +252,7 @@ function ReportView({
     if (error) return toast(error.message || 'Gönderilemedi.', 'warn')
     setSendOpen(false)
     toast(data ? `Gönderildi · ${data} kişi` : 'Kaydedildi; seçilen alıcıların onaylı hesabı yok')
-    refresh('reports')
+    refresh('reports', 'report')
   }
 
   // ---------- görünüm verisi ----------

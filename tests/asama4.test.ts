@@ -30,7 +30,9 @@ describe('Kural tabanlı veli raporu (kabul testi)', () => {
       s.toLocaleLowerCase('tr').replace(/deniz|ece|ali|mert|elif|kerem|can/g, 'X').replace(/[\d,]+/g, '#').split(/[^\p{L}#]+/u).filter(Boolean)
     const texts = TYPES.map(([no, name]) => {
       const b = genVeli(reportData(ds, sid(no), lastExam())!, name, sid(no) + lastExam())
-      const all = [b.genel, b.guclu, b.gelisim, b.oneriler, b.mentor].join('\n')
+      const all = [b.genel, b.guclu, b.gelisim, b.oneriler, b.mentor, b.rehber].join('\n')
+      expect(b.rehber, name).not.toBe('')
+      expect(b.rehber, name).not.toMatch(/kaygı|stres|endişe|psikoloj/i) // gözlem olmadan psikolojik çıkarım yok (§15)
       expect(findForbidden(all), name).toEqual([])
       expect(b.oneriler.split('\n').length, name).toBeGreaterThanOrEqual(3)
       return { name, b, words: new Set(norm(all)) }
