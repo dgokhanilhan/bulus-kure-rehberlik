@@ -1,0 +1,288 @@
+.list-center {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.list-intro,
+.list-bottom,
+.list-saved {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.list-intro h3 {
+  font-size: 24px;
+  margin: 8px 0;
+}
+.list-intro p,
+.list-panel p {
+  margin: 8px 0;
+  color: var(--ink-muted);
+}
+.list-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+}
+.list-actions,
+.list-steps,
+.list-templates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.list-center .btn {
+  min-height: 44px;
+}
+.list-center .btn[aria-pressed='true'] {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+.list-panel,
+.list-library {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  min-width: 0;
+  background: var(--surface);
+}
+.list-library summary,
+.list-panel summary {
+  padding: 10px 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+.list-saved {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.list-saved > div {
+  flex: 1;
+}
+.list-center small {
+  display: block;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+.list-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+.list-center label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.list-center input:not([type='checkbox']),
+.list-center select,
+.list-center textarea {
+  width: 100%;
+  min-width: 0;
+}
+.list-center fieldset {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin: 16px 0;
+  padding: 12px;
+}
+.list-checks {
+  display: flex;
+  gap: 8px 20px;
+  flex-wrap: wrap;
+}
+.list-checks label,
+.list-center .list-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.list-people {
+  max-height: 280px;
+  overflow: auto;
+}
+.list-scroll {
+  overflow: auto;
+  max-height: 520px;
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.list-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.list-scroll th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+.list-scroll td,
+.list-scroll th {
+  padding: 10px 12px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--line);
+}
+.list-scroll td .btn {
+  margin: 3px;
+}
+.list-column {
+  display: grid;
+  grid-template-columns: minmax(140px, 2fr) minmax(70px, 0.5fr) minmax(80px, 1fr) auto auto auto;
+  align-items: end;
+  gap: 8px;
+  margin: 12px 0;
+}
+.list-bottom {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+.list-error {
+  padding: 12px;
+  border: 1px solid var(--signal);
+  border-radius: 10px;
+}
+.list-preview input {
+  background: transparent;
+  border: 1px dashed var(--line);
+  padding: 6px;
+}
+.list-templates {
+  margin-bottom: 20px;
+}
+.list-center .m {
+  font-weight: 400;
+}
+.list-center h4 {
+  margin-top: 24px;
+}
+@media (max-width: 900px) {
+  .list-column {
+    grid-template-columns: minmax(100px, 1fr) 80px auto auto;
+  }
+  .list-column > span {
+    display: none;
+  }
+  .list-column > button:last-child {
+    grid-column: 1/-1;
+  }
+  .list-intro {
+    align-items: flex-start;
+  }
+  .list-saved {
+    flex-wrap: wrap;
+  }
+  .list-saved > div {
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 600px) {
+  .list-form {
+    grid-template-columns: 1fr;
+  }
+  .list-panel,
+  .list-library {
+    padding: 12px;
+  }
+  .list-steps {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+  .list-bottom > .list-actions {
+    width: 100%;
+  }
+  .list-intro {
+    flex-direction: column;
+  }
+  .list-intro h3 {
+    font-size: 21px;
+  }
+}
+.list-preview td,
+.list-preview th {
+  padding: 8px;
+  overflow-wrap: break-word;
+}
+.list-preview h3 {
+  font-weight: 700;
+}
+.list-panel > .list-actions h3 {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.list-center input:not([type='checkbox']),
+.list-center select,
+.list-center textarea,
+.list-form input {
+  min-height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+  box-sizing: border-box;
+}
+.list-center textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+.list-center input:focus-visible,
+.list-center select:focus-visible,
+.list-center textarea:focus-visible,
+.list-form input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.list-center input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+.list-center .list-preview input {
+  min-height: 36px;
+  padding: 6px;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  border-radius: 6px;
+}
+.list-center .list-row-select {
+  display: flex;
+  width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+}
+.list-steps .btn {
+  flex: 1;
+  justify-content: center;
+}
+.list-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.list-form input {
+  width: 100%;
+  min-width: 0;
+}
+.list-panel h4 {
+  font-weight: 600;
+  font-size: 17px;
+}

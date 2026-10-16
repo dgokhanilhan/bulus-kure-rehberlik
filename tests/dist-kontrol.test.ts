@@ -33,6 +33,7 @@ describe('dist bütünlük kontrolü', () => {
   it('ayrıştırıcılar: betik, modulepreload, stil ve parça içe aktarımları', () => {
     expect(htmlRefs(HTML).sort()).toEqual(['/assets/index-AAA.js', '/assets/index-CCC.css', '/assets/react-BBB.js', '/boot-check.js'])
     expect(chunkRefs('import "./a-1.js";import("./b-2.js");x("./c.css")')).toEqual(['a-1.js', 'b-2.js', 'c.css'])
+    expect(chunkRefs('const bundled={"./internal.js":12}; require("./internal.js"); export {x} from "./real.js"')).toEqual(['real.js'])
     expect(headerRule(HEADERS, '/assets/*')?.['cache-control']).toBe('public, max-age=0, must-revalidate')
     expect(headerRule(HEADERS, '/')?.['cache-control']).toMatch(/no-store/)
   })
