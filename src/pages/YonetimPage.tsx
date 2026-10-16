@@ -1,6 +1,7 @@
 // Yönetim paneli (yalnız yönetici): sınıflar, öğrenciler, öğretmenler, veliler, kapalı hesaplar.
 // Yazma yetkisi veritabanında (RLS + 0008 RPC'leri, aal2) zorlanır; bu ekran yalnız arayüzdür.
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
+const ListeOlustur = lazy(() => import('./ListeOlustur').then(m => ({ default: m.ListeOlustur })))
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -39,6 +40,7 @@ import {
 } from './YonetimMerkezi'
 
 type Tab =
+  | 'listeler'
   | 'genel'
   | 'moduller'
   | 'yillar'
@@ -109,6 +111,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
   {
     title: 'Kişiler',
     items: [
+      ['listeler', 'Liste Oluştur'],
       ['ogrenciler', 'Öğrenciler'],
       ['ogretmenler', 'Öğretmenler'],
       ['veliler', 'Veliler'],
@@ -121,6 +124,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
 const TABS = GROUPS.flatMap((g) => g.items)
 /** Aramada bölüm adına ek olarak eşleşen sözcükler (ayar adları, sık kullanılan terimler). */
 const KEYWORDS: Partial<Record<Tab, string>> = {
+  listeler: 'liste sınıf veli telefon iletişim pdf excel çıktı yazdır şablon imza gezi',
   genel: 'okul adı telefon e-posta adres logo tema renk tasarım görünüm yazı kart karşılama animasyon',
   moduller: 'aç kapat modül özellik',
   yillar: 'dönem tatil yıl aktif',
@@ -269,6 +273,7 @@ export default function YonetimPage() {
                   <AppearanceSettings />
                 </>
               )}
+              {tab === 'listeler' && <Suspense fallback={<p>Liste merkezi yükleniyor…</p>}><ListeOlustur /></Suspense>}
               {tab === 'moduller' && <Moduller />}
               {tab === 'yillar' && <EgitimYillari />}
               {tab === 'dosya' && <DosyaDuyuruAyarlari />}
@@ -380,6 +385,7 @@ function Siniflar({ classes, profiles, students }: { classes: ClassRow[]; profil
                             >
                               {c.active === false ? 'Aktif yap' : 'Pasif yap'}
                             </button>
+                            <Link className="btn sm" to={`/yonetim?sekme=listeler&sinif=${c.id}`}>Liste oluştur</Link>
                             <button className="btn sm" onClick={() => setEdit(c)} aria-label={`${c.name} sınıfını düzenle`}>
                               <Icon name="pen" size={15} /> Düzenle
                             </button>

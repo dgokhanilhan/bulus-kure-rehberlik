@@ -3,6 +3,7 @@
 // döndürür ve site açılış ekranında kalır). Ayrıca _headers'ın üretildiğini ve önbellek kurallarının yerinde olduğunu doğrular.
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import ts from 'typescript'
 
 /** index.html'deki yerel betik, modulepreload ve stil dosyası yolları (/assets/x.js gibi). */
 export function htmlRefs(html: string): string[] {
@@ -17,7 +18,19 @@ export function htmlRefs(html: string): string[] {
 
 /** Bir JS parçasının içe aktardığı kardeş parçalar ("./x.js", import("./y.js")). */
 export function chunkRefs(js: string): string[] {
-  return [...new Set([...js.matchAll(/["'`]\.\/([\w.-]+\.(?:js|css))["'`]/g)].map((m) => m[1]!))]
+  const out = new Set<string>()
+  const add = (value: string) => { const m = /^\.\/([\w.-]+\.(?:js|css))$/.exec(value); if (m) out.add(m[1]!) }
+  // Browserify paketlerinin iç modül isimleri gerçek ağ istekleri değildir.
+  // Gerçek ES modül bağımlılıklarını ayrıştırarak eksik lazy parçaları denetle.
+  const file = ts.createSourceFile('chunk.js', js, ts.ScriptTarget.Latest, false, ts.ScriptKind.JS)
+  const visit = (node: ts.Node) => {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) add(node.moduleSpecifier.text)
+    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments[0] && ts.isStringLiteralLike(node.arguments[0])) add(node.arguments[0].text)
+    if (ts.isStringLiteralLike(node) && node.text.endsWith('.css')) add(node.text)
+    ts.forEachChild(node, visit)
+  }
+  visit(file)
+  return [...out]
 }
 
 /** _headers metninde bir yol kuralının başlıkları. */
