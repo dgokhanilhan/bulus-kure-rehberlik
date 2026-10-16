@@ -1,4 +1,5 @@
-import { Document, Font, Page, Text, View, pdf } from '@react-pdf/renderer'
+import { Document, Font, Image, Page, Text, View, pdf } from '@react-pdf/renderer'
+import logo from '@/assets/okul-logo.jpg?url'
 import regular from '@ibm/plex-sans/fonts/complete/woff/IBMPlexSans-Regular.woff?url'
 import semi from '@ibm/plex-sans/fonts/complete/woff/IBMPlexSans-SemiBold.woff?url'
 import { widths, type ListConfig } from './schoolLists'
@@ -14,6 +15,7 @@ export async function listPdf(c: ListConfig, rows: string[][], school: string): 
         style={{ padding: 30, paddingBottom: 55, fontFamily: 'ListPlex', fontSize: 9, color: '#1b2a2f' }}
       >
         <View fixed style={{ marginBottom: 12 }}>
+          <Image src={logo} style={{ position: 'absolute', top: 0, right: 0, width: 28, height: 28 }} />
           <Text style={{ fontSize: 10, color: '#56636a' }}>{school}</Text>
           <Text style={{ fontSize: 18, fontWeight: 600, marginVertical: 6 }}>{c.title}</Text>
           {c.description && <Text style={{ marginBottom: 5 }}>{c.description}</Text>}

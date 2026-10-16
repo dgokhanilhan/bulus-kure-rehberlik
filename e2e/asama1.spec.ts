@@ -85,7 +85,7 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
     await expect(page.getByRole('alert')).toContainText('Kod hatalı')
 
     secret = await completeMfa(page)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', 'Duyurular', /^İletişim/, 'Yönetim', /Onaylar/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', 'Duyurular', /^İletişim/, 'Yönetim', 'Gözetmen Bul', /Onaylar/])
     await page.getByRole('link', { name: /Onaylar/ }).click()
     await expect(page.getByRole('heading', { name: 'Kayıt onayları' })).toBeVisible()
     await expect(page.getByTestId('pending-card')).toHaveCount(await pendingCount())

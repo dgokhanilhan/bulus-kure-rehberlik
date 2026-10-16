@@ -1,6 +1,7 @@
 // Rapor PDF'i (istemci tarafı, @react-pdf/renderer): metin seçilebilir, Türkçe karakterler gömülü IBM Plex ile.
 // Yapı: docs/veli-raporu-kurallari.md §18. Bu modül yalnız "PDF indir"e basılınca yüklenir.
-import { Document, Font, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer'
+import { Document, Font, Image, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer'
+import logo from '@/assets/okul-logo.jpg?url'
 import sansRegular from '@ibm/plex-sans/fonts/complete/woff/IBMPlexSans-Regular.woff?url'
 import sansSemi from '@ibm/plex-sans/fonts/complete/woff/IBMPlexSans-SemiBold.woff?url'
 import monoMedium from '@ibm/plex-mono/fonts/complete/woff/IBMPlexMono-Medium.woff?url'
@@ -14,6 +15,8 @@ const s = StyleSheet.create({
   page: { padding: 36, fontFamily: 'Plex', fontSize: 10, color: C.ink, lineHeight: 1.5 },
   head: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 2, borderBottomColor: C.ink, paddingBottom: 10, marginBottom: 12 },
   brand: { fontSize: 15, fontWeight: 600 },
+  logo: { width: 30, height: 30, marginRight: 8 },
+  brandRow: { flexDirection: 'row', alignItems: 'center' },
   sub: { fontSize: 9, color: C.muted },
   info: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 },
   infoCell: { width: '33.33%', padding: 3 },
@@ -101,9 +104,12 @@ function Report(d: PdfVeli | PdfOgretmen) {
     <Document title={`${V ? 'Veli Gelişim Raporu' : 'Öğretmen Bilgilendirme Raporu'} · ${d.student} · ${d.exam}`} author="Buluş Küre Koleji" language="tr">
       <Page size="A4" style={s.page}>
         <View style={s.head}>
-          <View>
-            <Text style={s.brand}>Buluş Küre Koleji</Text>
-            <Text style={s.sub}>Rehberlik & Mentörlük · {V ? 'Veli Gelişim Raporu' : 'Öğretmen Bilgilendirme Raporu'}</Text>
+          <View style={s.brandRow}>
+            <Image src={logo} style={s.logo} />
+            <View>
+              <Text style={s.brand}>Buluş Küre Koleji</Text>
+              <Text style={s.sub}>Rehberlik & Mentörlük · {V ? 'Veli Gelişim Raporu' : 'Öğretmen Bilgilendirme Raporu'}</Text>
+            </View>
           </View>
           <View>
             <Text style={[s.sub, { textAlign: 'right' }]}>Rapor tarihi</Text>
@@ -239,9 +245,12 @@ function AttendanceDoc(d: PdfAttendance) {
     <Document title={`Devamsızlık raporu · ${d.student}`} author={d.school}>
       <Page size="A4" style={s.page}>
         <View style={s.head}>
-          <View>
-            <Text style={s.brand}>{d.school}</Text>
-            <Text style={s.sub}>Devamsızlık raporu</Text>
+          <View style={s.brandRow}>
+            <Image src={logo} style={s.logo} />
+            <View>
+              <Text style={s.brand}>{d.school}</Text>
+              <Text style={s.sub}>Devamsızlık raporu</Text>
+            </View>
           </View>
           <Text style={s.sub}>{d.printed}</Text>
         </View>

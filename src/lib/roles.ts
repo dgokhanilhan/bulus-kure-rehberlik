@@ -45,11 +45,12 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'odevler' | 'takvim' | 'bildirimler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
   | 'nobet-takip' | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler' | 'galeri'
+  | 'gozetmen'
 
 export interface NavItem {
   id: PageId
   label: string
-  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega' | 'image'
+  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega' | 'image' | 'search'
 }
 
 const STAFF: NavItem[] = [
@@ -77,9 +78,12 @@ const FAMILY: NavItem[] = [
   { id: 'gorusmeler', label: 'Görüşmeler', icon: 'cal' },
 ]
 
+/** Gözetmen Bul (bağımsız modül, 0048): yalnız yönetici. Kaldırmak için bu satırı ve aşağıdaki kullanımını sil. */
+const GOZETMEN: NavItem = { id: 'gozetmen', label: 'Gözetmen Bul', icon: 'search' }
+
 /** Rol bazlı menü — prototipteki navItems() ile aynı. Yetki ayrıca veritabanında (RLS) zorlanır. */
 function navFor(r: Role): NavItem[] {
-  if (r === 'admin') return [...STAFF, DUYURULAR, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
+  if (r === 'admin') return [...STAFF, DUYURULAR, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, GOZETMEN, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
   if (r === 'rehber') return [...STAFF, DUYURULAR, ILETISIM]
   if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, DUYURULAR, ILETISIM]
   if (r === 'ogrenci') return FAMILY.filter((n) => n.id !== 'iletisim') // öğrenci mesajlaşmaz; duyuruları görür
