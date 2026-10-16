@@ -19,9 +19,14 @@ export interface DkSubject {
 export interface DkQuestion {
   subject: Subject
   number: number
+  /** Kitapçık (A/B). Kitapçıklar aynı soru numarasında farklı anahtar ve kazanım taşır; yoksa A sayılır. */
+  booklet?: string | null
   correctAnswer: string
   studentAnswer: string | null
   status: 'correct' | 'wrong' | 'blank' | 'credited'
+  /** PDF'te okunan ham kod/metin (eşleşmeyen hedefler kuyruğuna gider; analizde kullanılmaz). */
+  sourceOutcomeCode?: string | null
+  sourceOutcomeText?: string | null
   officialOutcomeCode: string | null
   outcomeMatchMethod: string
   questionOutcomeMethod: string
@@ -186,6 +191,11 @@ export interface PublishPayload {
   sha256: string | null
   notify: boolean
   questions: { subject: Subject; q_no: number; correct_answer: string | null; outcome_code: string | null; match: MatchLevel }[]
+  /**
+   * Resmî listeyle güvenle eşleşmeyen, PDF'te kodu/metni olan sorular (kitapçık başına). Yayından sonra
+   * add_lgs_unresolved_items ile Eşleşmeyen hedefler kuyruğuna yazılır; publish_exam bu alanı okumaz.
+   */
+  unresolved: { subject: Subject; booklet: string; q_no: number; correct_answer: string | null; raw_code: string | null; raw_text: string | null }[]
   results: {
     student_id?: string
     new_student?: { full_name: string; class_name: string; school_no: string | null }
@@ -194,9 +204,13 @@ export interface PublishPayload {
     answers: Partial<Record<Subject, string>>
     outcomes_ok: boolean
     kazanim: { subjects: Subject[]; g: Record<string, [number, number, number, number]> } | null
-    source: { page: number; adapter: string | null; recordId: string }
+    /** booklets: öğrencinin ders başına kitapçığı (yalnız PDF'te kitapçık bilgisi varsa). */
+    source: { page: number; adapter: string | null; recordId: string; booklets?: Partial<Record<Subject, string>> }
   }[]
 }
+
+const bookletOf = (q: Pick<DkQuestion, 'booklet'>) => (q.booklet === 'B' ? 'B' : 'A')
+const reliableSourceRow = (q: DkQuestion) => q.questionOutcomeMethod === 'SOURCE_ROW' && !!q.officialOutcomeCode && !!MATCH[q.outcomeMatchMethod] && q.status !== 'credited'
 
 function majority<T>(xs: T[], key: (x: T) => string): T | undefined {
   const c = new Map<string, { x: T; n: number }>()
@@ -214,32 +228,60 @@ function majority<T>(xs: T[], key: (x: T) => string): T | undefined {
 export function buildPayload(rv: Review, meta: { name: string; publisher: string | null; exam_date: string; notify: boolean }): PublishPayload {
   const rows = rv.rows.filter((r) => r.choice && r.choice.kind !== 'skip')
 
-  // Cevap anahtarı ve soru-kazanım: öğrencilerin çoğunluğundaki değer (kitapçık farkı olan öğrencinin konu analizi kapanır).
+  // Cevap anahtarı ve soru-kazanım KİTAPÇIK BAŞINA: aynı kitapçıktaki öğrencilerin çoğunluğu. A ve B kitapçığı aynı soru
+  // numarasında farklı anahtar ve kazanım taşır; tek anahtar kullanmak B kitapçığındaki doğruyu "yanlış" gösterir.
   const questions: PublishPayload['questions'] = []
-  const keyOf = new Map<string, string>()
+  const unresolved: PublishPayload['unresolved'] = []
+  const keyOf = new Map<string, string>() // ders|kitapçık|soru
+  const refBooklet: Partial<Record<Subject, string>> = {}
   for (const subject of SUBJECT_ORDER) {
-    for (let no = 1; no <= QCOUNT[subject]; no++) {
-      const qs = rows.map((r) => r.record.questions.find((q) => q.subject === subject && q.number === no)).filter((q): q is DkQuestion => !!q)
-      if (!qs.length) continue
-      const k = majority(qs, (q) => q.correctAnswer)!.correctAnswer
-      keyOf.set(`${subject}|${no}`, k)
-      const src = qs.filter((q) => q.questionOutcomeMethod === 'SOURCE_ROW' && q.officialOutcomeCode && MATCH[q.outcomeMatchMethod] && q.status !== 'credited')
-      const o = majority(src, (q) => `${q.officialOutcomeCode}|${q.outcomeMatchMethod}`)
-      const credited = qs.some((q) => q.status === 'credited')
-      questions.push({
-        subject,
-        q_no: no,
-        correct_answer: /^[ABCDE]$/.test(k) ? k : null,
-        outcome_code: !credited && o ? o.officialOutcomeCode : null,
-        match: !credited && o ? MATCH[o.outcomeMatchMethod]! : 'none',
-      })
+    const all = rows.flatMap((r) => r.record.questions.filter((q) => q.subject === subject))
+    const booklets = [...new Set(all.map(bookletOf))].sort()
+    // exam_questions tablosunda kitapçık sütunu yok: A (yalnız B varsa B). Öğrenci analizi kendi kitapçığının gruplarından yapılır.
+    const ref = booklets.includes('A') ? 'A' : booklets[0]
+    if (ref) refBooklet[subject] = ref
+    for (const booklet of booklets) {
+      for (let no = 1; no <= QCOUNT[subject]; no++) {
+        const qs = all.filter((q) => q.number === no && bookletOf(q) === booklet)
+        if (!qs.length) continue
+        const k = majority(qs, (q) => q.correctAnswer)!.correctAnswer
+        keyOf.set(`${subject}|${booklet}|${no}`, k)
+        const o = majority(qs.filter(reliableSourceRow), (q) => `${q.officialOutcomeCode}|${q.outcomeMatchMethod}`)
+        const credited = qs.some((q) => q.status === 'credited')
+        if (booklet === ref)
+          questions.push({
+            subject,
+            q_no: no,
+            correct_answer: /^[ABCDE]$/.test(k) ? k : null,
+            outcome_code: !credited && o ? o.officialOutcomeCode : null,
+            match: !credited && o ? MATCH[o.outcomeMatchMethod]! : 'none',
+          })
+        if (credited || o) continue
+        // Resmî listeyle güvenle eşleşmedi ama PDF'te kod/metin var → Eşleşmeyen hedefler (uydurulmaz; yönetici eşler/ekler)
+        const raw = majority(
+          qs.filter((q) => q.questionOutcomeMethod === 'SOURCE_ROW' && (q.sourceOutcomeCode?.trim() || q.sourceOutcomeText?.trim())),
+          (q) => `${q.sourceOutcomeCode ?? ''}|${q.sourceOutcomeText ?? ''}`,
+        )
+        if (raw)
+          unresolved.push({
+            subject,
+            booklet,
+            q_no: no,
+            correct_answer: /^[ABCDE]$/.test(k) ? k : null,
+            raw_code: raw.sourceOutcomeCode?.trim() || null,
+            raw_text: raw.sourceOutcomeText?.trim() || null,
+          })
+      }
     }
   }
 
   const results = rows.map((r) => {
+    const own = r.record.questions
     const subjects: PublishPayload['results'][number]['subjects'] = {}
     const answers: Partial<Record<Subject, string>> = {}
-    let keyMismatch = false
+    const booklets: Partial<Record<Subject, string>> = {}
+    for (const q of own) if (q.booklet) booklets[q.subject] ??= bookletOf(q)
+    const keyMismatch = new Set<Subject>()
     for (const code of SUBJECT_ORDER) {
       const s = r.subjects[code]
       const issue = r.subjectIssues.find((i) => i.subject === code)
@@ -252,36 +294,68 @@ export function buildPayload(rv: Review, meta: { name: string; publisher: string
         continue
       }
       for (let no = 1; no <= QCOUNT[code]; no++) {
-        const q = r.record.questions.find((x) => x.subject === code && x.number === no)
-        if (q && keyOf.get(`${code}|${no}`) !== q.correctAnswer) keyMismatch = true
-        a += !q ? '?' : q.status === 'blank' ? '_' : q.studentAnswer && /^[A-E]$/i.test(q.studentAnswer) ? q.studentAnswer.toUpperCase() : '?'
+        const q = own.find((x) => x.subject === code && x.number === no)
+        // Anahtar, öğrencinin KENDİ kitapçığındaki çoğunlukla karşılaştırılır
+        if (q && keyOf.get(`${code}|${bookletOf(q)}|${no}`) !== q.correctAnswer) keyMismatch.add(code)
+        a += !q
+          ? '?'
+          : q.status === 'blank'
+            ? '_'
+            : q.studentAnswer === '*'
+              ? '*' // çift işaret: yanlış sayılır, şık uydurulmaz
+              : q.studentAnswer && /^[A-E]$/i.test(q.studentAnswer)
+                ? q.studentAnswer.toUpperCase()
+                : '?'
       }
       answers[code] = a
     }
     // Kazanım grupları: yalnız tutarlı dersler ve güvenilir eşleşmeler (kod / birebir metin / metin başlangıcı)
     const groups = r.record.outcomeGroups ?? []
-    const gSubjects = SUBJECT_ORDER.filter((c) => groups.some((g) => g.subject === c) && !r.badGroupSubjects.includes(c))
-    const g: Record<string, [number, number, number, number]> = {}
-    for (const x of groups) {
-      if (!gSubjects.includes(x.subject) || !x.officialOutcomeCode || !MATCH[x.outcomeMatchMethod]) continue
-      const cur = g[x.officialOutcomeCode] ?? [0, 0, 0, 0]
-      g[x.officialOutcomeCode] = [cur[0] + x.questionCount, cur[1] + x.correct, cur[2] + x.wrong, cur[3] + x.blank]
+    let kazanim: PublishPayload['results'][number]['kazanim'] = null
+    if (groups.length) {
+      const gSubjects = SUBJECT_ORDER.filter((c) => groups.some((g) => g.subject === c) && !r.badGroupSubjects.includes(c))
+      const g: Record<string, [number, number, number, number]> = {}
+      for (const x of groups) {
+        if (!gSubjects.includes(x.subject) || !x.officialOutcomeCode || !MATCH[x.outcomeMatchMethod]) continue
+        const cur = g[x.officialOutcomeCode] ?? [0, 0, 0, 0]
+        g[x.officialOutcomeCode] = [cur[0] + x.questionCount, cur[1] + x.correct, cur[2] + x.wrong, cur[3] + x.blank]
+      }
+      if (gSubjects.length) kazanim = { subjects: gSubjects, g }
+    } else if (own.some((q) => q.questionOutcomeMethod === 'SOURCE_ROW')) {
+      // Soru satırlı karne (Hız vb.): kazanım × D/Y/B öğrencinin KENDİ kitapçığındaki sorulardan. Ders yalnız bütün soruları
+      // okunmuş, sonuçla tutarlı ve anahtarı kitapçığıyla uyumluysa analize girer; değilse "okunamadı" kalır (uydurulmaz).
+      const gSubjects = SUBJECT_ORDER.filter((c) => {
+        if (!subjects[c] || r.badQuestionSubjects.includes(c) || keyMismatch.has(c)) return false
+        const qs = own.filter((q) => q.subject === c)
+        return new Set(qs.map((q) => q.number)).size === QCOUNT[c] && qs.some(reliableSourceRow)
+      })
+      const g: Record<string, [number, number, number, number]> = {}
+      for (const q of own) {
+        if (!gSubjects.includes(q.subject) || !reliableSourceRow(q)) continue
+        const cur = g[q.officialOutcomeCode!] ?? [0, 0, 0, 0]
+        g[q.officialOutcomeCode!] = [cur[0] + 1, cur[1] + Number(q.status === 'correct'), cur[2] + Number(q.status === 'wrong'), cur[3] + Number(q.status === 'blank')]
+      }
+      kazanim = { subjects: gSubjects, g }
     }
+    // Analiz edilebilir dersi kalmayan (veritabanı boş grubu NULL'a çevirir) ve kitapçığı soru tablosununkinden farklı öğrenci:
+    // tek anahtarlı soru tablosuyla değerlendirilmesin diye konu analizi kapalı ("okunamadı").
+    const otherBooklet = Object.entries(booklets).some(([s, b]) => refBooklet[s as Subject] && b !== refBooklet[s as Subject])
+    const noGroups = !!kazanim && kazanim.subjects.length === 0
     const c = r.choice!
     const base = {
       score: r.record.exam.score ?? null,
       subjects,
       answers,
-      outcomes_ok: r.outcomesReadable && !keyMismatch,
-      kazanim: gSubjects.length ? { subjects: gSubjects, g } : null,
-      source: { page: r.page, adapter: r.record.source?.adapter ?? null, recordId: r.key },
+      outcomes_ok: r.outcomesReadable && keyMismatch.size === 0 && !(noGroups && otherBooklet),
+      kazanim: noGroups ? null : kazanim,
+      source: { page: r.page, adapter: r.record.source?.adapter ?? null, recordId: r.key, ...(Object.keys(booklets).length ? { booklets } : {}) },
     }
     return c.kind === 'student'
       ? { ...base, student_id: c.id }
       : { ...base, new_student: { full_name: titleCase(r.read.name), class_name: c.kind === 'new' ? c.class_name : '8/A', school_no: r.read.number } }
   })
 
-  return { name: meta.name.trim(), publisher: meta.publisher, template_id: rv.adapter, exam_date: meta.exam_date, sha256: rv.sha256, notify: meta.notify, questions, results }
+  return { name: meta.name.trim(), publisher: meta.publisher, template_id: rv.adapter, exam_date: meta.exam_date, sha256: rv.sha256, notify: meta.notify, questions, unresolved, results }
 }
 
 /** "ZEYNEP KAYA" → "Zeynep Kaya" (Türkçe). */

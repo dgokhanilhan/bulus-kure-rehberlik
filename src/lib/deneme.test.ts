@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { buildPayload, buildReview, pendingCount, type DkPack } from './deneme'
+import { buildPayload, buildReview, pendingCount, type DkPack, type DkQuestion, type DkRecord } from './deneme'
+import { SUBJECTS, wrongOutcomes, type Dataset, type Result } from './analiz'
 import type { RosterStudent } from './isim'
 
 // Gerçek motorla (public/engine/parser.mjs) sentetik paketi içe al.
@@ -72,5 +73,117 @@ describe('deneme kontrolü', () => {
     const p = buildPayload(rv, { name: 'TG-6', publisher: null, exam_date: '2026-09-26', notify: false })
     expect(p.results).toHaveLength(8)
     expect(p.results.find((r) => r.student_id === 'mert')!.subjects.TUR).toBeNull()
+  })
+})
+
+// ---------- A/B kitapçığı (Hız soru satırlı karne) ----------
+// Kitapçıklar aynı soru numarasında farklı anahtar ve kazanım taşır. Öğrenci KENDİ kitapçığıyla değerlendirilmeli:
+// B kitapçığında tamamı doğru olan öğrencide yanlış konu çıkmamalı (eskiden A anahtarıyla karşılaştırılıyordu).
+describe('A/B kitapçığı', () => {
+  const KEY = { A: 'ABCDABCDABCDABCDABCD', B: 'DCBADCBADCBADCBADCBA' } as const
+  const CODE = { A: ['M.8.1.1.1', 'M.8.1.1.2'], B: ['M.8.1.1.2', 'M.8.1.1.1'] } as const
+  const rec = (id: string, name: string, booklet: 'A' | 'B', answers: string): DkRecord => {
+    const questions: DkQuestion[] = [...KEY[booklet]].map((k, i): DkQuestion => {
+      const a = answers[i]!
+      const unmatched = i === 19 // 20. soru: PDF'teki kod resmî listede yok → Eşleşmeyen hedefler
+      return {
+        subject: 'MAT',
+        number: i + 1,
+        booklet,
+        correctAnswer: k,
+        studentAnswer: a === '_' ? null : a,
+        status: a === '_' ? 'blank' : a === k ? 'correct' : 'wrong',
+        sourceOutcomeCode: unmatched ? 'M.8.9.9' : CODE[booklet][i % 2]!,
+        sourceOutcomeText: unmatched ? 'Yayının kendi hedefi' : 'Metin',
+        officialOutcomeCode: unmatched ? null : CODE[booklet][i % 2]!,
+        outcomeMatchMethod: unmatched ? 'UNVERIFIED' : 'CODE_EXACT',
+        questionOutcomeMethod: 'SOURCE_ROW',
+      }
+    })
+    const d = questions.filter((q) => q.status === 'correct').length
+    const y = questions.filter((q) => q.status === 'wrong').length
+    return {
+      recordId: id,
+      source: { filename: 'x.pdf', sha256: 'sha', pages: [1], adapter: 'hiz_cards_v1' },
+      student: { name, number: id, class: '8/A' },
+      exam: { name: 'TG-1', score: 400, totalNet: d - y / 3 },
+      subjects: [{ id: 'MAT', questionCount: 20, correct: d, wrong: y, blank: 20 - d - y, net: d - y / 3 }],
+      questions,
+      validation: { errors: [], warnings: [] },
+    }
+  }
+  const pack: DkPack = {
+    schemaVersion: '1.0.0',
+    records: [
+      rec('1', 'ADA A', 'A', 'BBCDABCDABCDABCDABCD'), // A: 1. soru yanlış (M.8.1.1.1)
+      rec('2', 'BORA A', 'A', KEY.A),
+      rec('3', 'CAN B', 'B', KEY.B), // B: hepsi doğru
+      rec('4', 'DERYA B', 'B', 'DCBADCBADCBADCBADCB_'), // B: 20. soru boş
+    ],
+  }
+  const roster: RosterStudent[] = pack.records.map((r) => ({ id: r.student.name, full_name: r.student.name, class_name: '8/A', school_no: r.student.number! }))
+  const p = buildPayload(buildReview(pack, roster), { name: 'TG-1', publisher: 'Hız Yayınları', exam_date: '2026-10-15', notify: false })
+  const res = (n: string) => p.results.find((r) => r.student_id === n)!
+  const ds: Dataset = {
+    subjects: SUBJECTS,
+    exams: [{ id: 'e', name: 'TG-1', publisher: null, exam_date: '2026-10-15' }],
+    questionsByExam: new Map([['e', p.questions.map((q) => ({ exam_id: 'e', ...q }))]]),
+    outcomes: [
+      { code: 'M.8.1.1.1', subject: 'MAT', title: 'Çarpanlar' },
+      { code: 'M.8.1.1.2', subject: 'MAT', title: 'EBOB-EKOK' },
+    ],
+    results: p.results.map((r) => ({ exam_id: 'e', student_id: r.student_id!, score: r.score, subjects: r.subjects, answers: r.answers, outcomes_ok: r.outcomes_ok, kazanim: r.kazanim }) as Result),
+  }
+  const wrong = (n: string) => wrongOutcomes(ds, ds.results.find((r) => r.student_id === n)!).wrong.map((o) => o.code)
+
+  it('B kitapçığında yanlışı olmayan öğrencide yanlış konu çıkmaz; A öğrencisi kendi anahtarıyla değerlendirilir', () => {
+    expect(wrong('CAN B')).toEqual([])
+    expect(wrong('DERYA B')).toEqual([])
+    expect(wrong('BORA A')).toEqual([])
+    expect(wrong('ADA A')).toEqual(['M.8.1.1.1'])
+    expect(res('CAN B').outcomes_ok).toBe(true)
+    expect(res('CAN B').source.booklets).toEqual({ MAT: 'B' })
+    // Kazanım × D/Y/B öğrencinin kendi kitapçığından (eşleşmeyen 20. soru analize girmez)
+    expect(res('CAN B').kazanim).toEqual({ subjects: ['MAT'], g: { 'M.8.1.1.2': [10, 10, 0, 0], 'M.8.1.1.1': [9, 9, 0, 0] } })
+    expect(res('DERYA B').kazanim!.g).toEqual({ 'M.8.1.1.2': [10, 10, 0, 0], 'M.8.1.1.1': [9, 9, 0, 0] })
+  })
+
+  it('soru tablosu A kitapçığıdır; eşleşmeyen sorular kitapçık başına Eşleşmeyen hedefler kuyruğuna ayrılır', () => {
+    expect(p.questions).toHaveLength(20)
+    expect(p.questions.map((q) => q.correct_answer).join('')).toBe(KEY.A)
+    expect(p.unresolved).toEqual([
+      { subject: 'MAT', booklet: 'A', q_no: 20, correct_answer: 'D', raw_code: 'M.8.9.9', raw_text: 'Yayının kendi hedefi' },
+      { subject: 'MAT', booklet: 'B', q_no: 20, correct_answer: 'A', raw_code: 'M.8.9.9', raw_text: 'Yayının kendi hedefi' },
+    ])
+  })
+
+  it('anahtarı kendi kitapçığının çoğunluğuyla uyuşmayan öğrencinin konu analizi kapanır', () => {
+    const odd = rec('5', 'EMRE B', 'B', KEY.B)
+    odd.questions[0]!.correctAnswer = 'A' // B kitapçığında 1. sorunun anahtarı D olmalı
+    const pk: DkPack = { ...pack, records: [...pack.records, odd] }
+    const p2 = buildPayload(buildReview(pk, [...roster, { id: 'EMRE B', full_name: 'EMRE B', class_name: '8/A', school_no: '5' }]), {
+      name: 'TG-1',
+      publisher: null,
+      exam_date: '2026-10-15',
+      notify: false,
+    })
+    const emre = p2.results.find((r) => r.student_id === 'EMRE B')!
+    expect(emre.outcomes_ok).toBe(false)
+    expect(emre.kazanim).toBeNull() // analiz edilebilir dersi kalmadı; tek anahtarlı soru tablosuna da düşmez (outcomes_ok=false)
+    expect(p2.results.find((r) => r.student_id === 'CAN B')!.outcomes_ok).toBe(true)
+  })
+
+  it('çift işaretli cevap (*) yanlış sayılır ve "*" olarak saklanır; şık uydurulmaz', () => {
+    const r = rec('6', 'FUNDA A', 'A', KEY.A)
+    r.questions[1] = { ...r.questions[1]!, studentAnswer: '*', status: 'wrong' }
+    r.subjects[0] = { ...r.subjects[0]!, correct: 19, wrong: 1, net: 19 - 1 / 3 }
+    const p3 = buildPayload(buildReview({ ...pack, records: [r] }, [{ id: 'f', full_name: 'FUNDA A', class_name: '8/A', school_no: '6' }]), {
+      name: 'TG-1',
+      publisher: null,
+      exam_date: '2026-10-15',
+      notify: false,
+    })
+    expect(p3.results[0]!.answers.MAT![1]).toBe('*')
+    expect(p3.results[0]!.kazanim!.g['M.8.1.1.2']).toEqual([9, 8, 1, 0]) // A: çift sıralı 9 soru (20. soru eşleşmedi)
   })
 })

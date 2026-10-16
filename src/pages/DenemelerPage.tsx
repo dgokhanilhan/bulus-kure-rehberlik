@@ -132,14 +132,24 @@ export default function DenemelerPage() {
   async function publish() {
     if (!rv) return
     setBusy(true)
-    const p = buildPayload(rv, { name: examName, publisher: publisher.trim() || null, exam_date: date, notify })
-    const { error } = await supabase.rpc('publish_exam', { p })
+    const { unresolved, ...p } = buildPayload(rv, { name: examName, publisher: publisher.trim() || null, exam_date: date, notify })
+    const { data: examId, error } = await supabase.rpc('publish_exam', { p })
+    if (error) {
+      setBusy(false)
+      return toast(error.message || 'Yayınlanamadı.', 'warn')
+    }
+    // Resmî listeyle eşleşmeyen sorular → Eşleşmeyen hedefler (sonuçları etkilemez). Fonksiyon henüz kurulmamışsa (0047) yayın yine geçerlidir.
+    let queued = true
+    if (unresolved.length && typeof examId === 'string') {
+      const r = await supabase.rpc('add_lgs_unresolved_items', { p_exam: examId, p_items: unresolved })
+      queued = !r.error
+    }
     setBusy(false)
-    if (error) return toast(error.message || 'Yayınlanamadı.', 'warn')
     setDone({ name: examName, count: p.results.length })
     setStep('done')
     toast(`${examName} yayınlandı`)
-    refresh('dataset', 'exams-list', 'students')
+    if (!queued) toast('Eşleşmeyen kazanımlar Eşleşmeyen hedefler listesine eklenemedi; sonuçlar etkilenmedi.', 'warn')
+    refresh('dataset', 'exams-list', 'students', 'unresolved_outcomes')
   }
 
   const [del, setDel] = useState<ExamRow | null>(null)

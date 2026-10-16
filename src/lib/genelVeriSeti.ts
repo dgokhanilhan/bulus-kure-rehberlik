@@ -58,20 +58,29 @@ export interface ItemRow {
 
 const RESOLVED = new Set(['CODE_EXACT', 'CODE_NORMALIZED', 'CONTEXT_EXACT', 'TEXT_EXACT', 'TEXT_MATCH', 'ALIAS', 'MANUAL'])
 
-/** LGS'nin eski katalog/gruplu sonuçlarını korur; yeni katalog hedeflerini UUID anahtarıyla ayrıca bağlar. */
-export function withCatalogItems(ds: Dataset, items: ItemRow[]): Dataset {
+/**
+ * LGS'nin eski katalog/gruplu sonuçlarını korur; yeni katalog hedeflerini (Eşleşmeyen hedefler'den eşlenen/eklenen) UUID
+ * anahtarıyla ayrıca bağlar. Hedefler KİTAPÇIK başınadır: öğrenci yalnız kendi kitapçığının (source.booklets; yoksa A)
+ * sorularıyla değerlendirilir. Sonucun outcomes_ok değeri değiştirilmez: yayında "konu analizi yapılmaz" denen sonuç
+ * (ör. anahtarı kitapçığıyla uyuşmayan) sonradan açılmaz.
+ */
+export function withCatalogItems(ds: Omit<Dataset, 'results'> & { results: (Result & { source?: unknown })[] }, items: ItemRow[]): Dataset {
   const ids = new Set(ds.exams.map((e) => e.id)),
-    questionsByExam = new Map(ds.questionsByExam),
-    outcomes = new Map(ds.outcomes.map((o) => [o.code, o]))
+    outcomes = new Map(ds.outcomes.map((o) => [o.code, o])),
+    extra = new Map<string, Question[]>() // sınav|kitapçık → çözümlenmiş yeni katalog soruları
   for (const item of items) {
     if (!ids.has(item.exam_id) || !item.learning_outcomes || !item.learning_outcome_id || !RESOLVED.has(item.match_method)) continue
     const key = `${item.section_key}:${item.learning_outcome_id}`,
-      meta = item.learning_outcomes
-    const old = questionsByExam.get(item.exam_id) ?? []
-    // Aynı soru eski katalogda güvenilir biçimde eşleşmişse iki kez sayılmaz.
-    if (old.some((q) => q.subject === item.section_key && q.q_no === item.q_no && q.outcome_code && q.match !== 'none' && q.match !== 'semantic')) continue
-    questionsByExam.set(item.exam_id, [
-      ...old.filter((q) => q.subject !== item.section_key || q.q_no !== item.q_no),
+      meta = item.learning_outcomes,
+      slot = `${item.exam_id}|${item.booklet === 'B' ? 'B' : 'A'}`
+    // Aynı soru eski katalogda güvenilir biçimde eşleşmişse iki kez sayılmaz (eski tablo A kitapçığıdır).
+    if (
+      item.booklet !== 'B' &&
+      (ds.questionsByExam.get(item.exam_id) ?? []).some((q) => q.subject === item.section_key && q.q_no === item.q_no && q.outcome_code && q.match !== 'none' && q.match !== 'semantic')
+    )
+      continue
+    extra.set(slot, [
+      ...(extra.get(slot) ?? []),
       { exam_id: item.exam_id, subject: item.section_key, q_no: item.q_no, correct_answer: item.correct_answer, outcome_code: key, match: 'code_exact' },
     ])
     outcomes.set(key, {
@@ -85,12 +94,18 @@ export function withCatalogItems(ds: Dataset, items: ItemRow[]): Dataset {
       outcomeType: meta.outcome_type,
     })
   }
-  return {
-    ...ds,
-    questionsByExam,
-    outcomes: [...outcomes.values()],
-    results: ds.results.map((r) => ({ ...r, outcomes_ok: r.outcomes_ok || (questionsByExam.get(r.exam_id) ?? []).some((q) => !!q.outcome_code) })),
-  }
+  const questionsByResult = new Map<string, Question[]>()
+  const results: Result[] = ds.results.map(({ source, ...r }) => {
+    if (extra.size) {
+      const booklets = (source as { booklets?: Record<string, string> } | undefined)?.booklets ?? {}
+      const own = [...(extra.get(`${r.exam_id}|A`) ?? []), ...(extra.get(`${r.exam_id}|B`) ?? [])].filter(
+        (q) => extra.get(`${r.exam_id}|${booklets[q.subject] === 'B' ? 'B' : 'A'}`)?.includes(q),
+      )
+      if (own.length) questionsByResult.set(`${r.exam_id}|${r.student_id}`, [...(ds.questionsByExam.get(r.exam_id) ?? []), ...own])
+    }
+    return r
+  })
+  return { ...ds, outcomes: [...outcomes.values()], results, ...(questionsByResult.size ? { questionsByResult } : {}) }
 }
 
 /**
