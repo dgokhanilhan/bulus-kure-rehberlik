@@ -139,3 +139,34 @@ describe('LGS yeni katalog hedefleri (withCatalogItems)', () => {
     expect(st('kapali', 'ING:y')).toBe('o')
   })
 })
+
+it('kitapçığı yanlış belirlenmiş öğrencide (doğru şıkları kendi kitapçığının anahtarıyla uyuşmuyor) başka kitapçığın konusu gösterilmez', () => {
+  const items = ['A', 'B'].map((booklet, i) => ({
+    exam_id: 'e',
+    booklet,
+    section_key: 'MAT',
+    q_no: 1,
+    correct_answer: booklet === 'A' ? 'C' : 'D',
+    learning_outcome_id: 'o' + i,
+    match_method: 'CODE_EXACT',
+    learning_outcomes: { code: 'MAT.11.1.' + i, title: 'Hedef ' + booklet },
+  }))
+  items.push({ ...items[0]!, q_no: 2, correct_answer: 'A' })
+  const ds = genelDataset({
+    exams: [{ id: 'e', name: 'Deneme', exam_date: '2026-10-14', exam_type: 'AYT', yks_part: null, publisher: null, exam_template_id: 't' }],
+    results: [
+      // A sanılan ama B anahtarıyla doğru (1. soruda D): A kitapçığının konusu ona yazılmamalı
+      { exam_id: 'e', student_id: 'yanlis', score: null, subjects: { MAT: { d: 1, y: 1, b: 0, net: 0.75 } }, answers: { MAT: 'Db' }, source: { booklets: { MAT: 'A' } } },
+      { exam_id: 'e', student_id: 'dogru', score: null, subjects: { MAT: { d: 1, y: 1, b: 0, net: 0.75 } }, answers: { MAT: 'Cb' }, source: { booklets: { MAT: 'A' } } },
+    ],
+    items,
+    templates: [
+      { id: 't', sections: [{ key: 'MAT', subject_code: 'MAT', label: 'Matematik', question_count: 2, sort: 1, optional_group: null, outcome_grades: null }] },
+    ],
+    profile: null,
+  })
+  expect(questionsFor(ds, ds.results[0]!)).toEqual([])
+  expect(ds.results[0]!.outcomes_ok).toBe(false)
+  expect(wrongOutcomes(ds, ds.results[0]!).wrong).toEqual([])
+  expect(wrongOutcomes(ds, ds.results[1]!).wrong.map((o) => o.title)).toEqual(['Hedef A'])
+})

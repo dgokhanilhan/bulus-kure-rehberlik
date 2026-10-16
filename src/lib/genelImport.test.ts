@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildGenelReview, examItems, genelPending, mapSections, toImportPayload, type GenelPack } from './genelImport'
+import { bookletPlan, buildGenelReview, examItems, genelPending, mapSections, toImportPayload, type GenelPack } from './genelImport'
 import type { ExamTemplate, TemplateSection } from './denemeGenel'
 
 // Şablonlar: 0025'teki yerleşik şablonlarla aynı bölümler
@@ -207,5 +207,35 @@ describe('kontrol modeli ve içe aktarma isteği', () => {
     expect(p.items).toEqual([{ section_key: 'TUR', q_no: 1, booklet: 'B', correct_answer: 'B', raw_code: 'T.S.6.3.5', raw_text: 'Yardımcı Düşünce' }])
     expect(examItems(rv)).toHaveLength(1)
     expect(p.format_code).toBe('HIZ_ORTAOKUL_KARNE_V1')
+  })
+})
+
+describe('kitapçığı yazmayan karne', () => {
+  const KEYS = { A: 'ABCDAB', B: 'DCBADC' } as const
+  const rec = (page: number, name: string, k: keyof typeof KEYS) => ({
+    page,
+    pages: [page],
+    student: { name, number: String(page), class: '6/A', classGrade: 6 },
+    exam: { title: 't' },
+    score: 300,
+    warnings: [],
+    sections: [{ label: 'TÜRKÇE', n: 6, d: 6, y: 0, b: 0, net: 6 }],
+    items: [...KEYS[k]].map((key, i) => ({ label: 'TÜRKÇE', section: 'TÜRKÇE', booklet: null, q: i + 1, testQ: i + 1, key, answer: key, mark: '+', rawCode: null, rawText: 'Hedef ' + k + (i + 1) })),
+  })
+  it('öğrencinin kitapçığı karnedeki anahtardan bulunur; iki kitapçığın soruları ayrı kaydedilir', () => {
+    const pack: GenelPack = {
+      engine: 'genel-1.0.0',
+      sha256: 'b'.repeat(64),
+      filename: 'y.pdf',
+      detection: { family: 'HIZ_ORTAOKUL', format: 'HIZ_ORTAOKUL_KARNE_V1', confidence: 1, evidence: [] },
+      failedPages: [],
+      records: [rec(1, 'AYŞE', 'A'), rec(2, 'BURAK', 'B'), rec(3, 'CEREN', 'A')],
+    }
+    const rv = buildGenelReview(pack, ORTA, [] as never)
+    const plan = [...bookletPlan(rv).values()].map((b) => b.TUR)
+    expect(plan).toEqual(['A', 'B', 'A'])
+    const items = examItems(rv)
+    expect(items.filter((i) => i.booklet === 'A').map((i) => i.correct_answer).join('')).toBe(KEYS.A)
+    expect(items.filter((i) => i.booklet === 'B').map((i) => i.correct_answer).join('')).toBe(KEYS.B)
   })
 })

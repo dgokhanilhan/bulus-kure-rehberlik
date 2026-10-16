@@ -3,6 +3,7 @@
 // okunamayan alan boş/okunamadı kalır, uydurulmaz (CLAUDE.md §1–§2).
 import type { MatchLevel, LgsSubject as Subject } from './analiz'
 import { matchStudent, type MatchResult, type RosterStudent } from './isim'
+import { kitapcikAyir } from './kitapcik'
 
 export const SUBJECT_ORDER: Subject[] = ['TUR', 'MAT', 'FEN', 'INK', 'DIN', 'ING']
 export const QCOUNT: Record<Subject, number> = { TUR: 20, MAT: 20, FEN: 20, INK: 10, DIN: 10, ING: 10 }
@@ -225,8 +226,29 @@ function majority<T>(xs: T[], key: (x: T) => string): T | undefined {
   return best?.x
 }
 
+/**
+ * Kitapçığı yazmayan karnelerde dersin kitapçığı, öğrencinin karnesindeki anahtardan bulunur (kitapcik.ts).
+ * Yalnız kitapçığı boş olan sorular doldurulur; okunan kitapçık değişmez. Kopya döner (inceleme verisi değişmez).
+ */
+function withInferredBooklets<R extends { record: { questions: DkQuestion[] } }>(rows: R[]): R[] {
+  const out = rows.map((r) => ({ ...r, record: { ...r.record, questions: r.record.questions.map((q) => ({ ...q })) } }))
+  for (const subject of SUBJECT_ORDER) {
+    const per = out.map((r) => r.record.questions.filter((q) => q.subject === subject))
+    const inferred = kitapcikAyir(
+      per.map((qs) => ({
+        known: qs.find((q) => q.booklet)?.booklet ?? null,
+        key: Array.from({ length: QCOUNT[subject] }, (_, i) => qs.find((q) => q.number === i + 1)?.correctAnswer?.match(/^[A-E]$/)?.[0] ?? '?').join(''),
+      })),
+    )
+    per.forEach((qs, i) => {
+      if (inferred[i]) for (const q of qs) q.booklet ??= inferred[i]
+    })
+  }
+  return out
+}
+
 export function buildPayload(rv: Review, meta: { name: string; publisher: string | null; exam_date: string; notify: boolean }): PublishPayload {
-  const rows = rv.rows.filter((r) => r.choice && r.choice.kind !== 'skip')
+  const rows = withInferredBooklets(rv.rows.filter((r) => r.choice && r.choice.kind !== 'skip'))
 
   // Cevap anahtarı ve soru-kazanım KİTAPÇIK BAŞINA: aynı kitapçıktaki öğrencilerin çoğunluğu. A ve B kitapçığı aynı soru
   // numarasında farklı anahtar ve kazanım taşır; tek anahtar kullanmak B kitapçığındaki doğruyu "yanlış" gösterir.

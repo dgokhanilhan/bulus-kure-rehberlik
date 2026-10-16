@@ -182,7 +182,19 @@ export function genelDataset(input: {
       const subjects: Result['subjects'] = {}
       for (const [k, v] of Object.entries(r.subjects as SectionResults)) if (isScore(v)) subjects[k] = { d: v.d, y: v.y, b: v.b, net: v.net }
       const booklets = (r.source as { booklets?: Record<string, string> } | undefined)?.booklets ?? {}
-      const qs = (variants.get(r.exam_id) ?? []).filter((q) => q.booklet === (booklets[q.subject] ?? 'A'))
+      // Anahtar uyuşmazlığı koruması: öğrencinin doğru işaretlediği şık (büyük harf) kendi kitapçığının anahtarıyla
+      // uyuşmuyorsa kitapçığı yanlış belirlenmiştir; o bölümün konu analizi yapılmaz (başka kitapçığın konusu gösterilmez).
+      const ans = (r.answers ?? {}) as Record<string, string>
+      const own = (variants.get(r.exam_id) ?? []).filter((q) => q.booklet === (booklets[q.subject] ?? 'A'))
+      const bad = new Set(
+        own
+          .filter((q) => {
+            const a = ans[q.subject]?.[q.q_no - 1]
+            return !!a && /^[A-E]$/.test(a) && !!q.correct_answer && /^[A-E]$/i.test(q.correct_answer) && a !== q.correct_answer.toUpperCase()
+          })
+          .map((q) => q.subject),
+      )
+      const qs = own.filter((q) => !bad.has(q.subject))
       questionsByResult.set(r.exam_id + '|' + r.student_id, qs)
       return {
         exam_id: r.exam_id,

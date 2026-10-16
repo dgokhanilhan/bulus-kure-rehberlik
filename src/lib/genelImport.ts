@@ -2,6 +2,7 @@
 // Bölüm etiketleri şablona eşlenir (belirsiz/eşlenemeyen etiket hata olur, tahmin edilmez); öğrenci eşleştirme mevcut
 // kurallarla (okul no önce, sonra ad); seçmeli bölümler çözülür; kural doğrulaması burada önizlenir, sunucuda tekrarlanır.
 import { matchStudent, type MatchResult, type RosterStudent } from './isim'
+import { kitapcikAyir } from './kitapcik'
 import { resolveOptional, totals, validateResult, type ExamTemplate, type ExamType, type SectionResults, type YksPart } from './denemeGenel'
 
 export interface GenelSection {
@@ -205,7 +206,36 @@ export function recordBooklets(r: GenelRecord, map: Record<string, string>) {
   const fallback = explicit.length === 1 ? explicit[0]! : 'A'
   return Object.fromEntries(Object.entries(map).map(([lab, key]) => [key, r.items.find((q) => q.section === lab && q.booklet)?.booklet ?? fallback]))
 }
+/**
+ * Satır başına bölüm kitapçıkları. Okunan kitapçık kullanılır; kitapçığı yazmayan karnede öğrencinin anahtarından
+ * bulunur (kitapcik.ts). Karar verilemezse eski davranış (tek okunan kitapçık ya da A) sürer; analizde anahtar
+ * uyuşmazlığı koruması (genelVeriSeti) o bölümün konu analizini kapatır.
+ */
+export function bookletPlan(rv: GenelReview): Map<GenelRow, Record<string, string>> {
+  const rows = rv.rows.filter((r) => r.choice?.kind !== 'skip')
+  const plan = new Map(rows.map((r) => [r, recordBooklets(r.record, rv.sectionMap)]))
+  for (const [lab, key] of Object.entries(rv.sectionMap)) {
+    const n = Math.max(0, ...rows.flatMap((r) => r.record.items.filter((q) => q.section === lab).map((q) => q.q)))
+    if (!n) continue
+    const inferred = kitapcikAyir(
+      rows.map((r) => {
+        const qs = r.record.items.filter((q) => q.section === lab)
+        const one = [...new Set(r.record.items.map((q) => q.booklet).filter(Boolean))]
+        return {
+          known: qs.find((q) => q.booklet)?.booklet ?? (one.length === 1 ? one[0]! : null),
+          key: Array.from({ length: n }, (_, i) => qs.find((q) => q.q === i + 1)?.key?.toUpperCase().match(/^[A-E]$/)?.[0] ?? '?').join(''),
+        }
+      }),
+    )
+    rows.forEach((r, i) => {
+      if (inferred[i]) plan.get(r)![key] = inferred[i]!
+    })
+  }
+  return plan
+}
+
 export function examItems(rv: GenelReview) {
+  const plan = bookletPlan(rv)
   const out = new Map<
     string,
     { section_key: string; q_no: number; booklet: string; correct_answer: string | null; raw_code: string | null; raw_text: string | null }
@@ -215,7 +245,7 @@ export function examItems(rv: GenelReview) {
     for (const q of row.record.items) {
       const key = q.section ? rv.sectionMap[q.section] : undefined
       if (!key || row.badItemSections.includes(key)) continue
-      const booklet = recordBooklets(row.record, rv.sectionMap)[key] ?? 'A'
+      const booklet = plan.get(row)?.[key] ?? recordBooklets(row.record, rv.sectionMap)[key] ?? 'A'
       const id = `${key}|${booklet}|${q.q}`
       if (!out.has(id) && (q.rawCode || q.rawText || q.key))
         out.set(id, { section_key: key, q_no: q.q, booklet, correct_answer: q.key, raw_code: q.rawCode, raw_text: q.rawText })
@@ -235,6 +265,7 @@ const sourceKind = (rv: GenelReview) =>
 
 export function toImportPayload(rv: GenelReview, meta: ImportMeta) {
   const rows = rv.rows.filter((r) => r.choice && r.choice.kind !== 'skip' && !r.errors.length)
+  const plan = bookletPlan(rv)
   return {
     ...meta,
     sha256: rv.sha256 || null, // elle girişte dosya yok: çift içe aktarma koruması uygulanmaz
@@ -267,7 +298,7 @@ export function toImportPayload(rv: GenelReview, meta: ImportMeta) {
         ]),
       ),
       source: {
-        booklets: recordBooklets(r.record, rv.sectionMap),
+        booklets: plan.get(r) ?? recordBooklets(r.record, rv.sectionMap),
         page: r.page,
         pages: r.record.pages,
         format: rv.detection.format,

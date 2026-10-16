@@ -41,3 +41,10 @@ hedefler öğrencinin kitapçığına göre analize girer. Fonksiyon yoksa yayı
 2. PR `main`'e birleştirilir (Cloudflare Pages otomatik yayınlar).
 3. Mevcut Hız denemesi silinip aynı PDF yeniden yüklenir. Eski kayıt eski yayın verisini taşır: yükleme koduyla B kitapçığındaki
    öğrencilerin konu analizi "okunamadı" görünür (yanlış konu gösterilmez), ama doğru analiz için yeniden yükleme gerekir.
+
+## Bütün kademeler ve kitapçığı yazmayan karneler (2026-10-16)
+
+- **Kapsam:** Kitapçığa göre değerlendirme hem LGS (8. sınıf, `deneme.ts`) hem genel denemelerde (5–7, 9–12, TYT/AYT; `genelImport.ts`, `genelVeriSeti.ts`) geçerlidir.
+- **Kitapçık okunamazsa:** Karne kitapçığı yazmıyorsa öğrencinin kitapçığı karnedeki cevap anahtarından bulunur (`src/lib/kitapcik.ts`): okunan kitapçıkların anahtarıyla karşılaştırılır (soruların %75'inden fazlası aynıysa aynı kitapçık); hiçbiriyle uyuşmayan ilk anahtar yeni kitapçık olur. Az okunmuş (5 sorudan az) ya da üçüncü bir anahtar karar verilmeden bırakılır.
+- **Koruma:** Genel denemelerde de öğrencinin doğru işaretlediği şık kendi kitapçığının anahtarıyla uyuşmuyorsa o bölümün konu analizi yapılmaz (LGS'deki anahtar uyuşmazlığı korumasının aynısı). Başka kitapçığın konusu öğrenciye asla yazılmaz.
+- **Canlı kontrol (2026-10-16):** Yayındaki 4 denemede (8. sınıf TG-1; Kapalı Devre TG-1 9/10/11) her öğrencinin kitapçığı kayıtlı, her yanlışın konusu kendi kitapçığından; karne yanlış sayısıyla uyuşmayan ders ve korumanın kapatacağı analiz yok.

@@ -157,6 +157,18 @@ describe('A/B kitapçığı', () => {
     ])
   })
 
+  it('kitapçığı yazmayan karnede kitapçık anahtardan bulunur; sonuç kitapçıklı karneyle aynıdır', () => {
+    const strip = (r: DkRecord): DkRecord => ({ ...r, questions: r.questions.map((q) => ({ ...q, booklet: null })) })
+    const p3 = buildPayload(buildReview({ ...pack, records: pack.records.map(strip) }, roster), { name: 'TG-1', publisher: null, exam_date: '2026-10-15', notify: false })
+    const r3 = (n: string) => p3.results.find((r) => r.student_id === n)!
+    expect(r3('CAN B').source.booklets).toEqual({ MAT: 'B' })
+    expect(r3('ADA A').source.booklets).toEqual({ MAT: 'A' })
+    expect(r3('CAN B').outcomes_ok).toBe(true)
+    expect(r3('CAN B').kazanim).toEqual(res('CAN B').kazanim)
+    expect(p3.questions).toEqual(p.questions)
+    expect(p3.unresolved).toEqual(p.unresolved)
+  })
+
   it('anahtarı kendi kitapçığının çoğunluğuyla uyuşmayan öğrencinin konu analizi kapanır', () => {
     const odd = rec('5', 'EMRE B', 'B', KEY.B)
     odd.questions[0]!.correctAnswer = 'A' // B kitapçığında 1. sorunun anahtarı D olmalı
