@@ -503,26 +503,28 @@ export function useDataset(enabled = true) {
             .range(a, b),
         ),
         all<Outcome>(supabase.from('outcomes').select('code, subject, title').order('code')),
-        pages<Result & { exams?: unknown }>((a, b) =>
+        // source: öğrencinin kitapçığı (source.booklets) — Eşleşmeyen hedefler'den eşlenen hedefler kitapçığa göre bağlanır
+        pages<Result & { exams?: unknown; source?: unknown }>((a, b) =>
           supabase
             .from('exam_results')
-            .select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim, exams!inner(exam_type, status)')
+            .select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim, source, exams!inner(exam_type, status)')
             .eq('exams.exam_type', 'LGS')
             .eq('exams.status', 'yayinda')
             .order('exam_id')
             .order('student_id')
             .range(a, b),
-        ).then((rows) => rows.map(({ exams: _e, ...r }) => r as Result)),
+        ).then((rows) => rows.map(({ exams: _e, ...r }) => r as Result & { source?: unknown })),
         pages<ItemRow>((a, b) =>
           supabase
             .from('exam_items')
             .select(
-              'exam_id, section_key, q_no, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title, outcome_type, curriculum_versions(curriculum_type)), exams!inner(exam_type, status)',
+              'exam_id, section_key, q_no, booklet, correct_answer, learning_outcome_id, match_method, learning_outcomes(code, title, outcome_type, curriculum_versions(curriculum_type)), exams!inner(exam_type, status)',
             )
             .eq('exams.exam_type', 'LGS')
             .eq('exams.status', 'yayinda')
             .order('exam_id')
             .order('section_key')
+            .order('booklet')
             .order('q_no')
             .range(a, b),
         ),

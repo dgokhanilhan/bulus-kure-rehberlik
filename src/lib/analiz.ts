@@ -312,8 +312,8 @@ export function classHeat(ds: Dataset, studentIds: string[], subject: Subject, e
       const wrong: string[] = []
       for (const sid of studentIds) {
         const r = idx.get(`${e.id}|${sid}`)
-        // Gruplu kazanım verisi olan öğrenci: sayılar gruptan
-        if (r?.kazanim) {
+        // Gruplu kazanım verisi olan öğrenci: sayılar gruptan (yeni katalog hedefleri "ders:uuid" soru bazlı yoldan)
+        if (r?.kazanim && !o.code.includes(':')) {
           const g = r.kazanim.subjects.includes(subject) ? r.kazanim.g[o.code] : undefined
           if (g) {
             total += g[0]

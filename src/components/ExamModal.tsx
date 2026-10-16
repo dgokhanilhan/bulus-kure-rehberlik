@@ -80,7 +80,7 @@ export function ExamModal({ ds, exam, result, prev, studentName, onClose, onRepo
         ) : <p className="m">Güvenilir konu verisinde yanlış yok.</p>}
         {unreadable && (
           <span className="m" style={{ fontSize: 13 }}>
-            Bu denemenin bazı konu bilgileri okunamadı; bunlar tahmin edilmez.
+            Bu denemenin bazı konu bilgileri okunamadı ya da resmî listeyle eşleşmedi; bunlar tahmin edilmez.
           </span>
         )}
       </AnalysisDisclosure>
