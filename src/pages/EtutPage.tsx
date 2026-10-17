@@ -36,6 +36,7 @@ import {
   useEtutBenim,
   useEtutGunler,
   useEtutHucreler,
+  useKademeOgretmenleri,
   useEtutOgrenci,
   useEtutRefresh,
   useEtutTalepler,
@@ -43,6 +44,7 @@ import {
   type EtutHucreRow,
   type EtutTalep,
 } from '@/lib/etutData'
+import { EtutIceAktar } from './EtutIceAktar'
 import './Etut.css'
 
 const kademeOf = (grade?: number | null): Kademe | null => (!grade ? null : grade >= 9 ? 'lise' : grade >= 5 ? 'ortaokul' : null)
@@ -91,7 +93,9 @@ function PlanView() {
   const [busy, setBusy] = useState(false)
   const [edit, setEdit] = useState<{ teacher: string; ders: number } | null>(null)
   const [hepsi, setHepsi] = useState(false)
+  const kademeOgr = useKademeOgretmenleri()
   const [saatAc, setSaatAc] = useState(false)
+  const [ice, setIce] = useState(false)
 
   const teachers = useMemo(
     () =>
@@ -127,13 +131,14 @@ function PlanView() {
       rows: [...new Set(hucreler.map((h) => h.teacher_name))],
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverKey, dirty, gunler.data])
+  }, [serverKey, dirty, gunler.data, draft === null])
 
   const change = (f: (d: Draft) => Draft) => {
     setDraft((d) => (d ? f(d) : d))
     setDirty(true)
   }
   const switchTo = (t: string, k: Kademe) => {
+    if (t === tarih && k === kademe) return // aynı seçim: taslak boşaltılmaz (yeniden yüklenmeyeceği için ekran takılırdı)
     if (dirty && !window.confirm('Kaydedilmemiş değişiklikler kaybolacak. Devam edilsin mi?')) return
     setDirty(false)
     setDraft(null)
@@ -142,7 +147,10 @@ function PlanView() {
   }
 
   if (!draft || people.isLoading || students.isLoading) return <p className="m">Yükleniyor…</p>
-  const rows = hepsi ? [...new Set([...draft.rows, ...teachers.map((t) => t.name)])] : draft.rows
+  // Satırlar: bu programda kaydı olanlar + bu kademede derse girenler (ders programından; iki kademede dersi olan ikisinde de).
+  // "Diğer kademeyi de göster" açıksa bütün öğretmenler.
+  const kademeAdlari = teachers.filter((t) => kademeOgr.data?.[kademe].has(t.id)).map((t) => t.name)
+  const rows = [...new Set([...draft.rows, ...kademeAdlari, ...(hepsi ? teachers.map((t) => t.name) : [])])].sort((a, b) => a.localeCompare(b, 'tr'))
   const cellOf = (name: string, ders: number) =>
     draft.hucreler.find((h) => h.ders === ders && h.teacher_name.trim().toLocaleLowerCase('tr') === name.trim().toLocaleLowerCase('tr'))
   const issues = sorunlar(draft.hucreler, (id) => stName.get(id) ?? 'Öğrenci')
@@ -377,15 +385,18 @@ function PlanView() {
           >
             <option value="">+ Öğretmen satırı ekle</option>
             {teachers
-              .filter((t) => !draft.rows.includes(t.name))
+              .filter((t) => !rows.includes(t.name))
               .map((t) => (
                 <option key={t.id} value={t.name}>
                   {t.name}
                 </option>
               ))}
           </select>
+          <button className="btn sm" onClick={() => setIce(true)}>
+            <Icon name="up" size={15} /> İçe aktar (Excel, görsel, PDF)
+          </button>
           <label className="et-check">
-            <input type="checkbox" checked={hepsi} onChange={(e) => setHepsi(e.target.checked)} /> Bütün öğretmenleri göster
+            <input type="checkbox" checked={hepsi} onChange={(e) => setHepsi(e.target.checked)} /> Diğer kademedeki öğretmenleri de göster
           </label>
         </div>
         <div className="et-issues" role="status">
@@ -447,6 +458,25 @@ function PlanView() {
         </button>
       </div>
 
+      {ice && (
+        <EtutIceAktar
+          teachers={teachers}
+          kademeOgretmen={kademeOgr.data?.[kademe]}
+          ogrenciler={kadOgr.map((s) => ({ id: s.id, full_name: s.full_name, class_name: s.class_name, grade: s.grade }))}
+          onClose={() => setIce(false)}
+          onApply={({ saatler, hucreler }) => {
+            const key = (h: Hucre) => `${h.teacher_name.trim().toLocaleLowerCase('tr')}|${h.ders}`
+            const yeni = new Set(hucreler.map(key))
+            change((x) => ({
+              saatler: saatler && !saatHatasi(saatler) ? saatler : x.saatler,
+              rows: [...new Set([...x.rows, ...hucreler.map((h) => h.teacher_name)])],
+              hucreler: [...x.hucreler.filter((h) => !yeni.has(key(h))), ...hucreler],
+            }))
+            setIce(false)
+            toast(`${hucreler.length} hücre aktarıldı. Kontrol edip "Kaydet"e bas.`, 'spark')
+          }}
+        />
+      )}
       {edit && (
         <HucreModal
           teacher={edit.teacher}

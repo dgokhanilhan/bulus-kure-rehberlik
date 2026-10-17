@@ -18,3 +18,24 @@
 
 ## Dosyalar
 `supabase/migrations/0051_etut.sql` · geri alma `supabase/geri-alma/0051_etut_geri_al.sql` · `src/lib/etut.ts` (+ test) · `src/lib/etutData.ts` · `src/lib/etutPdf.tsx` · `src/pages/EtutPage.tsx`, `Etut.css` · `tests/etut.test.ts` · `e2e/etut.spec.ts`
+
+## Öğretmen satırları kademeye göre
+Plan tablosunda, programda kaydı olan öğretmenlerin yanında o kademede (ders programına göre) derse giren bütün öğretmenler
+satır olarak görünür; hem ortaokul hem lisede dersi olan öğretmen iki kademede de görünür. "Diğer kademedeki öğretmenleri de
+göster" ile herkes açılır.
+
+## İçe aktarma (Excel, CSV, görsel, PDF)
+Plan ekranında **İçe aktar**: okul çizelgesi (öğretmen × 5 ders) dosyadan okunur, önizlemede kontrol edilip taslağa aktarılır;
+rehber öğretmen kontrol edip kaydeder.
+- **Okuma bu cihazda yapılır**; dosya ve öğrenci adları hiçbir sunucuya ya da yapay zekâya gitmez (KVKK).
+  Excel/CSV doğrudan okunur; görsel tarayıcıda yerel OCR ile (önce tablo iskeleti, sonra her hücre ayrıca); PDF MuPDF ile
+  (yazısız/taranmış PDF görsele çevrilip OCR'a verilir; mobil uygulamada PDF yoktur).
+- Sütunlar başlıktaki saatlerden ya da "1. Ders…"ten bulunur (okunan saatler istenirse programa uygulanır); satırlar ilk
+  sütundaki "… Hoca / … Öğretmen" ya da bilinen öğretmen adlarından. Öğretmen ilk adla (kademede) eşleşir; belirsizse seçilir.
+- Hücre: sınıf ipucu ("10-A", "6A"), öğrenci adları (virgül/tire ile), parantez içi ve kalan metin konu, "ETÜT-4" salon;
+  "D", "izinli", "voleybol", "… SINAV GÖZETMENİ" meşgul. Öğrenci, sınıftaki adıyla (gerekirse soyadı/baş harfle) eşleşir;
+  birden çok aday ya da tek harf farklı (OCR hatası) ad **kendiliğinden seçilmez**, önizlemede sorulur. Okulda bu adla öğrenci
+  yoksa sözcük konuya eklenir. Konu boşsa "Etüt" yazılır; sonra düzenlenebilir.
+- Sınırlar: Excel ve ekran görüntüsü iyi okunur. Basılı çizelgenin üzerine elle tik/salon yazılmış **fotoğraflarda** yerel OCR
+  güvenilir değildir (2026-10-17 örneğinde öğretmenlerin yarısı ve hücrelerin çoğu okunamadı); bu durumda Excel dosyasını yükle
+  ya da önizlemede düzelt.

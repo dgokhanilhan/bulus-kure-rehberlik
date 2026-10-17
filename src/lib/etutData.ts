@@ -2,6 +2,7 @@
 // programı ve kendi taleplerini, veli/öğrenci yalnız yayındaki kendi etüdünü görür. Yazma yalnız etut_* fonksiyonlarıyla.
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
+import { pages } from './sayfali'
 import type { Hucre, Kademe, Saat } from './etut'
 
 export interface EtutGun {
@@ -118,6 +119,28 @@ export function useEtutBenim(teacherId: string | null | undefined) {
           .eq('teacher_id', teacherId!)
           .eq('tur', 'etut'),
       ).filter((h) => h.etut_gunler?.durum === 'yayinda'),
+  })
+}
+
+/** Ders programından: kademe → o kademede derse giren öğretmenler (hem ortaokul hem lisede dersi olan ikisinde de) */
+export function useKademeOgretmenleri() {
+  return useQuery({
+    queryKey: ['etut', 'kademe-ogretmen'],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [t, c] = await Promise.all([
+        pages<{ teacher_id: string | null; class_id: string }>((a, b) => supabase.from('timetable').select('teacher_id, class_id').not('teacher_id', 'is', null).order('id').range(a, b)),
+        supabase.from('classes').select('id, level'),
+      ])
+      if (c.error) throw new Error(c.error.message)
+      const level = new Map((c.data ?? []).map((x) => [x.id as string, x.level as string]))
+      const out: Record<Kademe, Set<string>> = { ortaokul: new Set(), lise: new Set() }
+      for (const r of t) {
+        const lv = level.get(r.class_id)
+        if (r.teacher_id && (lv === 'ortaokul' || lv === 'lise')) out[lv].add(r.teacher_id)
+      }
+      return out
+    },
   })
 }
 

@@ -42,6 +42,15 @@
 .mwrap .et-sel{display:flex;flex-wrap:wrap;gap:6px}
 .mwrap .et-yoklama{display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1px solid var(--line)}
 .mwrap .et-yrow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.mwrap .et-imp-img{position:relative;max-width:100%}
+.mwrap .et-imp-img img{display:block;max-width:100%;max-height:60vh;cursor:crosshair;border-radius:8px}
+.mwrap .et-imp-pt{position:absolute;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;background:var(--signal);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;pointer-events:none}
+.mwrap .et-imp-tbl td{vertical-align:top;padding:6px;min-width:150px;font-size:13px}
+.mwrap .et-imp-tbl select,.mwrap .et-imp-tbl input{width:100%;min-height:36px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface);padding:0 6px;font-size:13px}
+.mwrap .et-imp-tbl select.ok{border-color:var(--primary);background:var(--primary-soft)}
+.mwrap .et-imp-tbl select.bad{border-color:var(--signal);background:var(--signal-soft)}
+.mwrap .et-busytd{background:var(--surface-sunken);color:var(--ink-2)}
+.mwrap .et-th{display:block;font-size:11px;font-weight:500;text-transform:none;color:var(--ink-muted)}
 @media (max-width:760px){
   .et .et-fields{grid-template-columns:1fr}
   .et .et-actions .btn{flex:1 1 auto}
