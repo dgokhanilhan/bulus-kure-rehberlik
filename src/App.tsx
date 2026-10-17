@@ -10,6 +10,8 @@ import { ConsentPage, RolePickPage, SetPasswordPage, StudentPickPage } from '@/p
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
 import { useFamilyTracks, useModules, useSettings } from '@/lib/data'
+import { ayarOkuyucu, menuAyarla } from '@/lib/ayarlar'
+import { analizAyarla } from '@/lib/analiz'
 
 // Sayfalar ihtiyaç anında yüklenir (ilk açılış hızlı; Lighthouse).
 const OnaylarPage = lazy(() => import('@/pages/OnaylarPage'))
@@ -135,9 +137,10 @@ function RoleRoutes() {
   const mods = useModules()
   const settings = useSettings()
   const fam = useFamilyTracks(role === 'veli' || role === 'ogrenci')
-  const allowed = navItems(role!, mods, fam).map((n) => n.id)
+  const allowed = menuAyarla(navItems(role!, mods, fam), role!, ayarOkuyucu(settings.data)).map((n) => n.id)
   const home = `/${allowed[0]}`
   // Modül ayarları yüklenmeden yönlendirme kararı verilmez (varsayılanı kapalı modülün sayfasına doğrudan gelen ana sayfaya atılmasın)
+  analizAyarla({ tekrarEsik: ayarOkuyucu(settings.data).num('analiz.tekrar_esik') })
   if (settings.isLoading) return <Wait />
   return (
     <Routes>

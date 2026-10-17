@@ -19,6 +19,7 @@ export interface Cizelge {
   ogretmenler: { ad: string; gorev: string }[]
   note: string
   printed: string
+  logo?: boolean
 }
 
 const C = { ink: '#1b2a2f', muted: '#56636a', line: '#d9d3c6', head: '#e8efed', zebra: '#f6f3ec', primary: '#1f5f5b' }
@@ -45,7 +46,7 @@ function Doc(d: Cizelge) {
       <Page size="A4" orientation="landscape" style={s.page}>
         <View style={s.head}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Image src={logo} style={s.logo} />
+            {d.logo !== false && <Image src={logo} style={s.logo} />}
             <View>
               <Text style={s.sub}>{d.school}</Text>
               <Text style={s.title}>Gözetmen Çizelgesi · {d.title}</Text>
@@ -141,8 +142,9 @@ export async function cizelgePng(d: Cizelge): Promise<Blob> {
     i.onerror = () => res(null)
     i.src = logo
   })
-  if (img) g.drawImage(img, pad, pad, 60, 60)
-  const tx = pad + (img ? 74 : 0)
+  const showLogo = d.logo !== false && img
+  if (showLogo) g.drawImage(img, pad, pad, 60, 60)
+  const tx = pad + (showLogo ? 74 : 0)
   g.fillStyle = C.muted
   g.font = font(15)
   g.fillText(d.school, tx, pad + 20)

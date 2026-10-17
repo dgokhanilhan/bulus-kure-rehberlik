@@ -14,6 +14,7 @@ import { aiPayload, genVeli, reportData, type OgretmenBody, type VeliBody } from
 import { fold, todayISO, trD } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { Icon } from './Icon'
+import { useAyar } from '@/lib/ayarlar'
 import okulLogo from '@/assets/okul-logo.jpg'
 import { useToast } from './Toast'
 import type { PdfOgretmen, PdfVeli } from '@/lib/pdf'
@@ -115,6 +116,7 @@ function ReportView({
   const { role, profile } = useAuth()
   const toast = useToast()
   const refresh = useRefresh()
+  const ayar = useAyar()
   const E = isFullAccess(role!)
   const V = type === 'veli'
   const R = useMemo(() => reportData(ds, s.id, eid), [ds, s.id, eid])
@@ -301,6 +303,10 @@ function ReportView({
     toast('PDF hazırlanıyor…', 'doc')
     const { reportPdfBlob } = await import('@/lib/pdf')
     const common = {
+      baslik: V ? ayar.text('rapor.veli_baslik') : ayar.text('rapor.ogretmen_baslik'),
+      altBilgi: V ? ayar.text('rapor.veli_alt_bilgi') : ayar.text('rapor.ogretmen_alt_bilgi'),
+      imza: ayar.text('rapor.imza'),
+      logo: ayar.bool('rapor.logo'),
       student: s.full_name,
       className: s.class_name,
       exam: info[2]![1],
@@ -413,7 +419,7 @@ function ReportView({
             </span>
           )}
         </b>
-        {E && V && (
+        {E && V && ayar.bool('rapor.ai') && (
           <button className={`btn sm ${ai === 'run' ? '' : 'gold'}`} onClick={writeAi} disabled={ai === 'run'}>
             {ai === 'run' ? (
               <>
@@ -520,7 +526,7 @@ function ReportView({
             <img src={okulLogo} alt="Buluş Küre Koleji logosu" width={44} height={44} style={{ borderRadius: '50%' }} />
             <div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 21, fontWeight: 600, lineHeight: 1.2 }}>Buluş Küre Koleji</div>
-              <div style={{ color: '#56636a', fontSize: 13 }}>Rehberlik &amp; Mentörlük · {V ? 'Veli Gelişim Raporu' : 'Öğretmen Bilgilendirme Raporu'}</div>
+              <div style={{ color: '#56636a', fontSize: 13 }}>Rehberlik &amp; Mentörlük · {V ? ayar.text('rapor.veli_baslik') : ayar.text('rapor.ogretmen_baslik')}</div>
             </div>
           </div>
           <div style={{ textAlign: 'right', fontSize: 12.5, color: '#56636a' }}>
@@ -729,7 +735,7 @@ function ReportView({
               ) : null
             })}
             <div className="foot">
-              <span>Bu rapor öğrencinin yalnızca kendi önceki denemeleriyle karşılaştırılmasına dayanır.</span>
+              <span>{ayar.text('rapor.veli_alt_bilgi')}</span>
               <span>Buluş Küre Koleji Rehberlik &amp; Mentörlük</span>
             </div>
           </>
@@ -809,7 +815,7 @@ function ReportView({
               {tx('toplanti', 4, 'Toplantı gündemi')}
             </div>
             <div className="foot">
-              <span>Kurum içi kullanım içindir. Veli ile paylaşılmaz.</span>
+              <span>{ayar.text('rapor.ogretmen_alt_bilgi')}</span>
               <span>Buluş Küre Koleji Rehberlik &amp; Mentörlük</span>
             </div>
           </>

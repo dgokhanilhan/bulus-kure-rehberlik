@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase, SOURCE_URL } from '@/lib/supabase'
 import { gateOf, useAuth } from '@/auth/AuthProvider'
 import { navItems, ROLE_HINT, ROLE_TR, SWITCH_TR } from '@/lib/roles'
+import { menuAyarla, useAyar } from '@/lib/ayarlar'
 import { useConversations, useFamilyTracks, useModules, useSettings } from '@/lib/data'
 import type { Notification } from '@/lib/types'
 import { ago, initials } from '@/lib/format'
@@ -316,7 +317,8 @@ export function AppShell() {
   const loc = useLocation()
   const mods = useModules()
   const fam = useFamilyTracks(role === 'veli' || role === 'ogrenci')
-  const items = navItems(role!, mods, fam)
+  const ayar = useAyar()
+  const items = menuAyarla(navItems(role!, mods, fam), role!, ayar)
   const pending = usePendingCount(role === 'admin')
   const convs = useConversations(role !== 'ogrenci')
   const unread = (convs.data ?? []).reduce((n, c) => n + c.unread, 0)

@@ -5,6 +5,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { Modal } from '@/components/Modal'
 import { useToast } from '@/components/Toast'
+import { useAyar } from '@/lib/ayarlar'
 import {
   column,
   fields,
@@ -28,6 +29,7 @@ export function ListeOlustur() {
   const { role, profile } = useAuth()
   const [sp] = useSearchParams()
   const toast = useToast()
+  const ayar = useAyar()
   const [kind, setKind] = useState<ListKind>('students')
   const [config, setConfig] = useState<ListConfig>(() => ({
     ...newList('students'),
@@ -128,7 +130,7 @@ export function ListeOlustur() {
       const blob =
         format === 'xlsx'
           ? await (await import('@/lib/listExcel')).listExcel(config, projected, school)
-          : await (await import('@/lib/listPdf')).listPdf(config, projected, school)
+          : await (await import('@/lib/listPdf')).listPdf(config, projected, school, ayar.bool('rapor.logo'))
       const url = URL.createObjectURL(blob)
       if (format !== 'xlsx') {
         setPdfUrl(url)

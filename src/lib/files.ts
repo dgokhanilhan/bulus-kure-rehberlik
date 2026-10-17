@@ -128,14 +128,22 @@ export function useSchoolInfo() {
     staleTime: 10 * 60_000,
     queryFn: async () => {
       const { data } = await supabase.rpc('public_school_info', { p_slug: SCHOOL_SLUG })
-      const info = (data ?? {}) as { name?: string; logo?: string | null }
+      const info = (data ?? {}) as { name?: string; logo?: string | null; alt_baslik?: string; slogan?: string; kayit?: boolean; kayit_notu?: string; kayit_kapali?: string }
       let logo: string | null = null
       if (info.logo) {
         const { data: pub } = supabase.storage.from('okul').getPublicUrl(info.logo)
         const res = await fetch(pub.publicUrl).catch(() => null)
         if (res?.ok) logo = URL.createObjectURL(await res.blob())
       }
-      return { name: info.name ?? 'Buluş Küre Koleji', logo }
+      return {
+        name: info.name ?? 'Buluş Küre Koleji',
+        logo,
+        altBaslik: info.alt_baslik || 'Rehberlik & Mentörlük',
+        slogan: info.slogan ?? 'Her deneme, öğrenciyi biraz daha iyi tanımak için.',
+        kayit: info.kayit !== false,
+        kayitNotu: info.kayit_notu ?? 'Kaydın okul yönetimi onayladıktan sonra açılır.',
+        kayitKapali: info.kayit_kapali ?? 'Okulumuz şu an yeni kayıt almıyor. Hesap için okul yönetimiyle görüşebilirsiniz.',
+      }
     },
   })
 }

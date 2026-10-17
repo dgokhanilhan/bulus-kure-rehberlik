@@ -5,7 +5,7 @@ import semi from '@ibm/plex-sans/fonts/complete/woff/IBMPlexSans-SemiBold.woff?u
 import { widths, type ListConfig } from './schoolLists'
 Font.register({ family: 'ListPlex', fonts: [{ src: regular }, { src: semi, fontWeight: 600 }] })
 
-export async function listPdf(c: ListConfig, rows: string[][], school: string): Promise<Blob> {
+export async function listPdf(c: ListConfig, rows: string[][], school: string, showLogo = true): Promise<Blob> {
   const ws = widths(c)
   return pdf(
     <Document title={c.title} author={school}>
@@ -15,7 +15,7 @@ export async function listPdf(c: ListConfig, rows: string[][], school: string): 
         style={{ padding: 30, paddingBottom: 55, fontFamily: 'ListPlex', fontSize: 9, color: '#1b2a2f' }}
       >
         <View fixed style={{ marginBottom: 12 }}>
-          <Image src={logo} style={{ position: 'absolute', top: 0, right: 0, width: 28, height: 28 }} />
+          {showLogo && <Image src={logo} style={{ position: 'absolute', top: 0, right: 0, width: 28, height: 28 }} />}
           <Text style={{ fontSize: 10, color: '#56636a' }}>{school}</Text>
           <Text style={{ fontSize: 18, fontWeight: 600, marginVertical: 6 }}>{c.title}</Text>
           {c.description && <Text style={{ marginBottom: 5 }}>{c.description}</Text>}

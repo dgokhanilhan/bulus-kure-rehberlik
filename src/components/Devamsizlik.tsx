@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { ATT_TR, useAcademicYears, useAttendance, type Attendance, type AttendanceStatus } from '@/lib/data'
 import { todayISO, trD, trDW } from '@/lib/format'
 import { useSchoolInfo } from '@/lib/files'
+import { useAyar } from '@/lib/ayarlar'
 import type { Student } from '@/lib/types'
 import { Modal } from './Modal'
 import { Icon } from './Icon'
@@ -190,6 +191,7 @@ function ReportModal({ s, rows, onClose }: { s: Student; rows: Attendance[]; onC
     ['Geç kalma', c('gec')],
   ] as const
   const school = info.data?.name ?? 'Buluş Küre Koleji'
+  const ayar = useAyar()
 
   async function pdf() {
     setBusy(true)
@@ -197,6 +199,7 @@ function ReportModal({ s, rows, onClose }: { s: Student; rows: Attendance[]; onC
       const { attendancePdfBlob } = await import('@/lib/pdf')
       const blob = await attendancePdfBlob({
         school,
+        logo: ayar.bool('rapor.logo'),
         student: s.full_name,
         className: s.class_name,
         schoolNo: s.school_no ?? '—',

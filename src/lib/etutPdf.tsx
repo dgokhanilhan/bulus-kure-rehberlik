@@ -14,6 +14,7 @@ export interface EtutPdfVeri {
   saatler: { bas: string; bit: string }[]
   satirlar: { ogretmen: string; hucreler: ({ tur: 'etut'; konu: string; salon: string; ogrenciler: string[] } | { tur: 'mesgul'; aciklama: string } | null)[] }[]
   printed: string
+  logo?: boolean
 }
 
 const C = { ink: '#1b2a2f', muted: '#56636a', line: '#d9d3c6', head: '#e8efed', zebra: '#f6f3ec', primary: '#1f5f5b', busy: '#ece6d9' }
@@ -33,7 +34,7 @@ function Doc(d: EtutPdfVeri) {
       <Page size="A4" orientation="landscape" style={s.page}>
         <View style={s.head}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Image src={logo} style={{ width: 32, height: 32, marginRight: 8 }} />
+            {d.logo !== false && <Image src={logo} style={{ width: 32, height: 32, marginRight: 8 }} />}
             <View>
               <Text style={{ fontSize: 9, color: C.muted }}>{d.school}</Text>
               <Text style={{ fontSize: 14, fontWeight: 600 }}>Cumartesi Etüt Programı · {d.title}</Text>

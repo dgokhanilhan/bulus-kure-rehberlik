@@ -9,12 +9,14 @@ import { useSchoolInfo } from '@/lib/files'
 import { rolesOf } from '@/lib/roles'
 import { GUN, isoDow, todayISO, trD, trDW } from '@/lib/format'
 import { useToast } from '@/components/Toast'
+import { useAyar } from '@/lib/ayarlar'
 import { Icon } from '@/components/Icon'
 import {
   DURUM_TR,
   PRESETS,
   TYPE_TR,
   addMin,
+  ayarliPresetler,
   duration,
   dersOgretmeniAta,
   kadro as kadroOf,
@@ -62,19 +64,34 @@ interface Form {
   rooms: Record<string, string>
   gorevler: Gorev[]
 }
-const emptyForm = (type: ExamType = 'ortaokul', classIds: string[] = []): Form => ({
+const emptyForm = (type: ExamType = 'ortaokul', classIds: string[] = [], presets: typeof PRESETS = PRESETS): Form => ({
   id: null,
   title: TITLES[type],
   type,
   date: todayISO(),
   note: '',
-  oturumlar: presetOturumlar(type, newKey),
+  oturumlar: presetOturumlar(type, newKey, presets),
   classIds,
   rooms: {},
   gorevler: [],
 })
 
+/** Okul ayarlarındaki (gozetmen.*) sınav düzenleri */
+function usePresetler() {
+  const a = useAyar()
+  return useMemo(
+    () =>
+      ayarliPresetler({
+        ortaokul: { bas: a.text('gozetmen.ortaokul_baslangic'), sozel: a.num('gozetmen.ortaokul_sozel_dk'), sayisal: a.num('gozetmen.ortaokul_sayisal_dk'), mola: a.num('gozetmen.ortaokul_mola_dk') },
+        tyt: { bas: a.text('gozetmen.tyt_baslangic'), dk: a.num('gozetmen.tyt_dk') },
+        ayt: { bas: a.text('gozetmen.ayt_baslangic'), dk: a.num('gozetmen.ayt_dk') },
+      }),
+    [a],
+  )
+}
+
 export default function GozetmenPage() {
+  const presets = usePresetler()
   const [tab, setTab] = useState<'plan' | 'gecmis'>('plan')
   const classes = useClasses()
   const people = usePeople()
@@ -112,7 +129,7 @@ export default function GozetmenPage() {
   )
   const gradesOfType = (t: ExamType) => activeClasses.filter((c) => PRESETS[t].grades.includes(c.grade)).map((c) => c.id)
   const [form, setForm] = useState<Form | null>(null)
-  const f = form ?? emptyForm('ortaokul', gradesOfType('ortaokul'))
+  const f = form ?? emptyForm('ortaokul', gradesOfType('ortaokul'), presets)
   const set = (p: Partial<Form>) => setForm({ ...f, ...p })
 
   const loading = classes.isLoading || people.isLoading || bells.isLoading || lessons.isLoading
@@ -164,7 +181,7 @@ export default function GozetmenPage() {
         <Planla
           f={f}
           set={set}
-          reset={(t) => setForm(emptyForm(t, gradesOfType(t)))}
+          reset={(t) => setForm(emptyForm(t, gradesOfType(t), presets))}
           classes={activeClasses}
           teachers={teachers}
           bells={bells.data ?? []}
@@ -198,7 +215,9 @@ function Planla(p: {
   const toast = useToast()
   const qc = useQueryClient()
   const [busy, setBusy] = useState(false)
-  const [dinPer, setDinPer] = useState(8)
+  const ayar = useAyar()
+  const presets = usePresetler()
+  const [dinPer, setDinPer] = useState(() => ayar.num('gozetmen.dinlendirici_basina'))
   // Kalıcı "görev verilmez" listesi (ör. okul kurucuları): otomatik atamaya ve seçim listelerine girmez
   const haricQ = useQuery({
     queryKey: ['gozetmen', 'haric'],
@@ -270,7 +289,7 @@ function Planla(p: {
   const setOturum = (key: string, x: Partial<Oturum>) => set({ oturumlar: f.oturumlar.map((o) => (o.key === key ? { ...o, ...x } : o)) })
   const addOturum = () => {
     const last = f.oturumlar.at(-1)
-    const starts = last ? addMin(last.ends, PRESETS[f.type].mola || 30) : '09:30'
+    const starts = last ? addMin(last.ends, presets[f.type].mola || 30) : presets.ortaokul.oturumlar[0]!.starts
     set({ oturumlar: [...f.oturumlar, { key: newKey(), name: `${f.oturumlar.length + 1}. Oturum`, starts, ends: addMin(starts, 60) }] })
   }
   const removeOturum = (key: string) =>
@@ -349,7 +368,7 @@ function Planla(p: {
   }
 
   const cizelge = () =>
-    buildCizelge({ school: p.school, title: f.title, type: f.type, date: f.date, note: f.note, oturumlar: f.oturumlar, siniflar, gorevler: f.gorevler })
+    ({ ...buildCizelge({ school: p.school, title: f.title, type: f.type, date: f.date, note: f.note, oturumlar: f.oturumlar, siniflar, gorevler: f.gorevler }), logo: ayar.bool('rapor.logo') })
   async function download(kind: 'pdf' | 'png') {
     try {
       const m = await import('@/lib/gozetmenPdf')
