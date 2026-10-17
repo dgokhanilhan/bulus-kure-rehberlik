@@ -7,6 +7,7 @@ import { useSchoolInfo } from '@/lib/files'
 import { isFullAccess, isTeacherP } from '@/lib/roles'
 import { todayISO, trDW } from '@/lib/format'
 import { useToast } from '@/components/Toast'
+import { useAyar } from '@/lib/ayarlar'
 import { Icon } from '@/components/Icon'
 import { Modal } from '@/components/Modal'
 import { useMyStudent } from './FamilyPages'
@@ -69,6 +70,11 @@ interface Draft {
 
 function PlanView() {
   const toast = useToast()
+  const ayar = useAyar()
+  const varsayilan = (k: Kademe) => {
+    const s = ayar.saatler(`etut.saatler_${k}`)
+    return s.length === 5 ? s : VARSAYILAN_SAATLER[k]
+  }
   const refresh = useEtutRefresh()
   const school = useSchoolInfo()
   const people = usePeople()
@@ -116,7 +122,7 @@ function PlanView() {
       ogrenciler: h.etut_ogrenciler.map((o) => o.student_id),
     }))
     setDraft({
-      saatler: gun ? gun.saatler : baslangicSaatleri(gunler.data ?? [], kademe, VARSAYILAN_SAATLER[kademe]),
+      saatler: gun ? gun.saatler : baslangicSaatleri(gunler.data ?? [], kademe, varsayilan(kademe)),
       hucreler,
       rows: [...new Set(hucreler.map((h) => h.teacher_name))],
     })
@@ -207,6 +213,7 @@ function PlanView() {
           }),
         })),
         printed: new Date().toLocaleString('tr-TR', { dateStyle: 'long', timeStyle: 'short' }),
+        logo: ayar.bool('rapor.logo'),
       })
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
@@ -300,7 +307,7 @@ function PlanView() {
                   <input type="time" aria-label={`${i + 1}. ders bitiş`} value={s.bit} onChange={(e) => change((x) => ({ ...x, saatler: x.saatler.map((y, j) => (j === i ? { ...y, bit: e.target.value } : y)) }))} />
                 </div>
               ))}
-              <button className="btn sm" onClick={() => change((x) => ({ ...x, saatler: VARSAYILAN_SAATLER[kademe].map((y) => ({ ...y })) }))}>
+              <button className="btn sm" onClick={() => change((x) => ({ ...x, saatler: varsayilan(kademe).map((y) => ({ ...y })) }))}>
                 Varsayılana dön
               </button>
               {sh && <p className="err">{sh}</p>}
@@ -447,6 +454,8 @@ function PlanView() {
           saat={draft.saatler[edit.ders - 1]!}
           value={editing}
           students={kadOgr.map((s) => ({ id: s.id, name: `${s.full_name} (${s.class_name})` }))}
+          salonlar={ayar.list('etut.salonlar')}
+          etiketler={ayar.list('etut.mesgul_etiketleri')}
           busyIn={(sid) => draft.hucreler.find((h) => h.ders === edit.ders && h.tur === 'etut' && h.ogrenciler.includes(sid) && h !== editing)?.teacher_name ?? null}
           server={!dirty && gun?.durum === 'yayinda' && tarih <= today ? (serverCell(edit.teacher, edit.ders) ?? null) : null}
           onYoklama={async () => {
@@ -474,6 +483,8 @@ function HucreModal(p: {
   value: Hucre | null
   students: { id: string; name: string }[]
   busyIn: (sid: string) => string | null
+  salonlar: string[]
+  etiketler: string[]
   server: EtutHucreRow | null
   onYoklama: () => Promise<void>
   onClose: () => void
@@ -533,7 +544,7 @@ function HucreModal(p: {
             Salon
             <input list="et-salonlar" value={salon} maxLength={40} onChange={(e) => setSalon(e.target.value)} placeholder="ETÜT-1" />
             <datalist id="et-salonlar">
-              {SALONLAR.map((s) => (
+              {(p.salonlar.length ? p.salonlar : SALONLAR).map((s) => (
                 <option key={s} value={s} />
               ))}
             </datalist>
@@ -580,7 +591,7 @@ function HucreModal(p: {
       ) : (
         <div className="stack" style={{ gap: 10, marginTop: 12 }}>
           <div className="btns">
-            {MESGUL_ETIKETLER.map((m) => (
+            {(p.etiketler.length ? p.etiketler : MESGUL_ETIKETLER).map((m) => (
               <button key={m} className={`btn sm${aciklama === m ? ' pri' : ''}`} onClick={() => setAciklama(m)}>
                 {m}
               </button>
@@ -641,6 +652,9 @@ function Yoklama({ hucre, onDone }: { hucre: EtutHucreRow; onDone: () => Promise
 // =====================================================================================================================
 function OgretmenView() {
   const { profile } = useAuth()
+  const ayar = useAyar()
+  const talepAcik = ayar.bool('etut.talep_acik')
+  const yoklamaAcik = ayar.bool('etut.yoklama_ogretmen')
   const toast = useToast()
   const refresh = useEtutRefresh()
   const students = useStudents()
@@ -691,6 +705,7 @@ function OgretmenView() {
         <p className="m">Öğrencilerin için etüt talebi oluştur; rehber öğretmen programa yerleştirir. Etüt gününde yoklamanı buradan al.</p>
       </header>
 
+      {talepAcik ? (
       <section className="card et-card">
         <h2 className="sec">Etüt talebi oluştur</h2>
         <label className="field">
@@ -759,6 +774,9 @@ function OgretmenView() {
           </button>
         </div>
       </section>
+      ) : (
+        <p className="m">Etüt talepleri şu an kapalı.</p>
+      )}
 
       <section className="card et-card">
         <h2 className="sec">Taleplerim</h2>
@@ -813,7 +831,7 @@ function OgretmenView() {
                       {trDW(g.tarih)} · {h.ders}. ders {sa ? `${sa.bas}–${sa.bit}` : ''}
                     </b>
                     <span className="m">{[h.konu, h.salon, KADEME_TR[g.kademe]].filter(Boolean).join(' · ')}</span>
-                    {g.tarih <= today ? (
+                    {g.tarih <= today && yoklamaAcik ? (
                       <Yoklama hucre={h} onDone={async () => void (await refresh())} />
                     ) : (
                       <span className="m">{h.etut_ogrenciler.map((o) => `${o.student_name} (${o.class_name})`).join(', ')} · Yoklama etüt günü açılır.</span>

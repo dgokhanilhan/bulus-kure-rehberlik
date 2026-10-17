@@ -164,7 +164,12 @@ export function studentExams(ds: Dataset, sid: string, idx = indexResults(ds.res
 }
 
 /** Tekrar eden hata: aynı kazanım, güvenilir eşleşmeyle ≥ 2 denemede yanlış. */
-export function repeats(ds: Dataset, sid: string, uptoExamId?: string, idx = indexResults(ds.results), minCount = 2): Repeat[] {
+/** Okul ayarı (analiz.tekrar_esik): aynı konu en az bu kadar denemede yanlışsa tekrar eden hata. Uygulama açılışta ayarlar. */
+let TEKRAR_ESIK = 2
+export function analizAyarla(a: { tekrarEsik?: number }) {
+  if (a.tekrarEsik && a.tekrarEsik >= 2) TEKRAR_ESIK = a.tekrarEsik
+}
+export function repeats(ds: Dataset, sid: string, uptoExamId?: string, idx = indexResults(ds.results), minCount = TEKRAR_ESIK): Repeat[] {
   let ex = studentExams(ds, sid, idx)
   if (uptoExamId) {
     const upto = ds.exams.find((e) => e.id === uptoExamId)

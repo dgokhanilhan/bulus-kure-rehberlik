@@ -22,6 +22,7 @@ import { AnaSayfaDuzeni, TopluAktarim } from './YonetimAktarim'
 import { InviteChip, InviteParentModal, InviteTeacherModal } from './YonetimDavet'
 import { RolesSection, AccountRolesAdmin } from './YonetimRoller'
 import { DenemeMerkezi } from './DenemeMerkezi'
+import { AyarGecmisi, TumAyarlar } from './YonetimAyarlar'
 import { AppearanceSettings } from './OkulKontrolleri'
 import { DenemeBilgi, DuyuruListesi, EtkinlikListesi, GuvenlikOzeti, MesajAyarlari } from './YonetimIcerik'
 import {
@@ -41,6 +42,8 @@ import {
 
 type Tab =
   | 'listeler'
+  | 'tum_ayarlar'
+  | 'ayar_gecmisi'
   | 'genel'
   | 'moduller'
   | 'yillar'
@@ -74,6 +77,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
   {
     title: 'Genel',
     items: [
+      ['tum_ayarlar', 'Tüm ayarlar'],
       ['genel', 'Genel ayarlar'],
       ['moduller', 'Modüller'],
       ['yillar', 'Eğitim yılları'],
@@ -82,6 +86,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['anasayfa', 'Ana sayfa düzeni'],
       ['galeri', 'Galeri ayarları', 'galeri'],
       ['guvenlik', 'Güvenlik ve erişim'],
+      ['ayar_gecmisi', 'Ayar geçmişi'],
     ],
   },
   {
@@ -124,6 +129,8 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
 const TABS = GROUPS.flatMap((g) => g.items)
 /** Aramada bölüm adına ek olarak eşleşen sözcükler (ayar adları, sık kullanılan terimler). */
 const KEYWORDS: Partial<Record<Tab, string>> = {
+  tum_ayarlar: 'ayar arama varsayılan dışa aktar içe aktar yedek json menü adı gizle sıra metin rapor başlık alt bilgi imza logo kayıt davet iki adımlı mfa veli öğrenci görür öğretmen not etüt gözetmen eşik',
+  ayar_gecmisi: 'ayar geçmişi değişiklik kim ne zaman eski yeni',
   listeler: 'liste sınıf veli telefon iletişim pdf excel çıktı yazdır şablon imza gezi',
   genel: 'okul adı telefon e-posta adres logo tema renk tasarım görünüm yazı kart karşılama animasyon',
   moduller: 'aç kapat modül özellik',
@@ -275,6 +282,8 @@ export default function YonetimPage() {
               )}
               {tab === 'listeler' && <Suspense fallback={<p>Liste merkezi yükleniyor…</p>}><ListeOlustur /></Suspense>}
               {tab === 'moduller' && <Moduller />}
+              {tab === 'tum_ayarlar' && <TumAyarlar />}
+              {tab === 'ayar_gecmisi' && <AyarGecmisi />}
               {tab === 'yillar' && <EgitimYillari />}
               {tab === 'dosya' && <DosyaDuyuruAyarlari />}
               {tab === 'bildirim' && <BildirimAyarlari />}

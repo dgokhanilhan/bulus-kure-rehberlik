@@ -38,6 +38,7 @@ import { ExamModal } from '@/components/ExamModal'
 import { useOpenReport } from '@/components/Report'
 import { GenelDenemeler } from '@/components/GenelDenemeler'
 import { useEtutOgrenci } from '@/lib/etutData'
+import { useAyar } from '@/lib/ayarlar'
 
 /** Veli birden çok çocuğa bağlı olabilir: aktif öğrenci merkezi (AuthProvider; yalnız ekran seçimi, yetki parent_links'te). */
 export function useMyStudent() {
@@ -88,7 +89,8 @@ export function OzetPage() {
   const reportExamNames = useReportExamNames((reports.data ?? []).map((r) => r.exam_id))
   const openReport = useOpenReport()
   const sessions = useStudySessions()
-  const etq = useEtutOgrenci(s?.id, mods.etut)
+  const ayar = useAyar()
+  const etq = useEtutOgrenci(s?.id, mods.etut && ayar.bool('aile.etut'))
   const notes = useNotes(s?.id)
   const [exam, setExam] = useState<string | null>(null)
   const today = todayISO()
@@ -194,6 +196,7 @@ export function OzetPage() {
         )}
         {genel && <GenelDenemeler studentId={s.id} grade={s.grade} />}
         <aside className="stack" style={{ gap: 12 }}>
+          {ayar.bool('aile.raporlar') && (
           <Dropdown
             title="Raporlar"
             sub={rs.length ? `${rs.length} rapor` : 'Henüz rapor yok'}
@@ -211,7 +214,8 @@ export function OzetPage() {
             ) : (
               <span className="m">Rapor gönderildiğinde burada görünür.</span>
             )}
-          </Dropdown>
+          </Dropdown>)}
+          {ayar.bool('aile.gorusmeler') && (
           <Dropdown
             title="Görüşmeler"
             sub={gs.length ? `${gs.length} yaklaşan görüşme` : 'Yaklaşan görüşme yok'}
@@ -232,7 +236,7 @@ export function OzetPage() {
             ) : (
               <span className="m">Planlanan görüşme yok.</span>
             )}
-          </Dropdown>
+          </Dropdown>)}
           <Dropdown title="Cumartesi etütleri" sub={et.length + et2.length ? `${et.length + et2.length} etüt` : 'Etüt yok'} icon={<Icon name="flag" size={22} />} delay={6}>
             {et2.map((x) => {
               const sa = x.etut_gunler!.saatler[x.ders - 1]
@@ -262,7 +266,7 @@ export function OzetPage() {
               <span className="m">Sınıf için etüt planlandığında burada görünür.</span>
             )}
           </Dropdown>
-          {veli && (
+          {veli && ayar.bool('aile.notlar') && (
             <Dropdown title="Öğretmen notları" sub={ns.length ? `${ns.length} not` : 'Henüz not yok'} icon={<Icon name="chat" size={22} />} delay={7}>
               {ns.length ? (
                 ns.map((n) => (

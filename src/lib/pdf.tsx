@@ -52,6 +52,11 @@ export interface PdfCommon {
   reportDate: string
   subjects: PdfSubjectRow[]
   weaknesses?: {konu:string;kod:string;ders:string;source:'official'|'pdf';type:string}[]
+  /** Okul ayarları (rapor.*): başlık, alt bilgi, imza satırı, logo */
+  baslik?: string
+  altBilgi?: string
+  imza?: string
+  logo?: boolean
 }
 export interface PdfVeli extends PdfCommon {
   kind: 'veli'
@@ -100,15 +105,16 @@ function Table({ head, rows, widths, numFrom }: { head: string[]; rows: string[]
 
 function Report(d: PdfVeli | PdfOgretmen) {
   const V = d.kind === 'veli'
+  const baslik = d.baslik || (V ? 'Veli Gelişim Raporu' : 'Öğretmen Bilgilendirme Raporu')
   return (
-    <Document title={`${V ? 'Veli Gelişim Raporu' : 'Öğretmen Bilgilendirme Raporu'} · ${d.student} · ${d.exam}`} author="Buluş Küre Koleji" language="tr">
+    <Document title={`${baslik} · ${d.student} · ${d.exam}`} author="Buluş Küre Koleji" language="tr">
       <Page size="A4" style={s.page}>
         <View style={s.head}>
           <View style={s.brandRow}>
-            <Image src={logo} style={s.logo} />
+            {d.logo !== false && <Image src={logo} style={s.logo} />}
             <View>
               <Text style={s.brand}>Buluş Küre Koleji</Text>
-              <Text style={s.sub}>Rehberlik & Mentörlük · {V ? 'Veli Gelişim Raporu' : 'Öğretmen Bilgilendirme Raporu'}</Text>
+              <Text style={s.sub}>Rehberlik & Mentörlük · {baslik}</Text>
             </View>
           </View>
           <View>
@@ -215,8 +221,13 @@ function Report(d: PdfVeli | PdfOgretmen) {
             <Text style={s.p}>{d.toplanti || '—'}</Text>
           </>
         )}
+        {d.imza ? (
+          <View wrap={false} style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 24 }}>
+            <Text style={{ width: 180, textAlign: 'center', borderTopWidth: 0.5, borderTopColor: C.ink, paddingTop: 4 }}>{d.imza}</Text>
+          </View>
+        ) : null}
         <View style={s.foot} fixed>
-          <Text>{V ? 'Bu rapor öğrencinin yalnızca kendi önceki denemeleriyle karşılaştırılmasına dayanır.' : 'Kurum içi kullanım içindir. Veli ile paylaşılmaz.'}</Text>
+          <Text>{d.altBilgi || (V ? 'Bu rapor öğrencinin yalnızca kendi önceki denemeleriyle karşılaştırılmasına dayanır.' : 'Kurum içi kullanım içindir. Veli ile paylaşılmaz.')}</Text>
           <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
@@ -238,6 +249,7 @@ export interface PdfAttendance {
   summary: [string, string][]
   rows: { date: string; status: string; note: string }[]
   printed: string
+  logo?: boolean
 }
 
 function AttendanceDoc(d: PdfAttendance) {
@@ -246,7 +258,7 @@ function AttendanceDoc(d: PdfAttendance) {
       <Page size="A4" style={s.page}>
         <View style={s.head}>
           <View style={s.brandRow}>
-            <Image src={logo} style={s.logo} />
+            {d.logo !== false && <Image src={logo} style={s.logo} />}
             <View>
               <Text style={s.brand}>{d.school}</Text>
               <Text style={s.sub}>Devamsızlık raporu</Text>

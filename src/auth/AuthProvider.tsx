@@ -66,6 +66,8 @@ interface AuthState {
   /** Oturumun mevcut güvence seviyesi: aal2 = TOTP doğrulandı. */
   aal: 'aal1' | 'aal2' | null
   nextAal?: 'aal1' | 'aal2'
+  /** Okul ayarıyla öğretmene de iki adımlı doğrulama zorunlu (yöneticide her zaman) */
+  mfaRequired?: boolean
   /** Davet/sıfırlama bağlantısıyla gelindi: önce şifre belirlenir. */
   needPassword: boolean
   passwordSet: () => void
@@ -137,10 +139,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     enabled: !!uid,
     staleTime: 30_000,
     queryFn: async () => {
-      const [{ data: profile, error }, { data: aal }, { data: roles }] = await Promise.all([
+      const [{ data: profile, error }, { data: aal }, { data: roles }, { data: mfa }] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', uid!).maybeSingle<Profile>(),
         supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
         supabase.from('profile_roles').select('role').eq('profile_id', uid!),
+        // Öğretmenlere iki adımlı doğrulama zorunlu mu (okul ayarı guvenlik.ogretmen_mfa; veritabanı da aynı kuralı uygular)
+        supabase.rpc('requires_mfa'),
       ])
       if (error) throw error
       const list = (roles ?? []).map((r) => r.role as DbRole)
@@ -148,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile: profile ? { ...profile, roles: list.length ? list : [profile.role] } : null,
         nextAal: aal?.nextLevel === 'aal2' ? ('aal2' as const) : ('aal1' as const),
         aal: (aal?.currentLevel ?? 'aal1') as 'aal1' | 'aal2',
+        mfaRequired: mfa === true,
       }
     },
   })
@@ -220,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     aal: me.data?.aal ?? null,
     nextAal: me.data?.nextAal ?? 'aal1',
+    mfaRequired: me.data?.mfaRequired ?? false,
     needPassword,
     passwordSet: () => {
       try {
@@ -248,7 +254,7 @@ export function gateOf(a: AuthState): Gate {
   if (a.profile.status !== 'approved') return 'pending'
   // Yöneticinin davetiyle açılan hesap KVKK metnini ilk girişte onaylar (0017)
   if (a.profile.invited_at && !a.profile.consent_version) return 'consent'
-  if ((a.profile.role === 'admin' || a.roles.includes('admin') || a.nextAal === 'aal2') && a.aal !== 'aal2') return 'mfa'
+  if ((a.profile.role === 'admin' || a.roles.includes('admin') || a.nextAal === 'aal2' || a.mfaRequired) && a.aal !== 'aal2') return 'mfa'
   if (a.needRole) return 'rol'
   if (a.needStudent) return 'cocuk'
   return 'app'

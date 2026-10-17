@@ -5,6 +5,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { isFullAccess, ROLE_TR, roleOf } from '@/lib/roles'
+import { useAyar } from '@/lib/ayarlar'
 import { fmt, indexResults, outcomeCode, outcomeSourceLabel, repeats, studentExams, subjectOf, totalNet, type Subject } from '@/lib/analiz'
 import {
   useMeetings,
@@ -61,6 +62,7 @@ export default function OgrenciPage() {
   const setTab = (t: Tab) => setSp(t === 'gelisim' ? {} : { sekme: t }, { replace: true })
   const { role } = useAuth()
   const F = isFullAccess(role!)
+  const ayar = useAyar()
 
   const students = useStudents()
   // Tek kaynak: 8 → LGS veri seti (değişmedi); 5–7 okul denemeleri; 9–12 seçili TYT ya da AYT (kartlar, Gelişim, Denemeler, Konular, raporlar)
@@ -243,7 +245,7 @@ export default function OgrenciPage() {
 
       <div className="tabs a" style={{ ['--d' as string]: 3 }} role="tablist" aria-label="Öğrenci dosyası" ref={tabs.ref}>
         {tabs.ind}
-        {TABS.filter(([id]) => id !== 'devamsizlik' || mods.yoklama).map(([id, l]) => (
+        {TABS.filter(([id]) => (id !== 'devamsizlik' || mods.yoklama) && (id !== 'raporlar' || F || ayar.bool('ogretmen.rapor_gorme'))).map(([id, l]) => (
           <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
             {l}
           </button>
@@ -555,6 +557,7 @@ const VIS_TR = { ogretmen: 'Öğretmenler', rehber: 'Gizli', veli: 'Veli görüy
 
 function NotesTab({ sid, F }: { sid: string; F: boolean }) {
   const notes = useNotes(sid)
+  const ayar = useAyar()
   const people = usePeople()
   const toast = useToast()
   const refresh = useRefresh()
@@ -589,6 +592,7 @@ function NotesTab({ sid, F }: { sid: string; F: boolean }) {
 
   return (
     <>
+      {(F || ayar.bool('ogretmen.not_ekleme')) && (
       <form className="card a" style={{ ['--d' as string]: 3, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }} onSubmit={submit}>
         <label className="field" htmlFor="noteText">
           Not ekle
@@ -608,6 +612,7 @@ function NotesTab({ sid, F }: { sid: string; F: boolean }) {
           </button>
         </div>
       </form>
+      )}
       {notes.data?.length ? (
         notes.data.map((n, i) => {
           const a = author(n.author_id)

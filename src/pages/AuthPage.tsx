@@ -20,10 +20,10 @@ export function AuthLayout({ children }: { children: ReactNode }) {
           Buluş Küre Koleji
         </span>
         <h1 className="a" style={{ ['--d' as string]: 1 }}>
-          Rehberlik &amp; Mentörlük
+          {info.data?.altBaslik ?? 'Rehberlik & Mentörlük'}
         </h1>
         <p className="a m" style={{ ['--d' as string]: 2, position: 'relative', maxWidth: 420 }}>
-          Her deneme, öğrenciyi biraz daha iyi tanımak için.
+          {info.data?.slogan ?? 'Her deneme, öğrenciyi biraz daha iyi tanımak için.'}
         </p>
       </section>
       <section className="login-form">
@@ -33,7 +33,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             <div>
               <b style={{ fontFamily: 'var(--font-display)', fontSize: 21, display: 'block', lineHeight: 1.1 }}>{info.data?.name ?? 'Buluş Küre Koleji'}</b>
               <span className="m" style={{ fontSize: 13 }}>
-                Rehberlik &amp; Mentörlük
+                {info.data?.altBaslik ?? 'Rehberlik & Mentörlük'}
               </span>
             </div>
           </div>
@@ -53,10 +53,18 @@ type RegRole = 'ogrenci' | 'veli' | 'ogretmen'
 export default function AuthPage() {
   const [step, setStep] = useState<Step>('login')
   const [confirmationNeeded, setConfirmationNeeded] = useState(true)
+  const info = useSchoolInfo()
   return (
     <AuthLayout>
       {step === 'login' && <LoginForm onStep={setStep} />}
-      {step === 'register' && <RegisterForm onStep={setStep} onRegistered={(confirmation) => { setConfirmationNeeded(confirmation); setStep('sent') }} />}
+      {step === 'register' && (info.data?.kayit === false ? (
+        <div className="stack a" style={{ gap: 12 }}>
+          <StepSeg step="register" onStep={setStep} />
+          <p className="m" role="status">{info.data.kayitKapali}</p>
+        </div>
+      ) : (
+        <RegisterForm onStep={setStep} onRegistered={(confirmation) => { setConfirmationNeeded(confirmation); setStep('sent') }} />
+      ))}
       {step === 'sent' && (
         <div className="stack a" style={{ alignItems: 'center', textAlign: 'center', paddingTop: 30 }}>
           <svg width="84" height="84" viewBox="0 0 72 72" className="pp" aria-hidden="true">
@@ -251,6 +259,8 @@ export function validateRegistration(f: RegForm): string[] {
 }
 
 function RegisterForm({ onStep, onRegistered }: { onStep: (s: Step) => void; onRegistered: (confirmation: boolean) => void }) {
+  const school = useSchoolInfo()
+  const kayitNotu = school.data?.kayitNotu ?? 'Kaydın okul yönetimi onayladıktan sonra açılır.'
   const [f, setF] = useState<RegForm>({ role: 'ogrenci', name: '', email: '', pass: '', pass2: '', brans: '', cls: '', no: '', childName: '', childCls: '', rel: 'Anne', consent: false })
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -292,7 +302,9 @@ function RegisterForm({ onStep, onRegistered }: { onStep: (s: Step) => void; onR
             ? 'Şifre en az 8 karakter olmalı.'
             : error.status === 429
               ? 'Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar dene.'
-              : 'Kayıt alınamadı. Bilgilerini kontrol edip tekrar dene.',
+              : m.includes('database error')
+                ? (school.data?.kayitKapali ?? 'Kayıt alınamadı. Bilgilerini kontrol edip tekrar dene.')
+                : 'Kayıt alınamadı. Bilgilerini kontrol edip tekrar dene.',
       )
       return
     }
@@ -409,7 +421,7 @@ function RegisterForm({ onStep, onRegistered }: { onStep: (s: Step) => void; onR
           Kayıt ol
         </button>
         <p className="m" style={{ fontSize: 13, textAlign: 'center' }}>
-          Kaydın okul yönetimi onayladıktan sonra açılır.
+          {kayitNotu}
         </p>
       </form>
     </>

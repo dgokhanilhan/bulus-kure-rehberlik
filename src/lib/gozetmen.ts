@@ -80,8 +80,31 @@ const overlaps = (a1: number, a2: number, b1: number, b2: number) => a1 < b2 && 
 export const oturumOverlap = (a: Oturum, b: Oturum) => overlaps(toMin(a.starts), toMin(a.ends), toMin(b.starts), toMin(b.ends))
 
 /** Hazır düzenden oturumlar (anahtarlar benzersiz). */
-export function presetOturumlar(t: ExamType, key = () => Math.random().toString(36).slice(2, 10)): Oturum[] {
-  return PRESETS[t].oturumlar.map((o) => ({ key: key(), name: o.name, starts: o.starts, ends: addMin(o.starts, o.minutes) }))
+export function presetOturumlar(t: ExamType, key = () => Math.random().toString(36).slice(2, 10), presets: typeof PRESETS = PRESETS): Oturum[] {
+  return presets[t].oturumlar.map((o) => ({ key: key(), name: o.name, starts: o.starts, ends: addMin(o.starts, o.minutes) }))
+}
+
+/** Okul ayarlarından (gozetmen.*) hazır düzenler; sınıf seviyeleri sabit kalır. */
+export function ayarliPresetler(o: {
+  ortaokul: { bas: string; sozel: number; sayisal: number; mola: number }
+  tyt: { bas: string; dk: number }
+  ayt: { bas: string; dk: number }
+}): typeof PRESETS {
+  const ok = (t: string, d: string) => (/^\d{2}:\d{2}$/.test(t) ? t : d)
+  const b = ok(o.ortaokul.bas, '09:30')
+  return {
+    ortaokul: {
+      ...PRESETS.ortaokul,
+      mola: o.ortaokul.mola,
+      oturumlar: [
+        { name: '1. Oturum · Sözel', starts: b, minutes: o.ortaokul.sozel },
+        { name: '2. Oturum · Sayısal', starts: addMin(b, o.ortaokul.sozel + o.ortaokul.mola), minutes: o.ortaokul.sayisal },
+      ],
+    },
+    tyt: { ...PRESETS.tyt, oturumlar: [{ name: 'TYT', starts: ok(o.tyt.bas, '10:15'), minutes: o.tyt.dk }] },
+    ayt: { ...PRESETS.ayt, oturumlar: [{ name: 'AYT', starts: ok(o.ayt.bas, '10:00'), minutes: o.ayt.dk }] },
+    diger: PRESETS.diger,
+  }
 }
 
 // ---------- Uygunluk ----------
