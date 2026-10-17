@@ -108,6 +108,7 @@ const MODULES: [ModuleId, string, string][] = [
   ['takvim', 'Takvim', 'Sınav ve etkinlik takvimi, sınav hatırlatmaları'],
   ['bursluluk', 'Bursluluk', 'Bursluluk sınavı tanımlama ve herkese açık başvuru formu'],
   ['galeri', 'Galeri', 'Okulun özel fotoğraf ve video albümleri (yalnız yetkili kullanıcılar görür)'],
+  ['etut', 'Cumartesi etütleri', 'Rehber öğretmenin etüt planı, öğretmen talepleri, yoklama; veli ve öğrenci kendi etüdünü görür'],
 ]
 const SOON: ModuleId[] = []
 
@@ -1125,6 +1126,7 @@ const NOTIF: [string, string, string][] = [
   ['bildirim.gorusme', 'Görüşmeler', 'Görüşme planlandı, değişti, yanıtlandı'],
   ['bildirim.not', 'Rehberlik notları', 'Öğretmenin veliye açık notu'],
   ['bildirim.bursluluk', 'Bursluluk', 'Yeni bursluluk başvurusu (yöneticilere), salon/saat atanınca (okul öğrencisinin velisine)'],
+  ['bildirim.etut', 'Etüt', 'Etüt programı yayınlanınca ya da değişince öğrenci ve veliye; yeni etüt talebi rehberlere; talep yanıtı öğretmene'],
   ['bildirim.galeri', 'Galeri', 'Albüm yayınlanırken "Kullanıcılara bildirim gönder" seçilirse albümün kitlesine; öğretmen albümü onay bekleyince yöneticilere'],
 ]
 export function BildirimAyarlari() {

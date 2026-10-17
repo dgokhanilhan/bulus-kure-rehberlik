@@ -37,9 +37,10 @@ import { MeetingList } from '@/components/Meetings'
 import { ExamModal } from '@/components/ExamModal'
 import { useOpenReport } from '@/components/Report'
 import { GenelDenemeler } from '@/components/GenelDenemeler'
+import { useEtutOgrenci } from '@/lib/etutData'
 
 /** Veli birden çok çocuğa bağlı olabilir: aktif öğrenci merkezi (AuthProvider; yalnız ekran seçimi, yetki parent_links'te). */
-function useMyStudent() {
+export function useMyStudent() {
   const { profile, activeStudent, switchStudent } = useAuth()
   const students = useStudents()
   const list = students.data ?? []
@@ -87,6 +88,7 @@ export function OzetPage() {
   const reportExamNames = useReportExamNames((reports.data ?? []).map((r) => r.exam_id))
   const openReport = useOpenReport()
   const sessions = useStudySessions()
+  const etq = useEtutOgrenci(s?.id, mods.etut)
   const notes = useNotes(s?.id)
   const [exam, setExam] = useState<string | null>(null)
   const today = todayISO()
@@ -101,6 +103,8 @@ export function OzetPage() {
   const openT = (tasks.data ?? []).filter((t) => !t.completed_at)
   const gs = (meetings.data ?? []).filter((g) => localDate(g.starts_at) >= today).sort((a, b) => a.starts_at.localeCompare(b.starts_at))
   const et = (sessions.data ?? []).filter((x) => x.class_name === s.class_name && x.session_date >= today)
+  // Yeni etüt programı (0051): yalnız yayınlanmış, kendi etütleri
+  const et2 = (etq.data ?? []).filter((x) => x.etut_gunler && x.etut_gunler.tarih >= today)
   const rs = reports.data ?? []
   const ns = notes.data ?? []
   const cur = exam ? ex.findIndex((x) => x.exam.id === exam) : -1
@@ -229,8 +233,21 @@ export function OzetPage() {
               <span className="m">Planlanan görüşme yok.</span>
             )}
           </Dropdown>
-          <Dropdown title="Cumartesi etütleri" sub={et.length ? `${et.length} etüt` : 'Etüt yok'} icon={<Icon name="flag" size={22} />} delay={6}>
-            {et.length ? (
+          <Dropdown title="Cumartesi etütleri" sub={et.length + et2.length ? `${et.length + et2.length} etüt` : 'Etüt yok'} icon={<Icon name="flag" size={22} />} delay={6}>
+            {et2.map((x) => {
+              const sa = x.etut_gunler!.saatler[x.ders - 1]
+              return (
+                <div key={x.id}>
+                  <b style={{ fontSize: 14 }}>
+                    {trDW(x.etut_gunler!.tarih)} · {x.ders}. ders {sa ? `${sa.bas}–${sa.bit}` : ''}
+                  </b>
+                  <span className="m" style={{ display: 'block', fontSize: 13 }}>
+                    {[x.etut_hucreler?.konu, x.etut_hucreler?.teacher_name, x.etut_hucreler?.salon].filter(Boolean).join(' · ')}
+                  </span>
+                </div>
+              )
+            })}
+            {et.length || et2.length ? (
               et.map((x) => (
                 <div key={x.id}>
                   <b style={{ fontSize: 14 }}>
