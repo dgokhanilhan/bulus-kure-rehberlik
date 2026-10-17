@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fmt, indexResults, repeats, totalNet } from '@/lib/analiz'
 import { useClasses, useDataset, useStudents } from '@/lib/data'
 import { useGenelDataset } from '@/lib/denemeData'
@@ -17,7 +17,10 @@ export default function OgrencilerPage() {
 const genel = useGenelDataset()
   const classes = useClasses()
   const nav = useNavigate()
-  const [cls, setCls] = useState<string>('all')
+  // Seçili sınıf adreste durur: öğrenci dosyasından "Öğrenciler"le ya da tarayıcının geri tuşuyla aynı sınıfa dönülür
+  const [sp, setSp] = useSearchParams()
+  const cls = sp.get('sinif') ?? 'all'
+  const setCls = (v: string) => setSp(v === 'all' ? {} : { sinif: v }, { replace: true })
   const [q, setQ] = useState('')
 
   const rows = useMemo(() => {
@@ -124,7 +127,7 @@ const genel = useGenelDataset()
               </thead>
               <tbody>
                 {list.map(({ s, net, d, rep }) => {
-                  const open = () => nav(`/ogrenciler/${s.id}`)
+                  const open = () => nav(`/ogrenciler/${s.id}`, { state: { liste: sp.toString() } })
                   return (
                     <tr
                       key={s.id}
