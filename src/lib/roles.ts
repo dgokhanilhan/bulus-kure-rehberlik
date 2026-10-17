@@ -45,12 +45,12 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'odevler' | 'takvim' | 'bildirimler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
   | 'nobet-takip' | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler' | 'galeri'
-  | 'gozetmen'
+  | 'gozetmen' | 'etut'
 
 export interface NavItem {
   id: PageId
   label: string
-  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega' | 'image' | 'search'
+  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega' | 'image' | 'search' | 'flag'
 }
 
 const STAFF: NavItem[] = [
@@ -61,6 +61,8 @@ const STAFF: NavItem[] = [
   { id: 'denemeler', label: 'Denemeler', icon: 'doc' },
   { id: 'siniflar', label: 'Sınıflar', icon: 'grid' },
 ]
+/** Cumartesi etütleri (0051): rehber/yönetici planlar, öğretmen talep eder ve yoklama alır, veli/öğrenci kendi etüdünü görür. */
+const ETUT: NavItem = { id: 'etut', label: 'Etüt', icon: 'flag' }
 // Duyurular ve iletişim (mesajlaşma) ayrı sayfalar; eski /iletisim?sekme=duyurular bağlantıları /duyurular'a yönlenir.
 const DUYURULAR: NavItem = { id: 'duyurular', label: 'Duyurular', icon: 'mega' }
 const ILETISIM: NavItem = { id: 'iletisim', label: 'İletişim', icon: 'chat' }
@@ -83,17 +85,18 @@ const GOZETMEN: NavItem = { id: 'gozetmen', label: 'Gözetmen Bul', icon: 'searc
 
 /** Rol bazlı menü — prototipteki navItems() ile aynı. Yetki ayrıca veritabanında (RLS) zorlanır. */
 function navFor(r: Role): NavItem[] {
-  if (r === 'admin') return [...STAFF, DUYURULAR, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, GOZETMEN, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
-  if (r === 'rehber') return [...STAFF, DUYURULAR, ILETISIM]
-  if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, DUYURULAR, ILETISIM]
-  if (r === 'ogrenci') return FAMILY.filter((n) => n.id !== 'iletisim') // öğrenci mesajlaşmaz; duyuruları görür
-  return FAMILY
+  if (r === 'admin') return [...STAFF, ETUT, DUYURULAR, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, GOZETMEN, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
+  if (r === 'rehber') return [...STAFF, ETUT, DUYURULAR, ILETISIM]
+  if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, ETUT, DUYURULAR, ILETISIM]
+  const fam = [...FAMILY.slice(0, 4), ETUT, ...FAMILY.slice(4)] // Ödevler'den sonra
+  if (r === 'ogrenci') return fam.filter((n) => n.id !== 'iletisim') // öğrenci mesajlaşmaz; duyuruları görür
+  return fam
 }
 
 /** Modüller (Yönetim → Modüller). Kapalı modülün sayfası menüden kalkar; veri erişimi veritabanında da kapanır (0011). */
-export type ModuleId = 'lgs' | 'yoklama' | 'ders_programi' | 'yemek' | 'duyuru' | 'mesaj' | 'odev' | 'takvim' | 'bursluluk' | 'galeri'
+export type ModuleId = 'lgs' | 'yoklama' | 'ders_programi' | 'yemek' | 'duyuru' | 'mesaj' | 'odev' | 'takvim' | 'bursluluk' | 'galeri' | 'etut'
 export type Modules = Record<ModuleId, boolean>
-export const MODULE_DEFAULTS: Modules = { lgs: true, yoklama: true, ders_programi: true, yemek: true, duyuru: true, mesaj: true, odev: true, takvim: true, bursluluk: false, galeri: false }
+export const MODULE_DEFAULTS: Modules = { lgs: true, yoklama: true, ders_programi: true, yemek: true, duyuru: true, mesaj: true, odev: true, takvim: true, bursluluk: false, galeri: false, etut: true }
 
 /** Sayfanın bağlı olduğu modüller: hepsi kapalıysa sayfa menüden kalkar. */
 const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
@@ -106,6 +109,7 @@ const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
   okul: ['yoklama', 'ders_programi', 'yemek'],
   duyurular: ['duyuru'],
   iletisim: ['mesaj'],
+  etut: ['etut'],
 }
 
 /** Galeri (0022): herkes için, Takvim'den sonra; modül kapalıyken menüde yok. */

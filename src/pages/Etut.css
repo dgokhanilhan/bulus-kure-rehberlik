@@ -1,0 +1,48 @@
+/* Cumartesi etütleri (0051). Yalnız .et altında geçerli. */
+.et{display:flex;flex-direction:column;gap:16px;padding-bottom:96px}
+.et .et-card{padding:20px;display:flex;flex-direction:column;gap:12px}
+.et .et-card .sec{margin:0;display:flex;align-items:center;gap:8px}
+.et .et-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.et .et-bar .field{min-width:220px}
+.et .et-saat{display:flex;flex-direction:column;gap:8px}
+.et .et-saatler{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;border-radius:14px;background:var(--surface-sunken)}
+.et .et-saatrow{display:flex;gap:6px;align-items:center}
+.et .et-saatrow input{min-height:44px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);padding:0 8px}
+.et .et-tbl td{vertical-align:top;padding:6px 8px}
+.et .et-th{display:block;font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-muted)}
+.et .et-cell{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;min-width:130px;min-height:56px;padding:8px;border-radius:10px;border:1px dashed var(--line-strong);background:var(--surface);text-align:left;font-size:13px}
+.et .et-cell.etut{border-style:solid;border-color:var(--primary);background:var(--primary-soft)}
+.et .et-cell.busy{border-style:solid;border-color:var(--line);background:var(--surface-sunken);color:var(--ink-2)}
+.et .et-cell .m{font-size:12px}
+.et .et-busytd{background:var(--surface-sunken);color:var(--ink-2)}
+.et .et-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.et .et-tools select{min-height:44px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);padding:0 10px}
+.et .et-check{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:14px;flex-wrap:wrap}
+.et .et-check input{width:20px;height:20px}
+.et .et-issues p{display:flex;gap:6px;margin:0;font-size:14px;color:var(--ink-2)}
+.et .et-issues p.bad{color:var(--signal-ink,var(--signal));font-weight:500}
+.et .et-talepler,.et .et-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.et .et-talepler li{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px;border-radius:12px;background:var(--surface-sunken)}
+.et .et-talepler li .m,.et .et-item .m{display:block;font-size:13px}
+.et .et-item{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:12px;background:var(--surface-sunken)}
+.et .et-item .chip{align-self:flex-start}
+.et .et-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.et .et-sel{display:flex;flex-wrap:wrap;gap:6px}
+.et .et-found{list-style:none;margin:0;padding:0;max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.et .et-found li{padding:0 10px;border-bottom:1px solid var(--line)}
+.et .et-yoklama{display:flex;flex-direction:column;gap:6px;padding-top:6px}
+.et .et-yrow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.et .et-actions{position:sticky;bottom:12px;z-index:5;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:0 8px 24px rgba(27,42,47,.14)}
+/* Pencere (modal) içeriği .et dışında açılır */
+.et-found,.et-sel{list-style:none;margin:0;padding:0}
+.mwrap .et-found{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.mwrap .et-found li{padding:0 10px;border-bottom:1px solid var(--line)}
+.mwrap .et-check{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:14px;flex-wrap:wrap}
+.mwrap .et-check input{width:20px;height:20px}
+.mwrap .et-sel{display:flex;flex-wrap:wrap;gap:6px}
+.mwrap .et-yoklama{display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1px solid var(--line)}
+.mwrap .et-yrow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+@media (max-width:760px){
+  .et .et-fields{grid-template-columns:1fr}
+  .et .et-actions .btn{flex:1 1 auto}
+}

@@ -6,6 +6,7 @@ import type { Notification } from './types'
 type IconName = 'book' | 'chat' | 'doc' | 'cal' | 'warn' | 'task' | 'shield' | 'bell' | 'spark' | 'users' | 'image'
 export const NTYPES: Record<string, { label: string; icon: IconName }> = {
   nobet: { label: 'Nöbet hatırlatması', icon: 'cal' },
+  etut: { label: 'Etüt', icon: 'cal' },
   odev_yeni: { label: 'Yeni ödev', icon: 'book' },
   odev_kontrol: { label: 'Ödev kontrol edildi', icon: 'book' },
   odev_hatirlatma: { label: 'Ödev hatırlatması', icon: 'book' },

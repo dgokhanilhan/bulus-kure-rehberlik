@@ -82,7 +82,7 @@ test.describe.serial('LGS / YKS uygunluğu', () => {
 
   test('yalnız 6. sınıf çocuğu olan veli: menüde "LGS özeti" yerine "Özet"', async ({ page }) => {
     await login(page, W.email, W.pass)
-    await expect(menu(page)).toHaveText(['Ana sayfa', 'Özet', 'Okul', 'Ödevler', 'Takvim', 'Duyurular', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'Özet', 'Okul', 'Ödevler', 'Etüt', 'Takvim', 'Duyurular', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
     await expect(card(page, 'lgs')).toHaveCount(0) // ana sayfa düzeninde LGS kartı açık (varsayılan) olsa da
     await logout(page)
   })
