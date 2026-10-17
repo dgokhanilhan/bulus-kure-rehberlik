@@ -87,9 +87,10 @@ describe('ayarlar veritabanında da uygulanır (yalnız kısıtlar)', () => {
     expect(t.error).toBeNull()
     const once = (await veli.from('tasks').select('id').eq('student_id', ELIF)).data!.length
     expect(once).toBeGreaterThan(0)
+    const rehberOnce = (await rehber.from('tasks').select('id').eq('student_id', ELIF)).data!.length
     expect((await ayarla('aile.gorevler', false)).error).toBeNull()
     expect((await veli.from('tasks').select('id').eq('student_id', ELIF)).data).toEqual([])
-    expect((await rehber.from('tasks').select('id').eq('student_id', ELIF)).data!.length).toBe(once) // öğretmen etkilenmez
+    expect((await rehber.from('tasks').select('id').eq('student_id', ELIF)).data!.length).toBe(rehberOnce) // öğretmen etkilenmez (veliden gizli görevleri de görür)
     await ayarla('aile.gorevler', true)
     expect((await veli.from('tasks').select('id').eq('student_id', ELIF)).data!.length).toBe(once)
     await svc.from('tasks').delete().eq('id', t.data!.id)
