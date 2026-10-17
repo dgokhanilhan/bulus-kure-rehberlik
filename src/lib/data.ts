@@ -9,6 +9,7 @@ import { examTrack, MODULE_DEFAULTS, type Modules } from './roles'
 import { useAuth } from '@/auth/AuthProvider'
 import { withCatalogItems, type ItemRow } from './genelVeriSeti'
 import { calendarInScope } from './calendarScope'
+import { tazele } from './tazele'
 
 async function all<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await q
@@ -722,7 +723,7 @@ export function useRefresh() {
   return useMemo(
     () =>
       (...keys: string[]) => {
-        for (const k of [...keys, 'notifications']) qc.invalidateQueries({ queryKey: [k] })
+        void tazele(qc, [...keys, 'notifications'])
       },
     [qc],
   )
