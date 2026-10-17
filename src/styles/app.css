@@ -82,6 +82,7 @@
 .err{color:var(--signal);font-size:13px;font-weight:500}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .check{display:flex;align-items:center;gap:12px;background:transparent;border:0;padding:8px 0;text-align:left;width:100%}
+.check:disabled{opacity:.5;cursor:default}
 .box{width:22px;height:22px;border-radius:7px;border:2px solid var(--line-strong);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;transition:all .25s var(--ease);color:var(--on-primary)}
 .box.on{background:var(--primary);border-color:var(--primary)}
 .sw{width:46px;height:28px;border-radius:14px;background:var(--line-strong);position:relative;flex-shrink:0;transition:background .3s}

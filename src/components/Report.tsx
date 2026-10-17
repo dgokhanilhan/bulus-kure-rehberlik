@@ -484,6 +484,8 @@ function ReportView({
                 onClick={() => setRec({ ...rec, users: rec.users.length === teachers.length ? [] : teachers.map((t) => t.id) })}
                 label="Tüm öğretmenler"
                 bold
+                // Öğretmen listesi gelmeden basılırsa seçilecek kimse yoktur (boş liste "hepsi seçili" sayılırdı)
+                disabled={teachers.length === 0}
               />
               {teachers.map((t) => (
                 <Check
@@ -825,9 +827,9 @@ function ReportView({
   )
 }
 
-function Check({ on, onClick, label, hint, bold }: { on: boolean; onClick: () => void; label: string; hint?: string; bold?: boolean }) {
+function Check({ on, onClick, label, hint, bold, disabled }: { on: boolean; onClick: () => void; label: string; hint?: string; bold?: boolean; disabled?: boolean }) {
   return (
-    <button type="button" className="check" role="checkbox" aria-checked={on} onClick={onClick}>
+    <button type="button" className="check" role="checkbox" aria-checked={on} onClick={onClick} disabled={disabled}>
       <span className={`box ${on ? 'on' : ''}`}>{on && <Icon name="check" size={13} stroke={3} />}</span>
       <span style={{ flex: 1, fontWeight: bold ? 600 : undefined }}>{label}</span>
       {hint && (

@@ -22,3 +22,10 @@ jobs:
       - run: npm run build
       - run: npm run test
       - run: npm run e2e
+      # Düşen e2e testinin ekran görüntüsü ve izi (trace) indirilebilsin
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-hata
+          path: test-results/
+          retention-days: 7

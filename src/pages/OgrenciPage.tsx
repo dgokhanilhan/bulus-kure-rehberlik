@@ -1,7 +1,7 @@
 import { ScoreCards } from '@/components/ScoreCards'
 import { scoreText } from '@/lib/examScores'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { isFullAccess, ROLE_TR, roleOf } from '@/lib/roles'
@@ -526,8 +526,10 @@ export default function OgrenciPage() {
 }
 
 function BackLink() {
+  // Listeden gelindiyse aynı sınıf süzgecine dönülür
+  const liste = (useLocation().state as { liste?: string } | null)?.liste
   return (
-    <Link className="btn ghost a" to="/ogrenciler" style={{ alignSelf: 'flex-start' }}>
+    <Link className="btn ghost a" to={liste ? `/ogrenciler?${liste}` : '/ogrenciler'} style={{ alignSelf: 'flex-start' }}>
       <Icon name="back" size={16} stroke={2} />
       Öğrenciler
     </Link>

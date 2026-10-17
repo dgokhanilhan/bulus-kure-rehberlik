@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fmt, indexResults, repeats, totalNet } from '@/lib/analiz'
 import { useClasses, useDataset, useStudents } from '@/lib/data'
 import { useGenelDataset } from '@/lib/denemeData'
@@ -17,7 +17,22 @@ export default function OgrencilerPage() {
 const genel = useGenelDataset()
   const classes = useClasses()
   const nav = useNavigate()
-  const [cls, setCls] = useState<string>('all')
+  // Seçili sınıf adreste durur: öğrenci dosyasından "Öğrenciler"le ya da tarayıcının geri tuşuyla aynı sınıfa dönülür.
+  // Sol menüden (adreste sınıf yokken) gelince bu sekmede en son seçilen sınıf açılır.
+  const [sp, setSp] = useSearchParams()
+  const sonKey = `ogrenciler.sinif.${role}`
+  const cls = sp.get('sinif') ?? sonSinif(sonKey) ?? 'all'
+  const setCls = (v: string) => {
+    try {
+      sessionStorage.setItem(sonKey, v)
+    } catch {
+      /* depolama kapalıysa yalnız adres kullanılır */
+    }
+    setSp(v === 'all' ? {} : { sinif: v }, { replace: true })
+  }
+  useEffect(() => {
+    if (!sp.has('sinif') && cls !== 'all') setSp({ sinif: cls }, { replace: true })
+  }, [sp, cls, setSp])
   const [q, setQ] = useState('')
 
   const rows = useMemo(() => {
@@ -124,7 +139,7 @@ const genel = useGenelDataset()
               </thead>
               <tbody>
                 {list.map(({ s, net, d, rep }) => {
-                  const open = () => nav(`/ogrenciler/${s.id}`)
+                  const open = () => nav(`/ogrenciler/${s.id}`, { state: { liste: sp.toString() } })
                   return (
                     <tr
                       key={s.id}
@@ -168,4 +183,12 @@ const genel = useGenelDataset()
       </section>
     </>
   )
+}
+
+function sonSinif(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key)
+  } catch {
+    return null
+  }
 }
