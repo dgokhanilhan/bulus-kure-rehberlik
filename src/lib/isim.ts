@@ -50,7 +50,9 @@ export function nameDistance(a: string, b: string) {
  */
 export function matchStudent(read: { name: string; number?: string | null; class?: string | null }, roster: RosterStudent[]): MatchResult {
   const classKey = (value: string) => value.toLocaleUpperCase('tr').split('·')[0]!.replace(/\s/g, '')
-  const cls = classKey(read.class ?? '')
+  // Karnedeki şube okulda yoksa (ör. "7-XX": yazılımın şubesiz öğrencisi) sınıf süzgeci uygulanmaz, ada bakılır
+  const read0 = classKey(read.class ?? '')
+  const cls = read0 && roster.some((s) => classKey(s.class_name) === read0) ? read0 : ''
   const n = normName(read.name)
   const same = roster.filter((s) => normName(s.full_name) === n)
   const sameCls = cls ? same.filter((s) => classKey(s.class_name) === cls) : same

@@ -5,7 +5,7 @@
 import mupdf from './mupdf/mupdf.js'
 import { sha256 } from './hashes/sha2.js'
 
-export const ENGINE = 'genel-1.2.0'
+export const ENGINE = 'genel-1.3.0'
 const num = (s) => {
   const t = String(s ?? '')
     .trim()
@@ -19,18 +19,45 @@ const clean = (t) =>
     .replace(/\s+/g, ' ')
     .trim()
 
-/** Sayfa: satırlar (konumlu) + karakterler (kutulu). */
-export function readPages(bytes) {
+// Bazı karne yazılımları gömülü yazı tipine bozuk ToUnicode tablosu yazar: harf yerine glif numarası (gid) çıkar
+// ("Puan" → "3XDQ", rakamlar okunamaz). Onarım modunda bilinmeyen karakterler gid olarak alınır ve yazı tipinin kendi
+// cmap tablosuyla gerçek harfe çevrilir. Yalnız normal okumada tanınmayan PDF'te denenir (diğer biçimler etkilenmez).
+const ONARIM_ADAY = (() => {
+  const a = []
+  for (let u = 0x20; u < 0x7f; u++) a.push(u)
+  for (let u = 0xa0; u < 0x180; u++) a.push(u)
+  for (const u of [0x2013, 0x2014, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2026, 0x2212]) a.push(u)
+  return a
+})()
+function gidCevirici(f, cache) {
+  const name = f.getName()
+  let m = cache.get(name)
+  if (!m) {
+    const rev = new Map()
+    for (const u of ONARIM_ADAY) {
+      const g = f.encodeCharacter(u)
+      if (g > 0 && !rev.has(g)) rev.set(g, String.fromCodePoint(u))
+    }
+    m = { rev, kontrol: 0 }
+    cache.set(name, m)
+  }
+  return m
+}
+
+/** Sayfa: satırlar (konumlu) + karakterler (kutulu). onar: bozuk ToUnicode'lu yazı tiplerinde gid → harf. */
+export function readPages(bytes, { onar = false } = {}) {
   const d = mupdf.Document.openDocument(bytes, 'application/pdf'),
-    pages = []
+    pages = [],
+    fonts = new Map()
   try {
     if (d.needsPassword()) throw Error('Parolalı PDF. Önce parolasız bir kopyasını yükleyin.')
     if (d.countPages() > 1000) throw Error('PDF en fazla 1000 sayfa olabilir.')
     for (let i = 0; i < d.countPages(); i++) {
       const pg = d.loadPage(i),
-        st = pg.toStructuredText('preserve-whitespace'),
+        st = pg.toStructuredText(onar ? 'preserve-whitespace,use-cid-for-unknown-unicode' : 'preserve-whitespace'),
         lines = [],
-        cs = []
+        cs = [],
+        ham = []
       let l
       st.walk({
         beginLine: (b) => {
@@ -38,6 +65,12 @@ export function readPages(bytes) {
           lines.push(l)
         },
         onChar: (c, o, f, s, q) => {
+          if (onar) {
+            const m = gidCevirici(f, fonts)
+            const u = c.codePointAt(0)
+            if (u < 0x20) m.kontrol++
+            ham.push({ l, i: l.t.length, m, u })
+          }
           l.t += c
           cs.push({
             c,
@@ -50,6 +83,7 @@ export function readPages(bytes) {
       })
       st.destroy()
       pg.destroy()
+      if (onar) onarSayfa(lines, cs, ham)
       const ls = lines.map((z) => ({ ...z, t: clean(z.t) })).filter((z) => z.t)
       pages.push({ n: i + 1, lines: ls, cs, text: ls.map((z) => z.t).join('\n') })
     }
@@ -58,6 +92,21 @@ export function readPages(bytes) {
   }
   return pages
 }
+// Yazı tipi bozuksa karakterleri gid → harf çevir. Doğru eşlemeli yazı tipi kontrol karakteri (U+0000–001F) üretmez;
+// bozuk olanda boşluk (gid 3), rakamlar ve noktalama bu aralığa düşer.
+function onarSayfa(lines, cs, ham) {
+  const bozuk = (m) => m.kontrol >= 3
+  const yeni = new Map(lines.map((l) => [l, l.t.split('')]))
+  ham.forEach((h, k) => {
+    if (!bozuk(h.m)) return
+    const c = h.m.rev.get(h.u)
+    if (!c) return
+    yeni.get(h.l)[h.i] = c
+    cs[k].c = c
+  })
+  for (const l of lines) l.t = yeni.get(l).join('')
+}
+
 /** Bir satır bandında [x0, x1) aralığındaki karakterler (merkezlerine göre). */
 const band = (p, x0, x1, yc, h = 6) =>
   p.cs
@@ -261,6 +310,53 @@ export const FAMILIES = {
       return { recs, failed }
     },
   },
+  DERS_ANALIZ: {
+    format: 'DERS_ANALIZ_SONUC_BELGESI_V1',
+    publisher: null,
+    wrongPerCorrect: 3,
+    inferWrongPerCorrect: true,
+    title: (p) => daHeader(p)?.title ?? null,
+    student: (p) => daHeader(p),
+    detect(pages) {
+      const p0 = pages[0],
+        ev = []
+      if (!daPage(p0)) return { score: 0, evidence: [] }
+      ev.push('"SONUÇ BELGESİ" + Ders / Soru / Doğru / Yanlış / Net tablosu ve "Cevap Anh." satırları')
+      if (/DERSLERE GÖRE ANALİZ/.test(p0.text)) ev.push('"DERSLERE GÖRE ANALİZ" kazanım tablosu')
+      const h = daHeader(p0)
+      if (h) ev.push('Öğrenci · Numara · Sınıf başlığı')
+      const n = pages.filter(daPage).length
+      ev.push(`${n}/${pages.length} sayfa aynı düzende (öğrenci başına tek sayfa)`)
+      return { score: 0.5 + (/DERSLERE GÖRE ANALİZ/.test(p0.text) ? 0.2 : 0) + (h ? 0.15 : 0) + (n === pages.length ? 0.1 : 0), evidence: ev }
+    },
+    parse(pages) {
+      const recs = [],
+        failed = []
+      for (const p of pages) {
+        if (!daPage(p)) {
+          failed.push({ page: p.n, error: 'Sayfa sonuç belgesi düzeninde değil.' })
+          continue
+        }
+        const h = daHeader(p)
+        const secs = daSections(p, h?.classGrade ?? null)
+        if (!h || !secs.length) {
+          failed.push({ page: p.n, error: 'Öğrenci veya ders tablosu okunamadı.' })
+          continue
+        }
+        recs.push({
+          page: p.n,
+          pages: [p.n],
+          student: { name: h.name, number: h.number, class: h.class, classGrade: h.classGrade },
+          exam: { title: h.title },
+          score: daScore(p),
+          sections: secs.map(({ raw, row, ...s }) => s),
+          items: daItems(p, secs),
+          warnings: [],
+        })
+      }
+      return { recs, failed }
+    },
+  },
   HIZ_LISE: {
     format: 'HIZ_LISE_KARNE_V1',
     publisher: 'Hız Yayınları',
@@ -314,6 +410,124 @@ export const FAMILIES = {
       return { recs, failed }
     },
   },
+}
+
+// ---------------------------------------------------------------- "Derslere göre analiz" sonuç belgesi (yazılım biçimi; ör. Mobese)
+// Öğrenci başına tek sayfa: başlık (SONUÇ BELGESİ + sınav adı), Öğrenci · Numara · Sınıf, Puan, ders tablosu (Ders, Soru,
+// Doğru, Yanlış, Net…), "Soru No" satırı, her ders için öğrenci cevabı (büyük harf doğru, küçük harf yanlış, boşluk boş) ve
+// "Cevap Anh." satırı (kitapçıkla), sağda kazanım tablosu (soru kodu yok: kazanım soruya bağlanmaz).
+const DA_LABEL = [
+  [/^TÜRKÇE/, 'TÜRKÇE'],
+  [/^MATEMAT/, 'MATEMATİK'],
+  [/^DİN/, 'DİN KÜLTÜRÜ'],
+  [/^FEN/, 'FEN BİLİMLERİ'],
+  [/^(SOSYAL|T\.?C\.?|İNKILAP)/, 'SOS'],
+  [/^(İNGİLİZCE|INGILIZCE)/, 'İNGİLİZCE'],
+  [/^YABANCI/, 'YAB'],
+]
+const daPage = (p) => /SONUÇ BELGESİ/.test(p.text) && p.lines.some((l) => l.t === 'Ders') && p.lines.some((l) => /^Cevap Anh/.test(l.t))
+function daHeader(p) {
+  const L = (t) => p.lines.find((l) => l.t === t)
+  const o = L('Öğrenci'),
+    no = L('Numara'),
+    sn = L('Sınıf')
+  if (!o || !no || !sn) return null
+  const row = p.lines.filter((l) => l.y > o.y + 6 && l.y < o.y + 22 && l.x < sn.x + 40)
+  const at = (x0, x1) =>
+    row
+      .filter((l) => l.x >= x0 && l.x < x1)
+      .map((l) => l.t)
+      .join(' ')
+      .trim()
+  const name = at(o.x - 5, no.x - 30) || null
+  const numRaw = at(no.x - 30, (no.x + sn.x) / 2)
+  const clsRaw = at((no.x + sn.x) / 2, sn.x + 80).replace(/\s+/g, '')
+  const m = clsRaw.match(/^(\d{1,2})[-/.]?([A-ZÇĞİÖŞÜ]{1,2})?$/i)
+  const t = p.lines.find((l) => l.y < 35 && /DENEME|SINAV|SINIF/i.test(l.t) && l.t !== 'SONUÇ BELGESİ')
+  return {
+    title: t ? clean(t.t) : null,
+    name,
+    number: /^\d+$/.test(numRaw) && +numRaw > 0 ? String(+numRaw) : null,
+    class: m ? (m[2] ? `${m[1]}/${m[2].toLocaleUpperCase('tr')}` : m[1]) : clsRaw || null,
+    classGrade: m ? +m[1] : null,
+  }
+}
+function daSections(p, grade) {
+  const d = p.lines.find((l) => l.t === 'Ders'),
+    top = p.lines.find((l) => /^Toplam/.test(l.t))
+  if (!d || !top) return []
+  const english = ENGLISH_TOPICS.test(p.text)
+  const secs = []
+  for (const r of p.lines.filter((l) => l.x <= d.x && l.y > d.y + 10 && l.y < top.y - 3).sort((a, b) => a.y - b.y)) {
+    const v = p.lines
+      .filter((l) => Math.abs(l.y - r.y) < 3 && l.x > r.x + 50 && l.x < 300)
+      .sort((a, b) => a.x - b.x)
+      .map((l) => num(l.t))
+    if (v.length < 4 || v.slice(0, 4).some((x) => x === null)) continue
+    const [n, dd, yy, net] = v
+    const k = grade !== null && grade >= 9 ? null : DA_LABEL.find(([re]) => re.test(r.t.toLocaleUpperCase('tr')))
+    const label = !k ? clean(r.t) : k[1] === 'SOS' ? (grade === 8 ? 'T.C. İNKILAP TARİHİ' : 'SOSYAL BİLGİLER') : k[1] === 'YAB' ? (english ? 'İNGİLİZCE' : 'YABANCI DİL') : k[1]
+    secs.push({ label, raw: clean(r.t), row: r.y, n, d: dd, y: yy, b: n - dd - yy, net })
+  }
+  return secs
+}
+function daScore(p) {
+  const t = p.lines.find((l) => l.t === 'Türü')
+  if (!t) return null
+  const v = p.lines.filter((l) => l.y > t.y + 8 && l.y < t.y + 24 && /^\d{2,3}[,.]\d+$/.test(l.t)).sort((a, b) => a.x - b.x)[0]
+  return v ? num(v.t) : null
+}
+function daItems(p, secs) {
+  const sn = p.lines.find((l) => l.t === 'Soru No')
+  if (!sn) return []
+  const mid = (c) => (c.y0 + c.y1) / 2
+  // Soru sütunları: "Soru No" satırındaki ardışık rakamlar (sağdaki kazanım tablosunun sayıları aynı hizada olabilir: aralık büyüyünce durulur)
+  const all = p.cs.filter((c) => /\d/.test(c.c) && Math.abs(mid(c) - (sn.y + 4)) < 4 && c.x0 > sn.x + 40).sort((a, b) => a.x0 - b.x0)
+  const cols = all.slice(0, 1)
+  for (const c of all.slice(1)) {
+    const gap = c.x0 - cols.at(-1).x0
+    if (cols.length > 1 && gap > (cols[1].x0 - cols[0].x0) * 1.8) break
+    cols.push(c)
+  }
+  if (cols.length < 2) return []
+  const w = (cols.at(-1).x0 - cols[0].x0) / (cols.length - 1),
+    x0 = cols[0].x0 - w / 2,
+    x1 = cols.at(-1).x0 + w / 2 + w * 20 // en uzun ders (ör. 40 soru) satırı da sığar; sağ panel kendi hizasından ayrılır
+  const keys = p.lines.filter((l) => /^Cevap Anh/.test(l.t)).sort((a, b) => a.y - b.y)
+  // Sağdaki "DERSLERE GÖRE ANALİZ" paneli: başlığının bulunduğu sütundan (en soldaki satır başı) itibaren dışarıda kalır
+  const an = p.lines.find((l) => /DERSLERE GÖRE ANALİZ/.test(l.t))
+  const panel = an ? Math.min(...p.lines.filter((l) => l.x > cols.at(-1).x0 + w && l.y > an.y && l.y < an.y + 30).map((l) => l.x), an.x) - 2 : Infinity
+  const rowChars = (y, re = /[A-Za-z]/) => p.cs.filter((c) => Math.abs(mid(c) - (y + 4)) < 4 && c.x0 >= x0 && c.x0 < Math.min(x1, panel) && re.test(c.c)).sort((a, b) => a.x0 - b.x0)
+  const items = []
+  // Cevap bölümünde dersler tablodaki sırayla gelir: i. ders = i. "Cevap Anh." satırı; öğrenci cevabı hemen üstündeki satır
+  secs.forEach((s, i) => {
+    const k = keys[i]
+    if (!k) return
+    const ansLine = p.lines.filter((l) => l.y < k.y - 4 && l.y > k.y - 20 && l.x < x0).sort((a, b) => b.y - a.y)[0]
+    const key = rowChars(k.y),
+      ans = ansLine ? rowChars(ansLine.y, /[A-Za-z*]/) : [] // "*": birden çok şık işaretli (yanlış sayılır)
+    if (key.length !== s.n) return // sayı tutmazsa soru düzeyi bağlanmaz (check ITEM_COVERAGE uyarır)
+    const bk = p.lines.find((l) => Math.abs(l.y - k.y) < 3 && l.x > k.x + 30 && l.x < x0 && /^[A-D]$/.test(l.t))
+    key.forEach((kc, q) => {
+      // En yakın karakter: ders adı cevap satırına yapışık basılabilir ("SOSYAL BİLGİLERbBDA…")
+      const a = ans.filter((c) => Math.abs(c.x0 - kc.x0) < w / 2).sort((u, v) => Math.abs(u.x0 - kc.x0) - Math.abs(v.x0 - kc.x0))[0]
+      const K = kc.c.toUpperCase(),
+        cancelled = !/^[A-E]$/.test(K)
+      items.push({
+        label: s.label,
+        section: s.label,
+        booklet: bk ? bk.t : null,
+        q: q + 1,
+        testQ: q + 1,
+        key: cancelled ? null : K,
+        answer: a && a.c !== '*' ? a.c.toUpperCase() : null,
+        mark: cancelled ? '+' : !a ? null : a.c === '*' ? '-' : a.c === a.c.toUpperCase() ? '+' : '-',
+        rawCode: null,
+        rawText: null,
+      })
+    })
+  })
+  return items
 }
 
 // ---------------------------------------------------------------- Akbim ODS sonuç belgesi (yazılım biçimi; yayından bağımsız)
@@ -665,6 +879,7 @@ export function detect(pages, hints = {}) {
 }
 const TITLE_PUBLISHERS = [
   [/FREKANS/i, 'Frekans Yayınları'],
+  [/MOBESE/i, 'Mobese'],
   [/\bHIZ\b/i, 'Hız Yayınları'],
   [/TÖDER/i, 'TÖDER'],
   [/SİNAN\s*KUZUCU/i, 'Sinan Kuzucu Yayınları'],
@@ -715,7 +930,7 @@ export function inferWrongPerCorrect(recs) {
 
 export async function parseGeneral(bytes, name, hints = {}, onProgress = () => {}) {
   const sha = [...sha256(bytes)].map((x) => x.toString(16).padStart(2, '0')).join('')
-  const pages = readPages(bytes)
+  let pages = readPages(bytes)
   onProgress(pages.length, pages.length)
   if (!pages[0]?.text.trim())
     return {
@@ -726,7 +941,17 @@ export async function parseGeneral(bytes, name, hints = {}, onProgress = () => {
       records: [],
       failedPages: [],
     }
-  const det = detect(pages, hints)
+  let det = detect(pages, hints)
+  // Tanınmadıysa ve yazı tipi eşlemesi bozuksa (kontrol karakteri / okunamayan karakter) onarılmış metinle bir kez daha denenir
+  if (det.family === 'UNKNOWN' && pages.some((p) => /�/.test(p.text) || p.cs.some((c) => c.c.charCodeAt(0) < 0x20))) {
+    const onarili = readPages(bytes, { onar: true })
+    const d2 = detect(onarili, hints)
+    if (d2.family !== 'UNKNOWN') {
+      d2.evidence.push('PDF yazı tipi eşlemesi bozuk: metin yazı tipinin kendi tablosundan onarıldı')
+      pages = onarili
+      det = d2
+    }
+  }
   if (det.family === 'UNKNOWN') return { engine: ENGINE, sha256: sha, filename: name, detection: det, records: [], failedPages: [] }
   const F = FAMILIES[det.family],
     { recs, failed } = F.parse(pages)

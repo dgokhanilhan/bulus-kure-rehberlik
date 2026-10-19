@@ -1,6 +1,6 @@
 // Genel deneme motoru — Web Worker (PDF tarayıcıda okunur, sunucuya ham hâlde gitmez). Mevcut LGS motoru (app-worker.mjs) ayrı.
 // Uygulama kaynağı AGPL-3.0-or-later; MuPDF (AGPL) ./mupdf altında.
-const enginePromise = import('./genel.mjs?v=genel-1.2.0')
+const enginePromise = import('./genel.mjs?v=genel-1.3.0')
 self.onmessage = async ({ data }) => {
   try {
     const { parseGeneral } = await enginePromise
