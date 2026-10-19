@@ -7,6 +7,7 @@ import { lastExamDelta } from '@/lib/denemeGenel'
 import { fold, initials } from '@/lib/format'
 import { LEVEL_TR, LEVELS } from '@/lib/roles'
 import { useAuth } from '@/auth/AuthProvider'
+import VeliToplantisi from './VeliToplantisi'
 
 export default function OgrencilerPage() {
   const { role } = useAuth()
@@ -89,6 +90,11 @@ const genel = useGenelDataset()
   const needle = fold(q)
   const list = rows.filter(({ s }) => (cls === 'all' || s.class_name === cls) && (!needle || fold(s.full_name).includes(needle) || (s.school_no ?? '').includes(needle)))
 
+  // Veli toplantısı görünümü (?gorunum=veli-toplantisi): seçili sınıfın her öğrencisi için özet ve görüşme formu
+  const grade = (classes.data ?? []).find((c) => c.name === cls)?.grade ?? null
+  if (sp.get('gorunum') === 'veli-toplantisi' && cls !== 'all')
+    return <VeliToplantisi key={cls} cls={cls} grade={grade} onBack={() => setSp({ sinif: cls })} />
+
   return (
     <>
       <div className="head a">
@@ -108,6 +114,11 @@ const genel = useGenelDataset()
             })}
           </select>
         </label>
+        {cls !== 'all' && (
+          <button type="button" className="btn" onClick={() => setSp({ sinif: cls, gorunum: 'veli-toplantisi' })}>
+            Veli toplantısı
+          </button>
+        )}
       </div>
       {scoped && (
         <p className="m a" style={{ fontSize: 13, margin: 0 }}>
