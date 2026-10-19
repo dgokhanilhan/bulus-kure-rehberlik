@@ -18,6 +18,7 @@ test('PDF hedefi ekle: tek, deneme ve tümü; metinsiz satır ve açık onay',as
     return route.continue()
   })
   await page.goto('/yonetim?sekme=denemeler')
+  await page.getByRole('button', { name: /Gelişmiş/ }).click()
   await page.getByRole('group',{name:'Deneme Tanıma Merkezi bölümü'}).getByRole('button',{name:'Eşleşmeyen hedefler',exact:true}).click()
   await page.getByRole('button',{name:'FEL1 1. hedefi ekle'}).click()
   await expect(page.getByRole('dialog',{name:'PDF hedefini ekle'})).toBeVisible()

@@ -80,6 +80,7 @@ test('tek denemelik PDF eksiği görev, veli/öğretmen raporu ve PDF’de göst
 test('yönetici PDF hedefini panelden düzenler ve takvimde tüm 8. sınıfları seçer',async({page})=>{
  await resetAdminMfa();await loginAdmin(page)
  await page.goto('/yonetim?sekme=denemeler')
+ await page.getByRole('button', { name: /Gelişmiş/ }).click()
  await page.getByRole('group',{name:'Deneme Tanıma Merkezi bölümü'}).getByRole('button',{name:'Öğrenme hedefleri',exact:true}).click()
  await page.locator('#katGrade').selectOption('6')
  await page.locator('#katSubj').selectOption('MAT')

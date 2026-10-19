@@ -134,6 +134,25 @@ test.describe.serial('Okul geneli deneme (5–12)', () => {
     secret = await loginAdmin(page)
     await page.goto('/yonetim?sekme=denemeler')
     await expect(page.getByRole('heading', { name: 'Denemeler / Tanıma Merkezi' })).toBeVisible()
+    await expect(page.getByTestId('karne-dene')).toBeVisible()
+    // Tanınmayan karne: tahmin yok, ne yapılacağı söylenir
+    const tiny = Buffer.from(
+      `%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 200]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj
+4 0 obj<</Length 44>>stream
+BT /F1 18 Tf 20 100 Td (Merhaba dunya) Tj ET
+endstream endobj
+5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
+trailer<</Root 1 0 R>>
+%%EOF`,
+    )
+    await page.locator('#kdFile').setInputFiles({ name: 'tanimsiz.pdf', mimeType: 'application/pdf', buffer: tiny })
+    await expect(page.getByTestId('karne-taninmadi')).toContainText('Ne yapabilirsin?', { timeout: 60_000 })
+    await expect(page.getByTestId('karne-taninmadi')).toContainText('Excel / CSV')
+    await axe(page, 'karne dene')
+    await page.getByRole('button', { name: /Gelişmiş/ }).click()
     await expect(page.getByTestId('destek-satiri')).toHaveCount(8)
     await axe(page, 'genel bakış')
     await shot(page, 'g2-tanima-merkezi')
@@ -175,6 +194,11 @@ test.describe.serial('Okul geneli deneme (5–12)', () => {
     const buffer = readFileSync(PDF6)
     await loginAdmin(page, secret)
     await page.goto('/yonetim?sekme=denemeler')
+    // Sade ekran: tanınır, öğrenci sayısı ve şablon eşlemesi
+    await page.locator('#kdFile').setInputFiles({ name: 'karne.pdf', mimeType: 'application/pdf', buffer })
+    await expect(page.getByTestId('karne-tanindi')).toContainText('24 öğrenci · 6. sınıf', { timeout: 60_000 })
+    await expect(page.getByTestId('karne-tanindi')).toContainText('şablonuyla tam')
+    await page.getByRole('button', { name: /Gelişmiş/ }).click()
     await page.getByRole('group', { name: 'Deneme Tanıma Merkezi bölümü' }).getByRole('button', { name: 'Test laboratuvarı' }).click()
     await page.locator('#labFile').setInputFiles({ name: 'karne.pdf', mimeType: 'application/pdf', buffer })
     await expect(page.getByTestId('lab-sonuc')).toContainText('HIZ_ORTAOKUL_KARNE_V1', { timeout: 60_000 })

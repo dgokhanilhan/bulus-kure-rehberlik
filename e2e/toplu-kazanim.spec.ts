@@ -31,6 +31,7 @@ test('toplu kazanım eşleme: müfredat, seçim, belirsizlik ve kısmi hata sonr
     return route.continue()
   })
   await page.goto('/yonetim?sekme=denemeler')
+  await page.getByRole('button', { name: /Gelişmiş/ }).click()
   await page.getByRole('group', { name: 'Deneme Tanıma Merkezi bölümü' }).getByRole('button', { name: 'Eşleşmeyen hedefler', exact: true }).click()
   await page.getByRole('button', { name: 'Tümünü otomatik eşle', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Toplu otomatik eşleme' })
