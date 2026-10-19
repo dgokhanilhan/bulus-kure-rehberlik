@@ -111,3 +111,29 @@ describe('Derslere göre analiz sonuç belgesi', () => {
     expect(eng.FAMILIES.DERS_ANALIZ.detect([hiz]).score).toBe(0)
   })
 })
+
+describe('kazanım bağlama (kazanimCoz)', () => {
+  // 4 soru, 2 kazanım (K0: 2 soru, K1: 2 soru). Öğrencilerin soru sonuçları ve kazanım başına D/Y'si
+  const K = [{ s: 2 }, { s: 2 }]
+  it('bütün öğrencilerle tek tutarlı atama varsa her soru bağlanır', () => {
+    const M = [
+      ['+', '-', '+', '+'],
+      ['+', '+', '-', '-'],
+      ['-', '+', '+', '-'],
+    ]
+    // Doğru atama: K0 = {1, 3}, K1 = {2, 4}
+    const T = [
+      [{ d: 2, y: 0 }, { d: 1, y: 1 }],
+      [{ d: 1, y: 1 }, { d: 1, y: 1 }],
+      [{ d: 1, y: 1 }, { d: 1, y: 1 }],
+    ]
+    expect(eng.kazanimCoz(K, M, T)).toEqual([0, 1, 0, 1])
+  })
+  it('birden çok atama tutarlıysa yalnız her çözümde aynı kalan soru bağlanır; tutarsız veri hiç bağlanmaz', () => {
+    const M = [['+', '+', '+', '-']]
+    const T = [[{ d: 2, y: 0 }, { d: 1, y: 1 }]]
+    // 1, 2, 3'ün hangi ikisi K0'da belirsiz; 4 (tek yanlış) kesin K1
+    expect(eng.kazanimCoz(K, M, T)).toEqual([null, null, null, 1])
+    expect(eng.kazanimCoz(K, M, [[{ d: 2, y: 1 }, { d: 0, y: 0 }]])).toBeNull()
+  })
+})
