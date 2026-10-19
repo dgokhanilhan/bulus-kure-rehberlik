@@ -32,6 +32,7 @@ import { useOpenReport } from '@/components/Report'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { useNavigate } from 'react-router-dom'
 import { DevamsizlikTab } from '@/components/Devamsizlik'
+import HedefTab from '@/components/HedefTab'
 import { useExamContext } from '@/lib/sinavBaglami'
 
 const TABS = [
@@ -43,6 +44,7 @@ const TABS = [
   ['notlar', 'Notlar'],
   ['raporlar', 'Raporlar'],
   ['devamsizlik', 'Devamsızlık'],
+  ['hedef', 'Hedef'],
 ] as const
 type Tab = (typeof TABS)[number][0]
 
@@ -245,7 +247,7 @@ export default function OgrenciPage() {
 
       <div className="tabs a" style={{ ['--d' as string]: 3 }} role="tablist" aria-label="Öğrenci dosyası" ref={tabs.ref}>
         {tabs.ind}
-        {TABS.filter(([id]) => (id !== 'devamsizlik' || mods.yoklama) && (id !== 'raporlar' || F || ayar.bool('ogretmen.rapor_gorme'))).map(([id, l]) => (
+        {TABS.filter(([id]) => (id !== 'devamsizlik' || mods.yoklama) && (id !== 'raporlar' || F || ayar.bool('ogretmen.rapor_gorme')) && (id !== 'hedef' || [8, 11, 12].includes(sGrade ?? 0))).map(([id, l]) => (
           <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
             {l}
           </button>
@@ -488,6 +490,7 @@ export default function OgrenciPage() {
       )}
       {tab === 'notlar' && <NotesTab sid={s.id} F={F} />}
       {tab === 'devamsizlik' && <DevamsizlikTab s={s} />}
+      {tab === 'hedef' && <HedefTab sid={s.id} grade={sGrade} />}
       {tab === 'raporlar' && <ReportsTab sid={s.id} examName={(eid) => ds.exams.find((e) => e.id === eid)?.name ?? ''} />}
 
       {modal?.t === 'task' && (
