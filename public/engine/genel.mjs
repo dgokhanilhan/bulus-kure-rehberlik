@@ -5,7 +5,7 @@
 import mupdf from './mupdf/mupdf.js'
 import { sha256 } from './hashes/sha2.js'
 
-export const ENGINE = 'genel-1.3.0'
+export const ENGINE = 'genel-1.3.1'
 const num = (s) => {
   const t = String(s ?? '')
     .trim()
@@ -356,6 +356,8 @@ export const FAMILIES = {
       }
       return { recs, failed }
     },
+    // Kazanım tablosu soru numarası vermez: soru → kazanım bağı öğrencilerin sonuçlarından çözülür (daKazanimBagla)
+    finish: (recs, pages, det) => daKazanimBagla(recs, pages, det),
   },
   HIZ_LISE: {
     format: 'HIZ_LISE_KARNE_V1',
@@ -471,6 +473,111 @@ function daSections(p, grade) {
   }
   return secs
 }
+// "DERSLERE GÖRE ANALİZ" paneli: ders başına kazanım satırları; her satırda kazanım metni ve öğrencinin S (soru sayısı), D, Y'si.
+export function daPanel(p) {
+  const an = p.lines.find((l) => /DERSLERE GÖRE ANALİZ/.test(l.t))
+  if (!an) return []
+  const mid = (c) => (c.y0 + c.y1) / 2
+  const heads = p.lines.filter((l) => l.t === 'S' && l.x > an.x).sort((a, b) => a.y - b.y)
+  const out = []
+  heads.forEach((h, i) => {
+    const cx = [/^S$/, /^D$/, /^Y$/, /^B/].map((re) => p.lines.find((l) => Math.abs(l.y - h.y) < 2 && re.test(l.t) && l.x >= h.x - 1)?.x)
+    if (cx.some((x) => x === undefined)) return out.push(null)
+    const next = heads[i + 1]?.y ?? Infinity
+    const col = (c) => cx.reduce((k, x, j) => (c.x0 >= x - 1.5 ? j : k), -1)
+    // Panel sütunu: ders alt başlığının ("Türkçe", "Din K.ve A.B.") hizası; soldaki karne alanları dışarıda kalır
+    const sx = Math.max(...p.lines.filter((l) => Math.abs(l.y - h.y) < 2 && l.x < h.x - 20).map((l) => l.x), an.x - 120) - 3
+    const rows = []
+    for (const l of p.lines.filter((l) => l.x >= sx && l.x < h.x - 20 && l.y > h.y + 2 && l.y < next).sort((a, b) => a.y - b.y)) {
+      const ds = p.cs.filter((c) => Math.abs(mid(c) - (l.y + 4)) < 3 && c.x0 > h.x - 4 && /\d/.test(c.c))
+      if (!ds.length) {
+        // Satırı sayısız devam eden uzun kazanım metni; bir sonraki ders başlığı (sayısız, büyük harf) değilse eklenir
+        if (rows.length && l.t !== l.t.toLocaleUpperCase('tr')) rows.at(-1).text += ' ' + l.t
+        continue
+      }
+      const v = [0, 1, 2].map((j) => ds.filter((c) => col(c) === j).sort((a, b) => a.x0 - b.x0).map((c) => c.c).join(''))
+      if (v.some((x) => !/^\d+$/.test(x))) return out.push(null)
+      rows.push({ text: clean(l.t), s: +v[0], d: +v[1], y: +v[2] })
+    }
+    out.push(rows)
+  })
+  return out
+}
+// Soru → kazanım: aynı kitapçıktaki bütün öğrencilerde, her kazanımın D/Y'si o kazanıma bağlanan soruların doğru/yanlışıyla
+// tutmalı. Bütün tutarlı atamalar sayılır; bir soru yalnız her çözümde aynı kazanıma düşüyorsa bağlanır (tahmin yok).
+const KZ_MAX_SOL = 64,
+  KZ_MAX_STEP = 3e6
+export function kazanimCoz(K, M, T) {
+  const nq = M[0]?.length ?? 0,
+    ns = M.length
+  if (!nq || K.reduce((a, k) => a + k.s, 0) !== nq) return null
+  const cap = K.map((k) => k.s),
+    asg = Array(nq).fill(-1),
+    dc = M.map(() => K.map(() => 0)),
+    yc = M.map(() => K.map(() => 0)),
+    sols = []
+  let step = 0
+  const go = (q) => {
+    if (sols.length > KZ_MAX_SOL || ++step > KZ_MAX_STEP) return
+    if (q === nq) return void sols.push([...asg])
+    for (let k = 0; k < K.length; k++) {
+      if (!cap[k]) continue
+      let ok = true
+      for (let s = 0; s < ns && ok; s++) {
+        const m = M[s][q],
+          dd = dc[s][k] + (m === '+'),
+          yy = yc[s][k] + (m === '-')
+        if (dd > T[s][k].d || yy > T[s][k].y || (cap[k] === 1 && (dd !== T[s][k].d || yy !== T[s][k].y))) ok = false
+      }
+      if (!ok) continue
+      cap[k]--
+      asg[q] = k
+      for (let s = 0; s < ns; s++) {
+        if (M[s][q] === '+') dc[s][k]++
+        if (M[s][q] === '-') yc[s][k]++
+      }
+      go(q + 1)
+      for (let s = 0; s < ns; s++) {
+        if (M[s][q] === '+') dc[s][k]--
+        if (M[s][q] === '-') yc[s][k]--
+      }
+      cap[k]++
+      asg[q] = -1
+    }
+  }
+  go(0)
+  if (!sols.length || sols.length > KZ_MAX_SOL || step > KZ_MAX_STEP) return null
+  return Array.from({ length: nq }, (_, q) => (sols.every((x) => x[q] === sols[0][q]) ? sols[0][q] : null))
+}
+function daKazanimBagla(recs, pages, det) {
+  const byPage = new Map(pages.map((p) => [p.n, p]))
+  const panels = new Map(recs.map((r) => [r, daPanel(byPage.get(r.page))]))
+  let bagli = 0,
+    toplam = 0
+  const labels = recs[0]?.sections.map((s) => s.label) ?? []
+  labels.forEach((lab, si) => {
+    const books = [...new Set(recs.map((r) => r.items.find((q) => q.section === lab)?.booklet ?? null))]
+    for (const bk of books) {
+      const rs = recs.filter((r) => r.sections[si]?.label === lab && (r.items.find((q) => q.section === lab)?.booklet ?? null) === bk)
+      const T = rs.map((r) => panels.get(r)?.[si] ?? null)
+      const K = T[0]
+      const qs = (r) => r.items.filter((q) => q.section === lab).sort((a, b) => a.q - b.q)
+      toplam += rs.length ? qs(rs[0]).length : 0
+      // Bütün öğrencilerde aynı kazanım listesi (metin + soru sayısı) ve bütün sorular okunmuş olmalı
+      if (!K || !K.length || T.some((t) => !t || t.length !== K.length || t.some((x, j) => x.text !== K[j].text || x.s !== K[j].s))) continue
+      if (rs.some((r) => qs(r).length !== r.sections[si].n)) continue
+      const fix = kazanimCoz(K, rs.map((r) => qs(r).map((q) => q.mark)), T)
+      if (!fix) continue
+      for (const r of rs)
+        qs(r).forEach((q, i) => {
+          if (fix[i] !== null) q.rawText = K[fix[i]].text
+        })
+      bagli += fix.filter((x) => x !== null).length
+    }
+  })
+  if (toplam) det.evidence.push(`kazanımlar soru düzeyine öğrenci sonuçlarından bağlandı: ${bagli}/${toplam} soru kesin (belirsiz olan bağlanmadı)`)
+}
+
 function daScore(p) {
   const t = p.lines.find((l) => l.t === 'Türü')
   if (!t) return null
@@ -967,5 +1074,6 @@ export async function parseGeneral(bytes, name, hints = {}, onProgress = () => {
     if (!wpc && F.inferWrongPerCorrect) r.warnings.push('NET_RULE_UNKNOWN')
     if (loose) r.warnings.push(`ITEM_UNBOUND:${loose}`)
   }
+  if (F.finish) F.finish(recs, pages, det)
   return { engine: ENGINE, sha256: sha, filename: name, pageCount: pages.length, detection: det, records: recs, failedPages: failed }
 }

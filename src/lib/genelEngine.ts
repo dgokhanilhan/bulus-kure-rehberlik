@@ -8,7 +8,7 @@ const MAX = 30 * 1024 * 1024
 export async function readGeneralFile(file: File, hints: { grade?: number } = {}, onProgress?: (page: number, total: number) => void): Promise<GenelPack> {
   if (file.size > MAX) throw new Error('Dosya en fazla 30 MB olabilir.')
   if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') throw new Error('Yalnız PDF yüklenebilir.')
-  worker ??= new Worker('/engine/genel-worker.mjs?v=genel-1.3.0', { type: 'module' })
+  worker ??= new Worker('/engine/genel-worker.mjs?v=genel-1.3.1', { type: 'module' })
   const id = ++seq
   const w = worker
   const bytes = new Uint8Array(await file.arrayBuffer())
