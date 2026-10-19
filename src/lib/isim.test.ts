@@ -33,6 +33,10 @@ describe('isim eşleştirme', () => {
     const r = matchStudent({ name: 'Bora Tan', class: '8/C' }, R)
     expect(r.kind).toBe('unknown')
   })
+  it('karnedeki şube okulda yoksa sınıf yok sayılır, ada bakılır', () => {
+    expect(matchStudent({ name: 'KEREM AYDIN', class: '8/XX' }, R)).toEqual({ kind: 'exact', id: 'kerem', via: 'name' })
+    expect(matchStudent({ name: 'Kerem Aydın', class: '8/C' }, R).kind).toBe('unknown') // şube var ama başka: eski davranış
+  })
   it('okul no tutuyor ama ad bambaşkaysa eşleştirmez', () => {
     expect(matchStudent({ name: 'Mehmet Yılmaz', number: '1187', class: '8/A' }, R).kind).toBe('unknown')
   })
