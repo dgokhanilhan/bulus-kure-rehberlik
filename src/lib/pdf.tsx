@@ -320,3 +320,96 @@ function AttendanceDoc(d: PdfAttendance) {
 export async function attendancePdfBlob(d: PdfAttendance): Promise<Blob> {
   return pdf(<AttendanceDoc {...d} />).toBlob()
 }
+
+// ---------------------------------------------------------------- sınıf analizi (yalnız öğretmen/yönetici; sıralama içerir)
+export interface PdfSinif {
+  school: string
+  logo?: boolean
+  title: string
+  sub: string
+  printed: string
+  ozet: [string, string][]
+  bulgular: string[]
+  table: { head: string[]; widths: number[]; rows: string[][] }
+  konular: { konu: string; oran: string; ogrenciler: string }[]
+}
+
+function SinifDoc(d: PdfSinif) {
+  return (
+    <Document title={d.title} author={d.school}>
+      <Page size="A4" orientation="landscape" style={s.page}>
+        <View style={s.head}>
+          <View style={s.brandRow}>
+            {d.logo !== false && <Image src={logo} style={s.logo} />}
+            <View>
+              <Text style={s.brand}>{d.school}</Text>
+              <Text style={s.sub}>{d.title}</Text>
+            </View>
+          </View>
+          <View>
+            <Text style={s.sub}>{d.sub}</Text>
+            <Text style={s.sub}>{d.printed}</Text>
+          </View>
+        </View>
+        <View style={s.info}>
+          {d.ozet.map(([k, v]) => (
+            <View key={k} style={{ width: `${100 / Math.max(1, d.ozet.length)}%`, padding: 3 }}>
+              <View style={s.infoBox}>
+                <Text style={s.infoK}>{k}</Text>
+                <Text style={s.infoV}>{v}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+        {d.bulgular.length > 0 && (
+          <>
+            <Text style={s.h3}>BULGULAR</Text>
+            {d.bulgular.map((b, i) => (
+              <View key={i} style={s.li}>
+                <Text style={{ width: 10 }}>•</Text>
+                <Text style={{ flex: 1 }}>{b}</Text>
+              </View>
+            ))}
+          </>
+        )}
+        <Text style={s.h3}>ÖĞRENCİLER</Text>
+        <View style={s.tr} fixed>
+          {d.table.head.map((h, i) => (
+            <Text key={i} style={[s.th, { width: `${d.table.widths[i]}%` }]}>
+              {h}
+            </Text>
+          ))}
+        </View>
+        {d.table.rows.map((r, n) => (
+          <View key={n} style={s.tr} wrap={false}>
+            {r.map((v, i) => (
+              <Text key={i} style={{ width: `${d.table.widths[i]}%`, fontSize: 8.5, fontWeight: i === 1 ? 600 : 400 }}>
+                {v}
+              </Text>
+            ))}
+          </View>
+        ))}
+        {d.konular.length > 0 && (
+          <View break>
+            <Text style={s.h3}>SINIFIN ORTAK YANLIŞ KONULARI (SON DENEME)</Text>
+            {d.konular.map((k, i) => (
+              <View key={i} style={s.tr} wrap={false}>
+                <Text style={{ width: '45%', fontSize: 8.5 }}>{k.konu}</Text>
+                <Text style={{ width: '10%', fontSize: 8.5 }}>{k.oran}</Text>
+                <Text style={{ width: '45%', fontSize: 8.5, color: C.muted }}>{k.ogrenciler}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+        <View style={s.foot} fixed>
+          <Text>{d.school} · Öğretmen içi; sıralama içerir, veliyle paylaşılmaz.</Text>
+          <Text render={({ pageNumber, totalPages }) => `${pageNumber}/${totalPages}`} />
+        </View>
+      </Page>
+    </Document>
+  )
+}
+
+export async function sinifPdfBlob(d: PdfSinif): Promise<Blob> {
+  return pdf(<SinifDoc {...d} />).toBlob()
+}

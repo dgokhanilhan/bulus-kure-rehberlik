@@ -323,6 +323,15 @@ export function useAttendance(f: { student?: string; day?: string }) {
   })
 }
 
+/** Bir şubenin öğrencilerinin devamsızlık kayıtları (sınıf analizi). RLS: yalnız görebildiklerin. */
+export function useClassAttendance(ids: string[], from: string) {
+  return useQuery({
+    queryKey: ['attendance', 'sinif', from, ids.join(',')],
+    enabled: ids.length > 0,
+    queryFn: () => all<Attendance>(supabase.from('attendance').select('id, student_id, day, status, note').in('student_id', ids).gte('day', from)),
+  })
+}
+
 export interface Lesson {
   id: string
   class_id: string
