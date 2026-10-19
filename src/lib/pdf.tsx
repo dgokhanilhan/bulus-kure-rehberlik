@@ -413,3 +413,172 @@ function SinifDoc(d: PdfSinif) {
 export async function sinifPdfBlob(d: PdfSinif): Promise<Blob> {
   return pdf(<SinifDoc {...d} />).toBlob()
 }
+
+// ---------------------------------------------------------------- veli toplantısı görüşme formu (öğrenci başına bir sayfa)
+// Veliyle yüz yüze kullanılır: sınıf sıralaması ve sınıf ortalaması yok. Doldurulmamış alanlar elle yazılmak üzere boş çizgilidir.
+export interface PdfVeliToplanti {
+  school: string
+  logo?: boolean
+  sinif: string
+  tarih: string
+  gozlemler: [string, string][]
+  ogrenciler: {
+    ad: string
+    no: string
+    ozet: {
+      denemeler: { ad: string; tarih: string; puan: string; net: string; degisim: number | null }[]
+      dersler: { ad: string; net: string; onceki: string; fark: number | null }[]
+      guclu: string[]
+      destek: string[]
+      konular: string[]
+      gorev: { acik: number; geciken: number }
+      devamsizlik: [string, number][]
+      gorusmeler: string[]
+    }
+    form: { gozlemler: Partial<Record<string, string>>; katilan: string | null; veli_gorusu: string | null; kararlar: string | null; notlar: string | null; takip_tarihi: string | null }
+  }[]
+}
+const isaretli = (on: boolean) => (
+  <View style={{ width: 9, height: 9, borderWidth: 0.8, borderColor: C.ink, marginRight: 4, alignItems: 'center', justifyContent: 'center' }}>
+    {on && <View style={{ width: 5, height: 5, backgroundColor: C.ink }} />}
+  </View>
+)
+const fark = (n: number | null) => (n === null ? '' : `${n >= 0 ? '+' : '−'}${Math.abs(Math.round(n * 10) / 10).toFixed(1).replace('.', ',')}`)
+function Alan({ baslik, metin, satir = 2 }: { baslik: string; metin: string | null; satir?: number }) {
+  return (
+    <View style={{ marginTop: 4 }} wrap={false}>
+      <Text style={{ fontSize: 8.5, fontWeight: 600 }}>{baslik}</Text>
+      {metin ? (
+        <Text style={{ fontSize: 9, borderBottomWidth: 0.5, borderBottomColor: C.line, paddingBottom: 2 }}>{metin}</Text>
+      ) : (
+        Array.from({ length: satir }, (_, i) => <View key={i} style={{ height: 13, borderBottomWidth: 0.5, borderBottomColor: C.line }} />)
+      )}
+    </View>
+  )
+}
+
+// Sığdırma: bir öğrenci bir sayfa (satır aralıkları rapordakinden sık)
+const trK = [s.tr, { paddingVertical: 1.5 }]
+const h3K = [s.h3, { marginTop: 7, marginBottom: 3 }]
+
+function VeliToplantiDoc(d: PdfVeliToplanti) {
+  return (
+    <Document title={`Veli toplantısı · ${d.sinif}`} author={d.school}>
+      {d.ogrenciler.map((o, n) => (
+        <Page key={n} size="A4" style={[s.page, { fontSize: 9, paddingTop: 28, paddingBottom: 44 }]}>
+          <View style={s.head}>
+            <View style={s.brandRow}>
+              {d.logo !== false && <Image src={logo} style={s.logo} />}
+              <View>
+                <Text style={[s.brand, { lineHeight: 1.3 }]}>{d.school}</Text>
+                <Text style={[s.sub, { lineHeight: 1.3 }]}>Veli toplantısı görüşme formu</Text>
+              </View>
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontWeight: 600, textAlign: 'right' }}>{o.ad}</Text>
+              <Text style={[s.sub, { textAlign: 'right' }]}>
+                {d.sinif}
+                {o.no ? ` · No ${o.no}` : ''} · {d.tarih}
+              </Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 14 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={h3K}>DENEME GELİŞİMİ</Text>
+              {o.ozet.denemeler.length ? (
+                o.ozet.denemeler.map((x, i) => (
+                  <View key={i} style={trK}>
+                    <Text style={{ width: '42%' }}>
+                      {x.ad} <Text style={{ color: C.muted }}>{x.tarih}</Text>
+                    </Text>
+                    <Text style={[s.num, { width: '18%' }]}>{x.puan}</Text>
+                    <Text style={[s.num, { width: '16%' }]}>{x.net}</Text>
+                    <Text style={[s.num, { width: '24%', color: x.degisim === null ? C.muted : x.degisim >= 0 ? C.primary : C.signal }]}>
+                      {x.degisim === null ? '' : `${x.degisim >= 0 ? '↑' : '↓'} ${fark(x.degisim)}`}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={{ color: C.muted }}>Bu dönem deneme sonucu yok.</Text>
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={h3K}>DERSLER (SON DENEME NETİ)</Text>
+              {o.ozet.dersler.map((x, i) => (
+                <View key={i} style={trK}>
+                  <Text style={{ width: '58%' }}>{x.ad}</Text>
+                  <Text style={[s.num, { width: '20%' }]}>{x.net}</Text>
+                  <Text style={[s.num, { width: '22%', color: x.fark === null ? C.muted : x.fark >= 0 ? C.primary : C.signal }]}>
+                    {x.fark === null ? '' : `${x.fark >= 0 ? '↑' : '↓'} ${fark(x.fark)}`}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 14 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={h3K}>GÜÇLÜ YÖNLER · DESTEK</Text>
+              <Text>Güçlü: {o.ozet.guclu.join(', ') || '—'}</Text>
+              <Text>Desteğe ihtiyaç: {o.ozet.destek.join(', ') || '—'}</Text>
+              <Text style={h3K}>TEKRAR EDEN HATALI KONULAR</Text>
+              {o.ozet.konular.length ? o.ozet.konular.map((k, i) => <Text key={i}>• {k}</Text>) : <Text style={{ color: C.muted }}>Yok.</Text>}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={h3K}>GÖREV · DEVAMSIZLIK · GÖRÜŞMELER</Text>
+              <Text>
+                Görevler: {o.ozet.gorev.acik} açık{o.ozet.gorev.geciken ? `, ${o.ozet.gorev.geciken} gecikmiş` : ''}
+              </Text>
+              <Text>Devamsızlık (bu yıl): {o.ozet.devamsizlik.map(([k, v]) => `${k} ${v}`).join(' · ')}</Text>
+              {o.ozet.gorusmeler.length ? o.ozet.gorusmeler.map((g, i) => <Text key={i}>• {g}</Text>) : <Text style={{ color: C.muted }}>Kayıtlı görüşme yok.</Text>}
+            </View>
+          </View>
+          <Text style={h3K}>GÖZLEMLER</Text>
+          <View style={[trK, { borderBottomColor: C.ink }]}>
+            <Text style={[s.th, { width: '64%' }]}>Madde</Text>
+            {['Evet', 'Kısmen', 'Hayır'].map((t) => (
+              <Text key={t} style={[s.th, { width: '12%' }]}>
+                {t}
+              </Text>
+            ))}
+          </View>
+          {d.gozlemler.map(([k, t]) => (
+            <View key={k} style={trK} wrap={false}>
+              <Text style={{ width: '64%' }}>{t}</Text>
+              {['evet', 'kismen', 'hayir'].map((v) => (
+                <View key={v} style={{ width: '12%', flexDirection: 'row', alignItems: 'center' }}>
+                  {isaretli(o.form.gozlemler[k] === v)}
+                </View>
+              ))}
+            </View>
+          ))}
+          <View style={{ flexDirection: 'row', gap: 14 }}>
+            <View style={{ flex: 1 }}>
+              <Alan baslik="Görüşmeye katılan" metin={o.form.katilan} satir={1} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Alan baslik="Takip görüşmesi" metin={o.form.takip_tarihi} satir={1} />
+            </View>
+          </View>
+          <Alan baslik="Velinin görüşü / isteği" metin={o.form.veli_gorusu} />
+          <Alan baslik="Birlikte alınan kararlar" metin={o.form.kararlar} />
+          <Alan baslik="Öğretmen notu" metin={o.form.notlar} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 }} wrap={false}>
+            {['Öğretmen', 'Veli'].map((t) => (
+              <View key={t} style={{ width: '40%', borderTopWidth: 0.5, borderTopColor: C.ink, paddingTop: 3 }}>
+                <Text style={{ fontSize: 8, color: C.muted }}>{t} (ad soyad, imza)</Text>
+              </View>
+            ))}
+          </View>
+          <View style={s.foot} fixed>
+            <Text>{d.school} · Öğrenci kendi gelişimiyle değerlendirilir.</Text>
+            <Text render={({ pageNumber, totalPages }) => `${pageNumber}/${totalPages}`} />
+          </View>
+        </Page>
+      ))}
+    </Document>
+  )
+}
+
+export async function veliToplantiPdfBlob(d: PdfVeliToplanti): Promise<Blob> {
+  return pdf(<VeliToplantiDoc {...d} />).toBlob()
+}
