@@ -11,7 +11,7 @@ import { useToast } from '@/components/Toast'
 import { EXAM_TYPE_TR, academicYear } from '@/lib/denemeGenel'
 import { useCurriculumVersions, useExamImports, useExamTemplates, useExamsAdmin, useFormats, usePublishers, useTypeDefaults, versionFor, type ExamAdminRow } from '@/lib/denemeData'
 import { trD } from '@/lib/format'
-import { KatalogBolumu, EslesmeyenBolumu, ProfilBolumu, SablonBolumu, TestLaboratuvari } from './DenemeMerkeziKatalog'
+import { KarneDene, KatalogBolumu, EslesmeyenBolumu, ProfilBolumu, SablonBolumu, TestLaboratuvari } from './DenemeMerkeziKatalog'
 
 type Tab = 'genel' | 'yayinlar' | 'bicimler' | 'sablonlar' | 'profiller' | 'katalog' | 'eslesmeyen' | 'gecmis' | 'test' | 'arsiv'
 const TABS: [Tab, string][] = [
@@ -24,27 +24,62 @@ const SUBJECTS_BY_GRADE: Record<number, string[]> = {
   9: ['TDE', 'MAT', 'FIZ', 'KIM', 'BIY', 'TAR', 'COG', 'DIN'], 10: ['TDE', 'MAT', 'FIZ', 'KIM', 'BIY', 'TAR', 'COG', 'FEL', 'DIN'], 11: ['TDE', 'MAT', 'FIZ', 'KIM', 'BIY', 'TAR', 'COG', 'FEL', 'DIN'], 12: ['TDE', 'MAT', 'FIZ', 'KIM', 'BIY', 'COG', 'DIN', 'INK'],
 }
 
+// Gelişmiş bölümün açık/kapalı durumu bu sekmede hatırlanır (yalnız kolaylık)
+const GELISMIS_KEY = 'tanima.gelismis'
+function gelismisAcikMi() {
+  try {
+    return sessionStorage.getItem(GELISMIS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export function DenemeMerkezi() {
   const [tab, setTab] = useState<Tab>('genel')
+  const [acik, setAcik] = useState(gelismisAcikMi)
+  const ac = () => {
+    setAcik(!acik)
+    try {
+      sessionStorage.setItem(GELISMIS_KEY, acik ? '0' : '1')
+    } catch {
+      /* depolama kapalı */
+    }
+  }
   return (
     <>
-      <p className="m a" style={{ fontSize: 13 }}>
-        5–12 bütün denemeler tek altyapıdan geçer: PDF tanınır (yayın, sınıf, biçim, sınav türü), öğrenciler eşleşir, sonuçlar şablonun kurallarıyla doğrulanır ve <b>taslak</b> olarak kaydedilir; yayınlayınca
-        veliye ve öğrenciye açılır. 8. sınıf LGS denemeleri mevcut LGS motoruyla okunur (sonuçlar değişmez).
+      <p className="m a" style={{ fontSize: 14 }}>
+        Deneme karneleri Denemeler sayfasından yüklenir. Burada bir karnenin tanınıp tanınmadığını önceden görebilirsin.
       </p>
-      <div className="a" style={{ overflowX: 'auto' }}>
-        <Seg label="Deneme Tanıma Merkezi bölümü" value={tab} onChange={setTab} options={TABS} />
+      <KarneDene />
+      <div className="a">
+        <button type="button" className="btn" aria-expanded={acik} aria-controls="tanima-gelismis" onClick={ac}>
+          {acik ? '▾' : '▸'} Gelişmiş
+        </button>
+        <span className="m" style={{ fontSize: 13, marginLeft: 10 }}>
+          yayınlar, biçimler, şablonlar, öğrenme hedefleri, içe aktarım geçmişi, arşiv
+        </span>
       </div>
-      {tab === 'genel' && <GenelBakis />}
-      {tab === 'yayinlar' && <Yayinlar />}
-      {tab === 'bicimler' && <Bicimler />}
-      {tab === 'sablonlar' && <SablonBolumu />}
-      {tab === 'profiller' && <ProfilBolumu />}
-      {tab === 'katalog' && <KatalogBolumu />}
-      {tab === 'eslesmeyen' && <EslesmeyenBolumu />}
-      {tab === 'gecmis' && <Gecmis />}
-      {tab === 'test' && <TestLaboratuvari />}
-      {tab === 'arsiv' && <Arsiv />}
+      {acik && (
+        <div id="tanima-gelismis" style={{ display: 'grid', gap: 14 }}>
+          <p className="m a" style={{ fontSize: 13 }}>
+            5–12 bütün denemeler tek altyapıdan geçer: PDF tanınır (yayın, sınıf, biçim, sınav türü), öğrenciler eşleşir, sonuçlar şablonun kurallarıyla doğrulanır ve{' '}
+            <b>taslak</b> olarak kaydedilir; yayınlayınca veliye ve öğrenciye açılır. 8. sınıf LGS denemeleri mevcut LGS motoruyla okunur (sonuçlar değişmez).
+          </p>
+          <div className="a" style={{ overflowX: 'auto' }}>
+            <Seg label="Deneme Tanıma Merkezi bölümü" value={tab} onChange={setTab} options={TABS} />
+          </div>
+          {tab === 'genel' && <GenelBakis />}
+          {tab === 'yayinlar' && <Yayinlar />}
+          {tab === 'bicimler' && <Bicimler />}
+          {tab === 'sablonlar' && <SablonBolumu />}
+          {tab === 'profiller' && <ProfilBolumu />}
+          {tab === 'katalog' && <KatalogBolumu />}
+          {tab === 'eslesmeyen' && <EslesmeyenBolumu />}
+          {tab === 'gecmis' && <Gecmis />}
+          {tab === 'test' && <TestLaboratuvari />}
+          {tab === 'arsiv' && <Arsiv />}
+        </div>
+      )}
     </>
   )
 }

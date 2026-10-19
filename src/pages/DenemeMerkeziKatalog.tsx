@@ -1,6 +1,7 @@
 // Deneme Tanıma Merkezi: şablonlar, kazanım kataloğu, eşleşmeyen kazanımlar, test laboratuvarı (kaydetmez).
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { Modal } from '@/components/Modal'
@@ -1032,6 +1033,131 @@ export function TestLaboratuvari() {
         </section>
       )}
     </>
+  )
+}
+
+// ---------------------------------------------------------------- sade karne denemesi: tanınıyor mu, değilse ne yapılır
+// Hiçbir şey kaydedilmez; PDF tarayıcıda okunur. Teknik ayrıntı (biçim kodu, güven, kanıt) Gelişmiş → Test laboratuvarında.
+export function KarneDene() {
+  const tpl = useExamTemplates()
+  const [pack, setPack] = useState<GenelPack | null>(null)
+  const [err, setErr] = useState('')
+  const [prog, setProg] = useState('')
+  const [ad, setAd] = useState('')
+  async function run(f: File | undefined) {
+    if (!f) return
+    setPack(null)
+    setErr('')
+    setAd(f.name)
+    setProg('Okunuyor…')
+    try {
+      setPack(await readGeneralFile(f, {}, (p, t) => setProg(`Okunuyor… sayfa ${p}/${t}`)))
+    } catch (e) {
+      setErr((e as Error).message)
+    }
+    setProg('')
+  }
+  if (!PDF_OKUMA)
+    return (
+      <p className="m a" data-testid="mobil-pdf-yok" style={{ fontSize: 14 }}>
+        Karne PDF'i okuma bilgisayardan, buluskurementor.com adresinde yapılır.
+      </p>
+    )
+  const d = pack?.detection
+  const tanindi = !!d && d.family !== 'UNKNOWN' && !!pack?.records.length
+  const grade = d?.grade?.value ?? null
+  const lgs = grade === 8 || d?.examType?.value === 'LGS'
+  const labels = pack ? [...new Set(pack.records.flatMap((r) => r.sections.map((s) => s.label)))] : []
+  const cands = (tpl.data ?? []).filter((t) => t.grade === grade && t.status === 'hazir' && (!d?.examType?.yksPart || t.name.includes(d.examType.yksPart)))
+  const tam = cands.find((t) => {
+    const m = mapSections(t, labels)
+    return !m.unmapped.length && !m.ambiguous.length
+  })
+  // Kitapçık başına benzersiz soru: bir sorunun konusu varsa (herhangi bir öğrencinin kaydında) sayılır
+  const sorular = new Map<string, boolean>()
+  for (const r of pack?.records ?? [])
+    for (const q of r.items) {
+      const k = `${q.section}|${q.booklet ?? ''}|${q.q}`
+      sorular.set(k, sorular.get(k) || !!(q.rawCode || q.rawText))
+    }
+  const soru = sorular.size
+  const konulu = [...sorular.values()].filter(Boolean).length
+  const sorunlu = pack?.records.filter((r) => r.warnings.length).length ?? 0
+  return (
+    <section className="card a" style={{ padding: 16, display: 'grid', gap: 12 }} aria-label="Karne dene" data-testid="karne-dene">
+      <div>
+        <b style={{ fontSize: 17 }}>Karne dene</b>
+        <p className="m" style={{ fontSize: 14, margin: '4px 0 0' }}>
+          Elindeki deneme karnesinin (PDF) sistemce okunup okunamadığını gör. <b>Hiçbir şey kaydedilmez</b>; dosya bilgisayarından çıkmaz.
+        </p>
+      </div>
+      <label className="field" htmlFor="kdFile">
+        Karne PDF'i
+        <input id="kdFile" type="file" accept="application/pdf,.pdf" onChange={(e) => run(e.target.files?.[0])} />
+      </label>
+      {prog && (
+        <p className="m" role="status">
+          <span className="spinner" aria-hidden="true" /> {prog}
+        </p>
+      )}
+      {(err || (d && !tanindi)) && (
+        <div className="card issue" role="alert" data-testid="karne-taninmadi" style={{ padding: 14 }}>
+          <b>Bu karne tanınmadı{ad ? ` (${ad})` : ''}.</b>
+          <p className="m" style={{ fontSize: 14, margin: '4px 0 8px' }}>
+            {err || d?.message || 'Bu karne düzeni sistemde henüz yok.'} Sonuçlar tahminle okunmaz; yanlış not girmesin diye bekletilir.
+          </p>
+          <b style={{ fontSize: 14 }}>Ne yapabilirsin?</b>
+          <ol style={{ fontSize: 14, margin: '6px 0 0', paddingLeft: 20, display: 'grid', gap: 4, listStyle: 'decimal' }}>
+            <li>
+              Optik okuma programından sonuçları <b>Excel / CSV</b> olarak al; <Link to="/denemeler" style={{ textDecoration: 'underline' }}>Denemeler</Link> → "Excel / CSV ile yükle".
+            </li>
+            <li>
+              Öğrenci sayısı azsa <Link to="/denemeler" style={{ textDecoration: 'underline' }}>Denemeler</Link> → "Elle gir".
+            </li>
+            <li>8. sınıf LGS karnesiyse yine Denemeler'e yükle: LGS okuyucusu bu karneyi ayrıca dener.</li>
+            <li>
+              Bu karne düzeninin sisteme eklenmesi için PDF'i geliştiriciye ilet. Düzen <b>bir kez</b> eklenir; aynı programla basılan sonraki denemeler
+              kendiliğinden tanınır.
+            </li>
+          </ol>
+        </div>
+      )}
+      {tanindi && d && pack && (
+        <div className="card" data-testid="karne-tanindi" style={{ padding: 14, display: 'grid', gap: 6 }}>
+          <b>
+            <span className="chip up">✓ Tanınıyor</span> {d.exam?.title || ad}
+          </b>
+          <span style={{ fontSize: 14 }}>
+            {pack.records.length} öğrenci · {grade ? `${grade}. sınıf` : 'sınıf okunamadı'} · {d.publisher?.value ?? 'yayın yazmıyor (yüklerken seçilir)'}
+          </span>
+          <span style={{ fontSize: 14 }}>
+            Konu (kazanım) bilgisi:{' '}
+            {soru && konulu === soru
+              ? 'bütün sorularda var'
+              : konulu
+                ? `${konulu} / ${soru} soruda var (kalanı karnede yazmıyor ya da kesin değil; tahmin edilmez)`
+                : 'karnede yok; yalnız ders sonuçları işlenir'}
+          </span>
+          {lgs ? (
+            <span style={{ fontSize: 14 }}>8. sınıf LGS: Denemeler'den yükleyince LGS okuyucusu kullanılır.</span>
+          ) : tam ? (
+            <span style={{ fontSize: 14 }}>Ders eşlemesi: "{tam.name}" şablonuyla tam.</span>
+          ) : (
+            <span style={{ fontSize: 14 }} className="err">
+              {cands.length ? 'Ders adları bu sınıfın şablonuyla tam eşleşmiyor; yüklerken kontrol ekranında sorulur.' : 'Bu sınıf için hazır şablon yok; Gelişmiş → Şablonlar.'}
+            </span>
+          )}
+          {sorunlu > 0 && (
+            <span style={{ fontSize: 14 }}>{sorunlu} öğrencide sayılar tutmuyor; yüklerken kontrol ekranında gösterilir.</span>
+          )}
+          <div className="btns">
+            <Link className="btn pri" to="/denemeler">
+              Denemeler'e git ve yükle
+            </Link>
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
 
