@@ -43,7 +43,7 @@ beforeAll(async () => {
   OTHER.school = (await svc.from('schools').insert({ name: 'Test Diğer Okul', slug: OTHER.slug }).select('id').single()).data!.id
   const { data } = await svc.auth.admin.createUser({
     email: OTHER.email, password: 'Deneme123!', email_confirm: true,
-    user_metadata: { school: OTHER.slug, consent_version: 'v1', full_name: 'Diğer Okul Öğretmen', role: 'ogretmen', branch: 'Fizik' },
+    user_metadata: { school: OTHER.slug, consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', full_name: 'Diğer Okul Öğretmen', role: 'ogretmen', branch: 'Fizik' },
   })
   OTHER.id = data.user!.id
   await svc.from('profiles').update({ status: 'approved' }).eq('id', OTHER.id)

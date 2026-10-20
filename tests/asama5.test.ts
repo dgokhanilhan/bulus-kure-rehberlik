@@ -87,7 +87,7 @@ describe('KVKK', () => {
     const email = `test-${Date.now()}@ornek.com`
     const no = await anon().auth.signUp({ email, password: 'Deneme123!', options: { data: { school: 'bulus-kure', full_name: 'Onaysız Kişi', role: 'ogretmen', branch: 'Matematik' } } })
     expect(no.error).not.toBeNull()
-    const ok = await anon().auth.signUp({ email, password: 'Deneme123!', options: { data: { school: 'bulus-kure', consent_version: 'v1-taslak', full_name: 'Onaylı Kişi', role: 'ogretmen', branch: 'Matematik' } } })
+    const ok = await anon().auth.signUp({ email, password: 'Deneme123!', options: { data: { school: 'bulus-kure', consent_version: 'v1-taslak', acik_riza_version: 'ACIK-RIZA-1.0', full_name: 'Onaylı Kişi', role: 'ogretmen', branch: 'Matematik' } } })
     expect(ok.error).toBeNull()
     const { data } = await service().from('profiles').select('consent_version, consent_at').eq('email', email).single()
     expect(data!.consent_version).toBe('v1-taslak')

@@ -14,7 +14,7 @@ const ids: Record<string, string> = {} as Record<'6/A' | '8/B' | 'mat', string>
 async function makeUser(u: typeof T, meta: Record<string, unknown>) {
   const { data, error } = await svc.auth.admin.createUser({
     email: u.email, password: PASS, email_confirm: true,
-    user_metadata: { school: 'bulus-kure', consent_version: 'v1', full_name: u.name, ...meta },
+    user_metadata: { school: 'bulus-kure', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', full_name: u.name, ...meta },
   })
   if (error) throw error
   u.id = data.user.id

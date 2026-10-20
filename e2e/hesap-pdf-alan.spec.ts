@@ -13,7 +13,7 @@ test.beforeAll(async () => {
     email,
     password,
     email_confirm: true,
-    user_metadata: { school: 'bulus-kure', consent_version: 'v1', full_name: 'Hesap Test Öğretmeni', role: 'ogretmen', branch: 'Rehberlik' },
+    user_metadata: { school: 'bulus-kure', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', full_name: 'Hesap Test Öğretmeni', role: 'ogretmen', branch: 'Rehberlik' },
   })
   if (u.error) throw u.error
   uid = u.data.user!.id

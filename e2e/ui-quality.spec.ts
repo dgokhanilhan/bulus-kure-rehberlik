@@ -18,7 +18,7 @@ test.beforeAll(async () => {
   if(s.error) throw s.error
   sid=s.data.id
   for(const role of accounts){
-    const u=await svc.auth.admin.createUser({email:`e2e-ui-${role}-${stamp}@ornek.com`,password:pass,email_confirm:true,user_metadata:{school:'bulus-kure',consent_version:'v1',full_name:role==='veli'?'Örnek Veli':'Deniz Tasarım',role,declared:{childName:'Deniz Tasarım',childClass:'12/U · SAY',className:'12/U · SAY',relation:'Anne'}}})
+    const u=await svc.auth.admin.createUser({email:`e2e-ui-${role}-${stamp}@ornek.com`,password:pass,email_confirm:true,user_metadata:{school:'bulus-kure',consent_version:'v1',acik_riza_version:'ACIK-RIZA-1.0',full_name:role==='veli'?'Örnek Veli':'Deniz Tasarım',role,declared:{childName:'Deniz Tasarım',childClass:'12/U · SAY',className:'12/U · SAY',relation:'Anne'}}})
     if(u.error) throw u.error
     users[role]=u.data.user.id
     const p=await svc.from('profiles').update({status:'approved',...(role==='ogrenci'?{student_id:sid}:{})}).eq('id',u.data.user.id)

@@ -22,7 +22,7 @@ test.describe.serial('Canlı incelemede bulunan hataların regresyonu', () => {
     }
     const { data: user, error: authError } = await svc.auth.admin.createUser({
       email: parentEmail, password: parentPassword, email_confirm: true,
-      user_metadata: { school: 'bulus-kure', consent_version: 'v1', full_name: 'Audit Veli', role: 'veli', declared: { childName: 'Audit 6 Öğrenci', childClass: '6/A', relation: 'Anne' } },
+      user_metadata: { school: 'bulus-kure', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', full_name: 'Audit Veli', role: 'veli', declared: { childName: 'Audit 6 Öğrenci', childClass: '6/A', relation: 'Anne' } },
     })
     expect(authError).toBeNull()
     ids.parent = user.user!.id

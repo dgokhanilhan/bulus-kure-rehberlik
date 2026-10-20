@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { supabase, signupClient, SCHOOL_SLUG, SOURCE_URL, AUTH_LINK_ERROR } from '@/lib/supabase'
-import { KVKK_VERSION } from '@/lib/kvkk'
+import { ACIK_RIZA_VERSION, KVKK_VERSION, RIZA_ONAY } from '@/lib/kvkk'
 import { useQuery } from '@tanstack/react-query'
 import { BRANS, LEVEL_TR, LEVELS, YAKINLIK, type Level } from '@/lib/roles'
 import { Globe, Icon, SchoolLogo } from '@/components/Icon'
@@ -242,6 +242,7 @@ interface RegForm {
   childCls: string
   rel: string
   consent: boolean
+  riza: boolean
 }
 
 /** Kayıt formu doğrulaması — prototipteki kurallar ve mesajlar. */
@@ -255,13 +256,14 @@ export function validateRegistration(f: RegForm): string[] {
   if (f.role === 'ogrenci' && !f.cls) err.push('Sınıfını seç.')
   if (f.role === 'veli' && (!f.childName.trim() || !f.childCls)) err.push('Öğrencinin adını ve sınıfını yaz.')
   if (!f.consent) err.push('Aydınlatma Metni’ni okuduğunu ve bilgi edindiğini belirt.')
+  if (!f.riza) err.push('Açık Rıza Metni’ni onayla.')
   return err
 }
 
 function RegisterForm({ onStep, onRegistered }: { onStep: (s: Step) => void; onRegistered: (confirmation: boolean) => void }) {
   const school = useSchoolInfo()
   const kayitNotu = school.data?.kayitNotu ?? 'Kaydın okul yönetimi onayladıktan sonra açılır.'
-  const [f, setF] = useState<RegForm>({ role: 'ogrenci', name: '', email: '', pass: '', pass2: '', brans: '', cls: '', no: '', childName: '', childCls: '', rel: 'Anne', consent: false })
+  const [f, setF] = useState<RegForm>({ role: 'ogrenci', name: '', email: '', pass: '', pass2: '', brans: '', cls: '', no: '', childName: '', childCls: '', rel: 'Anne', consent: false, riza: false })
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const set = (k: keyof RegForm) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }))
@@ -285,6 +287,7 @@ function RegisterForm({ onStep, onRegistered }: { onStep: (s: Step) => void; onR
         data: {
           school: SCHOOL_SLUG,
           consent_version: KVKK_VERSION,
+          acik_riza_version: ACIK_RIZA_VERSION,
           full_name: f.name.trim(),
           role: f.role,
           ...(f.role === 'ogretmen' ? { branch: f.brans } : {}),
@@ -409,6 +412,13 @@ function RegisterForm({ onStep, onRegistered }: { onStep: (s: Step) => void; onR
           </button>
           <a href="/kvkk" target="_blank" rel="noreferrer" style={{ fontSize: 13, marginLeft: 34 }}>
             Aydınlatma metnini oku
+          </a>
+          <button type="button" className="check" role="checkbox" aria-checked={f.riza} onClick={() => setF((x) => ({ ...x, riza: !x.riza }))} style={{ marginTop: 6 }}>
+            <span className={`box ${f.riza ? 'on' : ''}`}>{f.riza && <Icon name="check" size={13} stroke={3} />}</span>
+            <span style={{ flex: 1, fontSize: 14 }}>{RIZA_ONAY}</span>
+          </button>
+          <a href="/acik-riza" target="_blank" rel="noreferrer" style={{ fontSize: 13, marginLeft: 34 }}>
+            Açık rıza metnini oku
           </a>
         </div>
         {err && (

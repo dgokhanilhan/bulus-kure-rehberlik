@@ -24,6 +24,7 @@ export interface Profile {
   created_at: string
   invited_at?: string | null
   consent_version?: string | null
+  acik_riza_version?: string | null
   phone?: string | null
   /** Uygulama rolleri (profile_roles, 0020); yoksa yalnız ana rol. */
   roles?: DbRole[]

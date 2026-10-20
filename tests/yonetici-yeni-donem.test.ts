@@ -36,7 +36,7 @@ beforeAll(async () => {
     email: `donem-admin-${stamp}@ornek.com`,
     password,
     email_confirm: true,
-    user_metadata: { school: `donem-test-${stamp}`, consent_version: 'v1', full_name: 'Dönem Test Yöneticisi', role: 'ogretmen', branch: 'Matematik' },
+    user_metadata: { school: `donem-test-${stamp}`, consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', full_name: 'Dönem Test Yöneticisi', role: 'ogretmen', branch: 'Matematik' },
   })
   expect(u.error).toBeNull()
   uid = u.data.user!.id
@@ -106,7 +106,7 @@ it('yetkisiz/MFA olmayan hesap yönetici rolü ekleyemez; veliye ek rol MFA önc
     email_confirm: true,
     user_metadata: {
       school: 'bulus-kure',
-      consent_version: 'v1',
+      consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0',
       full_name: 'Ek Yönetici Testi',
       role: 'veli',
       declared: { relation: 'Anne', childName: 'Elif Yıldız', childClass: '8/A' },
@@ -188,7 +188,7 @@ it('geçiş geçmişi arşivler, 7→8 yükseltir, 8/12 mezunları taşımaz; te
       user_metadata: {
         school: `donem-test-${stamp}`,
         full_name: `Dönem Aile ${index}`,
-        consent_version: 'v1',
+        consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0',
         role,
         branch: role === 'ogretmen' ? 'Matematik' : undefined,
         declared: role === 'ogrenci' ? { className: '8/A', schoolNo: '10' } : { childName: 'Mezun Sekiz', childClass: '8/A', relation: 'Anne' },

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { ACIK_RIZA_VERSION } from '@/lib/kvkk'
 import type { Session } from '@supabase/supabase-js'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PW_FLAG, supabase } from '@/lib/supabase'
@@ -259,6 +260,8 @@ export function gateOf(a: AuthState): Gate {
   if (a.profile.status !== 'approved') return 'pending'
   // Yöneticinin davetiyle açılan hesap KVKK metnini ilk girişte onaylar (0017)
   if (a.profile.invited_at && !a.profile.consent_version) return 'consent'
+  // Açık rıza (0057): güncel sürümü onaylamamış herkes (mevcut hesaplar dahil) ilk girişte bir kez onaylar
+  if (a.profile.acik_riza_version !== ACIK_RIZA_VERSION) return 'consent'
   if ((a.profile.role === 'admin' || a.roles.includes('admin') || a.nextAal === 'aal2' || a.mfaRequired) && a.aal !== 'aal2') return 'mfa'
   if (a.needRole) return 'rol'
   if (a.needStudent) return 'cocuk'

@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
-import { KVKK_VERSION } from '@/lib/kvkk'
+import { ACIK_RIZA_VERSION, KVKK_VERSION, RIZA_ONAY } from '@/lib/kvkk'
 import { useAuth } from '@/auth/AuthProvider'
 import { SWITCH_TR } from '@/lib/roles'
 import { Icon } from '@/components/Icon'
@@ -62,14 +62,19 @@ export function SetPasswordPage() {
 
 export function ConsentPage() {
   const { profile, passwordSet, signOut } = useAuth()
-  const [ok, setOk] = useState(false)
+  // Davetle açılan hesap aydınlatmayı da ilk girişte okur (0017); açık rıza herkes için güncel sürümle bir kez (0057)
+  const kvkkGerek = !!profile?.invited_at && !profile?.consent_version
+  const rizaGerek = profile?.acik_riza_version !== ACIK_RIZA_VERSION
+  const [ok, setOk] = useState(!kvkkGerek)
+  const [riza, setRiza] = useState(!rizaGerek)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   async function accept() {
     setBusy(true)
-    const { error } = await supabase.rpc('accept_consent', { p_version: KVKK_VERSION })
+    const r1 = kvkkGerek ? await supabase.rpc('accept_consent', { p_version: KVKK_VERSION }) : { error: null }
+    const r2 = !r1.error && rizaGerek ? await supabase.rpc('accept_acik_riza', { p_version: ACIK_RIZA_VERSION }) : { error: null }
     setBusy(false)
-    if (error) return setErr('Kaydedilemedi. Sayfayı yenileyip tekrar dene.')
+    if (r1.error || r2.error) return setErr('Kaydedilemedi. Sayfayı yenileyip tekrar dene.')
     passwordSet() // profil yeniden okunur
   }
   return (
@@ -80,20 +85,39 @@ export function ConsentPage() {
           Kişisel veriler
         </div>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>Hoş geldin{profile ? `, ${profile.full_name.split(' ')[0]}` : ''}</h2>
-        <p className="m">Hesabın okul yönetimi tarafından açıldı. Devam etmeden önce kişisel verilerin nasıl işlendiğini anlatan aydınlatma metnini okuman ve bilgi edindiğini belirtmen gerekiyor.</p>
-        <Link to="/kvkk" target="_blank" rel="noreferrer">
-          Aydınlatma metnini oku
-        </Link>
-        <button type="button" className="check" role="checkbox" aria-checked={ok} onClick={() => setOk((x) => !x)}>
-          <span className={`box ${ok ? 'on' : ''}`}>{ok && <Icon name="check" size={13} stroke={3} />}</span>
-          <span style={{ flex: 1, fontSize: 14 }}>Kişisel Verilerin Korunması Hakkında Aydınlatma Metni’ni okudum ve kişisel verilerimin işlenmesi hakkında bilgi edindim.</span>
-        </button>
+        <p className="m">
+          {kvkkGerek
+            ? 'Hesabın okul yönetimi tarafından açıldı. Devam etmeden önce kişisel verilerin nasıl işlendiğini anlatan aydınlatma metnini okuman ve açık rıza metnini onaylaman gerekiyor.'
+            : 'Devam etmeden önce Açık Rıza Metni’ni okuyup onaylaman gerekiyor. Bu onay bir kez istenir.'}
+        </p>
+        {kvkkGerek && (
+          <>
+            <Link to="/kvkk" target="_blank" rel="noreferrer">
+              Aydınlatma metnini oku
+            </Link>
+            <button type="button" className="check" role="checkbox" aria-checked={ok} onClick={() => setOk((x) => !x)}>
+              <span className={`box ${ok ? 'on' : ''}`}>{ok && <Icon name="check" size={13} stroke={3} />}</span>
+              <span style={{ flex: 1, fontSize: 14 }}>Kişisel Verilerin Korunması Hakkında Aydınlatma Metni’ni okudum ve kişisel verilerimin işlenmesi hakkında bilgi edindim.</span>
+            </button>
+          </>
+        )}
+        {rizaGerek && (
+          <>
+            <Link to="/acik-riza" target="_blank" rel="noreferrer">
+              Açık rıza metnini oku
+            </Link>
+            <button type="button" className="check" role="checkbox" aria-checked={riza} onClick={() => setRiza((x) => !x)}>
+              <span className={`box ${riza ? 'on' : ''}`}>{riza && <Icon name="check" size={13} stroke={3} />}</span>
+              <span style={{ flex: 1, fontSize: 14 }}>{RIZA_ONAY}</span>
+            </button>
+          </>
+        )}
         {err && (
           <div className="err" role="alert">
             {err}
           </div>
         )}
-        <button className="btn pri" style={{ minHeight: 50, fontSize: 16 }} disabled={!ok || busy} onClick={accept}>
+        <button className="btn pri" style={{ minHeight: 50, fontSize: 16 }} disabled={!ok || !riza || busy} onClick={accept}>
           {busy && <span className="spinner" aria-hidden="true" />} Devam et
         </button>
         <button type="button" className="btn ghost sm" onClick={() => signOut()}>

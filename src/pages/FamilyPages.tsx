@@ -1,6 +1,7 @@
 import { scoreText } from '@/lib/examScores'
 // Veli ve öğrenci ekranları: yalnız bağlı öğrencinin verisi (RLS). Sınıf sıralaması yok (CLAUDE.md §3).
 // Hitap: öğrenciye "sen", veliye "siz".
+import { VeriDurumu } from '@/components/VeriDurumu'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
@@ -46,7 +47,7 @@ export function useMyStudent() {
   const students = useStudents()
   const list = students.data ?? []
   const s = profile?.role === 'ogrenci' ? list.find((x) => x.id === profile.student_id) : (list.find((x) => x.id === activeStudent?.id) ?? list[0])
-  return { s, list, loading: students.isLoading, choose: switchStudent, veli: profile?.role === 'veli' }
+  return { s, list, loading: students.isLoading, choose: switchStudent, veli: profile?.role === 'veli', students }
 }
 
 function ChildPicker({ list, s, choose }: { list: Student[]; s: Student; choose: (id: string) => void }) {
@@ -63,11 +64,10 @@ function ChildPicker({ list, s, choose }: { list: Student[]; s: Student; choose:
   )
 }
 
-function Wait({ loading }: { loading: boolean }) {
-  return loading ? (
-    <p className="m">
-      <span className="spinner" aria-hidden="true" /> Yükleniyor…
-    </p>
+/** Yükleniyor / hata (gerçek mesaj + Tekrar dene) / bağlı öğrenci yok. Hata "öğrenci yok" diye gösterilmez. */
+function Wait({ loading, sorgular = [] }: { loading: boolean; sorgular?: { isError: boolean; error: unknown; refetch: () => unknown }[] }) {
+  return loading || sorgular.some((q) => q.isError) ? (
+    <VeriDurumu sorgular={sorgular} />
   ) : (
     <div className="empty">Bağlı öğrenci bulunamadı. Okul rehberlik servisiyle görüşebilirsiniz.</div>
   )
@@ -75,7 +75,7 @@ function Wait({ loading }: { loading: boolean }) {
 
 export function OzetPage() {
   const { profile } = useAuth()
-  const { s, list, loading, choose, veli } = useMyStudent()
+  const { s, list, loading, choose, veli, students } = useMyStudent()
   const mods = useModules()
   // LGS bölümü yalnız 8. sınıf (classes.grade) ve LGS modülü açıkken; değilse deneme verisi hiç sorgulanmaz.
   // Görev, görüşme, rapor, not ve etütler herkes için.
@@ -96,7 +96,7 @@ export function OzetPage() {
   const today = todayISO()
   const ex = useMemo(() => (dsq.data && s ? studentExams(dsq.data, s.id, indexResults(dsq.data.results)) : []), [dsq.data, s])
 
-  if (!s || (lgs && !dsq.data)) return <Wait loading={loading || (lgs && dsq.isLoading)} />
+  if (!s || (lgs && !dsq.data)) return <Wait loading={loading || (lgs && dsq.isLoading)} sorgular={lgs ? [students, dsq] : [students]} />
   const first = s.full_name.split(' ')[0]!
   const L = ex.at(-1)
   const P = ex.at(-2)
@@ -299,9 +299,9 @@ export function OzetPage() {
 }
 
 export function GorevlerPage() {
-  const { s, list, loading, choose, veli } = useMyStudent()
+  const { s, list, loading, choose, veli, students } = useMyStudent()
   const tasks = useTasks(s?.id)
-  if (!s) return <Wait loading={loading} />
+  if (!s) return <Wait loading={loading} sorgular={[students]} />
   const ts = (tasks.data ?? []).slice().sort((a, b) => Number(!!a.completed_at) - Number(!!b.completed_at) || a.due_date.localeCompare(b.due_date))
   return (
     <>
@@ -314,9 +314,9 @@ export function GorevlerPage() {
 }
 
 export function GorusmelerPage() {
-  const { s, list, loading, choose } = useMyStudent()
+  const { s, list, loading, choose, students } = useMyStudent()
   const meetings = useMeetings(s?.id)
-  if (!s) return <Wait loading={loading} />
+  if (!s) return <Wait loading={loading} sorgular={[students]} />
   const gs = (meetings.data ?? []).slice().sort((a, b) => b.starts_at.localeCompare(a.starts_at))
   return (
     <>
@@ -328,11 +328,11 @@ export function GorusmelerPage() {
 }
 
 export function RaporlarPage() {
-  const { s, loading } = useMyStudent()
+  const { s, loading, students } = useMyStudent()
   const reports = useReports(s?.id)
   const reportExamNames = useReportExamNames((reports.data ?? []).map((r) => r.exam_id))
   const openReport = useOpenReport()
-  if (!s) return <Wait loading={loading} />
+  if (!s) return <Wait loading={loading} sorgular={[students]} />
   return (
     <>
       <h1 className="hd a">Raporlar</h1>
@@ -362,7 +362,7 @@ export function RaporlarPage() {
 
 /** Okul günü: bugünkü dersler ve yemek, haftalık ders programı, yemek listesi, devamsızlık (0009). */
 export function OkulPage() {
-  const { s, list, loading, choose, veli } = useMyStudent()
+  const { s, list, loading, choose, veli, students } = useMyStudent()
   const today = todayISO()
   const week = weekStart(today)
   const tt = useTimetable(s?.class_id)
@@ -372,7 +372,7 @@ export function OkulPage() {
   const contacts = useChildContacts(s?.id)
   const mods = useModules()
   const lim = useAttendanceLimits(s?.id)
-  if (!s) return <Wait loading={loading} />
+  if (!s) return <Wait loading={loading} sorgular={[students]} />
   const tName = (id: string | null) => contacts.data?.find((c) => c.id === id)?.full_name
   const first = s.full_name.split(' ')[0]!
   const dow = isoDow(today)

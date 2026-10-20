@@ -123,7 +123,7 @@ it('isteğe bağlı MFA normal öğretmende API erişimini de korur; aal2 ve kap
     email,
     password,
     email_confirm: true,
-    user_metadata: { school: 'bulus-kure', consent_version: 'v1', full_name: 'MFA Test Öğretmeni', role: 'ogretmen', branch: 'Rehberlik' },
+    user_metadata: { school: 'bulus-kure', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', full_name: 'MFA Test Öğretmeni', role: 'ogretmen', branch: 'Rehberlik' },
   })
   expect(u.error).toBeNull()
   uid = u.data.user!.id
@@ -164,7 +164,7 @@ it('aynı soru numarası için B hedefi A hedefini değiştirmez; PDF ekleme B s
 })
 it('şifre değişikliği mevcut şifreyi doğrular; e-posta onaylanana kadar eski adres korunur',async()=>{
  const email='credential-test-'+stamp+'@ornek.com',password='Deneme123!'
- const u=await svc.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{school:'bulus-kure',consent_version:'v1',full_name:'Hesap İşlemi Testi',role:'ogretmen',branch:'Matematik'}});expect(u.error).toBeNull();const id=u.data.user!.id
+ const u=await svc.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{school:'bulus-kure',consent_version:'v1',acik_riza_version:'ACIK-RIZA-1.0',full_name:'Hesap İşlemi Testi',role:'ogretmen',branch:'Matematik'}});expect(u.error).toBeNull();const id=u.data.user!.id
  try{
   const c=anon();expect((await c.auth.signInWithPassword({email,password})).error).toBeNull()
   expect((await changeOwnPassword(c,anon(),'yanlis-sifre','YeniDemo123!')).error).not.toBeNull()

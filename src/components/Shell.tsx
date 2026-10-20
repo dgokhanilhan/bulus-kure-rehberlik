@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { hataRol } from '@/lib/hataKaydi'
+import { HataSiniri } from './HataSiniri'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase, SOURCE_URL } from '@/lib/supabase'
@@ -313,6 +315,7 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
 
 export function AppShell() {
   const { role } = useAuth()
+  hataRol(role)
   const logout = useLogout()
   const loc = useLocation()
   const mods = useModules()
@@ -396,7 +399,9 @@ export function AppShell() {
         </button>
       </nav>
       <main className="view enter" key={enterKey}>
-        <Outlet />
+        <HataSiniri key={loc.pathname}>
+          <Outlet />
+        </HataSiniri>
       </main>
     </div>
   )

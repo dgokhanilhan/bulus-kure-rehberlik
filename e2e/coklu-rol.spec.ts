@@ -23,7 +23,7 @@ test.describe.serial('Çoklu rol', () => {
     await resetAdminMfa()
     const { data, error } = await svc.auth.admin.createUser({
       email: T.email, password: T.pass, email_confirm: true,
-      user_metadata: { school: 'bulus-kure', consent_version: 'v1', full_name: T.name, role: 'ogretmen', branch: 'Fizik' },
+      user_metadata: { school: 'bulus-kure', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', full_name: T.name, role: 'ogretmen', branch: 'Fizik' },
     })
     if (error) throw error
     T.id = data.user.id

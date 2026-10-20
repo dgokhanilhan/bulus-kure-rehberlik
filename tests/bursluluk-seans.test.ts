@@ -16,7 +16,7 @@ let phoneNo = 100
 const phone = () => `0533 100 ${String(phoneNo++).padStart(4, '0').replace(/(\d{2})(\d{2})/, '$1 $2')}`
 type Done = { tracking_code: string; session: { date: string; starts_at: string } }
 const apply = (p: Record<string, unknown>) =>
-  anon().rpc('apply_scholarship', { p_slug: SLUG, p: { exam_id: exam, grade: 5, parent_name: 'Veli Seans', phone: phone(), consent_version: 'v1', ...p } })
+  anon().rpc('apply_scholarship', { p_slug: SLUG, p: { exam_id: exam, grade: 5, parent_name: 'Veli Seans', phone: phone(), consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', ...p } })
 /** "Bulunamadı" hata olarak değil, sonuç olarak döner (deneme kaydı kalıcı olsun diye); burada tek biçime çevrilir. */
 const asErr = async (r: PromiseLike<{ data: unknown; error: { message: string } | null }>) => {
   const { data, error } = await r
