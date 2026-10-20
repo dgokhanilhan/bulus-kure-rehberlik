@@ -4,4 +4,4 @@ export const KVKK_VERSION = 'KVKK-1.2'
 export const ACIK_RIZA_VERSION = 'ACIK-RIZA-1.0'
 /** Kayıt ve ilk giriş ekranındaki açık rıza onay cümlesi (aynı metin iki yerde). */
 export const RIZA_ONAY =
-  'Açık Rıza Metni’ni okudum; metinde belirtilen kişisel verilerin (velisi ya da yasal temsilcisi olduğum öğrenciye ait veriler dahil) yurt dışına aktarılmasına ve belirtilen amaçlarla işlenmesine açık rıza veriyorum.'
+  'Açık Rıza Metni’ni okudum; metinde belirtilen kişisel verilerin (velisi ya da yasal temsilcisi olduğum öğrenciye ait veriler dahil) aktarılmasına ve belirtilen amaçlarla işlenmesine açık rıza veriyorum.'
