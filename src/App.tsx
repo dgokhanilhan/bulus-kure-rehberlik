@@ -32,6 +32,7 @@ const SiniflarPage = lazy(() => import('@/pages/SiniflarPage'))
 const HesapAyarlari = lazy(() => import('@/pages/HesapAyarlari'))
 const AyarlarPage = lazy(() => import('@/pages/AyarlarPage'))
 const KvkkPage = lazy(() => import('@/pages/KvkkPage'))
+const AcikRizaPage = lazy(() => import('@/pages/AcikRizaPage'))
 const BurslulukBasvuru = lazy(() => import('@/pages/BurslulukBasvuru'))
 const OgrencilerPage = lazy(() => import('@/pages/OgrencilerPage'))
 const OgrenciPage = lazy(() => import('@/pages/OgrenciPage'))
@@ -98,6 +99,15 @@ export default function App() {
         <TopBar />
         <Suspense fallback={<Wait />}>
           <BurslulukBasvuru />
+        </Suspense>
+      </>
+    )
+  if (loc.pathname === '/acik-riza')
+    return (
+      <>
+        <TopBar />
+        <Suspense fallback={<Wait />}>
+          <AcikRizaPage />
         </Suspense>
       </>
     )

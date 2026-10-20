@@ -85,7 +85,11 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss(), ...(mobil ? [mobilePackage(mode)] : [securityHeaders(mode), distIntegrity()])],
     resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
     // Mobil derlemede PDF okuma ekranları derleme anında kapanır (src/lib/platform.ts).
-    define: { 'import.meta.env.VITE_MOBIL': JSON.stringify(mobil ? '1' : '') },
+    define: {
+      'import.meta.env.VITE_MOBIL': JSON.stringify(mobil ? '1' : ''),
+      // Hata kayıtlarında sürüm: Cloudflare Pages derlemesinde commit, yoksa derleme günü
+      'import.meta.env.VITE_SURUM': JSON.stringify((process.env.CF_PAGES_COMMIT_SHA ?? '').slice(0, 7) || new Date().toISOString().slice(0, 10)),
+    },
     build: mobil ? { outDir: 'dist-mobil', emptyOutDir: true } : {},
     server: { port: 5173, strictPort: true },
   }

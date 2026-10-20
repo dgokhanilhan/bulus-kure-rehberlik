@@ -267,7 +267,7 @@ describe('Admin: iki adımlı doğrulama (aal2) olmadan admin işlemi yok', () =
     // işlenmiş kayıt ikinci kez onaylanamaz; audit log yazıldı
     expect((await admin.rpc('approve_registration', { p_profile: vp!.id, p_student: KEREM })).error).not.toBeNull()
     const { data: log } = await admin.from('audit_log').select('action').eq('entity_id', vp!.id).order('id')
-    expect((log ?? []).map((l) => l.action).sort()).toEqual(['approve', 'parent_link_add']) // bağlantı da kaydedilir (0023)
+    expect((log ?? []).map((l) => l.action).sort()).toEqual(['acik_riza', 'approve', 'parent_link_add']) // bağlantı (0023) ve kayıttaki açık rıza (0057) da kaydedilir
   })
 
   it('bir öğrenci kaydına ikinci öğrenci hesabı bağlanamaz', async () => {

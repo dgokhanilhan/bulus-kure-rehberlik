@@ -11,7 +11,7 @@ const plus = (n: number) => new Date(Date.parse(today) + n * 86400_000).toISOStr
 let examId = ''
 let sessionId = ''
 const apply = (p: Record<string, unknown>) =>
-  anon().rpc('apply_scholarship', { p_slug: 'bulus-kure', p: { exam_id: examId, session_id: sessionId, grade: 5, parent_name: 'Veli Deneme', phone: '0532 000 00 01', consent_version: 'v1', ...p } })
+  anon().rpc('apply_scholarship', { p_slug: 'bulus-kure', p: { exam_id: examId, session_id: sessionId, grade: 5, parent_name: 'Veli Deneme', phone: '0532 000 00 01', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', ...p } })
 /** Bursluluk 2.0 (0021): başvuru için seans ve seans × sınıf kontenjanı gerekir. */
 async function addSession(exam: string, grades: number[], capacity = 100) {
   const { data } = await admin.from('scholarship_sessions').insert({ exam_id: exam, school_id: SCHOOL, session_date: plus(20), starts_at: '10:00', ends_at: '11:30' }).select('id').single()
@@ -82,7 +82,7 @@ describe('Herkese açık başvuru', () => {
   it('aynı telefondan kısa sürede çok başvuru engellenir', async () => {
     const { data: e2 } = await admin.from('scholarship_exams').insert({ school_id: SCHOOL, name: 'Test sınırsız', exam_date: plus(20), grades: [5], apply_from: today, apply_until: plus(10) }).select('id').single()
     const s2 = await addSession(e2!.id, [5])
-    const r = (name: string) => anon().rpc('apply_scholarship', { p_slug: 'bulus-kure', p: { exam_id: e2!.id, session_id: s2, grade: 5, student_name: name, parent_name: 'Aynı Veli', phone: '0532 999 99 99', consent_version: 'v1' } })
+    const r = (name: string) => anon().rpc('apply_scholarship', { p_slug: 'bulus-kure', p: { exam_id: e2!.id, session_id: s2, grade: 5, student_name: name, parent_name: 'Aynı Veli', phone: '0532 999 99 99', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0' } })
     for (const n of ['Bir Öğrenci', 'İki Öğrenci', 'Üç Öğrenci', 'Dört Öğrenci', 'Beş Öğrenci']) expect((await r(n)).error, n).toBeNull()
     expect((await r('Altı Öğrenci')).error?.message).toMatch(/Çok fazla başvuru/)
   })

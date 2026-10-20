@@ -819,4 +819,7 @@ insert into meals (school_id, day, meal, items) values
   ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 3, 'ogle', 'Domates çorbası, zeytinyağlı taze fasulye, makarna, yoğurt'),
   ('00000000-0000-4000-8000-000000000001', date_trunc('week', current_date)::date + 4, 'ogle', 'Tarhana çorbası, izmir köfte, şehriyeli pilav, meyve');
 
+-- Demo hesaplar açık rıza metnini (0057) onaylamış sayılır; yoksa her demo girişinde onay ekranı çıkar.
+update profiles set acik_riza_version = 'ACIK-RIZA-1.0', acik_riza_at = now() where acik_riza_version is null;
+
 commit;

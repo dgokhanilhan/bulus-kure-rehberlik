@@ -13,7 +13,7 @@ const ids: { c12?: string; s6?: string; s12?: string } = {}
 async function user(u: typeof V, name: string) {
   const { data, error } = await svc.auth.admin.createUser({
     email: u.email, password: u.pass, email_confirm: true,
-    user_metadata: { school: 'bulus-kure', consent_version: 'v1', full_name: name, role: 'veli', declared: { childName: 'Deniz Altı', childClass: '6/A', relation: 'Anne' } },
+    user_metadata: { school: 'bulus-kure', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', full_name: name, role: 'veli', declared: { childName: 'Deniz Altı', childClass: '6/A', relation: 'Anne' } },
   })
   if (error) throw error
   u.id = data.user.id

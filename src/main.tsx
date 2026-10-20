@@ -1,7 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { hataBildir } from '@/lib/hataKaydi'
 import { AuthProvider } from '@/auth/AuthProvider'
 import { ToastProvider } from '@/components/Toast'
 import { ReportProvider } from '@/components/Report'
@@ -45,8 +46,13 @@ window.addEventListener('vite:preloadError', (e) => {
   location.reload()
 })
 
+// Kullanıcının karşılaştığı hatalar sunucuya kaydedilir (Yönetim → Hata kayıtları; kişisel veri yok)
+window.addEventListener('error', (e) => hataBildir('js', e.error ?? e.message))
+window.addEventListener('unhandledrejection', (e) => hataBildir('promise', e.reason))
 const qc = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
+  // Düşen veri sorgusu (yetki, zaman aşımı, ağ): hangi sorgu olduğu ilk anahtarla birlikte kaydedilir
+  queryCache: new QueryCache({ onError: (e, q) => hataBildir('veri', e, String(q.queryKey[0] ?? '')) }),
 })
 
 createRoot(document.getElementById('root')!).render(

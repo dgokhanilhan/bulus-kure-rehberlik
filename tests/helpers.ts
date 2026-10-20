@@ -59,7 +59,7 @@ export async function signInAdminAal2(): Promise<SupabaseClient> {
 export async function register(meta: Record<string, unknown>, password = 'Deneme123!') {
   const c = anon()
   const email = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@ornek.com`
-  const res = await c.auth.signUp({ email, password, options: { data: { school: 'bulus-kure', consent_version: 'v1', ...meta } } })
+  const res = await c.auth.signUp({ email, password, options: { data: { school: 'bulus-kure', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', ...meta } } })
   return { client: c, email, password, ...res }
 }
 

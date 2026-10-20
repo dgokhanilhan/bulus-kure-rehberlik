@@ -75,6 +75,7 @@ test.describe.serial('Hesap açma (davet)', () => {
     await axe(page, 'KVKK onayı')
     await expect(page.getByRole('button', { name: 'Devam et' })).toBeDisabled()
     await page.getByRole('checkbox', { name: /Kişisel Verilerin Korunması Hakkında Aydınlatma Metni’ni okudum/ }).click()
+    await page.getByRole('checkbox', { name: /Açık Rıza Metni’ni okudum/ }).click()
     await page.getByRole('button', { name: 'Devam et' }).click()
     await inApp(page)
     await expect(page.getByRole('link', { name: 'Ödevler' })).toBeVisible()

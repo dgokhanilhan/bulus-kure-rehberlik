@@ -23,7 +23,7 @@ const lgsCard = (page: Page) => page.locator('section[data-card="lgs"]')
 const profil = (page: Page) => page.getByRole('button', { name: /^Profil:/ })
 
 async function user(u: typeof V, meta: Record<string, unknown>) {
-  const { data, error } = await svc.auth.admin.createUser({ email: u.email, password: PASS, email_confirm: true, user_metadata: { school: 'bulus-kure', consent_version: 'v1', ...meta } })
+  const { data, error } = await svc.auth.admin.createUser({ email: u.email, password: PASS, email_confirm: true, user_metadata: { school: 'bulus-kure', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', ...meta } })
   if (error) throw error
   u.id = data.user.id
   await svc.from('profiles').update({ status: 'approved' }).eq('id', u.id)

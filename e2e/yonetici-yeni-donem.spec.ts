@@ -18,7 +18,7 @@ test.beforeAll(async () => {
     email_confirm: true,
     user_metadata: {
       school: 'bulus-kure',
-      consent_version: 'v1',
+      consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0',
       full_name: 'E2E Yeni Yönetici',
       role: 'veli',
       declared: { childName: 'Elif Yıldız', childClass: '8/A', relation: 'Anne' },
@@ -123,7 +123,7 @@ test('rehber öğretmene yönetici eklenince rehber rolündeki bütün öğrenci
     email: guidanceEmail,
     password,
     email_confirm: true,
-    user_metadata: { school: 'bulus-kure', consent_version: 'v1', full_name: 'E2E Rehber Yönetici', role: 'ogretmen', branch: 'Rehberlik' },
+    user_metadata: { school: 'bulus-kure', consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0', full_name: 'E2E Rehber Yönetici', role: 'ogretmen', branch: 'Rehberlik' },
   })
   if (u.error) throw u.error
   guidanceId = u.data.user!.id

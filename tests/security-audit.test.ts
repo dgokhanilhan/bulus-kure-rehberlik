@@ -70,7 +70,7 @@ it('doğrudan note_body RPC görünürlük ve öğrenci yetkisini aşamaz', asyn
   } finally { await svc.from('notes').delete().eq('id', note!.id) }
 })
 it('arayüz atlanarak 7 karakterli şifreyle kayıt açılamaz', async () => {
-  const { data, error } = await anon().auth.signUp({ email: `test-security-${Date.now()}@ornek.com`, password: '1234567', options: { data: { school: 'bulus-kure', full_name: 'Uydurma Kayıt', role: 'ogrenci', consent_version: 'KVKK-1.1' } } })
+  const { data, error } = await anon().auth.signUp({ email: `test-security-${Date.now()}@ornek.com`, password: '1234567', options: { data: { school: 'bulus-kure', full_name: 'Uydurma Kayıt', role: 'ogrenci', consent_version: 'KVKK-1.1', acik_riza_version: 'ACIK-RIZA-1.0' } } })
   if (data.user) await svc.auth.admin.deleteUser(data.user.id)
   expect(error).not.toBeNull()
   expect(error?.code).toBe('weak_password')

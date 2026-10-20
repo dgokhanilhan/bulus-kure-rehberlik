@@ -149,7 +149,7 @@ describe('Liste merkezi yönetici/MFA/okul sınırı', () => {
         school: 'bulus-kure',
         full_name: 'Başka Veli',
         role: 'veli',
-        consent_version: 'v1',
+        consent_version: 'v1', acik_riza_version: 'ACIK-RIZA-1.0',
         declared: { childName: 'Örnek', childClass: '8/A', relation: 'Anne' },
       },
     })

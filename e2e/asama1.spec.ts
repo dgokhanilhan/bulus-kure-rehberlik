@@ -119,12 +119,13 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
     await page.getByLabel('Öğrencinin sınıfı').selectOption('8/B')
     await page.getByLabel('Yakınlığın').selectOption('Baba')
     await page.getByRole('button', { name: 'Kayıt ol' }).last().click()
-    await expect(page.getByRole('alert')).toHaveText('Şifreler aynı değil. Aydınlatma Metni’ni okuduğunu ve bilgi edindiğini belirt.')
+    await expect(page.getByRole('alert')).toHaveText('Şifreler aynı değil. Aydınlatma Metni’ni okuduğunu ve bilgi edindiğini belirt. Açık Rıza Metni’ni onayla.')
     await shot(page, '08-kayit-veli')
     await page.getByLabel('Şifre tekrar').fill('Deneme123!')
     await page.getByRole('button', { name: 'Kayıt ol' }).last().click()
-    await expect(page.getByRole('alert')).toHaveText('Aydınlatma Metni’ni okuduğunu ve bilgi edindiğini belirt.')
+    await expect(page.getByRole('alert')).toHaveText('Aydınlatma Metni’ni okuduğunu ve bilgi edindiğini belirt. Açık Rıza Metni’ni onayla.')
     await page.getByRole('checkbox', { name: /Kişisel Verilerin Korunması Hakkında Aydınlatma Metni’ni okudum/ }).click()
+    await page.getByRole('checkbox', { name: /Açık Rıza Metni’ni okudum/ }).click()
     await page.getByRole('button', { name: 'Kayıt ol' }).last().click()
     await expect(page.getByRole('heading', { name: 'Kaydın alındı' })).toBeVisible()
 
@@ -165,6 +166,7 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
     await page.getByLabel('Şifre tekrar').fill('Deneme123!')
     await page.getByLabel('Branşın').selectOption('Fen Bilimleri')
     await page.getByRole('checkbox', { name: /Kişisel Verilerin Korunması Hakkında Aydınlatma Metni’ni okudum/ }).click()
+    await page.getByRole('checkbox', { name: /Açık Rıza Metni’ni okudum/ }).click()
     await page.getByRole('button', { name: 'Kayıt ol' }).last().click()
     await expect(page.getByRole('heading', { name: 'Kaydın alındı' })).toBeVisible()
 
