@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { classHeat, fmt, indexResults, outcomeCode, repeats, subjectOf, type Dataset, type HeatRow, type Subject } from '@/lib/analiz'
 import { useClasses, useRefresh, useStudents, useStudySessions } from '@/lib/data'
@@ -11,6 +11,7 @@ import { Modal } from '@/components/Modal'
 import { useToast } from '@/components/Toast'
 import { SUBJECT_SHORT } from '@/components/Tasks'
 import { useExamContext } from '@/lib/sinavBaglami'
+import SinifAnalizi, { heatStyle } from './SinifAnalizi'
 
 const SLOTS = [
   ['09-10', '09.00–10.00'],
@@ -19,17 +20,6 @@ const SLOTS = [
   ['12-13', '12.00–13.00'],
 ] as const
 const slotTr = (s: string) => SLOTS.find((x) => x[0] === s)?.[1] ?? s
-
-const heatStyle = (p: number | null): React.CSSProperties =>
-  p === null
-    ? { background: 'var(--paper)', border: '1px dashed var(--line-strong)', color: 'var(--ink-muted)' }
-    : p < 40
-      ? { background: 'var(--heat-1)', color: '#fff' }
-      : p < 60
-        ? { background: 'var(--heat-2)', color: 'var(--ink-fixed)' }
-        : p < 80
-          ? { background: 'var(--heat-3)', color: 'var(--ink-fixed)' }
-          : { background: 'var(--heat-4)', color: '#fff' }
 
 export default function SiniflarPage() {
   const students = useStudents()
@@ -48,6 +38,9 @@ export default function SiniflarPage() {
   const subs = dsq.data?.subjects ?? []
   const sub = subs.some((x) => x.code === pickSub) ? pickSub : (subs.find((x) => x.code === 'MAT') ?? subs[0])?.code ?? pickSub
   const [konu, setKonu] = useState<HeatRow | null>(null)
+  // Sınıf analizi görünümü adreste (?gorunum=analiz): tarayıcının geri tuşu Sınıflar'a döner
+  const [sp, setSp] = useSearchParams()
+  const analiz = sp.get('gorunum') === 'analiz'
   const [etut, setEtut] = useState<string[] | null>(null)
 
   const data = useMemo(() => {
@@ -70,6 +63,13 @@ export default function SiniflarPage() {
     return { ds, ex, rows, worst, L, inClass, avg: nets.length ? nets.reduce((a, b) => a + b, 0) / nets.length : null, lastIdx, idx }
   }, [dsq.data, dsq.kind, students.data, cls, sub])
 
+  if (analiz && cls) return <SinifAnalizi key={cls} cls={cls} grade={cg} onBack={() => setSp({})} />
+  const analizDugme = cls ? (
+    <button type="button" className="btn pri" onClick={() => setSp({ gorunum: 'analiz' })}>
+      <Icon name="grid" size={16} /> Sınıf analizi
+    </button>
+  ) : null
+
   if (!data && (dsq.isLoading || !classes.data || !students.data))
     return (
       <p className="m">
@@ -82,6 +82,7 @@ export default function SiniflarPage() {
         <div className="head a">
           <h1 className="hd">Sınıflar</h1>
           <ClassPicker value={cls} onChange={setCls} options={all.map((c) => c.name)} />
+          {analizDugme}
         </div>
         <div className="empty a">Bu şube için deneme analizi yok (yalnız 5–12. sınıflarda deneme analizi yapılır).</div>
       </>
@@ -104,6 +105,7 @@ export default function SiniflarPage() {
       <div className="head a">
         <h1 className="hd">Sınıflar</h1>
         <ClassPicker value={cls} onChange={setCls} options={all.map((c) => c.name)} />
+        {analizDugme}
       </div>
       {dsq.kind !== 'LGS' && (
         <div className="kv a" style={{ ['--d' as string]: 1, alignItems: 'center' }} data-testid="sinav-baglami">

@@ -637,3 +637,6 @@ h2.sec{font-size:17px;font-weight:600}
   .has-field-scores>.stat:first-child>span:last-child{display:none}
   @media(max-width:540px){.stats.has-field-scores>.stat{padding:14px 12px}.stats.has-field-scores .big{font-size:23px!important}}
 }
+/* Sıralanabilir tablo başlığı (Sınıf analizi) */
+.thbtn{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:inherit;min-height:32px;white-space:nowrap}
+.thbtn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
