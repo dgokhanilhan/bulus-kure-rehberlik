@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { VeriDurumu } from '@/components/VeriDurumu'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { classHeat, fmt, indexResults, outcomeCode, repeats, subjectOf, type Dataset, type HeatRow, type Subject } from '@/lib/analiz'
@@ -70,12 +71,8 @@ export default function SiniflarPage() {
     </button>
   ) : null
 
-  if (!data && (dsq.isLoading || !classes.data || !students.data))
-    return (
-      <p className="m">
-        <span className="spinner" aria-hidden="true" /> Yükleniyor…
-      </p>
-    )
+  if (!data && (dsq.isLoading || dsq.isError || !classes.data || !students.data))
+    return <VeriDurumu sorgular={[dsq, classes, students]} />
   if (!data)
     return (
       <>

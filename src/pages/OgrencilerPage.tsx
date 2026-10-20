@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { VeriDurumu } from '@/components/VeriDurumu'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fmt, indexResults, repeats, totalNet } from '@/lib/analiz'
 import { useClasses, useDataset, useStudents } from '@/lib/data'
@@ -132,10 +133,8 @@ const genel = useGenelDataset()
         <input id="qStu" placeholder="İsim veya okul no" value={q} onChange={(e) => setQ(e.target.value)} />
       </label>
       <section className="card a" style={{ ['--d' as string]: 2, overflow: 'hidden' }}>
-        {students.isLoading || dsq.isLoading || genel.isLoading ? (
-          <p className="m" style={{ padding: 16 }}>
-            <span className="spinner" aria-hidden="true" /> Yükleniyor…
-          </p>
+        {students.isLoading || dsq.isLoading || genel.isLoading || students.isError || dsq.isError || genel.isError ? (
+          <VeriDurumu sorgular={[students, dsq, genel]} padding={16} />
         ) : (
           <div className="tbl">
             <table>

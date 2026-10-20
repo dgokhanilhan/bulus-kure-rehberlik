@@ -52,7 +52,13 @@ export function useGenelContextDataset(kind: ExamCtxKind, fam: YksFamily, grade:
       : new Date().getFullYear()
     return genelDataset({ exams, results: ds.data.results, items: items.data, templates: tpls.data, profile: profileFor(profiles.data ?? [], grade, year) })
   }, [on, ds.data, items.data, tpls.data, profiles.data, kind, fam, grade])
-  return { data, isLoading: on && (ds.isLoading || items.isLoading || tpls.isLoading), isError: ds.isError || items.isError }
+  return {
+    data,
+    isLoading: on && (ds.isLoading || items.isLoading || tpls.isLoading),
+    isError: ds.isError || items.isError || tpls.isError,
+    error: ds.error ?? items.error ?? tpls.error,
+    refetch: () => Promise.all([ds.refetch(), items.refetch(), tpls.refetch()]),
+  }
 }
 
 /**
@@ -64,7 +70,7 @@ export function useExamContext(grade: number | null | undefined, enabled = true)
   const [fam, setFam] = useState<YksFamily>('TYT')
   const lgs = useDataset(enabled && kind === 'LGS')
   const gen = useGenelContextDataset(kind, fam, grade, enabled)
-  const q = kind === 'LGS' ? { data: lgs.data, isLoading: lgs.isLoading, isError: lgs.isError } : gen
+  const q = kind === 'LGS' ? { data: lgs.data, isLoading: lgs.isLoading, isError: lgs.isError, error: lgs.error as unknown, refetch: lgs.refetch as () => unknown } : gen
   return { kind, fam, setFam, title: ctxTitle(kind), ...q }
 }
 
