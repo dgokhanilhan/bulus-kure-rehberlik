@@ -1,6 +1,7 @@
 import { createClient, type SupportedStorage } from '@supabase/supabase-js'
 import { passwordLinkUser } from './authLink'
 import { MOBIL } from './platform'
+import { sureliFetch } from './sureliFetch'
 
 const url = import.meta.env.VITE_SUPABASE_URL
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -42,6 +43,7 @@ const secureStorage: SupportedStorage | undefined = MOBIL
 
 export const supabase = createClient(url, key, {
   auth: { persistSession: true, autoRefreshToken: true, storageKey: 'bk-auth', ...(secureStorage ? { storage: secureStorage } : {}) },
+  global: { fetch: sureliFetch(fetch) },
 })
 
 /**

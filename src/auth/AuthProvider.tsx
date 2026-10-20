@@ -113,6 +113,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s)
       if (event === 'PASSWORD_RECOVERY') setNeedPassword(true)
+      // Supabase önerisi: oturum olayının içinden başka Supabase isteği başlatma (oturum işlemi bitmeden istekler beklemeye
+      // girebilir). Sorgu tazeleme olay bittikten sonraya ertelenir.
+      setTimeout(() => sonra(event), 0)
+    })
+    const sonra = (event: string) => {
       if (event === 'SIGNED_OUT') {
         setNeedPassword(false)
         try {
@@ -129,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         qc.invalidateQueries({ queryKey: ['me'] })
       }
-    })
+    }
     return () => sub.subscription.unsubscribe()
   }, [qc])
 

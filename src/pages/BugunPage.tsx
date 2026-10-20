@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
+import { VeriDurumu } from '@/components/VeriDurumu'
 import { Link, useNavigate } from 'react-router-dom'
 import { DEFAULT_TODAY, attention, fmt, indexResults, isOverdue, totalNet, type AttentionKind } from '@/lib/analiz'
 import { useDataset, useMeetings, useSchoolSettings, useStudents, useTasks, type Meeting } from '@/lib/data'
@@ -60,12 +61,7 @@ export default function BugunPage() {
     return { all, L, up, dn, eq, sum, c }
   }, [dsq.data, students.data, tasks.data, settings.data, today])
 
-  if (!data)
-    return (
-      <p className="m">
-        <span className="spinner" aria-hidden="true" /> Yükleniyor…
-      </p>
-    )
+  if (!data) return <VeriDurumu sorgular={[students, dsq, tasks]} />
 
   const name = (sid: string) => students.data?.find((s) => s.id === sid)
   const list = data.all.filter((o) => filter === 'all' || o.kind === filter)
