@@ -1,11 +1,12 @@
 // İstek süre sınırı: yanıtsız kalan bağlantı (uyku sonrası kopmuş bağlantı, ağ/proxy) isteği sonsuza kadar bekletmesin;
 // süre dolunca istek hataya düşer ve ekran "Veriler yüklenemedi · Tekrar dene" gösterir (VeriDurumu).
-// Dosya yükleme ve yapay zekâ işlevleri daha uzun sürebilir.
+// Dosya yükleme, yapay zekâ işlevleri ve sunucu işlemleri (RPC) daha uzun sürebilir.
 export const ZAMAN_ASIMI = 'Sunucu yanıt vermedi (zaman aşımı). Bağlantını kontrol edip tekrar dene.'
 
 export function sureSiniri(u: string): number {
   if (u.includes('/storage/v1/')) return 300_000
-  if (u.includes('/functions/v1/')) return 120_000
+  // İşlevler (yapay zekâ) ve uzun sunucu işlemleri (deneme içe aktarma, liste yükleme RPC'leri)
+  if (u.includes('/functions/v1/') || u.includes('/rest/v1/rpc/')) return 120_000
   return 30_000
 }
 

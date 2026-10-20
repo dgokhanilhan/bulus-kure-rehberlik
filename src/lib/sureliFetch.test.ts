@@ -22,10 +22,11 @@ describe('süreli fetch', () => {
     const ok = sureliFetch(async () => new Response('tamam'), () => 1000)
     expect(await (await ok('https://x/rest/v1/a')).text()).toBe('tamam')
   })
-  it('süreler: veri 30 sn, işlev 2 dk, dosya 5 dk', () => {
+  it('süreler: veri 30 sn, işlev ve RPC 2 dk, dosya 5 dk', () => {
     expect(sureSiniri('https://x/rest/v1/exam_results')).toBe(30_000)
     expect(sureSiniri('https://x/auth/v1/token')).toBe(30_000)
     expect(sureSiniri('https://x/functions/v1/ai-veli-raporu')).toBe(120_000)
+    expect(sureSiniri('https://x/rest/v1/rpc/import_exam')).toBe(120_000)
     expect(sureSiniri('https://x/storage/v1/object/dosyalar/a.pdf')).toBe(300_000)
   })
 })
