@@ -1,10 +1,22 @@
-# Her push ve PR'da: tip kontrolü, birim/RLS testleri ve uçtan uca testler (yerel Supabase ile).
+# PR'da ve main'e her birleştirmede: tip kontrolü, birim/RLS testleri ve uçtan uca testler (yerel Supabase ile).
+# Uçtan uca testler 4 paralel işe bölünür (her işin kendi yerel Supabase'i var; birbirini etkilemez).
+# Dallara push ayrıca çalışmaz (aynı commit PR'da zaten test edilir); aynı PR'a yeni push eski çalıştırmayı iptal eder.
 name: Test
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+concurrency:
+  group: test-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,15 +29,18 @@ jobs:
       - run: cp supabase/functions/.env.example supabase/functions/.env
       - run: npm run functions &
       - run: npx playwright install --with-deps chromium
-      - run: npm run typecheck
+      - if: matrix.shard == 1
+        run: npm run typecheck
       # Üretim derlemesi + dist bütünlük kontrolü (eksik asset, _headers, önbellek kuralları; deploy/dist-kontrol.ts)
-      - run: npm run build
-      - run: npm run test
-      - run: npm run e2e
+      - if: matrix.shard == 1
+        run: npm run build
+      - if: matrix.shard == 1
+        run: npm run test
+      - run: npm run e2e -- --shard=${{ matrix.shard }}/4
       # Düşen e2e testinin ekran görüntüsü ve izi (trace) indirilebilsin
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-hata
+          name: e2e-hata-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
