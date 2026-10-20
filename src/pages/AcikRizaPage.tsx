@@ -15,7 +15,21 @@ export default function AcikRizaPage() {
           velisi ya da yasal temsilcisi olduğunuz öğrenci adına özgür iradenizle açık rıza verirsiniz.
         </p>
 
-        <h2 className="sec">1. Kişisel verilerin yurt dışına aktarılması</h2>
+        <h2 className="sec">1. Rehberlik görüşme notları</h2>
+        <p>
+          Rehberlik ve mentörlük hizmeti kapsamında öğrenci ve veliyle yapılan görüşmelere ilişkin notlar, gerektiğinde öğrencinin sağlığına veya psikolojik durumuna
+          ilişkin özel nitelikli bilgiler de içerebilecek şekilde, yetkili rehber öğretmen tarafından kaydedilebilir. Bu notlar yalnız görevi gereği yetkili okul
+          personelince görülebilir, dış hizmetlere ve yapay zekâya gönderilmez.
+        </p>
+
+        <h2 className="sec">2. Yapay zekâ destekli rapor taslakları</h2>
+        <p>
+          Öğrencinin gelişimini anlatan veli raporu taslağının hazırlanması amacıyla, öğrencinin deneme sonuçları ve konu analizlerinden oluşan sınırlı akademik veriler
+          <b> DeepSeek</b> yapay zekâ hizmetine (sunucuları Çin Halk Cumhuriyeti’ndedir) aktarılabilir. Bu aktarımda öğrencinin adı, soyadı, okul adı, okul numarası,
+          öğretmen ve veli adları ile rehberlik notları gönderilmez; öğrenci “Öğrenci” olarak anılır. Taslaklar yetkili öğretmen kontrol edip onaylamadan veliye iletilmez.
+        </p>
+
+        <h2 className="sec">3. Kişisel verilerin aktarımı</h2>
         <p>
           Uygulamanın teknik altyapısı nedeniyle; ad, soyad, e-posta adresi, kullanıcı ve oturum bilgileri ile öğrenciye ait sınıf, okul numarası, deneme ve sınav
           sonuçları, konu ve kazanım analizleri, ödev, görev, devamsızlık, görüşme, not, mesaj ve rapor bilgileri aşağıdaki hizmet sağlayıcıların yurt dışındaki
@@ -33,20 +47,6 @@ export default function AcikRizaPage() {
           </li>
         </ul>
 
-        <h2 className="sec">2. Yapay zekâ destekli rapor taslakları</h2>
-        <p>
-          Öğrencinin gelişimini anlatan veli raporu taslağının hazırlanması amacıyla, öğrencinin deneme sonuçları ve konu analizlerinden oluşan sınırlı akademik veriler
-          <b> DeepSeek</b> yapay zekâ hizmetine (sunucuları Çin Halk Cumhuriyeti’ndedir) aktarılabilir. Bu aktarımda öğrencinin adı, soyadı, okul adı, okul numarası,
-          öğretmen ve veli adları ile rehberlik notları gönderilmez; öğrenci “Öğrenci” olarak anılır. Taslaklar yetkili öğretmen kontrol edip onaylamadan veliye iletilmez.
-        </p>
-
-        <h2 className="sec">3. Rehberlik görüşme notları</h2>
-        <p>
-          Rehberlik ve mentörlük hizmeti kapsamında öğrenci ve veliyle yapılan görüşmelere ilişkin notlar, gerektiğinde öğrencinin sağlığına veya psikolojik durumuna
-          ilişkin özel nitelikli bilgiler de içerebilecek şekilde, yetkili rehber öğretmen tarafından kaydedilebilir. Bu notlar yalnız görevi gereği yetkili okul
-          personelince görülebilir, dış hizmetlere ve yapay zekâya gönderilmez.
-        </p>
-
         <h2 className="sec">Kapsam dışı: fotoğraf ve video</h2>
         <p>
           Öğrenci fotoğraf ve videolarının okul içi galeri, internet sitesi, sosyal medya veya basılı tanıtımda kullanılması bu metnin kapsamında değildir; okul
@@ -56,7 +56,7 @@ export default function AcikRizaPage() {
         <h2 className="sec">Rızanın geri alınması</h2>
         <p>
           Açık rızanızı dilediğiniz zaman <a href="mailto:kurebulus74@gmail.com">kurebulus74@gmail.com</a> adresine ya da veri sorumlusunun adresine başvurarak geri
-          alabilirsiniz. Geri alma, o tarihe kadar yapılan işlemleri etkilemez. Uygulamanın altyapısı yurt dışındaki sunuculara dayandığından, 1. maddedeki rızanın geri
+          alabilirsiniz. Geri alma, o tarihe kadar yapılan işlemleri etkilemez. Uygulamanın altyapısı yurt dışındaki sunuculara dayandığından, 3. maddedeki rızanın geri
           alınması halinde uygulama üyeliği sürdürülemeyebilir; okulun diğer bilgilendirme kanalları kullanılmaya devam eder. 2. maddedeki rızanın geri alınması halinde
           raporlar yapay zekâ kullanılmadan hazırlanır.
         </p>
