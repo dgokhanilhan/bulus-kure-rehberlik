@@ -144,6 +144,7 @@ export const AYARLAR: AyarTanim[] = [
   { key: "etut.saatler_ortaokul", grup: "Etüt", ad: "Ortaokul etüt saatleri", aciklama: "5 ders: SS:DD-SS:DD, virgülle ayrılır. Yeni programın varsayılanı.", ekranlar: "Etüt", tur: "text", varsayilan: "09:00-09:40,09:50-10:30,10:40-11:20,11:30-12:10,12:20-13:00" },
   { key: "etut.salonlar", grup: "Etüt", ad: "Etüt salonları", aciklama: "Virgülle ayrılmış salon adları (hücre penceresinde öneri).", ekranlar: "Etüt", tur: "text", varsayilan: "ETÜT-1,ETÜT-2,ETÜT-3,ETÜT-4,ETÜT-5,ETÜT-6" },
   { key: "etut.talep_son_gun", grup: "Etüt", ad: "Talep için en geç (gün önce)", aciklama: "İstenen Cumartesi'den en az kaç gün önce talep edilir (0 = sınır yok).", ekranlar: "Etüt", tur: "int", varsayilan: 0 },
+  { key: "hedef.iller", grup: "Hedef", ad: "Hedef listesindeki iller", aciklama: "Öğrenci dosyası → Hedef sekmesinde listelenen liseler / üniversiteler (virgülle ayrılmış il adları).", ekranlar: "Öğrenci dosyası → Hedef", tur: "text", varsayilan: "Bartın,İstanbul,Ankara,İzmir" },
   { key: "gozetmen.ayt_baslangic", grup: "Gözetmen", ad: "AYT başlangıç saati", aciklama: "", ekranlar: "Gözetmen Bul", tur: "text", varsayilan: "10:00" },
   { key: "gozetmen.ayt_dk", grup: "Gözetmen", ad: "AYT süresi (dk)", aciklama: "", ekranlar: "Gözetmen Bul", tur: "int", varsayilan: 180 },
   { key: "gozetmen.dinlendirici_basina", grup: "Gözetmen", ad: "Kaç sınıfa bir dinlendirici", aciklama: "Akıllı dağıtımın varsayılanı (0 = dinlendirici yok).", ekranlar: "Gözetmen Bul", tur: "int", varsayilan: 8 },

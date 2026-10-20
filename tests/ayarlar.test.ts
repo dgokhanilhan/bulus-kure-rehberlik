@@ -28,7 +28,7 @@ function srcFiles(dir: string): string[] {
     return statSync(p).isDirectory() ? srcFiles(p) : /\.(ts|tsx)$/.test(p) && !p.endsWith('ayarAdlari.ts') && !/\.test\.tsx?$/.test(p) ? [p] : []
   })
 }
-const PREFIX = 'genel|gorunum|modul|bildirim|odev|duyuru|dosya|galeri|yoklama|takvim|bursluluk|mesaj|okul|panel|analiz|etut|gozetmen|rapor|kayit|guvenlik|aile|ogretmen|metin|menu'
+const PREFIX = 'genel|gorunum|modul|bildirim|odev|duyuru|dosya|galeri|yoklama|takvim|bursluluk|mesaj|okul|panel|analiz|etut|gozetmen|rapor|kayit|guvenlik|aile|ogretmen|metin|menu|hedef'
 /** 0052 öncesinden kalan, tanımlı ama hiçbir yerde okunmayan ayarlar (docs/ayarlar-envanteri.md). Yenisi eklenmez. */
 const ESKI_KULLANILMAYAN = ['yoklama.ogretmen_girebilir', 'bursluluk.aciklama']
 /** Kodda dinamik kurulan anahtarlar (ör. `menu.ad.${sayfa}`) */

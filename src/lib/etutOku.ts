@@ -7,7 +7,7 @@ export type Kaynak = 'excel' | 'gorsel' | 'pdf'
 export const kaynakOf = (f: File): Kaynak | null =>
   /\.(xlsx|csv|txt)$/i.test(f.name) ? 'excel' : f.type.startsWith('image/') ? 'gorsel' : /\.pdf$/i.test(f.name) || f.type === 'application/pdf' ? (PDF_OKUMA ? 'pdf' : null) : null
 
-function csvSatirlar(text: string): string[][] {
+export function csvSatirlar(text: string): string[][] {
   const sep = (text.split('\n')[0] ?? '').split(';').length > (text.split('\n')[0] ?? '').split(',').length ? ';' : ','
   const rows: string[][] = []
   let row: string[] = [], cell = '', q = false

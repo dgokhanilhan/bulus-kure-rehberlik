@@ -1,5 +1,6 @@
 // Yönetim paneli (yalnız yönetici): sınıflar, öğrenciler, öğretmenler, veliler, kapalı hesaplar.
 // Yazma yetkisi veritabanında (RLS + 0008 RPC'leri, aal2) zorlanır; bu ekran yalnız arayüzdür.
+import YonetimHedefler from './YonetimHedefler'
 import { lazy, Suspense, useState } from 'react'
 const ListeOlustur = lazy(() => import('./ListeOlustur').then(m => ({ default: m.ListeOlustur })))
 import { Link, useSearchParams } from 'react-router-dom'
@@ -72,6 +73,7 @@ type Tab =
   | 'anasayfa'
   | 'aktarim'
   | 'galeri'
+  | 'hedefler'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
   {
@@ -103,6 +105,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['odev', 'Ödev ayarları', 'odev'],
       ['takvim', 'Takvim ayarları', 'takvim'],
       ['denemeler', 'Denemeler / Tanıma Merkezi', 'lgs'],
+      ['hedefler', 'Hedef listeleri (LGS / YKS)', 'lgs'],
     ],
   },
   {
@@ -159,6 +162,7 @@ const KEYWORDS: Partial<Record<Tab, string>> = {
   veliler: 'veli bağla çocuk davet',
   kapali: 'kapalı hesap aç',
   aktarim: 'excel csv toplu içe aktar',
+  hedefler: 'lise üniversite taban puan yüzdelik tercih hedef lgs yks ösym tablo',
   bursluluk: 'bursluluk başvuru seans kontenjan',
 }
 const HARF = 'ABCDEFGHIJKLMNOPRSTUVYZ'.split('')
@@ -305,6 +309,7 @@ export default function YonetimPage() {
               {tab === 'galeri' && <GaleriAyarlari />}
               {tab === 'anasayfa' && <AnaSayfaDuzeni />}
               {tab === 'aktarim' && <TopluAktarim />}
+              {tab === 'hedefler' && <YonetimHedefler />}
               {tab === 'guvenlik' && (
                 <>
                   <GuvenlikOzeti />

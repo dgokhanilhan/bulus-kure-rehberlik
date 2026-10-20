@@ -659,3 +659,7 @@ h2.sec{font-size:17px;font-weight:600}
 .vt-d.on.vt-hayir{background:var(--signal-soft);border-color:var(--signal);color:var(--signal-ink,var(--signal));font-weight:600}
 .vt-alanlar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (max-width:860px){.vt-grid{grid-template-columns:1fr}.vt-liste{position:static;max-height:240px}.vt-ozet,.vt-alanlar{grid-template-columns:1fr}}
+/* Hedef sekmesi */
+.hd-liste{list-style:none;margin:6px 0 0;padding:0;display:grid}
+.hd-satir{display:grid;grid-template-columns:minmax(0,1fr) 110px 170px auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+@media (max-width:760px){.hd-satir{grid-template-columns:minmax(0,1fr) auto}}
