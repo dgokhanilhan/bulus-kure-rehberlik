@@ -98,8 +98,18 @@ async function girisBilgileri(ctx: Ctx, b: Body): Promise<Response> {
     const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : ''
     if (!EMAIL.test(email) || email.length > 120) return json({ error: 'E-posta geçersiz.' }, 400)
     if (email === p.email) return json({ error: 'E-posta zaten bu.' }, 400)
-    const { data: other } = await svc.from('profiles').select('id').eq('email', email).maybeSingle()
-    if (other) return json({ error: 'Bu e-postayla başka bir hesap var.' }, 409)
+    const { data: other } = await svc.from('profiles').select('id, school_id, status').eq('email', email).maybeSingle()
+    if (other) {
+      // Reddedilmiş başvuru (hiç onaylanmamış; ör. öğrencinin yanlışlıkla açtığı ikinci kayıt) kaldırılır, e-posta asıl hesaba geçer.
+      // Kapatılmış hesap da 'rejected' durumundadır ama onay / kapatma kaydı vardır: o silinmez.
+      const { data: log } = await svc.from('audit_log').select('action').eq('entity_id', other.id).in('action', ['approve', 'deactivate', 'reject'])
+      const acts = new Set((log ?? []).map((x) => x.action))
+      const basvuru = other.school_id === ctx.schoolId && other.status === 'rejected' && acts.has('reject') && !acts.has('approve') && !acts.has('deactivate')
+      if (!basvuru) return json({ error: 'Bu e-postayla başka bir hesap var.' }, 409)
+      const { error: de } = await svc.auth.admin.deleteUser(other.id)
+      if (de) return json({ error: `Reddedilen başvuru kaldırılamadı: ${de.message}` }, 502)
+      await svc.from('audit_log').insert({ user_id: ctx.adminId, action: 'rejected_signup_removed', entity: 'profiles', entity_id: other.id, meta: { yerine: p.id } })
+    }
     // Doğrulama e-postası gönderilmez; profil e-postası tetikleyiciyle güncellenir (0044 sync_confirmed_profile_email)
     const { error } = await svc.auth.admin.updateUserById(p.id, { email, email_confirm: true })
     if (error) {
