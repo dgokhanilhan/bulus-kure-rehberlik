@@ -87,3 +87,26 @@ describe('E-posta', () => {
     expect((await svc.from('audit_log').select('id').eq('entity_id', hedef.id).eq('action', 'email_change')).data).toHaveLength(1)
   })
 })
+
+describe('E-posta: reddedilen başvuru ve kapatılmış hesap', () => {
+  it('reddedilmiş (hiç onaylanmamış) başvurunun e-postası asıl hesaba verilir; başvuru kaldırılır', async () => {
+    const r = await register({ full_name: 'İkinci Kayıt', role: 'ogretmen', branch: 'Fizik' })
+    const rid = r.data.user!.id
+    expect((await admin.rpc('reject_registration', { p_profile: rid })).error).toBeNull()
+    const res = await call(admin, { action: 'set_email', user_id: hedef.id, email: r.email })
+    expect(await msg(res)).toBeUndefined()
+    expect((await svc.from('profiles').select('id').eq('id', rid).maybeSingle()).data).toBeNull()
+    expect((await svc.from('profiles').select('email').eq('id', hedef.id).single()).data!.email).toBe(r.email)
+    expect((await svc.from('audit_log').select('id').eq('entity_id', rid).eq('action', 'rejected_signup_removed')).data).toHaveLength(1)
+  })
+
+  it('kapatılmış hesabın e-postası alınamaz; hesap silinmez', async () => {
+    const r = await register({ full_name: 'Kapatılan Hesap', role: 'ogretmen', branch: 'Kimya' })
+    const cid = r.data.user!.id
+    expect((await admin.rpc('approve_registration', { p_profile: cid })).error).toBeNull()
+    expect((await admin.rpc('set_user_active', { p_profile: cid, p_active: false })).error).toBeNull()
+    expect(await msg(await call(admin, { action: 'set_email', user_id: hedef.id, email: r.email }))).toMatch(/başka bir hesap/)
+    expect((await svc.from('profiles').select('status').eq('id', cid).single()).data!.status).toBe('rejected')
+    await svc.auth.admin.deleteUser(cid)
+  })
+})
