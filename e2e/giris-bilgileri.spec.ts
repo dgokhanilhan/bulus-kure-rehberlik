@@ -30,7 +30,7 @@ test.describe.serial('Giriş bilgileri', () => {
   test('öğrenci listesinde ve düzenlemede hesabın e-postası görünür', async ({ page }) => {
     secret = await loginAdmin(page)
     await page.goto('/yonetim?sekme=ogrenciler')
-    await page.getByLabel('Ara').fill('Elif Yıldız')
+    await page.getByRole('textbox', { name: 'Ara', exact: true }).fill('Elif Yıldız')
     const row = page.getByTestId('student-row').filter({ hasText: 'Elif Yıldız' })
     await expect(row.getByTestId('student-email')).toHaveText('elif.yildiz@ornek.com')
     await row.getByRole('button', { name: 'Elif Yıldız düzenle' }).click()
@@ -53,7 +53,7 @@ test.describe.serial('Giriş bilgileri', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     const r = await new AxeBuilder({ page }).include('[role="dialog"]').withTags(['wcag2a', 'wcag2aa']).analyze()
     expect(r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => v.id)).toEqual([])
-    await giris.getByRole('button', { name: 'Şifreyi kaydet' }).click()
+    await giris.getByRole('button', { name: 'Şifreyi değiştir' }).click()
     await expect(giris.getByTestId('yeni-sifre')).toHaveText(yeni)
 
     const c = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_ANON_KEY!, { auth: { persistSession: false } })

@@ -69,7 +69,7 @@ export function GirisBilgileri({ p }: { p: Pick<Profile, 'id' | 'email' | 'full_
           <input id="gEmail" type="email" inputMode="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         <button className="btn" onClick={saveEmail} disabled={busy !== null || !email.trim() || email.trim().toLowerCase() === saved}>
-          {busy === 'email' && <span className="spinner" aria-hidden="true" />} E-postayı kaydet
+          {busy === 'email' && <span className="spinner" aria-hidden="true" />} E-postayı değiştir
         </button>
       </div>
 
@@ -92,7 +92,7 @@ export function GirisBilgileri({ p }: { p: Pick<Profile, 'id' | 'email' | 'full_
             Vazgeç
           </button>
           <button className="btn pri" onClick={savePw} disabled={busy !== null || pw.length < 8}>
-            {busy === 'pw' && <span className="spinner" aria-hidden="true" />} Şifreyi kaydet
+            {busy === 'pw' && <span className="spinner" aria-hidden="true" />} Şifreyi değiştir
           </button>
         </div>
       )}
