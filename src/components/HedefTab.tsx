@@ -1,6 +1,6 @@
 // Öğrenci dosyası → Hedef: 8. sınıf LGS liseleri, 11–12. sınıf YKS lisans programları. Öğrencinin son denemelerinin puanı
 // (en çok 3 deneme ortalaması) taban puanlarla karşılaştırılır; her yerde "deneme puanına göre tahmini" yazar.
-// Liste: Yönetim → Hedef listeleri (YKS yerleşik ÖSYM Tablo-4; LGS okulun yüklediği). Yalnız öğretmen ekranı.
+// Liste: Yönetim → Hedef listeleri (YKS yerleşik ÖSYM Tablo-4; LGS okulun yüklediği). Öneri listesi yalnız öğretmen ekranında; seçilen hedefler veli / öğrenci Özeti'nde salt okunur (AileHedefler, 0060).
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
@@ -16,7 +16,7 @@ const TUR_TR: Record<PuanTuru, string> = { SAY: 'Sayısal', EA: 'Eşit ağırlı
 const SEC = 'id, sinav, yil, kod, kurum, il, ilce, birim, program, puan_turu, taban_puan, yuzdelik, kontenjan'
 type Prog = HedefProgram & { id: string }
 
-function useDenemePuanlari(sid: string) {
+export function useDenemePuanlari(sid: string) {
   return useQuery({
     queryKey: ['hedef-puanlar', sid],
     queryFn: async () => {
