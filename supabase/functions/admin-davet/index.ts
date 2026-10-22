@@ -1,4 +1,5 @@
-// admin-davet: yönetici, öğretmen ya da veli hesabı açar (Faz F · 0017); toplu öğretmen aktarımı (Faz H).
+// admin-davet: yönetici, öğretmen ya da veli hesabı açar (Faz F · 0017); toplu öğretmen aktarımı (Faz H);
+// öğrenci / öğretmen / veli hesabının e-postasını değiştirir ve yeni şifre verir (0059).
 // Güvenlik: çağıranın JWT'si + onaylı yönetici + iki adımlı doğrulama (aal2) — is_admin() bunları birlikte denetler.
 // Hesap Supabase Auth Admin inviteUserByEmail ile açılır: kişiye şifre belirleme bağlantısı gider, yönetici şifre görmez.
 // service_role yalnız burada (Edge Function ortam değişkeni); tarayıcıya çıkmaz.
@@ -75,9 +76,52 @@ Deno.serve(async (req) => {
     return json({ ok: true, results })
   }
 
+  // Giriş bilgileri: e-posta değiştir / yeni şifre ver (0059). Yönetici mevcut şifreyi göremez.
+  if (b.action === 'set_email' || b.action === 'set_password') return await girisBilgileri(ctx, b)
+
   const res = await inviteOne(ctx, b)
   return res.ok ? json({ ok: true, user_id: res.user_id }) : json({ error: res.error }, res.status)
 })
+
+/** Öğrenci, öğretmen ya da velinin e-postası / şifresi. Yönetici hesapları (kendisi dahil) buradan değiştirilemez. */
+async function girisBilgileri(ctx: Ctx, b: Body): Promise<Response> {
+  const { svc } = ctx
+  if (!UUID.test(b.user_id ?? '')) return json({ error: 'Kullanıcı geçersiz.' }, 400)
+  const { data: p } = await svc.from('profiles').select('id, school_id, role, email').eq('id', b.user_id).maybeSingle()
+  if (!p || p.school_id !== ctx.schoolId) return json({ error: 'Kişi bulunamadı.' }, 404)
+  const { data: rs } = await svc.from('profile_roles').select('role').eq('profile_id', p.id)
+  if (p.id === ctx.adminId || p.role === 'admin' || (rs ?? []).some((r) => r.role === 'admin')) {
+    return json({ error: 'Yönetici hesaplarının e-postası ve şifresi buradan değiştirilemez.' }, 403)
+  }
+
+  if (b.action === 'set_email') {
+    const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : ''
+    if (!EMAIL.test(email) || email.length > 120) return json({ error: 'E-posta geçersiz.' }, 400)
+    if (email === p.email) return json({ error: 'E-posta zaten bu.' }, 400)
+    const { data: other } = await svc.from('profiles').select('id').eq('email', email).maybeSingle()
+    if (other) return json({ error: 'Bu e-postayla başka bir hesap var.' }, 409)
+    // Doğrulama e-postası gönderilmez; profil e-postası tetikleyiciyle güncellenir (0044 sync_confirmed_profile_email)
+    const { error } = await svc.auth.admin.updateUserById(p.id, { email, email_confirm: true })
+    if (error) {
+      if (/already|registered|exists/i.test(error.message)) return json({ error: 'Bu e-postayla başka bir hesap var.' }, 409)
+      return json({ error: `E-posta değiştirilemedi: ${error.message}` }, 502)
+    }
+    await svc.from('audit_log').insert({ user_id: ctx.adminId, action: 'email_change', entity: 'profiles', entity_id: p.id, meta: { kanal: 'yonetici' } })
+    return json({ ok: true, email })
+  }
+
+  const password = typeof b.password === 'string' ? b.password : ''
+  if (password.length < 8 || password.length > 72 || !password.trim()) return json({ error: 'Şifre 8–72 karakter olmalı.' }, 400)
+  const { error } = await svc.auth.admin.updateUserById(p.id, { password })
+  if (error) {
+    if (/weak|short|characters/i.test(error.message)) return json({ error: 'Şifre çok zayıf; daha uzun ya da harf ve rakam karışık bir şifre seç.' }, 400)
+    return json({ error: `Şifre değiştirilemedi: ${error.message}` }, 502)
+  }
+  // Eski şifreyle açık kalan oturumlar kapanır
+  await svc.rpc('hesap_oturumlarini_kapat', { p_user: p.id })
+  await svc.from('audit_log').insert({ user_id: ctx.adminId, action: 'password_reset', entity: 'profiles', entity_id: p.id, meta: { kanal: 'yonetici' } })
+  return json({ ok: true })
+}
 
 /** Tek davet: doğrulama → davet niyeti → hesap + e-posta → profil tamamlama (öğrenci bağları / ders atamaları). */
 async function inviteOne(ctx: Ctx, b: Body): Promise<Result> {

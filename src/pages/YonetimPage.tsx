@@ -23,6 +23,7 @@ import { GaleriAyarlari } from './YonetimGaleri'
 import { AnaSayfaDuzeni, TopluAktarim } from './YonetimAktarim'
 import { InviteChip, InviteParentModal, InviteTeacherModal } from './YonetimDavet'
 import { RolesSection, AccountRolesAdmin } from './YonetimRoller'
+import { GirisBilgileri } from './YonetimGiris'
 import { DenemeMerkezi } from './DenemeMerkezi'
 import { AyarGecmisi, TumAyarlar } from './YonetimAyarlar'
 import { AppearanceSettings } from './OkulKontrolleri'
@@ -661,6 +662,11 @@ function Ogrenciler({ classes, profiles, students, links }: { classes: ClassRow[
                           <span className={`chip ${account(s.id) ? 'up' : 'n'}`}>{account(s.id) ? 'Öğrenci hesabı' : 'Hesap yok'}</span>
                           {veli > 0 && <span className="chip up">{veli} veli</span>}
                         </span>
+                        {account(s.id)?.email && (
+                          <div className="m" style={{ fontSize: 13, marginTop: 4 }} data-testid="student-email">
+                            {account(s.id)!.email}
+                          </div>
+                        )}
                       </td>
                       <td>
                         <div className="btns" style={{ justifyContent: 'flex-end' }}>
@@ -696,6 +702,7 @@ function Ogrenciler({ classes, profiles, students, links }: { classes: ClassRow[
       {edit && (
         <StudentModal
           s={edit === 'new' ? null : edit}
+          account={edit === 'new' ? undefined : account(edit.id)}
           classes={classes}
           defaultClass={cls === 'all' ? classes.find((c) => c.active !== false)?.id : cls}
           onClose={() => setEdit(null)}
@@ -774,7 +781,19 @@ function ClassSelect({ id, classes, value, onChange, all }: { id: string; classe
   )
 }
 
-function StudentModal({ s, classes, defaultClass, onClose }: { s: Stu | null; classes: ClassRow[]; defaultClass?: string; onClose: () => void }) {
+function StudentModal({
+  s,
+  account,
+  classes,
+  defaultClass,
+  onClose,
+}: {
+  s: Stu | null
+  account?: Profile
+  classes: ClassRow[]
+  defaultClass?: string
+  onClose: () => void
+}) {
   const { profile } = useAuth()
   const reload = useReload()
   const toast = useToast()
@@ -836,6 +855,14 @@ function StudentModal({ s, classes, defaultClass, onClose }: { s: Stu | null; cl
           {err}
         </div>
       )}
+      {s &&
+        (account ? (
+          <GirisBilgileri p={account} />
+        ) : (
+          <p className="m" style={{ fontSize: 13, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+            Öğrencinin onaylı bir hesabı yok. Öğrenci Kayıt ol ile başvurup onaylanınca giriş bilgileri burada görünür.
+          </p>
+        ))}
     </Modal>
   )
 }
@@ -977,6 +1004,7 @@ function ProfileModal({ p, classes, onClose }: { p: Profile; classes?: ClassRow[
           {err}
         </div>
       )}
+      {p.status === 'approved' && !rolesOf(p).includes('admin') && <GirisBilgileri p={p} />}
       {classes && isTeacherP(p) && p.status === 'approved' && <OgretmenAtamalari teacherId={p.id} classes={classes} />}
       {p.status === 'approved' && <RolesSection p={p} />}
     </Modal>
