@@ -38,6 +38,7 @@ import { MeetingList } from '@/components/Meetings'
 import { ExamModal } from '@/components/ExamModal'
 import { useOpenReport } from '@/components/Report'
 import { GenelDenemeler } from '@/components/GenelDenemeler'
+import { AileHedefler } from '@/components/AileHedefler'
 import { useEtutOgrenci } from '@/lib/etutData'
 import { useAyar } from '@/lib/ayarlar'
 
@@ -284,6 +285,8 @@ export function OzetPage() {
           )}
         </aside>
       </div>
+      {/* Hedefler (0060): öğretmenin seçtiği hedef okullar / bölümler — 8. sınıf LGS, 11–12. sınıf YKS */}
+      {mods.lgs && [8, 11, 12].includes(s.grade ?? 0) && <AileHedefler sid={s.id} grade={s.grade} veli={veli} />}
       {cur >= 0 && dsq.data && (
         <ExamModal
           ds={dsq.data}

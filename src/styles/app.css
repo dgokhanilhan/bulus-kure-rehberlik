@@ -662,4 +662,5 @@ h2.sec{font-size:17px;font-weight:600}
 /* Hedef sekmesi */
 .hd-liste{list-style:none;margin:6px 0 0;padding:0;display:grid}
 .hd-satir{display:grid;grid-template-columns:minmax(0,1fr) 110px 170px auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
-@media (max-width:760px){.hd-satir{grid-template-columns:minmax(0,1fr) auto}}
+.hd-satir.aile{grid-template-columns:minmax(0,1fr) 160px 230px}
+@media (max-width:760px){.hd-satir,.hd-satir.aile{grid-template-columns:minmax(0,1fr) auto}}

@@ -50,6 +50,29 @@ test('yönetici LGS listesini yükler; öğrenci dosyasında deneme puanına gö
   await expect(sek.getByTestId('hedefler')).toHaveCount(0)
 })
 
+test('öğrenci ve veli seçilen hedefleri Özet sayfasında görür (salt okunur)', async ({ page }) => {
+  const svc = service()
+  const p = (await svc.from('hedef_programlar').select('id, school_id').eq('yil', YIL).eq('kurum', 'E2E Anadolu Lisesi').single()).data!
+  await svc.from('ogrenci_hedefleri').insert({ school_id: p.school_id, student_id: ELIF, program_id: p.id })
+  await login(page, ...DEMO.ogrenci)
+  await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
+  await page.goto('/ozet')
+  const kart = page.getByTestId('aile-hedefler')
+  await expect(kart.getByRole('heading', { name: 'Hedeflerin' })).toBeVisible()
+  await expect(kart.getByTestId('aile-hedef')).toHaveCount(1)
+  await expect(kart).toContainText('E2E Anadolu Lisesi')
+  await expect(kart).toContainText(`${YIL} tabanı 420,3`)
+  await expect(kart).toContainText('deneme puanına göre tahminidir')
+  await expect(kart.getByRole('button')).toHaveCount(0)
+  await shot(page, 'aile-hedefler-ogrenci')
+  await logout(page)
+  await login(page, ...DEMO.veli)
+  await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
+  await page.goto('/ozet')
+  await expect(page.getByTestId('aile-hedefler').getByRole('heading', { name: 'Hedefler' })).toBeVisible()
+  await expect(page.getByTestId('aile-hedefler')).toContainText('E2E Anadolu Lisesi')
+})
+
 test('veli ve öğrenci Hedef sekmesini görmez', async ({ page }) => {
   await login(page, ...DEMO.veli)
   await page.goto(`/ogrenciler/${ELIF}?sekme=hedef`)

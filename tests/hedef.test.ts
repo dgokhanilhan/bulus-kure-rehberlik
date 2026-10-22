@@ -1,7 +1,7 @@
 // Hedef listeleri ve öğrenci hedefleri (0054/0055): yetki (RLS + RPC), yerleşik ÖSYM verisi, okul listesi yükleme.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { ELIF, anon, service, signIn, signInAdminAal2 } from './helpers'
+import { ELIF, KEREM, anon, service, signIn, signInAdminAal2 } from './helpers'
 
 const svc = service()
 const SCHOOL = '00000000-0000-4000-8000-000000000001'
@@ -53,6 +53,20 @@ describe('hedef listeleri', () => {
     expect((await mat.from('ogrenci_hedefleri').insert({ school_id: SCHOOL, student_id: gorulmeyen, program_id: pid })).error).not.toBeNull()
     expect((await veliElif.from('ogrenci_hedefleri').select('id')).data ?? []).toEqual([])
     expect((await rehber.from('ogrenci_hedefleri').select('id').eq('student_id', ELIF)).data).toHaveLength(1)
+    // 0060: aile yalnız kendi öğrencisinin hedeflerini fonksiyonla okur (salt okunur)
+    expect((await rehber.from('ogrenci_hedefleri').insert({ school_id: SCHOOL, student_id: KEREM, program_id: pid })).error).toBeNull()
+    for (const c of [elif, veliElif]) {
+      const r = await c.rpc('aile_hedefleri', { p_student: ELIF })
+      expect(r.error).toBeNull()
+      expect(r.data).toHaveLength(1)
+      expect(r.data![0]).toMatchObject({ sinav: 'LGS', yil: YIL, kurum: 'C Lisesi', il: 'Bartın' })
+      expect(Number(r.data![0].taban_puan)).toBe(420)
+      expect((await c.rpc('aile_hedefleri', { p_student: KEREM })).data ?? []).toEqual([])
+    }
+    expect((await (await signIn('veliKerem')).rpc('aile_hedefleri', { p_student: ELIF })).data ?? []).toEqual([])
+    expect((await (await signIn('veliKerem')).rpc('aile_hedefleri', { p_student: KEREM })).data).toHaveLength(1)
+    expect((await (await signIn('bekleyenMert')).rpc('aile_hedefleri', { p_student: ELIF })).data ?? []).toEqual([])
+    expect((await anon().rpc('aile_hedefleri', { p_student: ELIF })).data ?? []).toEqual([])
     expect((await rehber.rpc('hedef_sil', { p_sinav: 'LGS', p_yil: YIL })).error).not.toBeNull()
     expect((await admin.rpc('hedef_sil', { p_sinav: 'LGS', p_yil: YIL })).data).toBe(1)
     expect((await rehber.from('ogrenci_hedefleri').select('id').eq('student_id', ELIF)).data).toEqual([])
