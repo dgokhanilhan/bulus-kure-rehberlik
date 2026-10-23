@@ -1,33 +1,23 @@
 import { useMemo, useState } from 'react'
 import { VeriDurumu } from '@/components/VeriDurumu'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
 import { classHeat, fmt, indexResults, outcomeCode, repeats, subjectOf, type Dataset, type HeatRow, type Subject } from '@/lib/analiz'
-import { useClasses, useRefresh, useStudents, useStudySessions } from '@/lib/data'
-import { addDays, initials, nextDow, todayISO, trDW } from '@/lib/format'
+import { useClasses, useModules, useStudents } from '@/lib/data'
+import { initials, todayISO, trDW } from '@/lib/format'
 import { DENEME_GRADE } from '@/lib/roles'
 import { Icon } from '@/components/Icon'
 import { Dropdown, Seg } from '@/components/Indicator'
 import { Modal } from '@/components/Modal'
-import { useToast } from '@/components/Toast'
-import { SUBJECT_SHORT } from '@/components/Tasks'
 import { useExamContext } from '@/lib/sinavBaglami'
+import { GrupEtut } from '@/components/GrupEtut'
+import { kademeOfGrade } from '@/lib/etutGrup'
+import { useSinifEtutleri } from '@/lib/etutData'
 import SinifAnalizi, { heatStyle } from './SinifAnalizi'
-
-const SLOTS = [
-  ['09-10', '09.00–10.00'],
-  ['10-11', '10.00–11.00'],
-  ['11-12', '11.00–12.00'],
-  ['12-13', '12.00–13.00'],
-] as const
-const slotTr = (s: string) => SLOTS.find((x) => x[0] === s)?.[1] ?? s
 
 export default function SiniflarPage() {
   const students = useStudents()
-  const sessions = useStudySessions()
-  const toast = useToast()
-  const refresh = useRefresh()
   const classes = useClasses()
+  const mods = useModules()
   // Şube listesi gerçek sınıf tablosundan (denemesi olmayan şube de seçilebilir); ilk açılış 8. sınıf (mevcut davranış)
   const all = (classes.data ?? []).filter((c) => c.name)
   const [pick, setCls] = useState<string | null>(null)
@@ -42,7 +32,9 @@ export default function SiniflarPage() {
   // Sınıf analizi görünümü adreste (?gorunum=analiz): tarayıcının geri tuşu Sınıflar'a döner
   const [sp, setSp] = useSearchParams()
   const analiz = sp.get('gorunum') === 'analiz'
-  const [etut, setEtut] = useState<string[] | null>(null)
+  // Gruba etüt: seçili konu kodları ve başlangıç kapsamı (son kaç deneme)
+  const [etut, setEtut] = useState<{ secili: string[]; son: number } | null>(null)
+  const sinifEtut = useSinifEtutleri(cls || null, todayISO())
 
   const data = useMemo(() => {
     const ds = dsq.data
@@ -86,16 +78,13 @@ export default function SiniflarPage() {
     )
   const { ds, ex, rows, worst, L, inClass, avg, lastIdx } = data
   const sd = subjectOf(ds, sub)
-  const today = todayISO()
-  const et = (sessions.data ?? []).filter((x) => x.class_name === cls && x.session_date >= today)
-
-  const cancel = async (id: string) => {
-    if (!window.confirm('Etüt iptal edilsin mi? Şubedeki öğrencilere ve velilerine bildirim gider.')) return
-    const { error } = await supabase.from('study_sessions').delete().eq('id', id)
-    if (error) return toast('İptal edilemedi.', 'warn')
-    toast('Etüt iptal edildi')
-    refresh('study_sessions')
-  }
+  const et = sinifEtut.data ?? []
+  // Etüt: 5–12. sınıflar ve modül açıkken; konular en zorlanılandan başlayarak (son denemedeki doğru oranı)
+  const kademe = mods.etut ? kademeOfGrade(cg) : null
+  const ogrAdi = (id: string) => students.data?.find((x) => x.id === id)?.full_name ?? ''
+  const konuKaynak = [...rows]
+    .sort((a, b) => (a.cells[lastIdx]?.p ?? 101) - (b.cells[lastIdx]?.p ?? 101))
+    .map((r) => ({ code: r.outcome.code, title: r.outcome.title, wrongByExam: r.cells.map((c) => c.wrong) }))
 
   return (
     <>
@@ -156,12 +145,18 @@ export default function SiniflarPage() {
             {rows.map((r, ri) => (
               <div key={r.outcome.code} className="heat" role="row" style={{ ['--n' as string]: ex.length, marginTop: 6 }}>
                 <div style={{ minWidth: 0 }} role="rowheader">
-                  <div className="mono m" style={{ fontSize: 11 }}>
-                    {outcomeCode(r.outcome)}
-                  </div>
-                  <div style={{ fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.outcome.title}>
-                    {r.outcome.title}
-                  </div>
+                  <button
+                    type="button"
+                    className="heat-konu"
+                    onClick={() => setKonu(r)}
+                    title={`${r.outcome.title} · yanlış yapan öğrenciler`}
+                    data-testid="heat-konu"
+                  >
+                    <span className="mono m" style={{ fontSize: 11, display: 'block' }}>
+                      {outcomeCode(r.outcome)}
+                    </span>
+                    <span style={{ fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{r.outcome.title}</span>
+                  </button>
                 </div>
                 {r.cells.map((c, ci) => (
                   <span key={ci} role="cell" className="c pp" style={{ ['--d' as string]: ri * 5 + ci, ...heatStyle(c.p) }}>
@@ -210,41 +205,82 @@ export default function SiniflarPage() {
             <Icon name="right" size={18} stroke={2} />
           </button>
         ))}
-        <button className="btn gold" style={{ alignSelf: 'flex-start' }} onClick={() => setEtut(worst.map((w) => w.outcome.title))}>
-          <Icon name="cal" size={18} />
-          Etüt planla
-        </button>
-      </Dropdown>
-
-      <Dropdown title="Planlanan etütler" sub={et.length ? `${et.length} etüt` : 'Etüt yok'} icon={<Icon name="cal" size={22} />} delay={5}>
-        {et.length ? (
-          et.map((x) => (
-            <div className="kv" key={x.id} data-testid="etut-row">
-              <span>
-                <b>
-                  {trDW(x.session_date)} · {slotTr(x.slot)}
-                </b>
-                <span className="m" style={{ display: 'block', fontSize: 13 }}>
-                  {SUBJECT_SHORT[x.subject] ?? x.subject} · {x.topics.join(', ')}
-                </span>
-              </span>
-              <button className="btn sm ghost" style={{ color: 'var(--signal)' }} onClick={() => cancel(x.id)}>
-                İptal
-              </button>
-            </div>
-          ))
-        ) : (
-          <span className="m">Henüz etüt planlanmadı.</span>
+        {kademe && worst.length > 0 && (
+          <button className="btn gold" style={{ alignSelf: 'flex-start' }} onClick={() => setEtut({ secili: worst.map((w) => w.outcome.code), son: 1 })}>
+            <Icon name="cal" size={18} />
+            Etüt planla
+          </button>
         )}
       </Dropdown>
 
-      {konu && <KonuStudents ds={ds} row={konu} cls={cls} examName={L?.name ?? ''} lastIdx={lastIdx} onClose={() => setKonu(null)} />}
-      {etut && <EtutModal cls={cls} subject={sd.base ?? sub} topics={etut} taken={(sessions.data ?? []).filter((x) => x.class_name === cls)} onClose={() => setEtut(null)} />}
+      {kademe && (
+        <Dropdown title="Planlanan etütler" sub={et.length ? `${et.length} etüt` : 'Etüt yok'} icon={<Icon name="cal" size={22} />} delay={5}>
+          {et.length ? (
+            et.map((x) => (
+              <div className="kv" key={x.hucre_id} data-testid="etut-row">
+                <span>
+                  <b>
+                    {trDW(x.tarih)} · {x.ders}. ders{x.saat ? ` (${x.saat.bas}–${x.saat.bit})` : ''}
+                  </b>
+                  <span className="m" style={{ display: 'block', fontSize: 13 }}>
+                    {[x.konu, x.teacher_name, `${x.ogrenciler.length} öğrenci`].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+                <span className={`chip ${x.durum === 'yayinda' ? 'up' : 'n'}`}>{x.durum === 'yayinda' ? 'Yayında' : 'Taslak'}</span>
+              </div>
+            ))
+          ) : (
+            <span className="m">Bu sınıfın yaklaşan etüdü yok. Konu satırına tıklayıp yanlış yapan öğrencilere etüt planlayabilirsin.</span>
+          )}
+        </Dropdown>
+      )}
+
+      {konu && (
+        <KonuStudents
+          ds={ds}
+          row={konu}
+          cls={cls}
+          examName={L?.name ?? ''}
+          lastIdx={lastIdx}
+          onClose={() => setKonu(null)}
+          onEtut={kademe ? () => (setEtut({ secili: [konu.outcome.code], son: 1 }), setKonu(null)) : undefined}
+        />
+      )}
+      {etut && kademe && (
+        <GrupEtut
+          baslik={`${cls} · ${sd.ad}`}
+          kademe={kademe}
+          dersAdi={sd.ad}
+          classId={all.find((c) => c.name === cls)?.id}
+          konular={konuKaynak}
+          secili={etut.secili}
+          son={etut.son}
+          denemeler={ex.map((e) => e.name)}
+          ogrenciAdi={ogrAdi}
+          onClose={() => setEtut(null)}
+        />
+      )}
     </>
   )
 }
 
-function KonuStudents({ ds, row, cls, examName, lastIdx, onClose }: { ds: Dataset; row: HeatRow; cls: string; examName: string; lastIdx: number; onClose: () => void }) {
+function KonuStudents({
+  ds,
+  row,
+  cls,
+  examName,
+  lastIdx,
+  onClose,
+  onEtut,
+}: {
+  ds: Dataset
+  row: HeatRow
+  cls: string
+  examName: string
+  lastIdx: number
+  onClose: () => void
+  onEtut?: () => void
+}) {
   const nav = useNavigate()
   const students = useStudents()
   const wrong = row.cells[lastIdx]?.wrong ?? []
@@ -254,9 +290,16 @@ function KonuStudents({ ds, row, cls, examName, lastIdx, onClose }: { ds: Datase
       sub={`${cls} · ${examName} · ${wrong.length} öğrenci yanlış yaptı`}
       onClose={onClose}
       footer={
-        <button className="btn" onClick={onClose}>
-          Kapat
-        </button>
+        <>
+          <button className="btn" onClick={onClose}>
+            Kapat
+          </button>
+          {onEtut && wrong.length > 0 && (
+            <button className="btn gold" onClick={onEtut}>
+              <Icon name="cal" size={16} /> Bu öğrencilere etüt planla
+            </button>
+          )}
+        </>
       }
     >
       <div style={{ margin: '-18px -22px' }}>
@@ -284,124 +327,6 @@ function KonuStudents({ ds, row, cls, examName, lastIdx, onClose }: { ds: Datase
           </div>
         )}
       </div>
-    </Modal>
-  )
-}
-
-function EtutModal({
-  cls,
-  subject,
-  topics,
-  taken,
-  onClose,
-}: {
-  cls: string
-  subject: Subject
-  topics: string[]
-  taken: { session_date: string; slot: string }[]
-  onClose: () => void
-}) {
-  const toast = useToast()
-  const refresh = useRefresh()
-  const sats = [0, 1, 2, 3].map((i) => addDays(nextDow(6), 7 * i))
-  const [konular, setKonular] = useState(topics.map((ad, i) => ({ ad, on: i === 0, custom: false })))
-  const [date, setDate] = useState(sats[0]!)
-  const [slot, setSlot] = useState<string | null>(null)
-  const [yeni, setYeni] = useState('')
-  const [err, setErr] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const busySlots = taken.filter((x) => x.session_date === date).map((x) => x.slot)
-
-  const add = () => {
-    const v = yeni.trim()
-    if (!v) return setErr('Eklemek için önce konu adını yaz.')
-    if (konular.some((k) => k.ad.toLocaleLowerCase('tr') === v.toLocaleLowerCase('tr'))) return setErr('Bu konu zaten listede.')
-    setErr(null)
-    setKonular([...konular, { ad: v, on: true, custom: true }])
-    setYeni('')
-  }
-  const save = async () => {
-    const ks = konular.filter((k) => k.on).map((k) => k.ad)
-    if (!ks.length) return setErr('En az bir konu seç.')
-    if (!slot) return setErr('Bir saat seç.')
-    setBusy(true)
-    const { data: u } = await supabase.auth.getUser()
-    const { data: me } = await supabase.from('profiles').select('school_id').eq('id', u.user!.id).single()
-    const { error } = await supabase.from('study_sessions').insert({ school_id: me!.school_id, class_name: cls, subject, topics: ks, session_date: date, slot, created_by: u.user!.id })
-    setBusy(false)
-    if (error) return setErr(error.code === '23505' ? 'Bu saat dolu.' : error.message)
-    toast('Etüt planlandı · şubeye bildirim gitti')
-    refresh('study_sessions')
-    onClose()
-  }
-
-  return (
-    <Modal
-      title="Etüt planla"
-      sub={`${cls} · ${SUBJECT_SHORT[subject] ?? subject}`}
-      onClose={onClose}
-      footer={
-        <>
-          <button className="btn" onClick={onClose}>
-            Vazgeç
-          </button>
-          <button className="btn gold" disabled={busy} onClick={save}>
-            Planla ve bildir
-          </button>
-        </>
-      }
-    >
-      <div className="stack" style={{ gap: 6 }}>
-        <span className="label">Konular</span>
-        <div className="pick" role="group" aria-label="Konular">
-          {konular.map((k, i) => (
-            <button type="button" key={k.ad} aria-pressed={k.on} onClick={() => setKonular(konular.map((x, j) => (j === i ? { ...x, on: !x.on } : x)))}>
-              <span className={`box ${k.on ? 'on' : ''}`}>{k.on && <Icon name="check" size={13} stroke={3} />}</span>
-              <span style={{ flex: 1 }}>{k.ad}</span>
-              {k.custom && <span className="chip n">Eklendi</span>}
-            </button>
-          ))}
-        </div>
-        <div className="kv" style={{ alignItems: 'flex-end' }}>
-          <label className="field" htmlFor="etNew" style={{ flex: 1 }}>
-            Başka konu ekle
-            <input id="etNew" value={yeni} onChange={(e) => setYeni(e.target.value)} placeholder="Örn. Karışık deneme çözümü" onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), add())} />
-          </label>
-          <button type="button" className="btn soft" onClick={add}>
-            <Icon name="plus" size={16} stroke={2.4} />
-            Konu ekle
-          </button>
-        </div>
-      </div>
-      <label className="field" htmlFor="etDate">
-        Cumartesi
-        <select id="etDate" value={date} onChange={(e) => (setDate(e.target.value), setSlot(null))}>
-          {sats.map((d) => (
-            <option key={d} value={d}>
-              {trDW(d)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div className="stack" style={{ gap: 6 }}>
-        <span className="label">Saat (1 saatlik)</span>
-        <div className="btns" role="group" aria-label="Saat">
-          {SLOTS.map(([k, l]) => {
-            const full = busySlots.includes(k)
-            return (
-              <button key={k} type="button" className={`btn ${slot === k ? 'soft' : ''}`} aria-pressed={slot === k} disabled={full} title={full ? 'Bu saat dolu' : undefined} onClick={() => setSlot(k)}>
-                {l}
-                {full ? ' · dolu' : ''}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-      {err && (
-        <div className="err" role="alert">
-          {err}
-        </div>
-      )}
     </Modal>
   )
 }

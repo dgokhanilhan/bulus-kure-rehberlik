@@ -33,6 +33,7 @@ import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { useNavigate } from 'react-router-dom'
 import { DevamsizlikTab } from '@/components/Devamsizlik'
 import HedefTab from '@/components/HedefTab'
+import { EtutTab } from '@/components/EtutTab'
 import { useExamContext } from '@/lib/sinavBaglami'
 
 const TABS = [
@@ -45,6 +46,7 @@ const TABS = [
   ['raporlar', 'Raporlar'],
   ['devamsizlik', 'Devamsızlık'],
   ['hedef', 'Hedef'],
+  ['etut', 'Etüt'],
 ] as const
 type Tab = (typeof TABS)[number][0]
 
@@ -247,7 +249,7 @@ export default function OgrenciPage() {
 
       <div className="tabs a" style={{ ['--d' as string]: 3 }} role="tablist" aria-label="Öğrenci dosyası" ref={tabs.ref}>
         {tabs.ind}
-        {TABS.filter(([id]) => (id !== 'devamsizlik' || mods.yoklama) && (id !== 'raporlar' || F || ayar.bool('ogretmen.rapor_gorme')) && (id !== 'hedef' || [8, 11, 12].includes(sGrade ?? 0))).map(([id, l]) => (
+        {TABS.filter(([id]) => (id !== 'devamsizlik' || mods.yoklama) && (id !== 'raporlar' || F || ayar.bool('ogretmen.rapor_gorme')) && (id !== 'hedef' || [8, 11, 12].includes(sGrade ?? 0)) && (id !== 'etut' || mods.etut)).map(([id, l]) => (
           <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
             {l}
           </button>
@@ -491,6 +493,16 @@ export default function OgrenciPage() {
       {tab === 'notlar' && <NotesTab sid={s.id} F={F} />}
       {tab === 'devamsizlik' && <DevamsizlikTab s={s} />}
       {tab === 'hedef' && <HedefTab sid={s.id} grade={sGrade} />}
+      {tab === 'etut' && mods.etut && (
+        <EtutTab
+          sid={s.id}
+          ad={s.full_name}
+          className={s.class_name}
+          grade={sGrade}
+          planlar={F}
+          konular={(calc?.weaknesses ?? []).map((r) => ({ code: r.outcome.code, title: r.outcome.title, wrongByExam: [] }))}
+        />
+      )}
       {tab === 'raporlar' && <ReportsTab sid={s.id} examName={(eid) => ds.exams.find((e) => e.id === eid)?.name ?? ''} />}
 
       {modal?.t === 'task' && (
