@@ -28,10 +28,17 @@ export function csvSatirlar(text: string): string[][] {
   return rows
 }
 
-export async function excelOku(file: File): Promise<HamTablo> {
+/** Excel'in sayfa adları (her Cumartesi ayrı sayfa olabilir); CSV için boş. */
+export async function excelSayfalari(file: File): Promise<string[]> {
+  if (!/\.xlsx$/i.test(file.name)) return []
+  const { readSheetNames } = await import('read-excel-file')
+  return readSheetNames(file)
+}
+
+export async function excelOku(file: File, sayfa?: string): Promise<HamTablo> {
   if (/\.xlsx$/i.test(file.name)) {
     const { default: readXlsxFile } = await import('read-excel-file')
-    const rows = await readXlsxFile(file)
+    const rows = await readXlsxFile(file, sayfa ? { sheet: sayfa } : undefined)
     return tabloSatirlardan(rows.map((r) => r.map((c) => (c === null || c === undefined ? '' : String(c)))))
   }
   return tabloSatirlardan(csvSatirlar(await file.text()))

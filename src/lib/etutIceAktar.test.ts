@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hucreCoz, ogrenciEsle, ogretmenEsle, saatAraligi, tabloKelimelerden, tabloSatirlardan, type Kelime } from './etutIceAktar'
+import { hucreCoz, hucreHazirla, ogrenciEsle, ogretmenEsle, saatAraligi, sayfaSec, sayfaTarihi, tabloKelimelerden, tabloSatirlardan, type Kelime } from './etutIceAktar'
 
 const OGR = [
   { id: 'elif10', full_name: 'Elif Kaya', class_name: '10/A' },
@@ -115,4 +115,85 @@ it('OCR gürültüsüyle gelen meşgul sözcüğü meşgul sayılır', () => {
   expect(hucreCoz('voleybol aa ıı ıı e')).toMatchObject({ tur: 'mesgul', aciklama: 'voleybol' })
   expect(hucreCoz('izinli ————— —')).toMatchObject({ tur: 'mesgul', aciklama: 'izinli' })
   expect(hucreCoz('Yankı 6A (Cuma günü okulda değildi)').tur).toBe('etut')
+})
+
+describe('lise Excel biçimi (alan, satır sonu, tüm sınıf)', () => {
+  const L = [
+    { id: 'a1', full_name: 'Ada Kurt', class_name: '11/A · SAY' },
+    { id: 'a2', full_name: 'Can Ayaz Er', class_name: '11/B · EA' },
+    { id: 'a3', full_name: 'Uğur Tan', class_name: '11/B · EA' },
+    { id: 'a4', full_name: 'Barış Ak', class_name: '11/B · EA' },
+    { id: 'a5', full_name: 'Deniz Ay', class_name: '12/A · SAY' },
+    { id: 'a6', full_name: 'Ece Bal', class_name: '12/A · SAY' },
+    { id: 'a7', full_name: 'Ayaz Kılıç', class_name: '10/A' },
+    { id: 'a8', full_name: 'Ali Mert Can', class_name: '11/B · EA' },
+    { id: 'a9', full_name: 'Veli Mert Su', class_name: '11/B · EA' },
+  ]
+  it('alanlı sınıf adları: 12-SAY, 11-EA, 12 SAY A, 11-A Sınıfı', () => {
+    expect(hucreCoz('12-SAY').sinif).toEqual([{ grade: 12, sube: null, alan: 'SAY' }])
+    expect(hucreCoz('12 SAY A').sinif).toEqual([{ grade: 12, sube: 'A', alan: 'SAY' }])
+    expect(hucreCoz('12-SAY').adlar).toEqual([])
+    const h = hucreCoz('11-A Sınıfı\n(Newton, Dinamikler)')
+    expect(h).toMatchObject({ tur: 'etut', adlar: [], konu: 'Newton, Dinamikler', sinif: [{ grade: 11, sube: 'A' }] })
+    expect(hucreCoz('11-EA\nUğur, Ayaz, Barış\n(Paralelkenar)')).toMatchObject({ adlar: ['Uğur', 'Ayaz', 'Barış'], konu: 'Paralelkenar', sinif: [{ grade: 11, alan: 'EA' }] })
+    expect(hucreCoz('9-A Sınıfı\n(Son Ünite Genel Tekrar-\nSoru Çözümü)').konu).toBe('Son Ünite Genel Tekrar- Soru Çözümü')
+  })
+  it('hücredeki satır sonu öğrenci ayırır; baş harften sonra boşluk unutulmuş ad ayrılır', () => {
+    expect(hucreCoz('10A\nDoruk\nBerat').adlar).toEqual(['Doruk', 'Berat'])
+    expect(hucreCoz('10B\nUlaş Can\nKıvanç').adlar).toEqual(['Ulaş Can', 'Kıvanç'])
+    expect(hucreCoz('9A Çınar D.Toprak').adlar).toEqual(['Çınar D.', 'Toprak'])
+  })
+  it('ikinci adla eşleşme yazılan sınıfın içinde, başka sınıftaki ilk addan önce', () => {
+    const ip = hucreCoz('11-EA Ayaz').sinif
+    expect(ogrenciEsle('Ayaz', ip, L)).toEqual({ durum: 'eslesti', id: 'a2' })
+    expect(ogrenciEsle('Ayaz', [], L)).toEqual({ durum: 'eslesti', id: 'a7' })
+    expect(ogrenciEsle('Mert', ip, L)).toEqual({ durum: 'belirsiz', secenekler: ['a8', 'a9'] })
+  })
+  it('yalnız sınıf yazılı hücre: sınıfın tamamı; öğrenci adı olmayan sözcük konuya gider', () => {
+    expect(hucreHazirla(hucreCoz('12-SAY'), L)).toMatchObject({ adlar: [], siniflar: [{ ad: '12/A · SAY', ids: ['a5', 'a6'], on: true }] })
+    expect(hucreHazirla(hucreCoz('11-A\nSoru Çözümü'), L)).toMatchObject({ konu: 'Soru Çözümü', adlar: [], siniflar: [{ ad: '11/A · SAY', ids: ['a1'] }] })
+    const h = hucreHazirla(hucreCoz('11-EA\nUğur, Ayaz\n(Osmanlı)'), L)
+    expect(h.adlar.map((a) => a.secim)).toEqual(['a3', 'a2'])
+    expect(h.siniflar).toEqual([])
+  })
+  it('kademe adı ve okul etkinlikleri meşgul sayılır', () => {
+    for (const t of ['ORTAOKUL', 'İLKOKUL', 'TİYATRO SAATİ\n(9A Yiğit, 10A Ela)', 'VELİ SEMİNERİ', 'ORTAOKUL ŞÖK TOPLANTISI', 'ANKARA ÜNİVERSİTE GEZİSİNDE'])
+      expect(hucreCoz(t).tur, t).toBe('mesgul')
+    expect(hucreCoz('Karışık deneme çözümü').tur).toBe('etut')
+  })
+  it('öğretmen: soyad / ikinci ad, Hanım-Bey, parantezli branş; tek harf farklı yalnız aday', () => {
+    const T = [
+      { id: 'e', name: 'Ece Özveren Çetin' },
+      { id: 'm', name: 'Mustafa Eren Özhan' },
+      { id: 's', name: 'Sıla Bozkurt' },
+    ]
+    expect(ogretmenEsle('ECEM HOCA', [{ id: 'x', name: 'Ecem özveren çetin' }]).id).toBe('x')
+    expect(ogretmenEsle('ÖZVEREN HOCA', T).id).toBe('e')
+    expect(ogretmenEsle('EREN HOCA', T).id).toBe('m')
+    expect(ogretmenEsle('Sıla Hanım (İngilizce)', T).id).toBe('s')
+    expect(ogretmenEsle('SİLA  HOCA', T).id).toBe('s')
+    expect(ogretmenEsle('MUSTAFE HOCA', T)).toEqual({ id: null, secenekler: ['m'] })
+    expect(ogretmenEsle('EMRE HOCA', T)).toEqual({ id: null, secenekler: [] })
+  })
+  it('Excel sayfası: programın tarihine uyan sayfa, yoksa en son sayfa; başlık ve satır sonu korunur', () => {
+    const ss = ['30 EYLÜL', '4KASIM', '17 EKİM', '24 EKİM', 'Sayfa1']
+    expect(sayfaSec(ss, '2026-10-24')).toBe('24 EKİM')
+    expect(sayfaSec(ss, '2026-11-04')).toBe('4KASIM')
+    expect(sayfaSec(ss, '2026-12-05')).toBe('Sayfa1')
+    expect(sayfaTarihi('TARİH: 24 EKİM C.TESİ')).toEqual({ gun: 24, ay: 10 })
+    const t = tabloSatirlardan([
+      ['TARİH: 24 EKİM C.TESİ', 'TARİH: 24 EKİM C.TESİ'],
+      ['LİSE  DERS TELAFİSİ PROGRAMI '],
+      ['ÖĞRETMEN ', null, '09:20-10:00', '10:10-10:50', '11:00-11:40', '11:50-12:30', '12:40-13:20'],
+      ['ÖZLEM HOCA', null, '10-A\nElif,  Beril', '', '', '9-A', '9-A'],
+    ])
+    expect(t.baslik).toBe('TARİH: 24 EKİM C.TESİ · LİSE DERS TELAFİSİ PROGRAMI')
+    expect(t.satirlar[0]).toEqual({ ogretmen: 'ÖZLEM', hucreler: ['10-A\nElif, Beril', '', '', '9-A', '9-A'] })
+  })
+})
+
+it('yalnız kısa sınıf adı ("9-A", "8B") boş sayılmaz: sınıfın tamamı', () => {
+  expect(hucreCoz('9-A')).toMatchObject({ tur: 'etut', sinif: [{ grade: 9, sube: 'A' }], adlar: [] })
+  expect(hucreCoz('8B').tur).toBe('etut')
+  expect(hucreCoz('rf').tur).toBe('bos')
 })

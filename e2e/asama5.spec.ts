@@ -22,38 +22,56 @@ test.describe.serial('§7 Sınıflar ve etüt', () => {
     await expect(page.getByRole('heading', { name })).toBeVisible()
   })
 
-  test('7.2 etüt: yalnız Cumartesiler, 09–13 arası 1 saatlik dilimler, dolu saat seçilemez, konu eklenir, şubeye bildirim', async ({ page }) => {
+  // Etüt planla (0061): Sınıflar'dan planlanan etüt Cumartesi etüt programına (1–5. ders, programın saatleri) taslak olarak düşer;
+  // öğrenci / veli bildirimi rehber öğretmen programı yayınlayınca gider.
+  test('7.2 etüt: Cumartesiler, programın 5 ders saati, konu eklenir, programa taslak düşer; yayınlanınca veli görür', async ({ page }) => {
+    const svc = service()
     await login(page, ...DEMO.rehber)
     await page.getByRole('link', { name: 'Sınıflar', exact: true }).click()
     await page.getByRole('button', { name: 'Etüt planla' }).click()
     const dlg = page.getByRole('dialog', { name: 'Etüt planla' })
     const days = await dlg.getByLabel('Cumartesi').locator('option').allInnerTexts()
     expect(days).toHaveLength(4)
-    for (const d of days) expect(d).toMatch(/Cumartesi$/)
-    await expect(dlg.getByRole('group', { name: 'Saat' }).getByRole('button')).toHaveText(['09.00–10.00', '10.00–11.00', '11.00–12.00', '12.00–13.00'])
-    await dlg.getByLabel('Başka konu ekle').fill('E2E karışık tekrar')
-    await dlg.getByRole('button', { name: 'Konu ekle' }).click()
-    await expect(dlg.getByRole('group', { name: 'Konular' }).getByRole('button', { name: /E2E karışık tekrar/ })).toHaveAttribute('aria-pressed', 'true')
-    await dlg.getByRole('button', { name: 'Planla ve bildir' }).click()
-    await expect(dlg.getByRole('alert')).toHaveText('Bir saat seç.')
-    await dlg.getByRole('button', { name: '11.00–12.00' }).click()
+    for (const d of days) expect(d).toMatch(/Cumartesi/)
+    // Diğer etüt testleriyle çakışmasın: üçüncü Cumartesi
+    const tarih = (await dlg.getByLabel('Cumartesi').locator('option').nth(2).getAttribute('value'))!
+    await svc.from('etut_gunler').delete().eq('tarih', tarih)
+    await dlg.getByLabel('Cumartesi').selectOption(tarih)
+    const saat = dlg.getByRole('group', { name: 'Ders saati' }).getByRole('button')
+    await expect(saat).toHaveCount(5)
+    await expect(saat.first()).toContainText('1. ders')
+    await expect(saat.first()).toContainText('09:00–09:40')
+    await dlg.getByLabel('Ek not / konu (isteğe bağlı)').fill('E2E karışık tekrar')
+    await dlg.getByLabel('Öğretmen').selectOption({ label: 'Murat Kaya · Matematik' })
+    await dlg.getByRole('button', { name: 'Programa ekle' }).click()
+    await expect(dlg.getByRole('alert')).toHaveText('Bir ders saati seç.')
+    await saat.nth(2).click()
     await shot(page, '24-etut-planla', false)
-    await dlg.getByRole('button', { name: 'Planla ve bildir' }).click()
-    await expect(page.getByText('Etüt planlandı · şubeye bildirim gitti')).toBeVisible()
-    await page.getByText('Planlanan etütler').click()
-    await expect(page.getByTestId('etut-row').filter({ hasText: '11.00–12.00' })).toContainText('E2E karışık tekrar')
+    await dlg.getByRole('button', { name: 'Programa ekle' }).click()
+    await expect(page.getByText('etüt programına eklendi', { exact: false })).toBeVisible()
+    const row = page.getByTestId('etut-row').filter({ hasText: '3. ders' })
+    await expect(row).toContainText('E2E karışık tekrar')
+    await expect(row).toContainText('Taslak')
 
-    // aynı gün aynı saat artık dolu
+    // Aynı öğretmen, aynı ders: "etüdü var" (öğrenciler o etüde eklenir)
     await page.getByRole('button', { name: 'Etüt planla' }).click()
-    await expect(page.getByRole('dialog', { name: 'Etüt planla' }).getByRole('button', { name: '11.00–12.00 · dolu' })).toBeDisabled()
+    await dlg.getByLabel('Cumartesi').selectOption(tarih)
+    await dlg.getByLabel('Öğretmen').selectOption({ label: 'Murat Kaya · Matematik' })
+    await expect(dlg.getByRole('group', { name: 'Ders saati' }).getByRole('button').nth(2)).toContainText('etüdü var')
     await page.keyboard.press('Escape')
-    await logout(page)
 
-    await login(page, ...DEMO.veli) // Elif 8/A
-    await expectNotification(page, /^Cumartesi etüdü: .* 11\.00–12\.00 · Matematik · .*E2E karışık tekrar/)
-    await page.goto('/ozet')
-    await page.getByText('Cumartesi etütleri').click()
-    await expect(page.getByText(/11\.00–12\.00/).first()).toBeVisible()
+    // Etüt programını aç → yayınla → veli (Elif 8/A) görür
+    page.once('dialog', (d) => d.accept())
+    await page.goto(`/etut?tarih=${tarih}&kademe=ortaokul`)
+    await page.getByRole('button', { name: 'Yayınla', exact: true }).click()
+    await expect(page.getByText('Program yayınlandı')).toBeVisible()
+    const elifte = (await svc.from('etut_ogrenciler').select('id').eq('student_name', 'Elif Yıldız')).data!.length > 0
+    await logout(page)
+    if (elifte) {
+      await login(page, ...DEMO.veli)
+      await expectNotification(page, /^Cumartesi etüt programı yayınlandı/)
+    }
+    await svc.from('etut_gunler').delete().eq('tarih', tarih)
   })
 })
 

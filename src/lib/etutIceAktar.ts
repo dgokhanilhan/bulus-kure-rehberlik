@@ -11,6 +11,8 @@ export interface Kelime {
 }
 export interface HamTablo {
   saatler: Saat[] | null
+  /** Excel'de tablonun üstündeki başlık (tarih, kademe) */
+  baslik?: string
   satirlar: { ogretmen: string; hucreler: string[] }[] // 5 hücre
 }
 
@@ -171,6 +173,14 @@ export function tabloKelimelerden(ws: Kelime[], ogretmenIlkAdlar: Set<string>): 
 /** Excel / CSV satırlarından tablo: "Öğretmen" başlıklı satır, ardından 5 ders sütunu. */
 export function tabloSatirlardan(rows: (string | number | null | undefined)[][]): HamTablo {
   const str = (v: unknown) => (v === null || v === undefined ? '' : String(v)).replace(/\s+/g, ' ').trim()
+  // Hücre metninde satır sonları korunur (öğrenci ayırıcısı); satır içi boşluklar sadeleşir
+  const hucre = (v: unknown) =>
+    (v === null || v === undefined ? '' : String(v))
+      .replace(/\r/g, '')
+      .split('\n')
+      .map((x) => x.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .join('\n')
   const bi = rows.findIndex((r) => r.some((c) => /^(ogretmen|öğretmen)/.test(katla(str(c)))))
   if (bi < 0) throw new Error('"Öğretmen" başlıklı satır bulunamadı.')
   const head = rows[bi]!.map(str)
@@ -178,12 +188,15 @@ export function tabloSatirlardan(rows: (string | number | null | undefined)[][])
   const cols = head.map((c, i) => ({ c, i })).filter((x) => x.i > oc && x.c).slice(0, 5)
   if (cols.length < 5) throw new Error('5 ders sütunu bulunamadı.')
   const saat = cols.map((x) => saatAraligi(x.c))
+  // Başlık ("TARİH: 24 EKİM C.TESİ", "LİSE DERS TELAFİSİ PROGRAMI"): tarih ve kademe denetimi için
+  const baslik = [...new Set(rows.slice(0, bi).flatMap((r) => r.map(str)).filter(Boolean))].join(' · ')
   return {
     saatler: saat.every(Boolean) ? (saat as Saat[]) : null,
+    baslik: baslik || undefined,
     satirlar: rows
       .slice(bi + 1)
       .filter((r) => str(r[oc]))
-      .map((r) => ({ ogretmen: ogretmenAdi(str(r[oc])), hucreler: cols.map((x) => str(r[x.i])) })),
+      .map((r) => ({ ogretmen: ogretmenAdi(str(r[oc])), hucreler: cols.map((x) => hucre(r[x.i])) })),
   }
 }
 
@@ -191,6 +204,12 @@ export function tabloSatirlardan(rows: (string | number | null | undefined)[][])
 export interface SinifIpucu {
   grade: number
   sube: string | null
+  /** Lise alanı: "12-SAY", "11-EA", "12 SAY A" (sınıf adı "12/A · SAY") */
+  alan?: string
+}
+const ALAN = (s: string) => {
+  const k = katla(s).toUpperCase()
+  return k === 'SOZ' ? 'SOZ' : k === 'DIL' ? 'DIL' : k
 }
 export interface HucreOkuma {
   tur: 'etut' | 'mesgul' | 'bos'
@@ -201,20 +220,30 @@ export interface HucreOkuma {
   sinif: SinifIpucu[]
   ham: string
 }
-const MESGUL = /^(d|izinli|raporlu|voleybol|toplanti|nobet|ders|dolu)$/
+const MESGUL = /^(d|izinli|raporlu|voleybol|toplanti|nobet|ders|dolu|ortaokul|ilkokul|lise|anaokulu)$/
+// Okul etkinliği (öğretmen o saatte başka işte): tiyatro, seminer, gezi, toplantı, dershane
+const ETKINLIK = /(?<![\p{L}])(tiyatro|seminer|seminerı|semineri|gezi|gezisi|gezisinde|toplantisi|dershanesi|sok)(?![\p{L}])/u
 const BUYUK = /^[A-ZÇĞİÖŞÜ]/
 export function hucreCoz(ham: string): HucreOkuma {
   let t = ham
+    .replace(/\r/g, '')
     .replace(/[✓✔√|{}\[\]_~«»]/g, ' ')
     // OCR'ın sınıf adında karıştırdığı rakamlar: "GA" → 6A, "SA" → 5A, "TA" → 7A, "BA" → 8A (yalnız 2 harflik bağımsız parça)
     .replace(/(?<![\p{L}\d])([GSTB])([ABC])(?![\p{L}\d])/gu, (_, d: string, sb: string) => ({ G: '6', S: '5', T: '7', B: '8' })[d]! + sb)
-    .replace(/\s+/g, ' ')
+    // Excel hücresindeki satır sonları korunur (aşağıda ayırıcı olur: "Doruk↵Berat" iki öğrencidir)
+    // "Çınar D.Toprak" → "Çınar D. Toprak" (baş harften sonra boşluk unutulmuş)
+    .replace(/(?<=\p{Lu})\.(?=\p{Lu}\p{Ll})/gu, '. ')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n+/g, '\n')
     .trim()
   const bos: HucreOkuma = { tur: 'bos', konu: '', salon: null, aciklama: null, adlar: [], sinif: [], ham }
   // Boş ya da anlamsız kısa gürültü ("rf", "—") boş sayılır; tek "D" ders/dolu demektir
-  if (!t || /^[-–—.]+$/.test(t) || (t.replace(/[^\p{L}\d]/gu, '').length <= 2 && !/^d$/i.test(t))) return bos
+  // Yalnız sınıf adı ("9-A", "8B", "9/A") kısa olsa da boş değildir: o sınıfın tamamına etüt
+  const tekSinif = /^\d{1,2}\s*[-/.]?\s*[A-HÇ]$/i.test(t)
+  if (!t || /^[-–—.]+$/.test(t) || (t.replace(/[^\p{L}\d]/gu, '').length <= 2 && !/^d$/i.test(t) && !tekSinif)) return bos
   const k = katla(t)
-  if (MESGUL.test(k) || /gozetmen|gozetim/.test(k) || (/sinav/.test(k) && !/[a-zçğıöşü]{3,},/.test(t)))
+  if (MESGUL.test(k) || ETKINLIK.test(k) || /gozetmen|gozetim/.test(k) || (/sinav/.test(k) && !/[a-zçğıöşü]{3,},/.test(t)))
     return { ...bos, tur: 'mesgul', aciklama: t }
   // OCR gürültüsüyle gelen meşgul sözcüğü ("voleybol aa ıı", "izinli ———"): yalnız sözcüğün kendisi alınır
   const ms = k.match(/(?<![\p{L}])(izinli|raporlu|voleybol|toplanti|nobet)(?![\p{L}])/u)
@@ -225,24 +254,47 @@ export function hucreCoz(ham: string): HucreOkuma {
     return ' '
   })
   const konu: string[] = []
+  // Parantez içi konudur (satırlara bölünmüş olabilir: "(Son Ünite Genel Tekrar-↵Soru Çözümü)")
   t = t.replace(/\(([^)]*)\)?/g, (_, x: string) => {
-    if (x.trim()) konu.push(x.trim())
+    const k = x.replace(/\s+/g, ' ').trim()
+    if (k) konu.push(k)
     return ' , '
   })
+  // Satır sonu ayırıcıdır; "Sınıfı / Sınıf" sözcüğü atılır ("11-A Sınıfı")
+  t = t
+    .replace(/\n/g, ' , ')
+    .replace(/(?<![\p{L}])s[ıi]n[ıi]f[ıi]?(?![\p{L}])/giu, ' ')
+    .replace(/\s+/g, ' ')
   const sinif: SinifIpucu[] = []
-  t = t.replace(/(\d{1,2})\s*[-/]?\s*([A-ZÇĞİÖŞÜ]{1,2})(?![a-zçğıöşü])/g, (m, g: string, s: string) => {
-    const grade = Number(g)
-    if (grade < 1 || grade > 12) return m
-    sinif.push({ grade, sube: s.length === 1 ? s : null })
-    return ' , '
-  })
+  // Sınıf: "11-A", "9A", "12/B", lise alanı "12-SAY", "11-EA", "12 SAY A", "11 A EA" (alan + şube sırası serbest)
+  t = t.replace(
+    /(?<!\d)(\d{1,2})\s*[-/.]?\s*(?:(SAY|SÖZ|SOZ|EA|DİL|DIL)(?:\s*[-/]?\s*([A-H]))?|([A-HÇ][A-ZÇĞİÖŞÜ]?)(?:\s*[-/·]?\s*(SAY|SÖZ|SOZ|EA|DİL|DIL))?)(?![\p{L}])/gu,
+    (m, g: string, alan1?: string, sube1?: string, sube2?: string, alan2?: string) => {
+      const grade = Number(g)
+      if (grade < 1 || grade > 12) return m
+      const sube = sube1 ?? sube2 ?? null
+      const alan = alan1 ?? alan2
+      sinif.push({ grade, sube: sube && sube.length === 1 ? sube : null, ...(alan ? { alan: ALAN(alan) } : {}) })
+      return ' , '
+    },
+  )
   const adlar: string[] = []
   for (const parca of t.split(/[,;/]|\s[-–]\s?|[-–](?=\s*[A-ZÇĞİÖŞÜ])/)) {
     const w = parca.trim().split(/\s+/).filter(Boolean)
     if (!w.length) continue
-    const n: string[] = []
-    while (n.length < 3 && w.length && BUYUK.test(w[0]!) && w[0]!.replace(/\./g, '').length >= 1) n.push(w.shift()!)
+    let n: string[] = []
+    let bitti = false
+    while (n.length < 3 && w.length && BUYUK.test(w[0]!) && w[0]!.replace(/\./g, '').length >= 1) {
+      n.push(w.shift()!)
+      // Soyadın baş harfi ("Çınar D.") adı bitirir: ardından gelen büyük harfli sözcük yeni öğrencidir ("Çınar D. Toprak")
+      if (n.length > 1 && /^\p{Lu}\.$/u.test(n.at(-1)!) && w.length && BUYUK.test(w[0]!)) {
+        adlar.push(n.join(' '))
+        n = []
+        bitti = true
+      }
+    }
     if (n.length) adlar.push(n.join(' '))
+    else if (bitti && !w.length) continue
     if (w.length) konu.push(w.join(' '))
   }
   return { tur: 'etut', konu: konu.join(', ').replace(/\s+/g, ' ').trim(), salon, aciklama: null, adlar, sinif, ham }
@@ -256,11 +308,18 @@ export interface OgrenciLite {
   grade?: number | null
 }
 export type Esleme = { durum: 'eslesti'; id: string } | { durum: 'belirsiz'; secenekler: string[] } | { durum: 'yok' }
-const sinifUyar = (s: OgrenciLite, ip: SinifIpucu[]) => {
-  if (!ip.length) return true
-  const [g, sb] = s.class_name.split('/')
-  return ip.some((x) => Number(g) === x.grade && (!x.sube || katla(sb ?? '').startsWith(katla(x.sube))))
+/** Sınıf adı "12/A · SAY" → { grade: 12, sube: 'a', alan: 'SAY' } */
+export function sinifParca(ad: string): { grade: number; sube: string; alan: string | null } {
+  const [g, rest = ''] = ad.split('/')
+  const [sb = '', al] = rest.split('·').map((x) => x.trim())
+  return { grade: Number(g), sube: katla(sb), alan: al ? ALAN(al) : null }
 }
+/** Sınıf adı ipuçlarından birine uyuyor mu: sınıf düzeyi + (şube ve/veya alan) */
+export const sinifIpucunaUyar = (className: string, ip: SinifIpucu[]) => {
+  const c = sinifParca(className)
+  return ip.some((x) => c.grade === x.grade && (!x.sube || c.sube.startsWith(katla(x.sube))) && (!x.alan || c.alan === x.alan))
+}
+const sinifUyar = (s: OgrenciLite, ip: SinifIpucu[]) => !ip.length || sinifIpucunaUyar(s.class_name, ip)
 /** Ad (ör. "Elif", "Çınar Ç.", "Durdu Mert") → öğrenci. Önce sınıf ipucuyla, bulunamazsa kademede. */
 /** İki sözcük arasında en fazla tek harf (değişme/ekleme/silme) farkı var mı */
 function fark1(a: string, b: string): boolean {
@@ -275,31 +334,133 @@ export function ogrenciEsle(ad: string, ipucu: SinifIpucu[], ogrenciler: Ogrenci
   const ilk = katla(p[0] ?? '')
   const ikinci = p[1] ? katla(p[1].replace(/\./g, '')) : ''
   const bas = p[1]?.endsWith('.') || (p[1]?.length ?? 0) === 1
-  const uy = (s: OgrenciLite, yakin = false) => {
+  // Kademeler: 'ilk' = ilk ad; 'ad' = ikinci / üçüncü ad ("Ayaz" → Batın Ayaz Dal; yalnız sınıf ipucu varken, sınıf içinde);
+  // 'yakin' = tek harf farklı (OCR / yazım hatası; hiçbir zaman kendiliğinden seçilmez)
+  type Kademe = 'ilk' | 'ad' | 'yakin'
+  const uy = (s: OgrenciLite, k: Kademe) => {
     const w = katla(s.full_name).split(/\s+/)
-    if (w[0] !== ilk && !(yakin && ilk.length >= 4 && fark1(w[0]!, ilk))) return false
+    const adlar = w.length > 2 ? w.slice(0, -1) : w.slice(0, 1) // soyad hariç bütün adlar
+    const ilkUyar = k === 'ilk' ? w[0] === ilk : k === 'ad' ? adlar.slice(1).includes(ilk) : ilk.length >= 4 && adlar.some((x) => fark1(x, ilk))
+    if (!ilkUyar) return false
     if (!ikinci) return true
     if (bas) return w.slice(1).some((x) => x.startsWith(ikinci))
-    return w[1] === ikinci || w.at(-1) === ikinci
+    return w.slice(1).includes(ikinci)
   }
-  for (const yakin of [false, true])
-    for (const havuz of [ogrenciler.filter((s) => sinifUyar(s, ipucu)), ipucu.length ? ogrenciler : []]) {
-      const m = havuz.filter((s) => uy(s, yakin))
-      // Yakın (tek harf farklı) eşleşme hiçbir zaman kendiliğinden seçilmez: kullanıcıya sorulur
-      if (m.length === 1 && !yakin) return { durum: 'eslesti', id: m[0]!.id }
-      if (m.length) return { durum: 'belirsiz', secenekler: m.map((s) => s.id) }
-    }
+  const sinifta = ogrenciler.filter((s) => sinifUyar(s, ipucu))
+  // Sıra: önce yazılan sınıfın içinde (ilk ad, sonra diğer adlar), sonra bütün kademede; en son tek harf farklılar
+  const adimlar: [Kademe, OgrenciLite[]][] = ipucu.length
+    ? [['ilk', sinifta], ['ad', sinifta], ['ilk', ogrenciler], ['yakin', sinifta], ['yakin', ogrenciler]]
+    : [['ilk', ogrenciler], ['yakin', ogrenciler]]
+  for (const [k, havuz] of adimlar) {
+    const m = havuz.filter((s) => uy(s, k))
+    if (m.length === 1 && k !== 'yakin') return { durum: 'eslesti', id: m[0]!.id }
+    if (m.length) return { durum: 'belirsiz', secenekler: m.map((s) => s.id) }
+  }
   return { durum: 'yok' }
 }
 
+/** Öğretmen satır adı: "ECEM HOCA", "Ecem Öğretmen", "Ecem Hanım", "Ecem Ö. (Tarih)", "ÖZVEREN HOCA" → öğretmen.
+ *  Sıra: tam ad → ilk ad → başka bir ad / soyad → tek harf farklı (yalnız aday olarak sorulur). Kademede olan önce. */
 export function ogretmenEsle(ad: string, ogretmenler: { id: string; name: string }[], kademede?: Set<string>): { id: string | null; secenekler: string[] } {
-  const temiz = katla(ogretmenAdi(ad))
+  const temiz = katla(
+    ogretmenAdi(ad)
+      .replace(/\([^)]*\)?/g, ' ')
+      .replace(/(?<![\p{L}])(hanim|hanım|bey|bay|bayan|hn|öğr|ogr|hoca|öğt|ogt)\.?(?![\p{L}])/giu, ' '),
+  )
+    .replace(/[^\p{L}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
   if (!temiz) return { id: null, secenekler: [] }
-  const tam = ogretmenler.filter((t) => katla(t.name) === temiz)
+  const ws = (t: { name: string }) => katla(t.name).replace(/[^\p{L}\s]/gu, ' ').split(/\s+/).filter(Boolean)
+  const tam = ogretmenler.filter((t) => ws(t).join(' ') === temiz)
   if (tam.length === 1) return { id: tam[0]!.id, secenekler: [] }
-  const ilk = temiz.split(' ')[0]!
-  const aday = ogretmenler.filter((t) => katla(t.name).split(' ')[0] === ilk)
-  const kad = kademede ? aday.filter((t) => kademede.has(t.id)) : aday
-  const s = kad.length ? kad : aday
-  return s.length === 1 ? { id: s[0]!.id, secenekler: [] } : { id: null, secenekler: s.map((t) => t.id) }
+  const [ilk, ...diger] = temiz.split(' ')
+  const sec = (aday: typeof ogretmenler, kendiliginden = true) => {
+    const kad = kademede ? aday.filter((t) => kademede.has(t.id)) : aday
+    const s = kad.length ? kad : aday
+    return s.length === 1 && kendiliginden ? { id: s[0]!.id, secenekler: [] } : { id: null, secenekler: s.map((t) => t.id) }
+  }
+  // İlk ad (ikinci sözcük de yazılmışsa onunla daraltılır: "Sıla B.")
+  let aday = ogretmenler.filter((t) => ws(t)[0] === ilk)
+  if (aday.length > 1 && diger[0]) {
+    const d = diger[0].replace(/\.$/, '')
+    const dar = aday.filter((t) => ws(t).slice(1).some((x) => x.startsWith(d)))
+    if (dar.length) aday = dar
+  }
+  if (aday.length) return sec(aday)
+  // Başka bir ad ya da soyad ("EREN HOCA" → Mustafa Eren Özhan, "ÖZVEREN HOCA" → Ecem Özveren Çetin)
+  aday = ogretmenler.filter((t) => ws(t).slice(1).includes(ilk!))
+  if (aday.length) return sec(aday)
+  // Tek harf farklı (yazım hatası): yalnız aday olarak gösterilir
+  aday = ilk!.length >= 4 ? ogretmenler.filter((t) => ws(t).some((x) => fark1(x, ilk!))) : []
+  return aday.length ? sec(aday, false) : { id: null, secenekler: [] }
+}
+
+/** Excel sayfa adı / başlık tarihi: "24 EKİM", "4KASIM", "TARİH: 24 EKİM C.TESİ" → { gun, ay } */
+const AYLAR = ['ocak', 'subat', 'mart', 'nisan', 'mayis', 'haziran', 'temmuz', 'agustos', 'eylul', 'ekim', 'kasim', 'aralik']
+export function sayfaTarihi(s: string): { gun: number; ay: number } | null {
+  const m = katla(s).match(/(\d{1,2})\s*\.?\s*(ocak|subat|mart|nisan|mayis|haziran|temmuz|agustos|eylul|ekim|kasim|aralik)/)
+  return m ? { gun: Number(m[1]), ay: AYLAR.indexOf(m[2]!) + 1 } : null
+}
+/** Programın tarihine (YYYY-MM-DD) uyan sayfa; yoksa en son sayfa */
+export function sayfaSec(adlar: string[], tarih?: string): string | undefined {
+  if (!adlar.length) return undefined
+  if (tarih) {
+    const [, a, g] = tarih.split('-').map(Number)
+    const uy = adlar.filter((x) => {
+      const t = sayfaTarihi(x)
+      return t && t.gun === g && t.ay === a
+    })
+    if (uy.length) return uy.at(-1)
+  }
+  return adlar.at(-1)
+}
+
+// ---------- Önizleme hazırlığı (hücre → öğrenciler, konu) ----------
+export interface AdSecim {
+  ad: string
+  secim: string // student id, '' = yok say
+  secenekler: string[]
+  durum: 'eslesti' | 'belirsiz' | 'yok'
+}
+export interface SinifGrubu {
+  ad: string // sınıf adı ("12/A · SAY")
+  ids: string[]
+  on: boolean
+}
+export interface HucreHazir {
+  konu: string
+  adlar: AdSecim[]
+  /** Hücrede yalnız sınıf yazıyorsa ("12-SAY", "9-A Sınıfı") o sınıfın bütün öğrencileri */
+  siniflar: SinifGrubu[]
+}
+/**
+ * Okunan hücreyi öğrencilere bağlar. Okulda öğrenci adı olmayan sözcükler ("Soru Çözümü", "Dünya", "Paragraf") konuya gider.
+ * Sınıf yazılı ama ad yoksa (ya da bütün "adlar" konu çıktıysa) o sınıfın tamamı önerilir.
+ */
+export function hucreHazirla(okuma: HucreOkuma, ogrenciler: OgrenciLite[]): HucreHazir {
+  const adSozleri = new Set(
+    ogrenciler.flatMap((s) => {
+      const w = katla(s.full_name).split(/\s+/)
+      return w.length > 2 ? w.slice(0, -1) : w.slice(0, 1)
+    }),
+  )
+  const konuAdlar: string[] = []
+  const adlar: AdSecim[] = []
+  for (const ad of okuma.adlar) {
+    const e = ogrenciEsle(ad, okuma.sinif, ogrenciler)
+    if (e.durum === 'yok' && !adSozleri.has(katla(ad).split(' ')[0]!)) {
+      konuAdlar.push(ad) // yazıldığı sırayla
+      continue
+    }
+    adlar.push({ ad, durum: e.durum, secim: e.durum === 'eslesti' ? e.id : '', secenekler: e.durum === 'belirsiz' ? e.secenekler : [] })
+  }
+  const konu = [...konuAdlar, okuma.konu].filter(Boolean).join(' ').replace(/\s+,/g, ',').replace(/\s+/g, ' ').trim()
+  const siniflar: SinifGrubu[] = []
+  if (okuma.tur === 'etut' && !adlar.length && okuma.sinif.length) {
+    const by = new Map<string, string[]>()
+    for (const s of ogrenciler) if (sinifIpucunaUyar(s.class_name, okuma.sinif)) by.set(s.class_name, [...(by.get(s.class_name) ?? []), s.id])
+    for (const [ad, ids] of [...by].sort((a, b) => a[0].localeCompare(b[0], 'tr'))) siniflar.push({ ad, ids, on: true })
+  }
+  return { konu, adlar, siniflar }
 }

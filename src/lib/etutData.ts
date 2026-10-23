@@ -53,7 +53,7 @@ export interface EtutKayit {
   student_id: string
   yoklama: 'geldi' | 'gelmedi' | null
   etut_hucreler: { teacher_name: string; konu: string | null; salon: string | null } | null
-  etut_gunler: { tarih: string; saatler: Saat[]; kademe: Kademe } | null
+  etut_gunler: { tarih: string; saatler: Saat[]; kademe: Kademe; durum?: 'taslak' | 'yayinda' } | null
 }
 
 const ok = <T>(r: { data: unknown; error: { message: string } | null }) => {
@@ -99,7 +99,7 @@ export function useEtutOgrenci(studentId: string | null | undefined, enabled = t
       ok<EtutKayit[]>(
         await supabase
           .from('etut_ogrenciler')
-          .select('id, ders, student_id, yoklama, etut_hucreler(teacher_name, konu, salon), etut_gunler(tarih, saatler, kademe)')
+          .select('id, ders, student_id, yoklama, etut_hucreler(teacher_name, konu, salon), etut_gunler(tarih, saatler, kademe, durum)')
           .eq('student_id', studentId!),
       ).sort((a, b) => (a.etut_gunler?.tarih ?? '').localeCompare(b.etut_gunler?.tarih ?? '') || a.ders - b.ders),
   })
@@ -173,4 +173,74 @@ export async function etutTalepIptal(id: string) {
 export async function etutTalepReddet(id: string, not: string) {
   const { error } = await supabase.rpc('etut_talep_reddet', { p_id: id, p_not: not })
   if (error) throw new Error(error.message)
+}
+/** Gruba etüt (0061): seçilen öğrenciler programa (gün yoksa taslak açılır) eklenir. Çakışan öğrencilerin adları döner. */
+export interface GrupSonuc {
+  gun_id: string
+  hucre_id: string | null
+  durum: 'taslak' | 'yayinda'
+  eklenen: number
+  zaten: number
+  cakisan: string[]
+  birlesti: boolean
+}
+export async function etutGrupEkle(p: {
+  tarih: string
+  kademe: Kademe
+  ders: number
+  teacher_id: string
+  konu: string
+  aciklama: string | null
+  saatler: Saat[]
+  ogrenciler: string[]
+}): Promise<GrupSonuc> {
+  const { data, error } = await supabase.rpc('etut_grup_ekle', { p })
+  if (error) throw new Error(error.message)
+  return data as GrupSonuc
+}
+/** Bir sınıfın yaklaşan etütleri (yeni program): hücre başına öğrenciler. Rehber/yönetici taslağı da görür. */
+export interface SinifEtut {
+  hucre_id: string
+  tarih: string
+  ders: number
+  saat: Saat | null
+  durum: 'taslak' | 'yayinda'
+  teacher_name: string
+  konu: string | null
+  ogrenciler: string[]
+}
+export function useSinifEtutleri(className: string | null | undefined, bugun: string) {
+  return useQuery({
+    queryKey: ['etut', 'sinif', className ?? '', bugun],
+    enabled: !!className,
+    queryFn: async () => {
+      const rows = ok<
+        { ders: number; hucre_id: string; student_name: string; etut_hucreler: { teacher_name: string; konu: string | null } | null; etut_gunler: { tarih: string; saatler: Saat[]; durum: 'taslak' | 'yayinda' } | null }[]
+      >(
+        await supabase
+          .from('etut_ogrenciler')
+          .select('ders, hucre_id, student_name, etut_hucreler(teacher_name, konu), etut_gunler!inner(tarih, saatler, durum)')
+          .eq('class_name', className!)
+          .gte('etut_gunler.tarih', bugun),
+      )
+      const by = new Map<string, SinifEtut>()
+      for (const r of rows) {
+        const g = r.etut_gunler
+        if (!g) continue
+        const e = by.get(r.hucre_id) ?? {
+          hucre_id: r.hucre_id,
+          tarih: g.tarih,
+          ders: r.ders,
+          saat: g.saatler[r.ders - 1] ?? null,
+          durum: g.durum,
+          teacher_name: r.etut_hucreler?.teacher_name ?? '',
+          konu: r.etut_hucreler?.konu ?? null,
+          ogrenciler: [],
+        }
+        e.ogrenciler.push(r.student_name)
+        by.set(r.hucre_id, e)
+      }
+      return [...by.values()].sort((a, b) => a.tarih.localeCompare(b.tarih) || a.ders - b.ders)
+    },
+  })
 }

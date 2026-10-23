@@ -1,6 +1,7 @@
 // Cumartesi etütleri (0051). Rehber/yönetici: öğretmen × 5 ders planı, talepler, yayın, PDF. Öğretmen: talep, kendi etütleri,
 // yoklama. Veli/öğrenci: yalnız kendi (çocuğunun) yayınlanmış etütleri. Yetki veritabanında (RLS + etut_* fonksiyonları).
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { useModules, usePeople, useStudents } from '@/lib/data'
 import { useSchoolInfo } from '@/lib/files'
@@ -19,6 +20,7 @@ import {
   VARSAYILAN_SAATLER,
   baslangicSaatleri,
   cumartesiler,
+  isCumartesi,
   saatHatasi,
   sorunlar,
   yerlesimOner,
@@ -84,8 +86,13 @@ function PlanView() {
   const gunler = useEtutGunler()
   const talepler = useEtutTalepler()
   const today = todayISO()
-  const [kademe, setKademe] = useState<Kademe>('ortaokul')
-  const [tarih, setTarih] = useState(() => cumartesiler(today, 1)[0]!)
+  // Sınıflar → "Etüt programını aç": ?tarih=YYYY-MM-DD&kademe=lise ile açılır
+  const [sp] = useSearchParams()
+  const [kademe, setKademe] = useState<Kademe>(() => (sp.get('kademe') === 'lise' ? 'lise' : 'ortaokul'))
+  const [tarih, setTarih] = useState(() => {
+    const t = sp.get('tarih') ?? ''
+    return isCumartesi(t) && t >= today ? t : cumartesiler(today, 1)[0]!
+  })
   const gun = (gunler.data ?? []).find((g) => g.tarih === tarih && g.kademe === kademe) ?? null
   const hucreQ = useEtutHucreler(gun?.id)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -101,7 +108,7 @@ function PlanView() {
     () =>
       (people.data ?? [])
         .filter(isTeacherP)
-        .map((p) => ({ id: p.id, name: p.full_name }))
+        .map((p) => ({ id: p.id, name: p.full_name, branch: p.branch }))
         .sort((a, b) => a.name.localeCompare(b.name, 'tr')),
     [people.data],
   )
@@ -462,6 +469,8 @@ function PlanView() {
         <EtutIceAktar
           teachers={teachers}
           kademeOgretmen={kademeOgr.data?.[kademe]}
+          tarih={tarih}
+          kademe={kademe}
           ogrenciler={kadOgr.map((s) => ({ id: s.id, full_name: s.full_name, class_name: s.class_name, grade: s.grade }))}
           onClose={() => setIce(false)}
           onApply={({ saatler, hucreler }) => {
@@ -571,8 +580,8 @@ function HucreModal(p: {
             <input value={konu} maxLength={120} onChange={(e) => setKonu(e.target.value)} placeholder="Ör. Üslü ifadeler soru çözümü" />
           </label>
           <label className="field">
-            Salon
-            <input list="et-salonlar" value={salon} maxLength={40} onChange={(e) => setSalon(e.target.value)} placeholder="ETÜT-1" />
+            Yer (isteğe bağlı)
+            <input list="et-salonlar" value={salon} maxLength={40} onChange={(e) => setSalon(e.target.value)} placeholder="Ör. 9-A sınıfı" />
             <datalist id="et-salonlar">
               {(p.salonlar.length ? p.salonlar : SALONLAR).map((s) => (
                 <option key={s} value={s} />
