@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import { pages } from './sayfali'
 import type { Hucre, Kademe, Saat } from './etut'
+import type { EtutGrubu } from './etutGruplari'
 
 export interface EtutGun {
   id: string
@@ -243,4 +244,30 @@ export function useSinifEtutleri(className: string | null | undefined, bugun: st
       return [...by.values()].sort((a, b) => a.tarih.localeCompare(b.tarih) || a.ders - b.ders)
     },
   })
+}
+
+// ---------- Etüt öğrenci grupları (0062) ----------
+export function useEtutGruplari(enabled = true) {
+  return useQuery({
+    queryKey: ['etut', 'gruplar'],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('etut_gruplari').select('id, kademe, ad, ogrenciler').order('ad')
+      if (error) throw new Error(error.message)
+      return (data ?? []) as EtutGrubu[]
+    },
+  })
+}
+export function useGrupYenile() {
+  const qc = useQueryClient()
+  return () => qc.invalidateQueries({ queryKey: ['etut', 'gruplar'] })
+}
+export async function grupKaydet(g: { id?: string; school_id: string; kademe: Kademe; ad: string; ogrenciler: string[] }) {
+  const row = { school_id: g.school_id, kademe: g.kademe, ad: g.ad.trim(), ogrenciler: g.ogrenciler }
+  const { error } = g.id ? await supabase.from('etut_gruplari').update(row).eq('id', g.id) : await supabase.from('etut_gruplari').insert(row)
+  if (error) throw new Error(error.code === '23505' ? 'Bu adla bir grup zaten var.' : error.message)
+}
+export async function grupSil(id: string) {
+  const { error } = await supabase.from('etut_gruplari').delete().eq('id', id)
+  if (error) throw new Error(error.message)
 }

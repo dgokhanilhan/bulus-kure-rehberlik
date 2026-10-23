@@ -424,9 +424,11 @@ export interface AdSecim {
   durum: 'eslesti' | 'belirsiz' | 'yok'
 }
 export interface SinifGrubu {
-  ad: string // sınıf adı ("12/A · SAY")
+  ad: string // sınıf adı ("12/A · SAY") ya da etüt grubu adı ("8'ler 1. Grup")
   ids: string[]
   on: boolean
+  /** Etüt öğrenci grubu (0062); yoksa sınıf */
+  grup?: boolean
 }
 export interface HucreHazir {
   konu: string
