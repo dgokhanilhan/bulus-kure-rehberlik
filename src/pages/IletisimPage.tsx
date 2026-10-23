@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { useAnnouncements, useChildContacts, useClasses, useConversations, useMessages, useModules, useStudents, type Announcement, type Conversation } from '@/lib/data'
 import { LEVEL_TR, LEVELS, type Level } from '@/lib/roles'
-import { ago, initials, localDate, localHM, todayISO, trD } from '@/lib/format'
+import { ago, fold, initials, localDate, localHM, todayISO, trD } from '@/lib/format'
 import { Seg } from '@/components/Indicator'
 import { Modal } from '@/components/Modal'
 import { Icon } from '@/components/Icon'
@@ -510,12 +510,31 @@ function StartModal({ onClose, onStarted }: { onClose: () => void; onStarted: (i
   const qc = useQueryClient()
   const veli = profile?.role === 'veli'
   const students = useStudents()
+  const classes = useClasses()
   const [sid, setSid] = useState('')
+  const [cls, setCls] = useState('')
   const [who, setWho] = useState('')
   const [text, setText] = useState('')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const kids = students.data ?? []
+  // Öğretmen / yönetici: önce sınıf (kademeye göre gruplu, 1/A → 12), sonra o sınıfın öğrencileri ada göre.
+  // Okulun bütün öğrencileri tek listede çok uzun; telefonda / tablette üst sınıflara inilemiyordu.
+  const sinifli = useMemo(() => {
+    const var_ = new Set(kids.map((k) => k.class_id))
+    return (classes.data ?? []).filter((c) => var_.has(c.id))
+  }, [kids, classes.data])
+  // Arama: ad ya da okul no; yazılınca sınıftan bağımsız bütün eşleşenler (sınıf adıyla) listelenir
+  const [ara, setAra] = useState('')
+  const igne = fold(ara.trim())
+  const sinifOgr = useMemo(
+    () =>
+      (igne
+        ? kids.filter((k) => fold(k.full_name).includes(igne) || (k.school_no ?? '').includes(ara.trim()))
+        : kids.filter((k) => k.class_id === cls)
+      ).sort((a, b) => a.full_name.localeCompare(b.full_name, 'tr')),
+    [kids, cls, igne, ara],
+  )
   const student = sid || (veli ? (kids[0]?.id ?? '') : '')
   const contacts = useChildContacts(veli ? student : undefined)
   const parents = useQuery({
@@ -571,7 +590,82 @@ function StartModal({ onClose, onStarted }: { onClose: () => void; onStarted: (i
         </>
       }
     >
-      {(!veli || kids.length > 1) && (
+      {!veli && (
+        <label className="field" htmlFor="mAra">
+          Öğrenci ara
+          <input
+            id="mAra"
+            type="search"
+            autoComplete="off"
+            placeholder="Ad ya da okul no (ya da aşağıdan sınıf seç)"
+            value={ara}
+            onChange={(e) => {
+              setAra(e.target.value)
+              setSid('')
+              setWho('')
+            }}
+          />
+        </label>
+      )}
+      {!veli && (
+        <div className="grid2">
+          <label className="field" htmlFor="mCls">
+            Sınıf
+            <select
+              id="mCls"
+              value={cls}
+              disabled={!!igne}
+              onChange={(e) => {
+                setCls(e.target.value)
+                setSid('')
+                setWho('')
+              }}
+            >
+              <option value="">Seç</option>
+              {LEVELS.map((lv) => {
+                const cs = sinifli.filter((c) => c.level === lv)
+                return cs.length ? (
+                  <optgroup key={lv} label={LEVEL_TR[lv]}>
+                    {cs.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null
+              })}
+            </select>
+          </label>
+          <label className="field" htmlFor="mStu">
+            Öğrenci
+            <select
+              id="mStu"
+              value={student}
+              disabled={!cls && !igne}
+              onChange={(e) => {
+                setSid(e.target.value)
+                setWho('')
+              }}
+            >
+              <option value="">
+                {igne
+                  ? sinifOgr.length
+                    ? `Seç (${sinifOgr.length} sonuç)`
+                    : 'Eşleşen öğrenci yok'
+                  : cls
+                    ? `Seç (${sinifOgr.length} öğrenci)`
+                    : 'Önce sınıf seç'}
+              </option>
+              {sinifOgr.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {igne ? `${s.full_name} · ${s.class_name}` : s.full_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+      {veli && kids.length > 1 && (
         <label className="field" htmlFor="mStu">
           {veli ? 'Çocuğunuz' : 'Öğrenci'}
           <select

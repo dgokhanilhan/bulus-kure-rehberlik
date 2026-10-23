@@ -102,6 +102,46 @@ test.describe.serial('İletişim', () => {
     await expect(page).toHaveURL(/\/duyurular$/)
   })
 
+  test('öğretmen yeni mesajda önce sınıf, sonra o sınıfın öğrencisini seçer; lise sınıfları da listede', async ({ page }) => {
+    // Seed'de lise öğrencisi yok: geçici bir 10/A öğrencisi (sonda silinir)
+    const svc = service()
+    const c10 = (await svc.from('classes').select('id, school_id').eq('name', '10/A').single()).data!
+    const lise = (await svc.from('students').insert({ full_name: 'E2E Lise Öğrencisi', class_id: c10.id, school_id: c10.school_id }).select('id').single()).data!
+    try {
+    await login(page, ...DEMO.rehber)
+    await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
+    await page.goto('/iletisim')
+    await page.getByRole('button', { name: 'Yeni mesaj' }).click()
+    const dlg = page.getByRole('dialog', { name: 'Yeni mesaj' })
+    const ogr = dlg.locator('#mStu')
+    await expect(ogr).toBeDisabled()
+    const sinif = dlg.locator('#mCls')
+    await expect(sinif.locator('optgroup[label="Lise"] option', { hasText: '10/A' })).toHaveCount(1)
+    await expect(sinif.locator('optgroup[label="Ortaokul"] option', { hasText: '8/A' })).toHaveCount(1)
+    await sinif.selectOption({ label: '8/A' })
+    await expect(ogr).toBeEnabled()
+    const adlar = (await ogr.locator('option').allInnerTexts()).slice(1)
+    expect(adlar.length).toBeGreaterThan(0)
+    expect(adlar).toEqual([...adlar].sort((a, b) => a.localeCompare(b, 'tr')))
+    await ogr.selectOption({ label: 'Elif Yıldız' })
+    await expect(dlg.getByLabel('Veli').locator('option', { hasText: 'Ayşe Yıldız' })).toHaveCount(1)
+    // Arama: sınıftan bağımsız, ad ya da okul no; sonuçta sınıf adı da yazar
+    await dlg.getByLabel('Öğrenci ara').fill('elif yıl')
+    await expect(sinif).toBeDisabled()
+    await expect(ogr.locator('option', { hasText: 'Elif Yıldız · 8/A' })).toHaveCount(1)
+    await ogr.selectOption({ label: 'Elif Yıldız · 8/A' })
+    await expect(dlg.getByLabel('Veli').locator('option', { hasText: 'Ayşe Yıldız' })).toHaveCount(1)
+    await dlg.getByLabel('Öğrenci ara').fill('1184')
+    await expect(ogr.locator('option', { hasText: 'Elif Yıldız · 8/A' })).toHaveCount(1)
+    await dlg.getByLabel('Öğrenci ara').fill('zzzz')
+    await expect(ogr.locator('option').first()).toHaveText('Eşleşen öğrenci yok')
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await axe(page, 'yeni mesaj (öğretmen)')
+    } finally {
+      await svc.from('students').delete().eq('id', lise.id)
+    }
+  })
+
   test('yönetici yazışmayı görür ama yazamaz; öğrencide Mesajlar yok', async ({ page }) => {
     await loginAdmin(page)
     await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
