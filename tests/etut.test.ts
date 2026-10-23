@@ -66,11 +66,11 @@ describe('Cumartesi etütleri', () => {
     expect((await admin.from('etut_hucreler').select('id').eq('gun_id', gun)).data).toHaveLength(3)
   })
 
-  it('Cumartesi dışı gün, geçersiz saat, aynı öğrencinin aynı derste iki etüdü ve öğretmenin iki kaydı reddedilir', async () => {
+  // Aynı öğrencinin aynı derste iki etüdü 0063'ten beri kabul edilir (paylaşımlı ders): tests/etut-paylasimli.test.ts
+  it('Cumartesi dışı gün, geçersiz saat ve öğretmenin aynı derste iki kaydı reddedilir', async () => {
     const bad = [
       { ...program(GELECEK, [ELIF]), tarih: '2090-01-02' },
       { ...program(GELECEK, [ELIF]), saatler: SAAT.map((s, i) => (i === 2 ? { bas: '10:20', bit: '11:00' } : s)) },
-      program(GELECEK, [ELIF], [{ ders: 1, teacher_id: null, teacher_name: 'Misafir Öğretmen', tur: 'etut', konu: 'X', ogrenciler: [ELIF] }]),
       program(GELECEK, [ELIF], [{ ders: 1, teacher_id: matId, teacher_name: '', tur: 'mesgul', aciklama: 'İzinli', ogrenciler: [] }]),
     ]
     for (const d of bad) expect((await rehber.rpc('etut_kaydet', { p_gun: gun, p_data: d })).error).not.toBeNull()

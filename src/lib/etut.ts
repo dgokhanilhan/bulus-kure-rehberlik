@@ -72,20 +72,42 @@ export function baslangicSaatleri(gunler: { tarih: string; kademe: Kademe; saatl
 }
 
 export interface EtutSorun {
+  /** Kaydı durdurur (konu yok, öğretmen iki kez) */
   ciddi: boolean
   text: string
+  /** cakisma: öğrenci aynı derste iki etütte (kaydederken "yine de kaydet" sorulur); bilgi: grubun paylaşımlı dersi */
+  tur?: 'cakisma' | 'bilgi'
 }
-/** Kaydetmeden önce: aynı öğrenci aynı derste iki etütte, öğretmen aynı derste iki satırda, konusuz etüt, öğrencisiz etüt. */
-export function sorunlar(hucreler: Hucre[], ogrenciAdi: (id: string) => string): EtutSorun[] {
+/**
+ * Kaydetmeden önce: aynı öğrenci aynı derste iki etütte (uyarı; bilinçli olabilir), öğretmen aynı derste iki satırda,
+ * konusuz etüt, öğrencisiz etüt. Bir etüt grubunun tamamı aynı derste birden çok öğretmene yazılmışsa (ör. 8'ler 1. Grup
+ * 3. derste İngilizce ve Din Kültürü; öğretmenler dersi paylaşır) öğrenci öğrenci uyarı yerine tek bilgi satırı çıkar.
+ */
+export function sorunlar(hucreler: Hucre[], ogrenciAdi: (id: string) => string, gruplar: { ad: string; ogrenciler: string[] }[] = []): EtutSorun[] {
   const out: EtutSorun[] = []
   for (const d of DERSLER) {
     const ders = hucreler.filter((h) => h.ders === d)
-    const seen = new Map<string, string>()
-    for (const h of ders.filter((x) => x.tur === 'etut'))
+    const etutler = ders.filter((x) => x.tur === 'etut')
+    // Paylaşımlı grup dersi: grubun bütün öğrencileri bu dersteki iki ya da daha çok etütte
+    const paylasim = new Map<string, Set<Hucre>>() // öğrenci → paylaşımlı hücreleri
+    for (const g of gruplar) {
+      if (!g.ogrenciler.length) continue
+      const hs = etutler.filter((h) => g.ogrenciler.every((s) => h.ogrenciler.includes(s)))
+      if (hs.length < 2) continue
+      out.push({ ciddi: false, tur: 'bilgi', text: `${g.ad} ${d}. derste ${hs.length} öğretmende: ${hs.map((h) => h.teacher_name).join(', ')} (paylaşımlı ders).` })
+      for (const s of g.ogrenciler) paylasim.set(s, new Set([...(paylasim.get(s) ?? []), ...hs]))
+    }
+    const seen = new Map<string, Hucre>()
+    for (const h of etutler)
       for (const s of h.ogrenciler) {
         const prev = seen.get(s)
-        if (prev) out.push({ ciddi: true, text: `${ogrenciAdi(s)} ${d}. derste iki etüde yazılmış (${prev} ve ${h.teacher_name}).` })
-        else seen.set(s, h.teacher_name)
+        if (!prev) {
+          seen.set(s, h)
+          continue
+        }
+        const p = paylasim.get(s)
+        if (p?.has(prev) && p.has(h)) continue
+        out.push({ ciddi: false, tur: 'cakisma', text: `${ogrenciAdi(s)} ${d}. derste iki etüde yazılmış (${prev.teacher_name} ve ${h.teacher_name}).` })
       }
     const names = ders.map((h) => h.teacher_name.trim().toLocaleLowerCase('tr'))
     names.forEach((n, i) => {
@@ -111,3 +133,28 @@ export function yerlesimOner(hucreler: Hucre[], teacherName: string, ogrenciler:
 
 /** Veli/öğrenci için: geçmiş/yaklaşan ayrımı (Türkiye günü). */
 export const yaklasanMi = (tarih: string, bugun: string) => tarih >= bugun
+
+/**
+ * PDF / liste için etüt öğrencilerinin kısa yazımı: bir etüt grubunun bütün öğrencileri → grup adı ("8'ler 1. Grup"),
+ * bir sınıfın bütün öğrencileri → "5/A (tüm sınıf)", kalanlar adlarıyla. Sınıf / grup en az 2 öğrencili olmalı.
+ */
+export function ogrenciOzeti(
+  ids: string[],
+  siniflar: Map<string, string[]>,
+  gruplar: { ad: string; ogrenciler: string[] }[],
+  ad: (id: string) => string,
+): string[] {
+  const kalan = new Set(ids)
+  const out: string[] = []
+  for (const g of [...gruplar].sort((a, b) => b.ogrenciler.length - a.ogrenciler.length)) {
+    if (g.ogrenciler.length < 2 || !g.ogrenciler.every((s) => kalan.has(s))) continue
+    out.push(g.ad)
+    for (const s of g.ogrenciler) kalan.delete(s)
+  }
+  for (const [c, sids] of [...siniflar].sort((a, b) => a[0].localeCompare(b[0], 'tr', { numeric: true }))) {
+    if (sids.length < 2 || !sids.every((s) => kalan.has(s))) continue
+    out.push(`${c} (tüm sınıf)`)
+    for (const s of sids) kalan.delete(s)
+  }
+  return [...out, ...ids.filter((s) => kalan.has(s)).map(ad)]
+}
