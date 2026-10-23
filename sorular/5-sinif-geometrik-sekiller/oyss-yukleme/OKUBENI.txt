@@ -1,0 +1,17 @@
+OYSS'YE SORU YÜKLEME — 5. SINIF MATEMATİK, GEOMETRİK ŞEKİLLER
+
+Her soru-XX klasöründe şunlar var:
+  soru.png       Sorunun tamamı (şekil + soru metni) tek görsel. Soru numarası, zorluk ve cevap içermez.
+  sekil.png      Yalnız şekil (şekilli sorularda).
+  puanlama.png   Cevap ve puanlama ölçütleri tek görsel.
+  metin.txt      Soru metni, puanlama anahtarı ve çözüm düz metin olarak (kopyala-yapıştır için).
+
+OYSS'de "Soru Yaz" panelinde iki yoldan biri kullanılabilir:
+  Yol 1 (en hızlı): Soru alanına soru.png, puanlama anahtarı alanına puanlama.png görselini ekleyin.
+  Yol 2 (düzenlenebilir): metin.txt içindeki soru metnini kopyalayıp yapıştırın, şekilli sorularda
+        sekil.png görselini ekleyin; puanlama anahtarını da metin.txt'den yapıştırın.
+
+Paneldeki "Cevap Satır Sayısı" için önerilen değer metin.txt'nin ilk satırında yazar.
+Puanlama ölçütleri yüzde olarak verilmiştir; soru puanı belirlendikten sonra o puana göre dağıtın.
+Senaryodaki iki öğrenme çıktısına uyan soruları öğrenme çıktısı koduna (MAT.5.3.x) göre seçin.
+Görseller 200 dpi'dır; A4 sayfada yaklaşık 17,6 cm genişliğe denk gelir.

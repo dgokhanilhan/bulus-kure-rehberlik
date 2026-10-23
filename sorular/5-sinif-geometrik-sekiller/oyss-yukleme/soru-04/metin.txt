@@ -1,0 +1,16 @@
+SORU 4  |  MAT.5.3.2  |  Zorluk: Orta  |  Önerilen cevap alanı: 4 satır, çizgili
+Öğrenme çıktısı: Temel geometrik çizimlere dayalı deneyimlerini yansıtabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Şekilde A, B, C ve D noktaları verilmiştir. Bu noktaların herhangi üçü aynı doğru üzerinde değildir.
+Bu noktalardan en az ikisinden geçen kaç farklı doğru çizilebilir? Bu doğruları sembolle yazarak gösteriniz.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: 6 doğru: AB, AC, AD, BC, BD, CD
+
+%60 — Altı doğruyu sembolle yazar (her doğru 10).
+%40 — Doğru sayısının 6 olduğunu bulur.
+
+--- ÇÖZÜM (öğretmen için) ---
+İki noktadan yalnız bir doğru geçer. Bu yüzden her nokta ikilisi için bir doğru vardır: AB, AC, AD, BC, BD, CD → 6 doğru.

@@ -1,0 +1,22 @@
+SORU 17  |  MAT.5.3.6  |  Zorluk: Orta  |  Önerilen cevap alanı: 7 satır, çizgili
+Öğrenme çıktısı: Çokgenlerin özellikleri ile ilgili edindiği deneyimleri yansıtabilme
+
+--- SORU METNİ ---
+Üçgenler ile ilgili aşağıdaki ifadeler veriliyor:
+I. Dik açılı ikizkenar üçgen çizilebilir.
+II. Geniş açılı eşkenar üçgen çizilebilir.
+III. İki iç açısı dik açı olan bir üçgen çizilebilir.
+IV. Eşkenar üçgenin bütün iç açılarının ölçüsü 60°'dir.
+
+Her ifadenin doğru mu yanlış mı olduğunu yazınız ve nedenini açıklayınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: I doğru, II yanlış, III yanlış, IV doğru
+
+%25 — I: Doğru; örnek verir (ör. 90°, 45°, 45°).
+%25 — II: Yanlış; eşkenar üçgenin açılarının 60° olduğunu belirtir.
+%25 — III: Yanlış; iki dik açının toplamının 180° olduğunu, üçüncü açıya yer kalmadığını belirtir.
+%25 — IV: Doğru; 180° ÷ 3 = 60° olduğunu belirtir.
+
+--- ÇÖZÜM (öğretmen için) ---
+Üçgenin iç açılarının ölçüleri toplamı 180°'dir. I: 90°, 45°, 45° açılı üçgen hem dik açılı hem ikizkenardır. II: Eşkenar üçgenin açıları 60° olduğundan geniş açısı olamaz. III: 90° + 90° = 180°; üçüncü açıya yer kalmaz. IV: 180° ÷ 3 = 60°.

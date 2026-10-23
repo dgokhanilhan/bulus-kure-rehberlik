@@ -1,0 +1,30 @@
+SORU 2  |  MAT.5.3.1  |  Zorluk: Orta  |  Önerilen cevap alanı: 6 satır, çizgili
+Öğrenme çıktısı: Temel geometrik çizimler için matematiksel araç ve teknolojiden yararlanabilme
+
+--- SORU METNİ ---
+Öğretmen, öğrencilerinden kâğıtlarına sırasıyla şu üç çizimi yapmalarını istiyor:
+1) Bir noktayı merkez alan bir çember
+2) Bir doğruya, dışındaki bir noktadan dikme
+3) Ölçüsü 70° olan bir açı
+
+Öğrencilerin yanındaki araçlar şunlardır:
+Ali: Pergel – Açıölçer – Çizgeç
+Bora: Gönye – Pergel – Çizgeç
+Cem: Çizgeç – Açıölçer – Gönye
+Deniz: Pergel – Gönye – Açıölçer
+
+a) Her çizim için hangi aracın gerektiğini yazınız.
+b) Üç çizimi de başka bir araca ihtiyaç duymadan tek başına yapabilecek öğrenci kimdir?
+c) Diğer öğrencilerin hangi çizimi yapamayacağını nedeniyle yazınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: a) Çember → pergel, dikme → gönye, 70° açı → açıölçer
+b) Deniz
+c) Ali dikme (gönye yok), Bora 70° açı (açıölçer yok), Cem çember (pergel yok)
+
+%30 — a) Üç çizim için gereken aracı doğru eşleştirir (her eşleştirme 10).
+%30 — b) Deniz'i bulur.
+%40 — c) Ali, Bora ve Cem'in yapamayacağı çizimi eksik araçla açıklar (biri 10, ikisi 20, üçü 40).
+
+--- ÇÖZÜM (öğretmen için) ---
+Çember için pergel, dikme için gönye, ölçüsü verilen açı için açıölçer gerekir. Ali'de gönye olmadığı için dikme çizemez. Bora'da açıölçer olmadığı için 70° açı çizemez. Cem'de pergel olmadığı için çember çizemez. Üç araç da yalnızca Deniz'de vardır. (Gönye ve açıölçerin düz kenarı çizgeç yerine kullanılabilir.)

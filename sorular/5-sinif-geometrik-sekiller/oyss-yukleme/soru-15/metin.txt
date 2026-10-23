@@ -1,0 +1,21 @@
+SORU 15  |  MAT.5.3.6  |  Zorluk: Kolay  |  Önerilen cevap alanı: 6 satır, çizgili
+Öğrenme çıktısı: Çokgenlerin özellikleri ile ilgili edindiği deneyimleri yansıtabilme
+
+--- SORU METNİ ---
+Aşağıda dört çokgen verilmiştir:
+1) Kenarları 5 cm olan kare
+2) Bütün kenarları 4 cm olan eşkenar üçgen
+3) Kenarları 4 cm, 6 cm, 4 cm, 6 cm ve bütün iç açıları 90° olan dikdörtgen
+4) Bütün kenarları 3 cm ve bütün iç açıları 120° olan altıgen
+
+Bu çokgenlerden hangileri düzgün çokgendir? Düzgün çokgen olmayanın neden düzgün olmadığını açıklayınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: 1, 2 ve 4 düzgün çokgendir. 3 (dikdörtgen) düzgün değildir; açıları eşit olsa da kenarları eşit değildir.
+
+%40 — 1, 2 ve 4'ün düzgün çokgen olduğunu belirtir (eksik ya da fazla seçimde puan verilmez).
+%30 — Dikdörtgenin düzgün çokgen olmadığını belirtir.
+%30 — Nedenini kenar uzunluklarının eşit olmamasıyla açıklar.
+
+--- ÇÖZÜM (öğretmen için) ---
+Bütün kenar uzunlukları ve bütün iç açılarının ölçüleri eşit olan çokgene düzgün çokgen denir. Kare, eşkenar üçgen ve verilen altıgende hem kenarlar hem açılar eşittir. Dikdörtgenin açıları eşittir ama kenarları eşit değildir (4 cm ≠ 6 cm).

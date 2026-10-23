@@ -1,0 +1,20 @@
+SORU 14  |  MAT.5.3.5  |  Zorluk: Orta  |  Önerilen cevap alanı: 7 satır, çizgili
+Öğrenme çıktısı: Çokgenleri düzlemde ardışık olarak kesişen doğruların oluşturduğu kapalı şekiller olarak yorumlayabilme
+
+--- SORU METNİ ---
+Üç arkadaş, düzlemde doğrular çizerek kapalı şekiller oluşturmaya çalışıyor:
+Ayşe: "İki doğru çizerek bir kapalı şekil oluşturabilirim."
+Mert: "Birbirine paralel üç doğru çizerek bir üçgen oluşturabilirim."
+Zeynep: "Altı doğruyu, ilk doğru son doğruyla kesişecek şekilde ardışık olarak kesiştirirsem bir altıgen oluşur."
+
+Hangi öğrencinin söylediği doğrudur? Diğer öğrencilerin neden yanıldığını açıklayınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: Zeynep haklıdır. Ayşe: iki doğru bir bölgeyi kapatamaz, en az üç doğru gerekir. Mert: paralel doğrular kesişmez, kapalı şekil oluşturamaz.
+
+%30 — Zeynep'in haklı olduğunu belirtir.
+%35 — Ayşe'nin yanıldığını, kapalı şekil için en az üç doğru gerektiğini açıklar.
+%35 — Mert'in yanıldığını, paralel doğruların kesişmediğini açıklar.
+
+--- ÇÖZÜM (öğretmen için) ---
+İki doğru en fazla bir noktada kesişir ve bir bölgeyi kapatamaz; kapalı şekil için en az üç doğru gerekir. Paralel doğrular hiç kesişmez, bu yüzden kapalı şekil oluşturamaz. Altı doğrunun ardışık kesişimi (ilk ve son doğru da kesişirse) altı kenarlı bir çokgen, yani altıgen oluşturur.

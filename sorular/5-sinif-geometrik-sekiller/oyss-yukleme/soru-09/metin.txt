@@ -1,0 +1,22 @@
+SORU 9  |  MAT.5.3.4  |  Zorluk: Kolay  |  Önerilen cevap alanı: 5 satır, çizgili
+Öğrenme çıktısı: Düzlemde iki veya üç doğrunun birbirine göre durumuna bağlı olarak oluşabilecek açılara dair çıkarım yapabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Kareli zemin üzerine AB, CD, EF ve GH doğruları çizilmiştir.
+Aşağıdaki doğru çiftlerinin birbirine göre durumunu (paralel, dik, kesişen) yazınız. Paralel ve dik olanları sembolle gösteriniz.
+a) AB ile CD      b) EF ile AB      c) GH ile CD      ç) EF ile GH
+
+--- PUANLAMA ANAHTARI ---
+Cevap: a) Paralel, AB // CD
+b) Dik, EF ⊥ AB
+c) Kesişen
+ç) Kesişen (paralel değil, dik değil)
+
+%30 — a) AB // CD yazar.
+%30 — b) EF ⊥ AB yazar.
+%20 — c) GH ile CD'nin kesişen olduğunu yazar.
+%20 — ç) EF ile GH'nin kesişen olduğunu yazar.
+
+--- ÇÖZÜM (öğretmen için) ---
+AB ve CD yataydır ve aralarındaki uzaklık değişmez: AB // CD. EF dikeydir, yatay AB ile 90° oluşturur: EF ⊥ AB. GH eğiktir ve CD ile bir noktada kesişir. EF ile GH aynı doğrultuda değildir, uzatılınca kesişirler; aralarında 90° oluşmadığı için dik de değildirler.

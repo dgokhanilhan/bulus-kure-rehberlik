@@ -1,0 +1,22 @@
+SORU 20  |  MAT.5.3.7  |  Zorluk: Zor  |  Önerilen cevap alanı: 8 satır, çizgili
+Öğrenme çıktısı: Matematiksel araç ve teknoloji yardımıyla düzlemde iki noktada kesişen çember çiftinin merkezleri ve kesişim noktalarından biri ile inşa edilen üçgenlere yönelik muhakeme yapabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Ahmet iki farklı çizim yapıyor:
+I. çizim: A merkezli 5 cm ve B merkezli 3 cm yarıçaplı çemberler. |AB| = 6 cm. Kesişim noktalarından biri C.
+II. çizim: K merkezli 5 cm ve L merkezli 5 cm yarıçaplı çemberler. |KL| = 6 cm. Kesişim noktalarından biri M.
+a) ABC ve KLM üçgenlerinin kenar uzunluklarını, kenarlarına göre çeşitlerini ve çevre uzunluklarını bulunuz.
+b) Ahmet, II. çizimde yarıçapları değiştirmeden eşkenar üçgen elde etmek istiyor. |KL| kaç cm olmalıdır? Nedenini açıklayınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: a) ABC: 5, 3, 6 cm → çeşitkenar, çevre 14 cm; KLM: 5, 5, 6 cm → ikizkenar, çevre 16 cm
+b) |KL| = 5 cm
+
+%30 — a) ABC'nin kenarlarını yarıçaplardan bulur, çeşitkenar olduğunu ve çevresinin 14 cm olduğunu yazar.
+%30 — a) KLM'nin kenarlarını yarıçaplardan bulur, ikizkenar olduğunu ve çevresinin 16 cm olduğunu yazar.
+%20 — b) |KL| = 5 cm bulur.
+%20 — b) Üç kenarın eşit olması gerektiğini (çemberlerin birbirinin merkezinden geçmesi gerektiğini) açıklar.
+
+--- ÇÖZÜM (öğretmen için) ---
+I. çizim: |AC| = 5 cm, |BC| = 3 cm, |AB| = 6 cm; üç kenar farklı → çeşitkenar, çevre 14 cm. II. çizim: |KM| = |LM| = 5 cm, |KL| = 6 cm; iki kenar eşit → ikizkenar, çevre 16 cm. Eşkenar için |KL| = 5 cm olmalıdır.

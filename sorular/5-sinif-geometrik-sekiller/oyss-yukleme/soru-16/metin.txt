@@ -1,0 +1,23 @@
+SORU 16  |  MAT.5.3.6  |  Zorluk: Orta  |  Önerilen cevap alanı: 7 satır, çizgili
+Öğrenme çıktısı: Çokgenlerin özellikleri ile ilgili edindiği deneyimleri yansıtabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Yukarıda ABCDEF altıgeni verilmiştir. Bu altıgen ile ilgili aşağıdaki ifadeler veriliyor:
+I. [AC] bu altıgenin bir köşegenidir.
+II. [EF] bu altıgenin bir köşegenidir.
+III. Altıgenin 6 iç açısı ve 6 dış açısı vardır.
+IV. Bu çokgen "ACEBDF altıgeni" diye isimlendirilebilir.
+
+Her ifadenin doğru mu yanlış mı olduğunu yazınız. Yanlış olan ifadeleri düzelterek yeniden yazınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: I doğru, II yanlış ([EF] bir kenardır), III doğru, IV yanlış (köşeler ardışık okunmalıdır, ör. ABCDEF altıgeni)
+
+%20 — I'in doğru olduğunu belirtir.
+%30 — II'nin yanlış olduğunu belirtir ve [EF]'nin kenar olduğunu yazar (ya da köşegen örneği verir).
+%20 — III'ün doğru olduğunu belirtir.
+%30 — IV'ün yanlış olduğunu belirtir ve doğru bir isimlendirme yazar.
+
+--- ÇÖZÜM (öğretmen için) ---
+A ve C ardışık olmayan köşelerdir; [AC] köşegendir. E ve F ardışık köşelerdir; [EF] bir kenardır. Bir çokgende dış açı sayısı iç açı sayısına eşittir; altıgende 6 iç ve 6 dış açı vardır. Çokgen isimlendirilirken köşeler ardışık okunur (ABCDEF, BCDEFA, FEDCBA gibi); ACEBDF ardışık değildir.

@@ -1,0 +1,21 @@
+SORU 8  |  MAT.5.3.3  |  Zorluk: Zor  |  Önerilen cevap alanı: 6 satır, çizgili
+Öğrenme çıktısı: Açıları ölçmek için matematiksel araç ve teknolojiden yararlanabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Elif, daire şeklindeki bir kâğıdı ortadan 3 kez katlayarak 8 eş dilim elde ediyor ve bir dilimi kendi açı ölçme birimi olarak kullanıyor. Can ise aynı büyüklükteki bir kâğıdı ortadan 4 kez katlayarak 16 eş dilim elde ediyor. Elif, dolap kapağının açıklığını kendi birimiyle 3 birim olarak ölçüyor.
+a) Can aynı açıyı kendi birimiyle kaç birim olarak ölçer? Nedenini açıklayınız.
+b) Dolap kapağının açıklığı kaç derecedir? Bu açının çeşidini yazınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: a) 6 birim
+b) 135°, geniş açı
+
+%20 — a) Elif'in 1 diliminin Can'ın 2 dilimine eşit olduğunu belirtir.
+%20 — a) Can'ın ölçümünü 6 birim olarak bulur.
+%20 — b) Elif'in biriminin 360° ÷ 8 = 45° olduğunu bulur.
+%20 — b) Açıyı 3 × 45° = 135° olarak bulur.
+%20 — b) Açının geniş açı olduğunu yazar.
+
+--- ÇÖZÜM (öğretmen için) ---
+Tam açı Elif'te 8, Can'da 16 eş dilime bölünmüştür. 16, 8'in 2 katı olduğu için Elif'in 1 dilimi, Can'ın 2 dilimine eşittir: 3 × 2 = 6 birim. Elif'in birimi 360° ÷ 8 = 45°'dir; kapağın açıklığı 3 × 45° = 135°'dir ve bu bir geniş açıdır.

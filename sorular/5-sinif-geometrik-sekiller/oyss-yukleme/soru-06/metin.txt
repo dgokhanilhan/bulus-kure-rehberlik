@@ -1,0 +1,17 @@
+SORU 6  |  MAT.5.3.3  |  Zorluk: Kolay  |  Önerilen cevap alanı: 4 satır, çizgili
+Öğrenme çıktısı: Açıları ölçmek için matematiksel araç ve teknolojiden yararlanabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Yukarıda AOB açısı açıölçer ile ölçülmektedir. Açının köşesi açıölçerin merkezine, [OA ışını ise açıölçerdeki 0 çizgisine yerleştirilmiştir.
+m(AÔB) kaç derecedir? Ölçümü açıölçerin hangi ölçeğinden okuduğunuzu nedeniyle açıklayınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: m(AÔB) = 50°; [OA dış ölçeğin 0 çizgisinde olduğu için dış ölçek okunur.
+
+%50 — Açının ölçüsünü 50° olarak bulur.
+%30 — [OA ışını dış ölçeğin 0'ında olduğu için dış ölçeğin okunduğunu açıklar.
+%20 — Açının dar açı olduğunu, bu yüzden 130° olamayacağını belirtir.
+
+--- ÇÖZÜM (öğretmen için) ---
+Açıölçerde iki ölçek vardır. [OA ışını dış ölçeğin 0 çizgisi üzerindedir; bu yüzden ölçüm dış ölçekten okunur: [OB dış ölçekte 50'yi gösterir. AOB açısı dik açıdan küçüktür, yani dar açıdır; 130 iç ölçekten yanlış okunan değerdir.

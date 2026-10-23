@@ -1,0 +1,24 @@
+SORU 11  |  MAT.5.3.4  |  Zorluk: Orta  |  Önerilen cevap alanı: 6 satır, çizgili
+Öğrenme çıktısı: Düzlemde iki veya üç doğrunun birbirine göre durumuna bağlı olarak oluşabilecek açılara dair çıkarım yapabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Asaf, defterine B noktasında kesişen AC, DF ve EH doğrularını çizmiştir. EH ⊥ AC ve m(FB̂C) = 32°'dir.
+a) m(HB̂F) kaç derecedir?
+b) m(AB̂D) kaç derecedir?
+c) m(AB̂F) kaç derecedir?
+ç) FBC açısının tümler olduğu bir açı ile bütünler olduğu bir açı yazınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: a) 58°
+b) 32°
+c) 148°
+ç) Tümler: HBF (veya DBE); bütünler: ABF (veya CBD)
+
+%25 — a) 58° bulur.
+%25 — b) 32° bulur (ters açı).
+%25 — c) 148° bulur.
+%25 — ç) Bir tümler ve bir bütünler açıyı doğru yazar (her biri yarı puan).
+
+--- ÇÖZÜM (öğretmen için) ---
+HBC dik açıdır: m(HB̂F) = 90° − 32° = 58°. ABD, FBC'nin ters açısıdır: 32°. m(AB̂F) = 180° − 32° = 148°. HBF ile FBC'nin toplamı 90° olduğu için tümler; ABF ile FBC'nin toplamı 180° olduğu için bütünler açılardır.

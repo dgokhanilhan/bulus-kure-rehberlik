@@ -1,0 +1,20 @@
+SORU 12  |  MAT.5.3.4  |  Zorluk: Zor  |  Önerilen cevap alanı: 7 satır, çizgili
+Öğrenme çıktısı: Düzlemde iki veya üç doğrunun birbirine göre durumuna bağlı olarak oluşabilecek açılara dair çıkarım yapabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Birbirine paralel d₁ ve d₂ doğruları, k doğrusu ile kesilmiştir. Kesişim noktalarında oluşan açılardan biri 70°'dir.
+a) Oluşan 8 açının kaç tanesi dar, kaç tanesi geniş açıdır? Ölçülerini yazınız.
+b) Geniş açıların ölçüleri toplamı ile dar açıların ölçüleri toplamı arasındaki fark kaç derecedir?
+
+--- PUANLAMA ANAHTARI ---
+Cevap: a) 4 dar açı (70°), 4 geniş açı (110°)
+b) 440° − 280° = 160°
+
+%20 — a) 4 dar ve 4 geniş açı oluştuğunu belirtir.
+%30 — a) Dar açıları 70°, geniş açıları 110° olarak bulur.
+%30 — b) Toplamları 280° ve 440° olarak hesaplar.
+%20 — b) Farkı 160° olarak bulur.
+
+--- ÇÖZÜM (öğretmen için) ---
+İki paralel doğruyu kesen bir doğru 4 dar ve 4 geniş açı oluşturur. 70°'lik açının ters açısı 70°, komşu bütünleri 180° − 70° = 110°'dir; paralel doğrularda iki kesişim noktasındaki açılar aynıdır. Dar açılar: 4 × 70° = 280°. Geniş açılar: 4 × 110° = 440°. Fark: 160°.

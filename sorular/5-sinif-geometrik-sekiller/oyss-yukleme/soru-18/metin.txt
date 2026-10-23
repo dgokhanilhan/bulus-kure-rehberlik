@@ -1,0 +1,22 @@
+SORU 18  |  MAT.5.3.6  |  Zorluk: Zor  |  Önerilen cevap alanı: 6 satır, çizgili
+Öğrenme çıktısı: Çokgenlerin özellikleri ile ilgili edindiği deneyimleri yansıtabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+ABC üçgeninde |AB| = |AC| ve m(AB̂C) = 50°'dir. [BC] doğru parçası C noktasından D yönünde uzatılmıştır.
+a) m(BÂC) kaç derecedir?
+b) C köşesindeki dış açının ölçüsü, m(AĈD) kaç derecedir?
+c) Bu iki açının ölçüleri toplamı kaç derecedir?
+
+--- PUANLAMA ANAHTARI ---
+Cevap: a) 80°
+b) 130°
+c) 210°
+
+%20 — İkizkenar üçgende m(AĈB) = 50° olduğunu belirtir.
+%30 — a) m(BÂC) = 180° − 50° − 50° = 80° bulur.
+%30 — b) m(AĈD) = 180° − 50° = 130° bulur.
+%20 — c) Toplamı 210° olarak bulur.
+
+--- ÇÖZÜM (öğretmen için) ---
+İkizkenar üçgende eşit kenarları gören açılar eşittir: m(AĈB) = 50°. İç açılar toplamı 180° olduğundan m(BÂC) = 180° − 50° − 50° = 80°. Dış açı, iç açının komşu bütünleridir: m(AĈD) = 180° − 50° = 130°. Toplam: 210°.

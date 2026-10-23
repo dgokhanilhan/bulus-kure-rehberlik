@@ -1,0 +1,17 @@
+SORU 19  |  MAT.5.3.7  |  Zorluk: Orta  |  Önerilen cevap alanı: 6 satır, çizgili
+Öğrenme çıktısı: Matematiksel araç ve teknoloji yardımıyla düzlemde iki noktada kesişen çember çiftinin merkezleri ve kesişim noktalarından biri ile inşa edilen üçgenlere yönelik muhakeme yapabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Yarıçapları 4 cm olan A ve B merkezli iki çember, her biri diğerinin merkezinden geçecek şekilde çizilmiştir. Çemberlerin kesişim noktalarından biri C'dir. A, B ve C noktaları birleştirilerek ABC üçgeni inşa edilmiştir.
+Ölçme aracı kullanmadan ABC üçgeninin kenar uzunluklarını bulunuz. Üçgenin kenarlarına göre çeşidini ve çevre uzunluğunu yazınız. Nasıl karar verdiğinizi açıklayınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: |AB| = |BC| = |AC| = 4 cm; eşkenar üçgen; çevre 12 cm
+
+%40 — Üç kenarın da yarıçap olduğunu açıklayarak 4 cm bulur ([AB]'nin yarıçap olduğunu açıklamak dahil).
+%30 — Üçgenin eşkenar olduğunu yazar.
+%30 — Çevreyi 12 cm olarak bulur.
+
+--- ÇÖZÜM (öğretmen için) ---
+[AC], A merkezli çemberin; [BC], B merkezli çemberin yarıçapıdır: 4 cm. B noktası A merkezli çemberin üzerinde olduğu için [AB] de bir yarıçaptır: 4 cm. Üç kenar eşit olduğundan üçgen eşkenardır; çevre 4 + 4 + 4 = 12 cm.

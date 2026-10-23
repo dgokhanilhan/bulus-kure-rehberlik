@@ -1,0 +1,19 @@
+SORU 1  |  MAT.5.3.1  |  Zorluk: Kolay  |  Önerilen cevap alanı: 4 satır, çizgili
+Öğrenme çıktısı: Temel geometrik çizimler için matematiksel araç ve teknolojiden yararlanabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Yukarıda I, II ve III numaralı temel geometrik çizimler verilmiştir.
+Her çizimin adını yazınız ve her birini sembolle gösteriniz.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: I: doğru parçası, [KL]
+II: ışın, [MN
+III: doğru, PR
+
+%30 — I. çizimin doğru parçası olduğunu yazıp [KL] (veya [LK]) ile gösterir.
+%40 — II. çizimin ışın olduğunu yazıp başlangıç noktasından [MN ile gösterir. ([NM yazan bu puanı alamaz.)
+%30 — III. çizimin doğru olduğunu yazıp PR (veya RP) ile gösterir.
+
+--- ÇÖZÜM (öğretmen için) ---
+I. çizimin iki ucu da noktayla bitmiştir; bu bir doğru parçasıdır ve [KL] ile gösterilir. II. çizim M noktasından başlayıp N yönünde sonsuza gider; bu bir ışındır ve başlangıç noktasından yazılır: [MN. III. çizim iki yönde de sonsuza gider; bu bir doğrudur ve PR ile gösterilir.

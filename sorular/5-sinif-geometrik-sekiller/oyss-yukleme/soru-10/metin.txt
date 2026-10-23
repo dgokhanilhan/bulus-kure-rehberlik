@@ -1,0 +1,19 @@
+SORU 10  |  MAT.5.3.4  |  Zorluk: Kolay  |  Önerilen cevap alanı: 5 satır, çizgili
+Öğrenme çıktısı: Düzlemde iki veya üç doğrunun birbirine göre durumuna bağlı olarak oluşabilecek açılara dair çıkarım yapabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+İki doğrunun kesişmesiyle oluşan açılardan birinin ölçüsü 65°'dir.
+Şekildeki x ve y açılarının ölçülerini bulunuz. Her birinin 65°'lik açı ile ilişkisini (ters açı / komşu bütünler açı) yazınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: x = 115° (65°'lik açının komşu bütünleri)
+y = 65° (65°'lik açının ters açısı)
+
+%30 — x = 115° bulur.
+%20 — x'in komşu bütünler açı olduğunu yazar.
+%30 — y = 65° bulur.
+%20 — y'nin ters açı olduğunu yazar.
+
+--- ÇÖZÜM (öğretmen için) ---
+x açısı 65°'lik açıyla birlikte doğru açı oluşturur, yani komşu bütünler açıdır: x = 180° − 65° = 115°. y açısı 65°'lik açının ters açısıdır; ters açıların ölçüleri eşittir: y = 65°.

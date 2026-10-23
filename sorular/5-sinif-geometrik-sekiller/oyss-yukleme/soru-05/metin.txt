@@ -1,0 +1,17 @@
+SORU 5  |  MAT.5.3.2  |  Zorluk: Orta  |  Önerilen cevap alanı: 5 satır, çizgili
+Öğrenme çıktısı: Temel geometrik çizimlere dayalı deneyimlerini yansıtabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Betül, pergelinin açıklığını hiç değiştirmeden KL ışını üzerine çemberler çiziyor. İlk çemberin merkezi K noktasıdır. Sonraki her çemberin merkezi, bir önceki çemberin ışını kestiği yeni noktadır. Böylece ışın üzerinde sırasıyla P, R, S, T ve U noktaları oluşuyor.
+|KU| = 15 cm olduğuna göre |KS| kaç santimetredir? Çözümünüzü açıklayınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: |KS| = 9 cm
+
+%30 — Pergel açıklığı değişmediği için [KP], [PR], [RS], [ST], [TU] parçalarının eşit olduğunu belirtir.
+%30 — Bir parçanın uzunluğunu 15 ÷ 5 = 3 cm olarak bulur.
+%40 — |KS| = 3 × 3 = 9 cm olarak bulur.
+
+--- ÇÖZÜM (öğretmen için) ---
+Pergelin açıklığı değişmediği için bütün çemberlerin yarıçapı eşittir; bu yüzden ışın üzerindeki parçalar eşit uzunluktadır. K'den U'ya 5 eş parça vardır: 15 ÷ 5 = 3 cm. K'den S'ye 3 eş parça vardır: |KS| = 3 × 3 = 9 cm.

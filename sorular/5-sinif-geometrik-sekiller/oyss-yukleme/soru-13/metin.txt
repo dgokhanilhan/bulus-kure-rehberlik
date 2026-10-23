@@ -1,0 +1,17 @@
+SORU 13  |  MAT.5.3.5  |  Zorluk: Kolay  |  Önerilen cevap alanı: 5 satır, çizgili
+Öğrenme çıktısı: Çokgenleri düzlemde ardışık olarak kesişen doğruların oluşturduğu kapalı şekiller olarak yorumlayabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+İbrahim, halı deseni için doğrular çiziyor. Çizdiği son doğru ilk doğruyla kesişiyor ve yukarıdaki boyalı kapalı şekil oluşuyor.
+Bu kapalı şekil kaç doğrunun ardışık kesişmesiyle oluşmuştur? Şeklin adını yazınız. Doğru sayısı ile şeklin kenar sayısı arasındaki ilişkiyi açıklayınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: 5 doğru; beşgen; çokgenin kenar sayısı onu oluşturan doğru sayısına eşittir.
+
+%30 — Şekli oluşturan doğru sayısını 5 olarak bulur.
+%30 — Şeklin beşgen olduğunu yazar.
+%40 — Kenar sayısının doğru sayısına eşit olduğunu açıklar.
+
+--- ÇÖZÜM (öğretmen için) ---
+Her kenar, iki yönde uzayan bir doğrunun parçasıdır; 5 doğru vardır. En az üç doğrunun ardışık kesişmesiyle (ilk doğru son doğruyla kesişmek şartıyla) oluşan kapalı şekle çokgen denir. Çokgenin kenar sayısı onu oluşturan doğru sayısına eşittir; 5 kenarlı çokgen beşgendir.

@@ -1,0 +1,17 @@
+SORU 3  |  MAT.5.3.2  |  Zorluk: Kolay  |  Önerilen cevap alanı: 4 satır, çizgili
+Öğrenme çıktısı: Temel geometrik çizimlere dayalı deneyimlerini yansıtabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Mühendis Zeynep Hanım, atık suyu binanın çatısındaki A noktasından zemine taşımak için 4 boru planlamıştır. Boruların uzunlukları şekilde verilmiştir. Atık su zemine en kısa yoldan taşınmak isteniyor.
+Hangi numaralı boru kullanılmalıdır? Bu borunun zeminle yaptığı açının çeşidini yazınız ve seçiminizin nedenini açıklayınız.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: 3 numaralı boru; zeminle dik açı (90°) yapar; bir doğruya dışındaki bir noktadan çizilen en kısa doğru parçası dikmedir.
+
+%40 — 3 numaralı boruyu seçer.
+%30 — Borunun zeminle dik açı (90°) yaptığını yazar.
+%30 — Gerekçe olarak en kısa yolun dikme olduğunu açıklar.
+
+--- ÇÖZÜM (öğretmen için) ---
+Bir doğruya dışındaki bir noktadan çizilen doğru parçalarının en kısası dikmedir. Boruların en kısası 12 m uzunluğundaki 3 numaralı borudur. Bu boru zemine diktir, yani zeminle dik açı (90°) yapar. Bir doğruya dışındaki bir noktadan yalnız bir dikme çizilebilir.

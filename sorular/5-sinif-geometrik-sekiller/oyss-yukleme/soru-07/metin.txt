@@ -1,0 +1,17 @@
+SORU 7  |  MAT.5.3.3  |  Zorluk: Orta  |  Önerilen cevap alanı: 5 satır, çizgili
+Öğrenme çıktısı: Açıları ölçmek için matematiksel araç ve teknolojiden yararlanabilme
+(Şekil: aynı klasördeki sekil.png dosyasını soru metninin üstüne ekleyin.)
+
+--- SORU METNİ ---
+Yukarıdaki saat 4.00'ü göstermektedir.
+Akrep ile yelkovan arasındaki küçük açının ölçüsünü bulunuz ve bu açının çeşidini yazınız. İşlemlerinizi gösteriniz.
+
+--- PUANLAMA ANAHTARI ---
+Cevap: 120°, geniş açı
+
+%30 — Ardışık iki sayı arasındaki açıyı 360° ÷ 12 = 30° olarak bulur.
+%40 — 4 × 30° = 120° olarak hesaplar.
+%30 — Açının geniş açı olduğunu yazar.
+
+--- ÇÖZÜM (öğretmen için) ---
+Yelkovan bir tam tur atınca tam açı (360°) oluşur. Kadran 12 eş parçaya bölündüğü için iki sayı arası 360° ÷ 12 = 30°'dir. 4.00'te yelkovan 12'de, akrep 4'tedir; arada 4 aralık vardır: 4 × 30° = 120°. 120°, 90°'den büyük ve 180°'den küçük olduğu için geniş açıdır.
