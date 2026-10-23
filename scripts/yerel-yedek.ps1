@@ -1,7 +1,7 @@
-# Production veritabanının bu bilgisayara günlük yedeği (Windows Görev Zamanlayıcı ile her gün çalışır).
+﻿# Production veritabanının bu bilgisayara günlük yedeği (Windows Görev Zamanlayıcı ile her gün çalışır).
 # Supabase CLI (bağlı proje, Docker'daki pg_dump) ile üç dosya alınır: roller, şema, veri (auth + public + storage kayıtları).
-# Yedek tarihli .zip olarak $Hedef klasörüne yazılır; $Gun günden eski yedekler silinir. Dosya depolamasındaki
-# fotoğraf / PDF'lerin kendisi bu yedekte yoktur (yalnız kayıtları). Geri yükleme: docs/yedekten-donus.md
+# Yedek tarihli .zip olarak $Hedef klasörüne yazılır; $Gun günden eski yedekler silinir. Dosya depolamasındaki fotoğraf,
+# PDF ve ekler $Hedef\dosyalar klasörüne indirilir (güncel tutulur). Geri yükleme: docs/yedekten-donus.md
 param(
   [string]$Hedef = "$env:USERPROFILE\Documents\BulusKure-Yedek",
   [int]$Gun = 30
@@ -49,12 +49,36 @@ try {
     if (-not (Select-String -Path $veri -SimpleMatch $t -Quiet)) { throw "Veri dosyasında $t yok." }
   }
 
+  # Dosyalar (galeri fotoğrafları, ekler, logo): tek klasörde güncel tutulur, her gün yeniden indirilir; sistemden silinen
+  # dosya burada kalır (yanlışlıkla silmeye karşı). Hedef "." verilir: CLI "C:\" yolunu adres sanıyor; var olan hedef
+  # klasöre cp gibi kova adıyla kopyalar (dosyalar\<kova>\…), böylece her gün aynı yere yazılır.
+  $dosyalar = Join-Path $Hedef 'dosyalar'
+  New-Item -ItemType Directory -Force $dosyalar | Out-Null
+  $ErrorActionPreference = 'Continue'
+  $ls = & npx.cmd --prefix $repo supabase storage ls ss:/// --experimental --linked --workdir $repo 2>$null | Out-String
+  $ErrorActionPreference = 'Stop'
+  # Çıktı terminalde JSON, zamanlayıcıda düz satır ("ekler/"): ikisi de okunur
+  $kovalar = @(([regex]'([A-Za-z0-9_.-]+)/').Matches($ls) | ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique)
+  if (-not $kovalar.Count) { throw "Dosya depoları listelenemedi: $($ls.Trim())" }
+  $toplam = 0
+  Push-Location $dosyalar
+  try {
+    foreach ($k in $kovalar) {
+      $ErrorActionPreference = 'Continue'
+      $cikti = & npx.cmd --prefix $repo supabase storage cp -r "ss:///$k" . --experimental --linked --workdir $repo 2>$null | Out-String
+      $ErrorActionPreference = 'Stop'
+      if ($LASTEXITCODE -ne 0) { throw "$k dosyaları indirilemedi." }
+      $toplam += @(Get-ChildItem -Recurse -File $k -ErrorAction SilentlyContinue).Count
+    }
+  } finally { Pop-Location }
+  $dmb = [math]::Round(((Get-ChildItem -Recurse -File $dosyalar | Measure-Object Length -Sum).Sum) / 1MB, 1)
+
   $zip = Join-Path $Hedef "$ad.zip"
   Compress-Archive -Path "$gecici\*" -DestinationPath $zip -Force
   Remove-Item -Recurse -Force $gecici
   $mb = [math]::Round((Get-Item $zip).Length / 1MB, 2)
   Get-ChildItem $Hedef -Filter 'yedek-*.zip' | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-$Gun) } | Remove-Item -Force
-  Yaz "TAMAM  $ad.zip ($mb MB)"
+  Yaz "TAMAM  $ad.zip ($mb MB) · dosyalar: $toplam dosya, klasör $dmb MB ($($kovalar -join ', '))"
 } catch {
   Yaz "HATA  $($_.Exception.Message)"
   if ($gecici -and (Test-Path $gecici)) { Remove-Item -Recurse -Force $gecici }
