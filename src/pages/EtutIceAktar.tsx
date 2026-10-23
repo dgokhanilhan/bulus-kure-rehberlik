@@ -6,6 +6,7 @@ import { Icon } from '@/components/Icon'
 import { DERSLER, KADEME_TR, type Hucre, type Kademe, type Saat } from '@/lib/etut'
 import { hucreCoz, hucreHazirla, katla, ogretmenEsle, sayfaSec, sayfaTarihi, type AdSecim, type HamTablo, type HucreOkuma, type OgrenciLite, type SinifGrubu } from '@/lib/etutIceAktar'
 import { excelOku, excelSayfalari, gorselOku, kaynakOf, pdfOku } from '@/lib/etutOku'
+import { grupBul, type EtutGrubu } from '@/lib/etutGruplari'
 import { trDW } from '@/lib/format'
 import { orderProgramCorners, rectifyProgram, validCorners, type Point } from '@/lib/programImage'
 import { PDF_OKUMA } from '@/lib/platform'
@@ -34,6 +35,8 @@ export function EtutIceAktar(p: {
   /** Programın tarihi (YYYY-MM-DD) ve kademesi: Excel'de uyan sayfa seçilir, başlık uymazsa uyarılır */
   tarih?: string
   kademe?: Kademe
+  /** Etüt öğrenci grupları (açık kademenin): hücrede grup adı geçerse grubun öğrencileri eklenir */
+  gruplar?: EtutGrubu[]
   onClose: () => void
   onApply: (r: { saatler: Saat[] | null; hucreler: Hucre[] }) => void
 }) {
@@ -83,9 +86,16 @@ export function EtutIceAktar(p: {
   function hazirla(t: HamTablo) {
     const satirlar: Satir2[] = t.satirlar.map((r) => {
       const o = ogretmenEsle(r.ogretmen, p.teachers, p.kademeOgretmen)
+      const ogrIds = new Set(p.ogrenciler.map((s) => s.id))
       const hucreler = r.hucreler.map((h) => {
-        const okuma = hucreCoz(h)
-        return { okuma, ...hucreHazirla(okuma, p.ogrenciler) }
+        // Grup adı ("Sekizler birinci grup", "8. sınıf 1. grup") önce aranır; kalan metin ad / konu olarak okunur
+        const gb = grupBul(h, p.gruplar ?? [])
+        const ok0 = hucreCoz(gb.kalan)
+        const okuma: HucreOkuma = gb.grup ? { ...ok0, tur: ok0.tur === 'mesgul' ? 'mesgul' : 'etut', ham: h } : ok0
+        const hz = hucreHazirla(okuma, p.ogrenciler)
+        if (gb.grup && okuma.tur === 'etut')
+          hz.siniflar = [{ ad: gb.grup.ad, ids: gb.grup.ogrenciler.filter((id) => ogrIds.has(id)), on: true, grup: true }, ...hz.siniflar]
+        return { okuma, ...hz }
       })
       // Sistemde bu adla öğretmen yoksa satır atlanmaz: okunan adıyla eklenir (sonra değiştirilebilir)
       const dolu = hucreler.some((h) => h.okuma.tur !== 'bos')
@@ -332,13 +342,13 @@ export function EtutIceAktar(p: {
                               </select>
                             ))}
                             {h.siniflar.map((g, gi) => (
-                              <label key={g.ad} className="et-check" title={`${g.ad} sınıfının bütün öğrencileri`}>
+                              <label key={g.ad} className="et-check" title={g.grup ? `${g.ad} grubunun öğrencileri` : `${g.ad} sınıfının bütün öğrencileri`}>
                                 <input
                                   type="checkbox"
                                   checked={g.on}
                                   onChange={(e) => setHucre(ri, ci, (x) => ({ ...x, siniflar: x.siniflar.map((y, j) => (j === gi ? { ...y, on: e.target.checked } : y)) }))}
                                 />{' '}
-                                Tüm sınıf: {g.ad} ({g.ids.length})
+                                {g.grup ? 'Grup' : 'Tüm sınıf'}: {g.ad} ({g.ids.length})
                               </label>
                             ))}
                             <input aria-label="Konu" placeholder="Konu (sonra da yazılabilir)" value={h.konu} onChange={(e) => setHucre(ri, ci, (x) => ({ ...x, konu: e.target.value }))} />

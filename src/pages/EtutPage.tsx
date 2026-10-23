@@ -47,6 +47,8 @@ import {
   type EtutTalep,
 } from '@/lib/etutData'
 import { EtutIceAktar } from './EtutIceAktar'
+import { EtutGruplariBolum } from './EtutGruplari'
+import { useEtutGruplari } from '@/lib/etutData'
 import './Etut.css'
 
 const kademeOf = (grade?: number | null): Kademe | null => (!grade ? null : grade >= 9 ? 'lise' : grade >= 5 ? 'ortaokul' : null)
@@ -113,6 +115,9 @@ function PlanView() {
     [people.data],
   )
   const kadOgr = useMemo(() => (students.data ?? []).filter((s) => kademeOf(s.grade) === kademe), [students.data, kademe])
+  // Etüt öğrenci grupları (0062): açık kademenin grupları
+  const gruplarQ = useEtutGruplari()
+  const gruplar = useMemo(() => (gruplarQ.data ?? []).filter((g) => g.kademe === kademe), [gruplarQ.data, kademe])
   const stName = useMemo(() => new Map((students.data ?? []).map((s) => [s.id, `${s.full_name} (${s.class_name})`])), [students.data])
   const tid = (name: string) => teachers.find((t) => t.name.toLocaleLowerCase('tr') === name.trim().toLocaleLowerCase('tr'))?.id ?? null
 
@@ -448,6 +453,8 @@ function PlanView() {
         )}
       </section>
 
+      <EtutGruplariBolum kademe={kademe} gruplar={gruplar} ogrenciler={kadOgr} />
+
       <div className="et-actions">
         {gun && (
           <button className="btn" onClick={remove} disabled={busy}>
@@ -471,6 +478,7 @@ function PlanView() {
           kademeOgretmen={kademeOgr.data?.[kademe]}
           tarih={tarih}
           kademe={kademe}
+          gruplar={gruplar}
           ogrenciler={kadOgr.map((s) => ({ id: s.id, full_name: s.full_name, class_name: s.class_name, grade: s.grade }))}
           onClose={() => setIce(false)}
           onApply={({ saatler, hucreler }) => {
@@ -493,6 +501,7 @@ function PlanView() {
           saat={draft.saatler[edit.ders - 1]!}
           value={editing}
           students={kadOgr.map((s) => ({ id: s.id, name: `${s.full_name} (${s.class_name})` }))}
+          gruplar={gruplar}
           salonlar={ayar.list('etut.salonlar')}
           etiketler={ayar.list('etut.mesgul_etiketleri')}
           busyIn={(sid) => draft.hucreler.find((h) => h.ders === edit.ders && h.tur === 'etut' && h.ogrenciler.includes(sid) && h !== editing)?.teacher_name ?? null}
@@ -521,6 +530,7 @@ function HucreModal(p: {
   saat: Saat
   value: Hucre | null
   students: { id: string; name: string }[]
+  gruplar: { id: string; ad: string; ogrenciler: string[] }[]
   busyIn: (sid: string) => string | null
   salonlar: string[]
   etiketler: string[]
@@ -588,6 +598,30 @@ function HucreModal(p: {
               ))}
             </datalist>
           </label>
+          {p.gruplar.length > 0 && (
+            <label className="field">
+              Gruptan ekle
+              <select
+                value=""
+                onChange={(e) => {
+                  const g = p.gruplar.find((x) => x.id === e.target.value)
+                  if (!g) return
+                  const var_ = new Set(p.students.map((s) => s.id))
+                  const ek = g.ogrenciler.filter((id) => var_.has(id) && !sel.includes(id))
+                  setSel([...sel, ...ek])
+                  if (!konu.trim()) setKonu(g.ad)
+                  toast(`${g.ad}: ${ek.length} öğrenci eklendi`)
+                }}
+              >
+                <option value="">Grup seç…</option>
+                {p.gruplar.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.ad} ({g.ogrenciler.length})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="field">
             Öğrenci ara (en az 2 harf)
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ad ya da sınıf" />
