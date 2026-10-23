@@ -21,6 +21,7 @@
 .et .et-check input{width:20px;height:20px}
 .et .et-issues p{display:flex;gap:6px;margin:0;font-size:14px;color:var(--ink-2)}
 .et .et-issues p.bad{color:var(--signal-ink,var(--signal));font-weight:500}
+.et .et-issues p.info{color:var(--primary)}
 .et .et-talepler,.et .et-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .et .et-talepler li{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px;border-radius:12px;background:var(--surface-sunken)}
 .et .et-talepler li .m,.et .et-item .m{display:block;font-size:13px}

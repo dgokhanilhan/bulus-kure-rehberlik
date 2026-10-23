@@ -52,12 +52,11 @@ test('rehber: konuyu yanlış yapan öğrencilere etüt planlar; etüt programı
   expect(h[0]!.etut_ogrenciler.map((o) => o.student_name)).toContain(ilk)
 
   // Sınıflar → Planlanan etütler (yeni program)
-  await expect(page.getByTestId('etut-row').first()).toContainText('2. ders')
+  await expect(page.getByTestId('etut-row').filter({ hasText: '2. ders' }).filter({ hasText: 'Murat Kaya' }).first()).toBeAttached()
   // Öğrenci dosyası → Etüt
   const sid = (await svc.from('students').select('id').eq('full_name', ilk).single()).data!.id
   await page.goto(`/ogrenciler/${sid}?sekme=etut`)
-  await expect(page.getByTestId('ogr-etut').first()).toContainText('2. ders')
-  await expect(page.getByTestId('ogr-etut').first()).toContainText('Murat Kaya')
-  await expect(page.getByTestId('ogr-etut').first()).toContainText('Taslak')
+  const satir = page.getByTestId('ogr-etut').filter({ hasText: '2. ders' }).filter({ hasText: 'Taslak' }).first()
+  await expect(satir).toContainText('Murat Kaya')
   await expect(page.getByRole('button', { name: 'Etüt planla' })).toBeVisible()
 })

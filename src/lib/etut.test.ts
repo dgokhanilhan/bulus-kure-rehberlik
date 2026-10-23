@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { VARSAYILAN_SAATLER, baslangicSaatleri, cumartesiler, isCumartesi, saatHatasi, sorunlar, yerlesimOner, type Hucre } from './etut'
+import { VARSAYILAN_SAATLER, baslangicSaatleri, cumartesiler, isCumartesi, ogrenciOzeti, saatHatasi, sorunlar, yerlesimOner, type Hucre } from './etut'
 
 const H = (x: Partial<Hucre> & Pick<Hucre, 'ders' | 'teacher_name'>): Hucre => ({ teacher_id: null, tur: 'etut', konu: 'Konu', ogrenciler: [], ...x })
 
@@ -39,12 +39,27 @@ describe('Cumartesi etütleri', () => {
       ],
       (id) => (id === 's1' ? 'Elif' : id),
     )
-    expect(s.filter((x) => x.ciddi).map((x) => x.text)).toEqual([
-      'Elif 1. derste iki etüde yazılmış (Ayşe ve Bora).',
-      'ayşe  2. derste iki kez yazılmış.',
-      'Ayşe · 2. ders: etüt konusu yok.',
-    ])
-    expect(s.find((x) => !x.ciddi)!.text).toMatch(/Cem · 3\. ders: etütte öğrenci yok/)
+    // Aynı derste iki etüt uyarıdır (kaydı durdurmaz; "yine de kaydet" sorulur)
+    expect(s.filter((x) => x.ciddi).map((x) => x.text)).toEqual(['ayşe  2. derste iki kez yazılmış.', 'Ayşe · 2. ders: etüt konusu yok.'])
+    expect(s.filter((x) => x.tur === 'cakisma').map((x) => x.text)).toEqual(['Elif 1. derste iki etüde yazılmış (Ayşe ve Bora).'])
+    expect(s.find((x) => !x.ciddi && !x.tur)!.text).toMatch(/Cem · 3\. ders: etütte öğrenci yok/)
+  })
+  it('grubun tamamı aynı derste birden çok öğretmende: tek bilgi satırı, öğrenci öğrenci uyarı yok; gruptan olmayan çakışma uyarı', () => {
+    const G = [{ ad: "8'ler 1. Grup", ogrenciler: ['s1', 's2'] }]
+    const s = sorunlar(
+      [
+        H({ ders: 3, teacher_name: 'İngilizce', ogrenciler: ['s1', 's2'] }),
+        H({ ders: 3, teacher_name: 'Din', ogrenciler: ['s1', 's2', 's3'] }),
+        H({ ders: 3, teacher_name: 'Fen', ogrenciler: ['s3'] }),
+        H({ ders: 4, teacher_name: 'İngilizce', ogrenciler: ['s1'] }),
+        H({ ders: 4, teacher_name: 'Din', ogrenciler: ['s1'] }),
+      ],
+      (id) => id,
+      G,
+    )
+    expect(s.filter((x) => x.tur === 'bilgi').map((x) => x.text)).toEqual(["8'ler 1. Grup 3. derste 2 öğretmende: İngilizce, Din (paylaşımlı ders)."])
+    expect(s.filter((x) => x.tur === 'cakisma').map((x) => x.text)).toEqual(['s3 3. derste iki etüde yazılmış (Din ve Fen).', 's1 4. derste iki etüde yazılmış (İngilizce ve Din).'])
+    expect(s.some((x) => x.ciddi)).toBe(false)
   })
   it('talep yerleşimi: istenen ders uygunsa o, değilse öğretmenin ve öğrencilerin boş olduğu ilk ders', () => {
     const hs = [H({ ders: 1, teacher_name: 'Ayşe', ogrenciler: ['s9'] }), H({ ders: 2, teacher_name: 'Bora', ogrenciler: ['s1'] })]
@@ -52,4 +67,18 @@ describe('Cumartesi etütleri', () => {
     expect(yerlesimOner(hs, 'Ayşe', ['s1'], 1)).toBe(3) // 1: Ayşe dolu, 2: s1 başka etütte
     expect(yerlesimOner(hs, 'Cem', ['s2'], null)).toBe(1)
   })
+})
+
+it('PDF öğrenci özeti: grubun ve sınıfın tamamı tek satır, kalanlar adlarıyla', () => {
+  const S = new Map([
+    ['5/A', ['a1', 'a2', 'a3']],
+    ['6/A', ['b1', 'b2']],
+  ])
+  const G = [{ ad: "8'ler 1. Grup", ogrenciler: ['g1', 'g2'] }]
+  const ad = (id: string) => id.toUpperCase()
+  expect(ogrenciOzeti(['a1', 'a2', 'a3'], S, G, ad)).toEqual(['5/A (tüm sınıf)'])
+  expect(ogrenciOzeti(['g1', 'g2'], S, G, ad)).toEqual(["8'ler 1. Grup"])
+  expect(ogrenciOzeti(['b2', 'b1', 'a1'], S, G, ad)).toEqual(['6/A (tüm sınıf)', 'A1'])
+  expect(ogrenciOzeti(['a1', 'a2'], S, G, ad)).toEqual(['A1', 'A2'])
+  expect(ogrenciOzeti([], S, G, ad)).toEqual([])
 })

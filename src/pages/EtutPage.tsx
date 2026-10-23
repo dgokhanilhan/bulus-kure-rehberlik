@@ -11,6 +11,7 @@ import { useToast } from '@/components/Toast'
 import { useAyar } from '@/lib/ayarlar'
 import { Icon } from '@/components/Icon'
 import { Modal } from '@/components/Modal'
+import { Confirm } from '@/components/Confirm'
 import { useMyStudent } from './FamilyPages'
 import {
   DERSLER,
@@ -21,6 +22,7 @@ import {
   baslangicSaatleri,
   cumartesiler,
   isCumartesi,
+  ogrenciOzeti,
   saatHatasi,
   sorunlar,
   yerlesimOner,
@@ -105,6 +107,8 @@ function PlanView() {
   const kademeOgr = useKademeOgretmenleri()
   const [saatAc, setSaatAc] = useState(false)
   const [ice, setIce] = useState(false)
+  // Aynı derste iki etüde yazılan öğrenci varsa kaydet / yayınla öncesi "yine de" onayı
+  const [onay, setOnay] = useState<'kaydet' | 'yayinla' | null>(null)
 
   const teachers = useMemo(
     () =>
@@ -165,16 +169,18 @@ function PlanView() {
   const rows = [...new Set([...draft.rows, ...kademeAdlari, ...(hepsi ? teachers.map((t) => t.name) : [])])].sort((a, b) => a.localeCompare(b, 'tr'))
   const cellOf = (name: string, ders: number) =>
     draft.hucreler.find((h) => h.ders === ders && h.teacher_name.trim().toLocaleLowerCase('tr') === name.trim().toLocaleLowerCase('tr'))
-  const issues = sorunlar(draft.hucreler, (id) => stName.get(id) ?? 'Öğrenci')
+  const issues = sorunlar(draft.hucreler, (id) => stName.get(id) ?? 'Öğrenci', gruplar)
+  const cakisma = issues.filter((i) => i.tur === 'cakisma')
   const sh = saatHatasi(draft.saatler)
   const bekleyen = (talepler.data ?? []).filter((t) => t.durum === 'bekliyor')
   const serverCell = (name: string, ders: number) =>
     (hucreQ.data ?? []).find((h) => h.ders === ders && h.teacher_name.trim().toLocaleLowerCase('tr') === name.trim().toLocaleLowerCase('tr'))
 
-  async function save(): Promise<string | null> {
+  async function save(onayli = false): Promise<string | null> {
     if (sh) return toast(sh, 'warn'), null
     const serious = issues.filter((i) => i.ciddi)
     if (serious.length) return toast(serious[0]!.text, 'warn'), null
+    if (cakisma.length && !onayli) return setOnay('kaydet'), null
     setBusy(true)
     try {
       const id = await etutKaydet(gun?.id ?? null, { tarih, kademe, saatler: draft!.saatler, hucreler: draft!.hucreler })
@@ -189,10 +195,11 @@ function PlanView() {
       setBusy(false)
     }
   }
-  async function publish() {
-    const id = dirty || !gun ? await save() : gun.id
+  async function publish(onayli = false) {
+    if (cakisma.length && !onayli) return setOnay('yayinla')
+    const id = dirty || !gun ? await save(onayli) : gun.id
     if (!id) return
-    if (!window.confirm('Program yayınlansın mı? Etüdü olan öğrenci ve velilere bildirim gider.')) return
+    if (!onayli && !window.confirm('Program yayınlansın mı? Etüdü olan öğrenci ve velilere bildirim gider.')) return
     try {
       await etutRpc('etut_yayinla', id)
       await refresh()
@@ -217,6 +224,10 @@ function PlanView() {
   async function downloadPdf() {
     try {
       const { etutPdf } = await import('@/lib/etutPdf')
+      // Sınıfın ya da etüt grubunun tamamı yazılan etütte adlar tek tek değil, "5/A (tüm sınıf)" / grup adı olarak yazılır
+      const siniflar = new Map<string, string[]>()
+      for (const s of kadOgr) siniflar.set(s.class_name, [...(siniflar.get(s.class_name) ?? []), s.id])
+      const kisaAd = (id: string) => (stName.get(id) ?? '').replace(/ \(.*/, '')
       const blob = await etutPdf({
         school: school.data?.name ?? 'Buluş Küre Koleji',
         title: `${KADEME_TR[kademe]} · ${new Date(`${tarih}T12:00:00Z`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long', timeZone: 'UTC' })}`,
@@ -229,7 +240,7 @@ function PlanView() {
             if (!h) return null
             return h.tur === 'mesgul'
               ? { tur: 'mesgul' as const, aciklama: h.aciklama ?? '' }
-              : { tur: 'etut' as const, konu: h.konu ?? '', salon: h.salon ?? '', ogrenciler: h.ogrenciler.map((s) => (stName.get(s) ?? '').replace(/ \(.*/, '')) }
+              : { tur: 'etut' as const, konu: h.konu ?? '', salon: h.salon ?? '', ogrenciler: ogrenciOzeti(h.ogrenciler, siniflar, gruplar, kisaAd) }
           }),
         })),
         printed: new Date().toLocaleString('tr-TR', { dateStyle: 'long', timeStyle: 'short' }),
@@ -413,8 +424,8 @@ function PlanView() {
         </div>
         <div className="et-issues" role="status">
           {issues.map((i, n) => (
-            <p key={n} className={i.ciddi ? 'bad' : ''}>
-              <Icon name="warn" size={15} /> {i.text}
+            <p key={n} className={i.ciddi ? 'bad' : i.tur === 'bilgi' ? 'info' : ''}>
+              <Icon name={i.tur === 'bilgi' ? 'users' : 'warn'} size={15} /> {i.text}
             </p>
           ))}
         </div>
@@ -464,14 +475,38 @@ function PlanView() {
         <button className="btn" onClick={downloadPdf}>
           <Icon name="doc" size={16} /> PDF indir / yazdır
         </button>
-        <button className="btn" onClick={save} disabled={busy || (!dirty && !!gun)}>
+        <button className="btn" onClick={() => save()} disabled={busy || (!dirty && !!gun)}>
           <Icon name="check" size={16} /> Kaydet
         </button>
-        <button className="btn pri" onClick={publish} disabled={busy || (gun?.durum === 'yayinda' && !dirty)}>
+        <button className="btn pri" onClick={() => publish()} disabled={busy || (gun?.durum === 'yayinda' && !dirty)}>
           <Icon name="right" size={16} /> {gun?.durum === 'yayinda' ? 'Değişiklikleri yayınla' : 'Yayınla'}
         </button>
       </div>
 
+      {onay && (
+        <Confirm
+          title="Aynı ders saatinde iki etüt"
+          action={onay === 'kaydet' ? 'Yine de kaydet' : 'Yine de yayınla'}
+          onClose={() => setOnay(null)}
+          onConfirm={async () => {
+            const e = onay
+            setOnay(null)
+            if (e === 'kaydet') await save(true)
+            else await publish(true)
+          }}
+        >
+          <p style={{ fontSize: 14 }}>
+            {cakisma.length} öğrenci aynı ders saatinde iki öğretmenin etüdüne yazılmış. Öğretmenler dersi paylaşıyorsa (ör. 20'şer dakika ya da haftaya göre)
+            devam edebilirsin.{onay === 'yayinla' ? ' Yayınlanınca etüdü olan öğrenci ve velilere bildirim gider.' : ''}
+          </p>
+          <ul className="m" style={{ fontSize: 13, margin: '8px 0 0', paddingLeft: 18 }}>
+            {cakisma.slice(0, 8).map((i) => (
+              <li key={i.text}>{i.text}</li>
+            ))}
+            {cakisma.length > 8 && <li>ve {cakisma.length - 8} öğrenci daha</li>}
+          </ul>
+        </Confirm>
+      )}
       {ice && (
         <EtutIceAktar
           teachers={teachers}
