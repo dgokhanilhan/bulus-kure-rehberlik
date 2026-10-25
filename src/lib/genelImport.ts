@@ -3,7 +3,7 @@
 // kurallarla (okul no önce, sonra ad); seçmeli bölümler çözülür; kural doğrulaması burada önizlenir, sunucuda tekrarlanır.
 import { matchStudent, type MatchResult, type RosterStudent } from './isim'
 import { kitapcikAyir } from './kitapcik'
-import { resolveOptional, totals, validateResult, type ExamTemplate, type ExamType, type SectionResults, type YksPart } from './denemeGenel'
+import { resolveOptional, secmeliElenen, totals, validateResult, type ExamTemplate, type ExamType, type SectionResults, type YksPart } from './denemeGenel'
 
 export interface GenelSection {
   label: string
@@ -130,10 +130,13 @@ export function buildGenelReview(pack: GenelPack, tpl: ExamTemplate, roster: Ros
   const rows: GenelRow[] = pack.records.map((r, i) => {
     let sections: SectionResults = {}
     for (const s of r.sections) if (map[s.label]) sections[map[s.label]!] = { d: s.d, y: s.y, b: s.b, net: s.net }
+    const okunan = sections
     sections = resolveOptional(tpl, sections)
     const errors = validateResult(tpl, sections)
     const missing = tpl.sections.filter((s) => !s.optional_group && sections[s.key] === undefined).map((s) => s.label)
     const notes: string[] = []
+    for (const x of secmeliElenen(tpl, okunan, sections))
+      notes.push(`${x.sayilan} ve ${x.sayilmayan.join(', ')} ikisi de işaretlenmiş; ${x.sayilan} sayıldı, ${x.sayilmayan.join(', ')} puanlamaya katılmadı (ÖSYM kuralı, yayının karnesiyle aynı).`)
     if (missing.length) notes.push(`${missing.join(', ')}: sonuç yok; okunamadı olarak kalır (puanlamaya katılmaz).`)
     const badItemSections = [...new Set(r.warnings.filter((w) => /^ITEM_(COVERAGE|COUNTS):/.test(w)).map((w) => map[w.split(':')[1]!] ?? w.split(':')[1]!))]
     if (badItemSections.length) notes.push(`${badItemSections.join(', ')}: soru-kazanım bilgisi sonuçla tutarsız; bu bölümlerin kazanım analizi yapılmaz.`)
