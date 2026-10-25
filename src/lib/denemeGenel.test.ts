@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { academicYear, comparable, contextTitle, examFamily, lastExamDelta, netOf, reportTitle, resolveOptional, totals, validateResult, yksTabs, type ExamTemplate } from './denemeGenel'
+import { academicYear, comparable, contextTitle, examFamily, lastExamDelta, netOf, reportTitle, resolveOptional, secmeliElenen, totals, validateResult, yksTabs, type ExamTemplate } from './denemeGenel'
 
 const T6: ExamTemplate = {
   id: 't6', name: '6. Sınıf', grade: 6, exam_types: ['GENEL'], wrong_per_correct: 3, strict_counts: true,
@@ -37,6 +37,23 @@ describe('net ve doğrulama', () => {
     const r = resolveOptional(TYT, { TUR: { d: 30, y: 8, b: 2, net: 28 }, DIN: { d: 3, y: 1, b: 1, net: 2.75 }, FEL2: { d: 0, y: 0, b: 5, net: 0 } })
     expect(r.FEL2).toEqual({ na: true })
     expect(validateResult(TYT, r)).toEqual([])
+  })
+  it('ikisi birden işaretlenmişse Din Kültürü sayılır, Felsefe-2 uygulanmadı olur (ÖSYM / yayın karnesi); not üretilir', () => {
+    const both = { TUR: { d: 27, y: 4, b: 9, net: 26 }, DIN: { d: 2, y: 0, b: 3, net: 2 }, FEL2: { d: 5, y: 0, b: 0, net: 5 } }
+    const r = resolveOptional(TYT, both)
+    expect(r.DIN).toEqual(both.DIN)
+    expect(r.FEL2).toEqual({ na: true })
+    expect(validateResult(TYT, r)).toEqual([])
+    expect(totals(TYT, r).totalNet).toBe(28)
+    expect(secmeliElenen(TYT, both, r)).toEqual([{ sayilan: 'Din', sayilmayan: ['Felsefe-2'] }])
+    // Yalnız Felsefe-2 işaretliyse o sayılır
+    const f = resolveOptional(TYT, { ...both, DIN: { d: 0, y: 0, b: 5, net: 0 } })
+    expect(f.DIN).toEqual({ na: true })
+    expect(secmeliElenen(TYT, { ...both, DIN: { d: 0, y: 0, b: 5, net: 0 } }, f)).toEqual([])
+    // Din Kültürü olmayan bir seçmeli grupta ikisi birden işaretliyse karar verilmez, hata kalır
+    const X: ExamTemplate = { ...TYT, sections: TYT.sections.map((s) => (s.key === 'DIN' ? { ...s, key: 'ALM', label: 'Almanca' } : s)) }
+    const x = { TUR: both.TUR, ALM: both.DIN, FEL2: both.FEL2 }
+    expect(validateResult(X, resolveOptional(X, x)).join()).toMatch(/yalnız biri/)
   })
 })
 

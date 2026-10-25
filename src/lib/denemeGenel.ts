@@ -81,6 +81,22 @@ export function validateResult(tpl: ExamTemplate, r: SectionResults): string[] {
   return [...e, ...validateGroups(tpl, r)]
 }
 
+/** Seçmeli grupta öncelikli bölüm: Din Kültürü (Felsefe-2 onun yerine çözülür). */
+const birincilSecmeli = (s: TemplateSection) => /(^|[^a-zçğıöşü])din([^a-zçğıöşü]|$|_| kült)/.test(`${s.key} ${s.label}`.toLocaleLowerCase('tr'))
+
+/** resolveOptional'ın sayılmayan yaptığı, aslında işaretlenmiş bölümler (önizlemede not olarak gösterilir). */
+export function secmeliElenen(tpl: ExamTemplate, once: SectionResults, sonra: SectionResults): { sayilan: string; sayilmayan: string[] }[] {
+  const groups = new Map<string, TemplateSection[]>()
+  for (const s of tpl.sections) if (s.optional_group) groups.set(s.optional_group, [...(groups.get(s.optional_group) ?? []), s])
+  const out: { sayilan: string; sayilmayan: string[] }[] = []
+  for (const [, ss] of groups) {
+    const elenen = ss.filter((s) => { const v = once[s.key] ?? null; return isScore(v) && v.d + v.y > 0 && isNA(sonra[s.key] ?? null) })
+    const kalan = ss.find((s) => isScore(sonra[s.key] ?? null))
+    if (elenen.length && kalan) out.push({ sayilan: kalan.label, sayilmayan: elenen.map((s) => s.label) })
+  }
+  return out
+}
+
 /**
  * Seçmeli gruptaki yanıtlanmamış bölümü N/A yapar: grubun bir bölümünde doğru/yanlış varsa diğerleri
  * (tamamı boşsa) "uygulanmadı" sayılır. Hiçbiri yanıtlanmamışsa grup olduğu gibi kalır (karar verilmez).
@@ -91,6 +107,13 @@ export function resolveOptional(tpl: ExamTemplate, r: SectionResults): SectionRe
   for (const s of tpl.sections) if (s.optional_group) groups.set(s.optional_group, [...(groups.get(s.optional_group) ?? []), s])
   for (const [, ss] of groups) {
     const answered = ss.filter((s) => { const v = out[s.key] ?? null; return isScore(v) && v.d + v.y > 0 })
+    // İkisi birden işaretlenmişse (TYT: Din Kültürü ve Felsefe-2) ÖSYM kuralı ve yayınların karnesi gibi Din Kültürü sayılır;
+    // Felsefe-2 yalnız Din Kültürü'ne girmeyen öğrenci içindir → uygulanmadı (puan ve analize girmez)
+    if (answered.length > 1) {
+      const birincil = answered.filter(birincilSecmeli)
+      if (birincil.length === 1) for (const s of ss) if (s !== birincil[0]) out[s.key] = { na: true }
+      continue
+    }
     if (answered.length !== 1) continue
     for (const s of ss) { const v = out[s.key] ?? null; if (s !== answered[0] && (v === null || (isScore(v) && v.d + v.y === 0))) out[s.key] = { na: true } }
   }

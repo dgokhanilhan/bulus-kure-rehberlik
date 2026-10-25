@@ -42,6 +42,15 @@ export function nameDistance(a: string, b: string) {
   return Math.min(lev(x, y), lev(sorted(x), sorted(y)))
 }
 
+/** Okul numarası aynı mı: "57" = "57"; yayınların ön ekli yazımı "10057" / "1057" = 57 (yalnız destekleyici işaret). */
+export function noUyar(okunan: string | null | undefined, kayitli: string | null | undefined): boolean {
+  const r = (okunan ?? '').replace(/\D/g, '')
+  const s = (kayitli ?? '').replace(/\D/g, '')
+  if (!r || !s) return false
+  if (Number(r) === Number(s)) return true
+  return r.length >= 4 && r.length > s.length && /^10/.test(r) && Number(r.slice(-3)) === Number(s)
+}
+
 /**
  * 1) Ad-soyad ve varsa sınıf birebir ve tekse → aynı öğrenci.
  * 2) Okul numarası tekrarlanabilir; kimlik veya öncelik belirlemez.
@@ -58,8 +67,29 @@ export function matchStudent(read: { name: string; number?: string | null; class
   const sameCls = cls ? same.filter((s) => classKey(s.class_name) === cls) : same
   if (sameCls.length === 1) return { kind: 'exact', id: sameCls[0]!.id, via: 'name' }
   if (same.length === 1 && !cls) return { kind: 'exact', id: same[0]!.id, via: 'name' }
+  // Karnedeki şube farklı ama ad soyad okulda tek öğrenciye ait (yayının listesi eski ya da şube yanlış yazılmış):
+  // kendiliğinden eşleşmez (başka şube = kontrol), ama ilk aday olarak önerilir
+  const baskaSube = cls && !sameCls.length && same.length === 1 ? same[0]!.id : null
 
   const pool = cls ? roster.filter((s) => classKey(s.class_name) === cls) : roster
+  if (baskaSube) {
+    const yakin = pool.map((s) => ({ s, d: nameDistance(read.name, s.full_name) })).sort((a, b) => a.d - b.d).filter((x) => x.d <= 2).slice(0, 2)
+    return { kind: 'unknown', candidates: [baskaSube, ...yakin.map((x) => x.s.id)] }
+  }
+  // İkinci ad yazılmamış: "ELİF TAŞ" ↔ "ELİF DURU TAŞ" (ilk ad ve soyad aynı, okunan adlar sırayla içinde). Sınıfta tek adaysa
+  // ya da yayının ön ekli okul numarası ("10057" ↔ 57) adaylardan birini ayırıyorsa düzeltme sayılır.
+  const rw = n.split(' ')
+  const altKume = (full: string) => {
+    const w = normName(full).split(' ')
+    if (rw.length < 2 || w.length <= rw.length || w[0] !== rw[0] || w.at(-1) !== rw.at(-1)) return false
+    let i = 0
+    for (const x of w) if (x === rw[i]) i++
+    return i === rw.length
+  }
+  const eksikAd = pool.filter((s) => altKume(s.full_name))
+  if (eksikAd.length === 1) return { kind: 'fixed', id: eksikAd[0]!.id, via: 'name' }
+  const noAday = eksikAd.filter((s) => noUyar(read.number, s.school_no))
+  if (eksikAd.length > 1 && noAday.length === 1) return { kind: 'fixed', id: noAday[0]!.id, via: 'no' }
   const ranked = pool.map((s) => ({ s, d: nameDistance(read.name, s.full_name) })).sort((a, b) => a.d - b.d)
   const best = ranked[0]
   const second = ranked[1]

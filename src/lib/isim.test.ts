@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { matchStudent, nameDistance, type RosterStudent } from './isim'
+import { matchStudent, nameDistance, noUyar, type RosterStudent } from './isim'
 
 const R: RosterStudent[] = [
   { id: 'zeynep', full_name: 'Zeynep Kaya', class_name: '8/A', school_no: '1187' },
@@ -50,5 +50,31 @@ describe('isim eşleştirme', () => {
     const same = [{id:'a',full_name:'Ali Kaya',class_name:'8/A',school_no:'10'},{id:'b',full_name:'Ali Kaya',class_name:'8/B',school_no:'10'}]
     expect(matchStudent({name:'Ali Kaya',number:'10'},same).kind).toBe('unknown')
     expect(matchStudent({name:'Ali Kaya',number:'10',class:'8/B'},same)).toEqual({kind:'exact',id:'b',via:'name'})
+  })
+})
+
+describe('yayın karnesi farkları (ikinci ad, şube, ön ekli no)', () => {
+  const R = [
+    { id: 'e1', full_name: 'ELİF DURU TAŞ', class_name: '12/A · SAY', school_no: '57' },
+    { id: 'e2', full_name: 'ELİF NAZ TAŞ', class_name: '12/A · SAY', school_no: '58' },
+    { id: 'a1', full_name: 'AHSEN YUDUM GÜNAY', class_name: '12/B · EA', school_no: '65' },
+    { id: 'o1', full_name: 'OĞUZ KAAN KIRIMLI', class_name: '12/B · EA', school_no: '123' },
+    { id: 'k1', full_name: 'KAAN AKTAŞ', class_name: '12/A · SAY', school_no: '77' },
+  ]
+  it('ikinci ad yazılmamış: sınıfta tek adaysa düzeltilir', () => {
+    expect(matchStudent({ name: 'AHSEN GÜNAY', class: '12/B', number: '10065' }, R)).toEqual({ kind: 'fixed', id: 'a1', via: 'name' })
+  })
+  it('iki aday varsa ön ekli okul numarası ayırır; numara yoksa sorulur', () => {
+    expect(matchStudent({ name: 'ELİF TAŞ', class: '12/A', number: '10057' }, R)).toEqual({ kind: 'fixed', id: 'e1', via: 'no' })
+    expect(matchStudent({ name: 'ELİF TAŞ', class: '12/A', number: null }, R).kind).toBe('unknown')
+  })
+  it('şube farklı ama ad soyad okulda tek: kendiliğinden eşleşmez, ilk aday olarak önerilir', () => {
+    expect(matchStudent({ name: 'OĞUZ KAAN KIRIMLI', class: '12/A', number: '10123' }, R)).toEqual({ kind: 'unknown', candidates: ['o1'] })
+  })
+  it('soyad ya da ilk ad farklıysa ikinci ad kuralı uygulanmaz', () => {
+    expect(matchStudent({ name: 'MERT TAŞ', class: '12/A', number: null }, R).kind).toBe('unknown')
+  })
+  it('ön ekli numara: 10057 = 57, 1057 = 57; farklı numara değil', () => {
+    expect([noUyar('10057', '57'), noUyar('1057', '57'), noUyar('57', '57'), noUyar('10058', '57'), noUyar('957', '57'), noUyar(null, '57')]).toEqual([true, true, true, false, false, false])
   })
 })
