@@ -78,10 +78,34 @@ Deno.serve(async (req) => {
 
   // Giriş bilgileri: e-posta değiştir / yeni şifre ver (0059). Yönetici mevcut şifreyi göremez.
   if (b.action === 'set_email' || b.action === 'set_password') return await girisBilgileri(ctx, b)
+  if (b.action === 'delete_account') return await hesapSil(ctx, b)
 
   const res = await inviteOne(ctx, b)
   return res.ok ? json({ ok: true, user_id: res.user_id }) : json({ error: res.error }, res.status)
 })
+
+/**
+ * Kapalı / reddedilmiş hesabı kalıcı siler (Yönetim → Kapalı hesaplar → Tamamen sil). E-posta yeniden kayıt için boşalır.
+ * Giriş bilgisi, veli bağları, mesajlaşmalar, bildirimler gider; öğrenci kaydı, deneme sonuçları ve okulun diğer kayıtları kalır.
+ * Okulda bu kişinin yazdığı kayıt varsa (görev, not, rapor, deneme yayını…) veritabanı silmeyi reddeder: hesap kapalı kalır.
+ */
+async function hesapSil(ctx: Ctx, b: Body): Promise<Response> {
+  const { svc } = ctx
+  if (!UUID.test(b.user_id ?? '')) return json({ error: 'Kullanıcı geçersiz.' }, 400)
+  const { data: p } = await svc.from('profiles').select('id, school_id, role, status, full_name').eq('id', b.user_id).maybeSingle()
+  if (!p || p.school_id !== ctx.schoolId) return json({ error: 'Kişi bulunamadı.' }, 404)
+  if (p.status !== 'rejected') return json({ error: 'Yalnız kapatılmış ya da reddedilmiş hesap silinebilir; önce hesabı kapat.' }, 409)
+  const { data: rs } = await svc.from('profile_roles').select('role').eq('profile_id', p.id)
+  if (p.id === ctx.adminId || p.role === 'admin' || (rs ?? []).some((r) => r.role === 'admin')) return json({ error: 'Yönetici hesabı buradan silinemez.' }, 403)
+  const { error } = await svc.auth.admin.deleteUser(p.id)
+  if (error) {
+    if (/database error|foreign key|violates/i.test(error.message))
+      return json({ error: 'Bu hesabın okulda kayıtları var (görev, not, rapor, deneme gibi); kalıcı silinemez. Hesap kapalı kalabilir.' }, 409)
+    return json({ error: `Hesap silinemedi: ${error.message}` }, 502)
+  }
+  await svc.from('audit_log').insert({ user_id: ctx.adminId, action: 'account_delete', entity: 'profiles', entity_id: p.id, meta: { rol: p.role, kanal: 'kapali_hesaplar' } })
+  return json({ ok: true })
+}
 
 /** Öğrenci, öğretmen ya da velinin e-postası / şifresi. Yönetici hesapları (kendisi dahil) buradan değiştirilemez. */
 async function girisBilgileri(ctx: Ctx, b: Body): Promise<Response> {
