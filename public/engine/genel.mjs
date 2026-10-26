@@ -5,7 +5,7 @@
 import mupdf from './mupdf/mupdf.js'
 import { sha256 } from './hashes/sha2.js'
 
-export const ENGINE = 'genel-1.3.1'
+export const ENGINE = 'genel-1.3.2'
 const num = (s) => {
   const t = String(s ?? '')
     .trim()
@@ -317,24 +317,28 @@ export const FAMILIES = {
     inferWrongPerCorrect: true,
     title: (p) => daHeader(p)?.title ?? null,
     student: (p) => daHeader(p),
+    ilkSayfa: (pages) => pages.find(daPage),
     detect(pages) {
-      const p0 = pages[0],
+      // İlk sayfa okul net listesi olabilir (ör. Kafa Dengi "OKUL NET LİSTESİ" + öğrenci sonuç belgeleri): ilk sonuç belgesine bakılır
+      const p0 = pages.find(daPage),
         ev = []
-      if (!daPage(p0)) return { score: 0, evidence: [] }
+      if (!p0) return { score: 0, evidence: [] }
+      const ozet = pages.filter(daOzet).length
       ev.push('"SONUÇ BELGESİ" + Ders / Soru / Doğru / Yanlış / Net tablosu ve "Cevap Anh." satırları')
       if (/DERSLERE GÖRE ANALİZ/.test(p0.text)) ev.push('"DERSLERE GÖRE ANALİZ" kazanım tablosu')
       const h = daHeader(p0)
       if (h) ev.push('Öğrenci · Numara · Sınıf başlığı')
       const n = pages.filter(daPage).length
-      ev.push(`${n}/${pages.length} sayfa aynı düzende (öğrenci başına tek sayfa)`)
-      return { score: 0.5 + (/DERSLERE GÖRE ANALİZ/.test(p0.text) ? 0.2 : 0) + (h ? 0.15 : 0) + (n === pages.length ? 0.1 : 0), evidence: ev }
+      ev.push(`${n}/${pages.length} sayfa aynı düzende (öğrenci başına tek sayfa)${ozet ? `; ${ozet} özet / net listesi sayfası atlanır` : ''}`)
+      return { score: 0.5 + (/DERSLERE GÖRE ANALİZ/.test(p0.text) ? 0.2 : 0) + (h ? 0.15 : 0) + (n + ozet === pages.length ? 0.1 : 0), evidence: ev }
     },
     parse(pages) {
       const recs = [],
         failed = []
       for (const p of pages) {
         if (!daPage(p)) {
-          failed.push({ page: p.n, error: 'Sayfa sonuç belgesi düzeninde değil.' })
+          // Okul net listesi / özet sayfası öğrenci karnesi değildir: atlanır (hata sayılmaz)
+          if (!daOzet(p)) failed.push({ page: p.n, error: 'Sayfa sonuç belgesi düzeninde değil.' })
           continue
         }
         const h = daHeader(p)
@@ -428,6 +432,8 @@ const DA_LABEL = [
   [/^YABANCI/, 'YAB'],
 ]
 const daPage = (p) => /SONUÇ BELGESİ/.test(p.text) && p.lines.some((l) => l.t === 'Ders') && p.lines.some((l) => /^Cevap Anh/.test(l.t))
+// Aynı yazılımın okul özet sayfası ("OKUL NET LİSTESİ", "Genel Ortalama", "KATILIMLAR"): öğrenci karnesi değil
+const daOzet = (p) => !daPage(p) && /NET LİSTESİ|SIRALI LİSTE|SONUÇ LİSTESİ/i.test(p.text) && /Ortalama/i.test(p.text)
 function daHeader(p) {
   const L = (t) => p.lines.find((l) => l.t === t)
   const o = L('Öğrenci'),
@@ -896,7 +902,8 @@ export function detect(pages, hints = {}) {
   if (!best || best.score < 0.6)
     return { family: 'UNKNOWN', format: null, confidence: best?.score ?? 0, evidence: best?.evidence ?? [], message: 'Bu PDF biçimi henüz desteklenmiyor.' }
   const F = FAMILIES[best.key],
-    p0 = pages[0],
+    // Başlık ve sınav türü biçimin ilk öğrenci sayfasından (özet / net listesi sayfası öndeyse atlanır)
+    p0 = F.ilkSayfa?.(pages) ?? pages[0],
     who = F.student ?? student,
     title = (F.title ? F.title(p0) : titleOf(p0)) || ''
   // Sınıf: başlıktaki "N.SINIF", öğrenci sınıf alanı, kazanım kodlarındaki sınıf (ilk kayıtlardan)
@@ -957,6 +964,11 @@ export function detect(pages, hints = {}) {
     examType = 'LGS'
     tConf = 0.95
     tEv.push('başlıkta "LGS"')
+  } else if (grade === 8 && p0.lines.some((l) => l.t === 'Türü') && p0.lines.some((l) => l.t === 'LGS')) {
+    // Sonuç belgesinde "Puan Türü: LGS" (ör. Kafa Dengi): başlıkta LGS yazmasa da 8. sınıf LGS denemesi
+    examType = 'LGS'
+    tConf = 0.85
+    tEv.push('puan türü "LGS"')
   }
   // Yayın: başlıkta yayın adı varsa o; yoksa biçimin varsayılan yayını (düşük güven)
   let publisher = F.publisher,

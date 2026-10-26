@@ -67,6 +67,10 @@ export function matchStudent(read: { name: string; number?: string | null; class
   const sameCls = cls ? same.filter((s) => classKey(s.class_name) === cls) : same
   if (sameCls.length === 1) return { kind: 'exact', id: sameCls[0]!.id, via: 'name' }
   if (same.length === 1 && !cls) return { kind: 'exact', id: same[0]!.id, via: 'name' }
+  // Yayının listesinde boşluksuz yazılmış ad ("SELAHATTİNTUĞRAGENC" ↔ "Selahattin Tuğra Genç"): boşluklar yok sayılınca birebir
+  const bitisik = (x: string) => normName(x).replace(/ /g, '')
+  const bit = (cls ? roster.filter((s) => classKey(s.class_name) === cls) : roster).filter((s) => bitisik(s.full_name) === bitisik(read.name))
+  if (bit.length === 1 && bitisik(read.name).length >= 6) return { kind: 'fixed', id: bit[0]!.id, via: 'name' }
   // Karnedeki şube farklı ama ad soyad okulda tek öğrenciye ait (yayının listesi eski ya da şube yanlış yazılmış):
   // kendiliğinden eşleşmez (başka şube = kontrol), ama ilk aday olarak önerilir
   const baskaSube = cls && !sameCls.length && same.length === 1 ? same[0]!.id : null
@@ -90,6 +94,16 @@ export function matchStudent(read: { name: string; number?: string | null; class
   if (eksikAd.length === 1) return { kind: 'fixed', id: eksikAd[0]!.id, via: 'name' }
   const noAday = eksikAd.filter((s) => noUyar(read.number, s.school_no))
   if (eksikAd.length > 1 && noAday.length === 1) return { kind: 'fixed', id: noAday[0]!.id, via: 'no' }
+  // İlk ad yazılmamış, öğrenci ikinci adıyla ("ZEKİ PEKTEZEL" ↔ "Ömer Zeki Pektezel"): soyad aynı, okunan adlar sırayla içinde;
+  // daha belirsiz olduğu için okul numarası da tutmalı ve sınıfta tek aday olmalı
+  const ikinciAd = pool.filter((s) => {
+    const w = normName(s.full_name).split(' ')
+    if (rw.length < 2 || w.length <= rw.length || w[0] === rw[0] || w.at(-1) !== rw.at(-1)) return false
+    let i = 0
+    for (const x of w) if (x === rw[i]) i++
+    return i === rw.length
+  })
+  if (ikinciAd.length === 1 && noUyar(read.number, ikinciAd[0]!.school_no)) return { kind: 'fixed', id: ikinciAd[0]!.id, via: 'no' }
   const ranked = pool.map((s) => ({ s, d: nameDistance(read.name, s.full_name) })).sort((a, b) => a.d - b.d)
   const best = ranked[0]
   const second = ranked[1]
