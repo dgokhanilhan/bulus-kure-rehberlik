@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest'
-import {pdfOutcomeGrade,pdfVersionsFor} from './pdfOutcomes'
+import {pdfMetniVar,pdfOutcomeGrade,pdfVersionsFor} from './pdfOutcomes'
 import {versionFor} from './curriculumVersions'
 const row={grade:12,exam_type:'AYT',raw_code:'AYT.PSKL.10.36',outcome_grade:null}
 describe('PDF hedefleri önizlemesi',()=>{
@@ -18,4 +18,9 @@ describe('PDF hedefleri önizlemesi',()=>{
     expect(pdfVersionsFor([pdf],[10],'FEL','other')).toEqual([])
     expect(pdfVersionsFor([pdf],[11],'FEL','pub')).toEqual([])
   })
+})
+
+it('PDF hedef metni: yayının yer tutucusu ("KAZANIM BELİRTİLMEMİŞ") metin sayılmaz', () => {
+  expect(['KAZANIM BELİRTİLMEMİŞ', 'Kazanım belirtilmemiş.', 'kazanim yok', '', null, 'ab'].map(pdfMetniVar)).toEqual([false, false, false, false, false, false])
+  expect(['Birinci Dereceden Denklemler ve Eşitsizlikler', 'Kazanım değerlendirme'].map(pdfMetniVar)).toEqual([true, true])
 })
