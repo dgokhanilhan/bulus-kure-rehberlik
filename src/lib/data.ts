@@ -195,6 +195,36 @@ export function useHomeworkRows(f: { homework?: string | null; student?: string 
     },
   })
 }
+/** Sınıfın ödev satırları (veli toplantısı): öğrenci başına durum + ödevin başlığı, dersi ve tarihleri; `from` tarihinden beri verilenler. */
+export interface SinifOdevi {
+  student_id: string
+  status: HwStatus
+  homework: { title: string; course_id: string; assigned_on: string; due_on: string | null }
+}
+export function useClassHomework(ids: string[], from: string) {
+  return useQuery({
+    queryKey: ['homework_students', 'sinif', ids.join(','), from],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const out: SinifOdevi[] = []
+      // Bir yıllık sınıf ödevi 1000 satırı geçebilir: sayfa sayfa
+      for (let i = 0; ; i += 1000) {
+        const r = await all<SinifOdevi>(
+          supabase
+            .from('homework_students')
+            .select('student_id, status, homework:homework_id!inner(title, course_id, assigned_on, due_on)')
+            .in('student_id', ids)
+            .gte('homework.assigned_on', from)
+            .order('homework_id')
+            .order('student_id')
+            .range(i, i + 999),
+        )
+        out.push(...r)
+        if (r.length < 1000) return out
+      }
+    },
+  })
+}
 /** Ödev bölümündeki toplu durumlar (liste kartlarındaki "kontrol edildi" sayısı için). */
 export function useHomeworkProgress(enabled: boolean) {
   return useQuery({

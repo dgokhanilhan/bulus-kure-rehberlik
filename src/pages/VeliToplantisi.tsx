@@ -1,12 +1,15 @@
 // Öğrenciler → sınıf → Veli toplantısı: veliyle yüz yüze görüşürken her öğrencinin özeti ve öğretmenin dolduracağı form.
-// Özet mevcut verilerden (deneme, görev, devamsızlık, görüşme) okunur; form veli_toplanti_formlari tablosuna yazılır (0053).
+// Özet mevcut verilerden (deneme, ödev, devamsızlık) okunur; değerlendirme ve ödev metinleri öğretmenin veliye okuyabileceği
+// konuşma dilindedir (veliToplantiMetni). Form veli_toplanti_formlari tablosuna yazılır (0053).
 // Veliyle birlikte bakılacağı için sınıf sıralaması ve sınıf ortalaması yok: öğrenci kendisiyle kıyaslanır (CLAUDE.md kural 3).
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
-import { fmt, outcomeCode, repeats, signed, type Subject } from '@/lib/analiz'
-import { ATT_TR, useClassAttendance, useMeetings, useStudents, useTasks, type AttendanceStatus } from '@/lib/data'
+import { fmt, signed, type Subject } from '@/lib/analiz'
+import { reportData } from '@/lib/rapor'
+import { degerlendirmeMetni, odevMetni } from '@/lib/veliToplantiMetni'
+import { useClassAttendance, useClassHomework, useCourses, useMeetings, useStudents, useTasks } from '@/lib/data'
 import { useExamContext } from '@/lib/sinavBaglami'
 import { sinifAnalizi, type OgrenciSatiri } from '@/lib/sinifAnalizi'
 import { initials, todayISO, trD } from '@/lib/format'
@@ -67,13 +70,17 @@ function useFormlar(tarih: string, ids: string[]) {
 export interface Ozet {
   denemeler: { ad: string; tarih: string; puan: string; net: string; degisim: number | null }[]
   dersler: { ad: string; net: string; onceki: string; fark: number | null; pct: number | null }[]
+  /** Denemeler satırlarından fazla deneme varsa ilk ve son denemenin kısa özeti ("6 denemede net 52,3 → 61,0") */
+  gelisim: string | null
   guclu: string[]
   destek: string[]
-  konular: string[]
-  gorev: { acik: number; geciken: number }
-  devamsizlik: [string, number][]
-  gorusmeler: string[]
+  /** Veliye okunacak değerlendirme (paragraflar) */
+  degerlendirme: string[]
+  /** Ödevler (paragraflar) */
+  odevler: string[]
 }
+/** Konuşmada kullanılan ad: ilk ad ("Adar Bayat" → "Adar") */
+const ilkAd = (ad: string) => ad.trim().split(/\s+/)[0] ?? ad
 
 export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; grade: number | null; onBack: () => void }) {
   const toast = useToast()
@@ -90,6 +97,8 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
   const sinif = useMemo(() => (students.data ?? []).filter((s) => s.class_name === cls).sort((a, b) => a.full_name.localeCompare(b.full_name, 'tr')), [students.data, cls])
   const ids = useMemo(() => sinif.map((s) => s.id), [sinif])
   const att = useClassAttendance(ids, yilBasi(bugun))
+  const hw = useClassHomework(ids, yilBasi(bugun))
+  const courses = useCourses()
   const formlar = useFormlar(tarih, ids)
   const [secili, setSecili] = useState<string | null>(null)
   const sid = secili && ids.includes(secili) ? secili : (ids[0] ?? null)
@@ -108,7 +117,16 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sid, tarih, formlar.data])
 
+  // Özet (rapor verisi dahil) öğrenci başına bir kez hesaplanır; form yazılırken yeniden hesaplanmaz
+  const ozetler = useMemo(() => new Map<string, Ozet>(), [A, hw.data, courses.data, att.data, bugun])
   function ozetOf(r: OgrenciSatiri): Ozet {
+    const v = ozetler.get(r.student.id)
+    if (v) return v
+    const o = ozetHesapla(r)
+    ozetler.set(r.student.id, o)
+    return o
+  }
+  function ozetHesapla(r: OgrenciSatiri): Ozet {
     const ds = dsq.data!
     const son = r.hucreler.map((h, i) => ({ h, e: A!.denemeler[i]! })).filter((x) => x.h.net !== null)
     const sonR = son.at(-1)
@@ -119,25 +137,35 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
       return { ad: d.ad, net: a ? fmt(a.net) : '—', onceki: b ? fmt(b.net) : '—', fark: a && b ? a.net - b.net : null, pct: r.dersYuzde[d.code as Subject] ?? null }
     })
     const sirali = ders.filter((d) => d.pct !== null).sort((a, b) => b.pct! - a.pct!)
-    const durum = (st: AttendanceStatus) => (att.data ?? []).filter((x) => x.student_id === r.student.id && x.status === st).length
+    const devamsiz = (att.data ?? []).filter((x) => x.student_id === r.student.id && x.status === 'devamsiz').length
+    const ad = ilkAd(r.student.full_name)
+    // Deneme gelişimi sade: son 4 deneme; daha fazlası varsa ilk denemeden bu yana tek satır özet
+    const SATIR = 4
+    const ilk = son[0]
+    const dersAdi = new Map((courses.data ?? []).map((c) => [c.id, c.name]))
+    const odevler = (hw.data ?? [])
+      .filter((x) => x.student_id === r.student.id)
+      .map((x) => ({ baslik: x.homework.title, ders: dersAdi.get(x.homework.course_id) ?? 'Ders', verilis: x.homework.assigned_on, teslim: x.homework.due_on, durum: x.status }))
     return {
-      denemeler: son.slice(-5).map(({ h, e }, i, arr) => ({
-        ad: e.name,
-        tarih: trD(e.exam_date),
-        puan: h.score != null ? fmt(h.score) : '—',
-        net: fmt(h.net!),
-        degisim: i > 0 ? h.net! - arr[i - 1]!.h.net! : null,
-      })),
+      denemeler: son.slice(-SATIR).map(({ h, e }, i, arr) => {
+        const onceki = i > 0 ? arr[i - 1] : son[son.length - arr.length - 1]
+        return {
+          ad: e.name,
+          tarih: trD(e.exam_date),
+          puan: h.score != null ? fmt(h.score) : '—',
+          net: fmt(h.net!),
+          degisim: onceki ? h.net! - onceki.h.net! : null,
+        }
+      }),
+      gelisim:
+        son.length > SATIR && ilk && sonR
+          ? `${son.length} denemede net ${fmt(ilk.h.net!)} → ${fmt(sonR.h.net!)} (${sonR.h.net! >= ilk.h.net! ? '↑' : '↓'} ${fmt(Math.abs(sonR.h.net! - ilk.h.net!))})`
+          : null,
       dersler: ders,
       guclu: sirali.slice(0, 2).map((d) => d.ad),
       destek: sirali.length > 2 ? sirali.slice(-2).reverse().map((d) => d.ad) : [],
-      konular: r.katildigi ? repeats(ds, r.student.id).slice(0, 5).map((x) => `${outcomeCode(x.outcome)} ${x.outcome.title}`) : [],
-      gorev: { acik: r.acikGorev, geciken: r.gecikenGorev },
-      devamsizlik: (['devamsiz', 'gec', 'izinli', 'raporlu'] as AttendanceStatus[]).map((st) => [ATT_TR[st], durum(st)]),
-      gorusmeler: (meetings.data ?? [])
-        .filter((m) => m.student_id === r.student.id)
-        .slice(0, 3)
-        .map((m) => `${trD(m.starts_at.slice(0, 10))} · ${m.with_whom === 'veli' ? 'Veli' : m.with_whom === 'ogrenci' ? 'Öğrenci' : 'Veli ve öğrenci'}${m.note ? ` · ${m.note}` : ''}`),
+      degerlendirme: degerlendirmeMetni(sonR ? reportData(ds, r.student.id, sonR.e.id) : null, ad, r.student.id + (sonR?.e.id ?? '')),
+      odevler: odevMetni(odevler, ad, bugun, devamsiz),
     }
   }
 
@@ -284,6 +312,11 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
                   ) : (
                     <p className="m">Bu dönem deneme sonucu yok.</p>
                   )}
+                  {oz.gelisim && (
+                    <p className="m" style={{ margin: '4px 0 0', fontSize: 13 }}>
+                      {oz.gelisim}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <b>Dersler (son deneme)</b>
@@ -300,52 +333,47 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
                   </table>
                 </div>
               </div>
-              <div className="vt-ozet" style={{ marginTop: 10 }}>
-                <div>
+              {(oz.guclu.length > 0 || oz.destek.length > 0) && (
+                <p style={{ margin: '10px 0 0' }}>
                   {oz.guclu.length > 0 && (
-                    <p style={{ margin: '0 0 4px' }}>
+                    <>
                       <b>Güçlü:</b> {oz.guclu.join(', ')}
-                    </p>
+                    </>
                   )}
+                  {oz.guclu.length > 0 && oz.destek.length > 0 && ' · '}
                   {oz.destek.length > 0 && (
-                    <p style={{ margin: '0 0 4px' }}>
+                    <>
                       <b>Desteğe ihtiyaç:</b> {oz.destek.join(', ')}
-                    </p>
+                    </>
                   )}
-                  <b>Tekrar eden hatalı konular</b>
-                  {oz.konular.length ? (
-                    <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
-                      {oz.konular.map((k) => (
-                        <li key={k}>{k}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="m" style={{ margin: '4px 0 0' }}>
-                      Tekrar eden hatalı konu yok.
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p style={{ margin: '0 0 4px' }}>
-                    <b>Görevler:</b> {oz.gorev.acik} açık{oz.gorev.geciken ? `, ${oz.gorev.geciken} gecikmiş` : ''}
+                </p>
+              )}
+            </section>
+
+            <section className="card" style={{ padding: '16px 20px' }} aria-labelledby="vtDeg" data-testid="vt-metin">
+              <h3 id="vtDeg" className="sec" style={{ margin: '0 0 4px', fontSize: 16 }}>
+                Değerlendirme
+              </h3>
+              <p className="m" style={{ margin: '0 0 8px', fontSize: 13 }}>
+                Veliye okuyabileceğin şekilde yazıldı; deneme sonuçlarından kural tabanlı hazırlanır.
+              </p>
+              {oz.degerlendirme.map((t, i) => (
+                <p key={i} style={{ margin: '0 0 8px', lineHeight: 1.6 }}>
+                  {t}
+                </p>
+              ))}
+              <h3 className="sec" style={{ margin: '14px 0 6px', fontSize: 16 }}>
+                Ödevler
+              </h3>
+              {hw.isLoading ? (
+                <p className="m">Ödevler yükleniyor…</p>
+              ) : (
+                oz.odevler.map((t, i) => (
+                  <p key={i} style={{ margin: '0 0 8px', lineHeight: 1.6 }}>
+                    {t}
                   </p>
-                  <p style={{ margin: '0 0 4px' }}>
-                    <b>Devamsızlık (bu yıl):</b> {oz.devamsizlik.map(([k, v]) => `${k} ${v}`).join(' · ')}
-                  </p>
-                  <b>Son görüşmeler</b>
-                  {oz.gorusmeler.length ? (
-                    <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
-                      {oz.gorusmeler.map((g) => (
-                        <li key={g}>{g}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="m" style={{ margin: '4px 0 0' }}>
-                      Kayıtlı görüşme yok.
-                    </p>
-                  )}
-                </div>
-              </div>
+                ))
+              )}
             </section>
 
             <section className="card" style={{ padding: '16px 20px', display: 'grid', gap: 12 }} aria-label="Görüşme formu">
