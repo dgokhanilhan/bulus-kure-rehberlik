@@ -1219,7 +1219,22 @@ function Veliler({ profiles, students, links }: { profiles: Profile[]; students:
 function Kapali({ profiles, students }: { profiles: Profile[]; students: Stu[] }) {
   const reload = useReload()
   const toast = useToast()
+  const [sil, setSil] = useState<Profile | null>(null)
   const list = profiles.filter((p) => p.status === 'rejected')
+  // Kalıcı silme (admin-davet delete_account): e-posta yeniden kayıt için boşalır; yönetici hesabı silinemez
+  async function kaliciSil(p: Profile): Promise<string | null> {
+    const { data, error } = await supabase.functions.invoke('admin-davet', { body: { action: 'delete_account', user_id: p.id } })
+    if (error) {
+      const ctx = (error as { context?: Response }).context
+      const j = ctx ? await ctx.json().catch(() => null) : null
+      return (j as { error?: string } | null)?.error ?? 'Hesap silinemedi.'
+    }
+    if ((data as { error?: string })?.error) return (data as { error: string }).error
+    toast(`${p.full_name} hesabı kalıcı olarak silindi`)
+    setSil(null)
+    reload()
+    return null
+  }
   async function open(p: Profile) {
     const { error } = await supabase.rpc('set_user_active', { p_profile: p.id, p_active: true })
     if (error) return toast(msg(error)!, 'warn')
@@ -1259,6 +1274,11 @@ function Kapali({ profiles, students }: { profiles: Profile[]; students: Stu[] }
                     <button className="btn sm" onClick={() => open(p)} aria-label={`${p.full_name} hesabını yeniden aç`}>
                       <Icon name="check" size={15} /> Yeniden aç
                     </button>
+                    {!rolesOf(p).includes('admin') && (
+                      <button className="btn sm" onClick={() => setSil(p)} aria-label={`${p.full_name} hesabını tamamen sil`}>
+                        <Icon name="trash" size={15} /> Tamamen sil
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -1266,6 +1286,12 @@ function Kapali({ profiles, students }: { profiles: Profile[]; students: Stu[] }
           </tbody>
         </table>
       </div>
+      {sil && (
+        <ConfirmDelete title="Hesabı tamamen sil" name={sil.full_name} onClose={() => setSil(null)} onConfirm={() => kaliciSil(sil)}>
+          <b>{sil.full_name}</b> ({sil.email}) hesabı kalıcı olarak silinir: giriş bilgileri, veli bağları, mesajlaşmaları ve bildirimleri. Öğrenci
+          kayıtları, deneme sonuçları ve okulun diğer kayıtları silinmez. E-posta adresi yeniden kayıt için boşalır. Bu işlem geri alınamaz.
+        </ConfirmDelete>
+      )}
     </section>
   ) : (
     <div className="empty">Kapatılmış ya da reddedilmiş hesap yok.</div>
