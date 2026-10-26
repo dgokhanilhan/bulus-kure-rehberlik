@@ -78,3 +78,20 @@ describe('yayın karnesi farkları (ikinci ad, şube, ön ekli no)', () => {
     expect([noUyar('10057', '57'), noUyar('1057', '57'), noUyar('57', '57'), noUyar('10058', '57'), noUyar('957', '57'), noUyar(null, '57')]).toEqual([true, true, true, false, false, false])
   })
 })
+
+it('yayının boşluksuz yazdığı ad, boşluklar yok sayılınca birebirse düzeltilir', () => {
+  const R2 = [
+    { id: 's1', full_name: 'Selahattin Tuğra Genç', class_name: '8/A', school_no: '67' },
+    { id: 's2', full_name: 'Selin Genç', class_name: '8/A', school_no: '68' },
+  ]
+  expect(matchStudent({ name: 'SELAHATTİNTUĞRAGENC', class: '8/A', number: '67' }, R2)).toEqual({ kind: 'fixed', id: 's1', via: 'name' })
+})
+
+it('ilk ad yazılmamış (ikinci adıyla): soyad aynı ve okul no tutuyorsa düzeltilir; numara tutmazsa sorulur', () => {
+  const R3 = [
+    { id: 'z', full_name: 'Ömer Zeki Pektezel', class_name: '8/A', school_no: '16' },
+    { id: 'y', full_name: 'Zeki Yılmaz', class_name: '8/A', school_no: '17' },
+  ]
+  expect(matchStudent({ name: 'ZEKİ PEKTEZEL', class: '8/A', number: '16' }, R3)).toEqual({ kind: 'fixed', id: 'z', via: 'no' })
+  expect(matchStudent({ name: 'ZEKİ PEKTEZEL', class: '8/A', number: '99' }, R3).kind).toBe('unknown')
+})
