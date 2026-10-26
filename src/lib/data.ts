@@ -207,9 +207,12 @@ export function useHomeworkProgress(enabled: boolean) {
 // ---------- Yönetim Merkezi (0011–0012) ----------
 /** Okul ayarları (anahtar → değer). Yazma yalnız set_settings RPC'siyle. */
 export function useSettings() {
+  // Oturum hazır olmadan (giriş ekranı, oturum yenilenirken) sorgulanmaz: anonim istek "permission denied" alır
+  const { session } = useAuth()
   return useQuery({
     queryKey: ['school_settings'],
     staleTime: STALE,
+    enabled: !!session,
     queryFn: async () => {
       const rows = await all<{ key: string; value: unknown }>(supabase.from('school_settings').select('key, value'))
       return Object.fromEntries(rows.map((r) => [r.key, r.value])) as Record<string, unknown>

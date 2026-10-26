@@ -30,19 +30,23 @@ if (MOBIL) void import('@/lib/mobil').then((m) => m.initMobil())
 declare global {
   interface Window {
     __bkBooted?: boolean
+    /** Yeni yayından sonra eksik sayfa parçası için yenileme başladı: hata ekranı ve hata kaydı yok */
+    __bkYenileniyor?: boolean
   }
 }
 // Yeni yayından sonra açık sekmede eski bir sayfa parçası (lazy chunk) bulunamazsa bir kez yenile.
 // Bayrak açılıştan 10 sn sonra silinir: açılışta hemen düşen bir parça sonsuz yenileme döngüsüne sokmaz.
 const RETRY = 'bk.parca-yeniden'
-window.addEventListener('vite:preloadError', (e) => {
+// preventDefault yapılmaz: yapılırsa import boş döner ve yenileme bitene kadar sayfa "boş parça" ile çizilip çöker.
+// Hata sınırı yenileme sürerken "Yeni sürüm yükleniyor…" gösterir; bu durum hata olarak kaydedilmez.
+window.addEventListener('vite:preloadError', () => {
   try {
     if (sessionStorage.getItem(RETRY)) return
     sessionStorage.setItem(RETRY, '1')
   } catch {
     return
   }
-  e.preventDefault()
+  window.__bkYenileniyor = true
   location.reload()
 })
 

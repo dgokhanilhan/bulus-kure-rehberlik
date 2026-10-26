@@ -54,20 +54,31 @@ try {
   # klasöre cp gibi kova adıyla kopyalar (dosyalar\<kova>\…), böylece her gün aynı yere yazılır.
   $dosyalar = Join-Path $Hedef 'dosyalar'
   New-Item -ItemType Directory -Force $dosyalar | Out-Null
-  $ErrorActionPreference = 'Continue'
-  $ls = & npx.cmd --prefix $repo supabase storage ls ss:/// --experimental --linked --workdir $repo 2>$null | Out-String
-  $ErrorActionPreference = 'Stop'
-  # Çıktı terminalde JSON, zamanlayıcıda düz satır ("ekler/"): ikisi de okunur
-  $kovalar = @(([regex]'([A-Za-z0-9_.-]+)/').Matches($ls) | ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique)
-  if (-not $kovalar.Count) { throw "Dosya depoları listelenemedi: $($ls.Trim())" }
+  # Geçici ağ / servis kesintisinde (25.10.2026'da bir kez) 30 sn arayla 3 kez denenir
+  $kovalar = @()
+  $ls = ''
+  for ($deneme = 1; $deneme -le 3 -and -not $kovalar.Count; $deneme++) {
+    if ($deneme -gt 1) { Yaz "Dosya depoları listelenemedi; $deneme. deneme 30 sn sonra."; Start-Sleep 30 }
+    $ErrorActionPreference = 'Continue'
+    $ls = & npx.cmd --prefix $repo supabase storage ls ss:/// --experimental --linked --workdir $repo 2>$null | Out-String
+    $ErrorActionPreference = 'Stop'
+    # Çıktı terminalde JSON, zamanlayıcıda düz satır ("ekler/"): ikisi de okunur
+    $kovalar = @(([regex]'([A-Za-z0-9_.-]+)/').Matches($ls) | ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique)
+  }
+  if (-not $kovalar.Count) { throw "Dosya depoları 3 denemede listelenemedi: $($ls.Trim())" }
   $toplam = 0
   Push-Location $dosyalar
   try {
     foreach ($k in $kovalar) {
-      $ErrorActionPreference = 'Continue'
-      $cikti = & npx.cmd --prefix $repo supabase storage cp -r "ss:///$k" . --experimental --linked --workdir $repo 2>$null | Out-String
-      $ErrorActionPreference = 'Stop'
-      if ($LASTEXITCODE -ne 0) { throw "$k dosyaları indirilemedi." }
+      $kod = 1
+      for ($deneme = 1; $deneme -le 3 -and $kod -ne 0; $deneme++) {
+        if ($deneme -gt 1) { Start-Sleep 30 }
+        $ErrorActionPreference = 'Continue'
+        $cikti = & npx.cmd --prefix $repo supabase storage cp -r "ss:///$k" . --experimental --linked --workdir $repo 2>$null | Out-String
+        $kod = $LASTEXITCODE
+        $ErrorActionPreference = 'Stop'
+      }
+      if ($kod -ne 0) { throw "$k dosyaları 3 denemede indirilemedi." }
       $toplam += @(Get-ChildItem -Recurse -File $k -ErrorAction SilentlyContinue).Count
     }
   } finally { Pop-Location }
