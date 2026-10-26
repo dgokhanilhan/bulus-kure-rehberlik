@@ -2,14 +2,14 @@ import { useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { UnresolvedRow } from '@/lib/denemeData'
-import { pdfOutcomeGrade, pdfOutcomeKey } from '@/lib/pdfOutcomes'
+import { pdfMetniVar, pdfOutcomeGrade, pdfOutcomeKey } from '@/lib/pdfOutcomes'
 import { Modal } from './Modal'
 
 type Kind = 'KAZANIM' | 'OGRENME_CIKTISI'
 type Result = { key: string; status: 'created' | 'reused' | 'skipped' | 'error'; message?: string }
 export function PdfHedefEkle({ rows, onClose }: { rows: UnresolvedRow[]; onClose: () => void }) {
   const qc = useQueryClient()
-  const [selected, setSelected] = useState(new Set(rows.filter((r) => (r.raw_text?.trim().length ?? 0) >= 3).map(pdfOutcomeKey)))
+  const [selected, setSelected] = useState(new Set(rows.filter((r) => pdfMetniVar(r.raw_text)).map(pdfOutcomeKey)))
   const [grades, setGrades] = useState(Object.fromEntries(rows.map((r) => [pdfOutcomeKey(r), pdfOutcomeGrade(r)])))
   const [types, setTypes] = useState<Record<string, Kind>>(Object.fromEntries(rows.map((r) => [pdfOutcomeKey(r), 'KAZANIM'])))
   const [kind, setKind] = useState<Kind>('KAZANIM'),
@@ -64,10 +64,20 @@ export function PdfHedefEkle({ rows, onClose }: { rows: UnresolvedRow[]; onClose
       onClose={close}
       footer={
         <>
+          {/* Onay kutusu düğmenin yanında: uzun listenin altında kalınca (telefonda) düğmenin neden kapalı olduğu görünmüyordu */}
+          <label className="check" style={{ flex: '1 1 260px', fontSize: 14 }}>
+            <input type="checkbox" checked={confirmed} disabled={busy || !pending.length} onChange={(e) => setConfirmed(e.target.checked)} /> PDF metinlerini,
+            konu sınıflarını ve hedef türünü kontrol ettim
+          </label>
           <button className="btn" disabled={busy} onClick={close}>
             Kapat
           </button>
-          <button className="btn pri" disabled={busy || !confirmed || !pending.length} onClick={save}>
+          <button
+            className="btn pri"
+            disabled={busy || !confirmed || !pending.length}
+            title={!pending.length ? 'Eklenecek soru seçilmedi' : !confirmed ? 'Önce soldaki kutuyu işaretle' : undefined}
+            onClick={save}
+          >
             Seçilen {pending.length} soruya hedef ekle
           </button>
         </>
@@ -100,7 +110,7 @@ export function PdfHedefEkle({ rows, onClose }: { rows: UnresolvedRow[]; onClose
           className="btn sm"
           disabled={busy}
           onClick={() => {
-            setSelected(new Set(rows.filter((r) => (r.raw_text?.trim().length ?? 0) >= 3).map(pdfOutcomeKey)))
+            setSelected(new Set(rows.filter((r) => pdfMetniVar(r.raw_text)).map(pdfOutcomeKey)))
             setConfirmed(false)
           }}
         >
@@ -132,7 +142,7 @@ export function PdfHedefEkle({ rows, onClose }: { rows: UnresolvedRow[]; onClose
             {rows.map((r) => {
               const key = pdfOutcomeKey(r),
                 result = results[key],
-                hasText = (r.raw_text?.trim().length ?? 0) >= 3,
+                hasText = pdfMetniVar(r.raw_text),
                 done = result && result.status !== 'error'
               return (
                 <tr key={key}>
@@ -194,7 +204,9 @@ export function PdfHedefEkle({ rows, onClose }: { rows: UnresolvedRow[]; onClose
                   </td>
                   <td>
                     {!hasText
-                      ? 'Metin yok · eklenemez'
+                      ? r.raw_text?.trim()
+                        ? 'Yayında hedef belirtilmemiş · eklenemez'
+                        : 'Metin yok · eklenemez'
                       : (result?.message ??
                         (result?.status === 'created'
                           ? 'Eklendi ve bağlandı'
@@ -208,10 +220,6 @@ export function PdfHedefEkle({ rows, onClose }: { rows: UnresolvedRow[]; onClose
           </tbody>
         </table>
       </div>
-      <label className="check">
-        <input type="checkbox" checked={confirmed} disabled={busy || !pending.length} onChange={(e) => setConfirmed(e.target.checked)} /> PDF metinlerini, konu
-        sınıflarını ve hedef türünü kontrol ettim; seçilenleri ekle ve sorulara bağla
-      </label>
       {message && <p role="status">{message}</p>}
     </Modal>
   )

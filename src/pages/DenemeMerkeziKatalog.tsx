@@ -8,7 +8,7 @@ import { Modal } from '@/components/Modal'
 import { PdfHedefEkle } from '@/components/PdfHedefEkle'
 import { PdfHedefDuzenle } from '@/components/PdfHedefDuzenle'
 import { PdfMetinTamamla } from '@/components/PdfMetinTamamla'
-import { pdfVersionsFor, pdfOutcomeKey } from '@/lib/pdfOutcomes'
+import { pdfMetniVar, pdfVersionsFor, pdfOutcomeKey } from '@/lib/pdfOutcomes'
 import { useToast } from '@/components/Toast'
 import { EXAM_TYPE_TR, academicYear, cohortYear, outcomeTerm, type ExamType } from '@/lib/denemeGenel'
 import {
@@ -566,7 +566,7 @@ export function EslesmeyenBolumu() {
                         {role === 'admin' && (
                           <button
                             className="btn sm"
-                            disabled={!r.raw_text?.trim()}
+                            disabled={!pdfMetniVar(r.raw_text)}
                             onClick={() => setAdding([r])}
                             aria-label={`${r.section_key} ${r.q_no}. hedefi ekle`}
                           >

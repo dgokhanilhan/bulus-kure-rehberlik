@@ -32,7 +32,7 @@ test('PDF hedefi ekle: tek, deneme ve tümü; metinsiz satır ve açık onay',as
   const save=modal.getByRole('button',{name:'Seçilen 1 soruya hedef ekle'})
   await expect(save).toBeDisabled();expect(calls).toBe(0)
   await modal.getByLabel('Eklenecek hedef türü').selectOption('OGRENME_CIKTISI')
-  await modal.getByLabel('PDF metinlerini, konu sınıflarını ve hedef türünü kontrol ettim; seçilenleri ekle ve sorulara bağla').check()
+  await modal.getByLabel('PDF metinlerini, konu sınıflarını ve hedef türünü kontrol ettim').check()
   await save.click()
   await expect(modal.getByText('Eklendi ve bağlandı',{exact:true})).toBeVisible()
   expect(calls).toBe(1)
