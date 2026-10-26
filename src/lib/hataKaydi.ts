@@ -20,6 +20,7 @@ export function hataMetni(e: unknown): { mesaj: string; ayrinti: string } {
 
 export function hataBildir(tur: HataTur, e: unknown, ek = '') {
   try {
+    if (window.__bkYenileniyor) return // yeni sürüm için sayfa yenileniyor (eksik parça): hata değil
     const { mesaj, ayrinti } = hataMetni(e)
     if (!mesaj || GURULTU.test(mesaj)) return
     const anahtar = `${tur}|${mesaj}|${location.pathname}`

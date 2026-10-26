@@ -13,6 +13,13 @@ export class HataSiniri extends Component<{ children: ReactNode }, { hata: Error
   }
   render() {
     if (!this.state.hata) return this.props.children
+    // Yeni yayından sonra eksik sayfa parçası: sayfa kendiliğinden yenileniyor
+    if (window.__bkYenileniyor)
+      return (
+        <p className="m" role="status" style={{ padding: 20 }}>
+          <span className="spinner" aria-hidden="true" /> Yeni sürüm yükleniyor…
+        </p>
+      )
     return (
       <div className="card issue" role="alert" data-testid="sayfa-hatasi" style={{ padding: 20, margin: 4 }}>
         <b>Bu sayfada bir hata oluştu.</b>
