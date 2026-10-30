@@ -25,6 +25,21 @@ test('gerçek aylık görsel düzenlenebilir önizlemeye gelir; aktarım veritab
  expect(after.data).toEqual(before.data)
 })
 
+test('tarihleri gri şeritte küçük ve eğik görsel (Kasım) okunur; günler kontrol ister',async({page})=>{
+ test.setTimeout(180_000)
+ await resetAdminMfa();await loginAdmin(page)
+ await page.goto('/yonetim?sekme=yemek')
+ await page.getByLabel('Menü ayı').fill('2026-11')
+ await page.getByRole('button',{name:'Görselden yükle'}).click()
+ const dlg=page.getByRole('dialog',{name:'Aylık yemek listesini görselden yükle'})
+ await dlg.getByLabel('Yemek listesi görseli').setInputFiles('e2e/fixtures/yemek/kasim-2026.png')
+ await dlg.getByRole('button',{name:'Görseli tanı'}).click()
+ await expect(dlg.getByText(/gün okundu/)).toBeVisible({timeout:120_000})
+ expect(await dlg.getByRole('textbox').count()).toBeGreaterThanOrEqual(21)
+ await expect(dlg.getByRole('textbox',{name:/^2 Kasım/})).toHaveValue(/MERC.MEK/i)
+ await expect(dlg.getByRole('textbox',{name:/^30 Kasım/})).toHaveValue(/EZOGEL.N/i)
+})
+
 test('öğretmen nöbet ekler, düzenler ve kaldırır; veli menüsünde nöbet yok',async({page})=>{
  const svc=service();const p=await svc.from('profiles').select('id').eq('email',DEMO.matematik[0]).single()
  await svc.from('teacher_duties').delete().eq('teacher_id',p.data!.id)
