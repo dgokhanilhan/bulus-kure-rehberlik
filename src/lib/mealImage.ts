@@ -53,6 +53,104 @@ export function mealReadings(words: MealWord[], month: string, width: number, he
   })
 }
 
+export type DateBand = { y0: number; y1: number; x0: number; x1: number; dark: number }
+/**
+ * Tarih satırları şablonda koyu gri şerittir. Satırların çoğu sayfa renginden belirgin koyuysa şerit sayılır; başlık gibi
+ * kalın şeritler elenir. x0-x1 tablonun genişliğidir (solda Excel satır numarası sütunu olabilir).
+ */
+export function dateBands(gray: ArrayLike<number>, width: number, height: number): DateBand[] {
+  if (!width || !height) return []
+  const sample: number[] = []
+  for (let i = 0; i < gray.length; i += 37) sample.push(gray[i]!)
+  sample.sort((a, b) => a - b)
+  const paper = sample[Math.floor(sample.length * 0.7)] ?? 255
+  const dark = paper * 0.84
+  const runs: { y0: number; y1: number }[] = []
+  for (let y = 0; y < height; y++) {
+    let n = 0
+    for (let x = 0; x < width; x++) if (gray[y * width + x]! < dark) n++
+    if (n / width < 0.5) continue
+    const last = runs.at(-1)
+    if (last && y - last.y1 <= 2) last.y1 = y
+    else runs.push({ y0: y, y1: y })
+  }
+  const minHeight = Math.max(6, height * 0.008)
+  const thick = runs.filter((r) => r.y1 - r.y0 + 1 >= minHeight)
+  if (!thick.length) return []
+  const heights = thick.map((r) => r.y1 - r.y0 + 1).sort((a, b) => a - b)
+  const usual = heights[Math.floor(heights.length / 2)]!
+  return thick
+    .filter((r) => r.y1 - r.y0 + 1 <= usual * 1.6)
+    .map((r) => {
+      const dolu = (x: number) => {
+        let n = 0
+        for (let y = r.y0; y <= r.y1; y++) if (gray[y * width + x]! < dark) n++
+        return n / (r.y1 - r.y0 + 1) >= 0.6
+      }
+      let x0 = 0
+      while (x0 < width - 1 && !dolu(x0)) x0++
+      let x1 = width - 1
+      while (x1 > x0 && !dolu(x1)) x1--
+      return { ...r, x0, x1, dark }
+    })
+}
+/** Fotoğraf eğikse şeridin alt kenarı sütundan sütuna değişir: o sütundaki son koyu satır. */
+export function bandBottom(gray: ArrayLike<number>, width: number, height: number, band: DateBand, xa: number, xb: number): number {
+  const a = Math.max(0, Math.round(xa)), b = Math.min(width, Math.round(xb))
+  for (let y = Math.min(height - 1, band.y1 + 12); y >= band.y0 - 12 && y >= 0; y--) {
+    let n = 0
+    for (let x = a; x < b; x++) if (gray[y * width + x]! < band.dark) n++
+    if (n / Math.max(1, b - a) >= 0.6) return y
+  }
+  return band.y1
+}
+const weekOf = (day: string, first: string) => {
+  const monday = (d: string) => addDays(d, 1 - isoDow(d))
+  return Math.round((Date.parse(monday(day)) - Date.parse(monday(first))) / (7 * 86400000))
+}
+/** "2.11.2026", "2112026" gibi rakam okumasından ay içindeki gün; ay/yıl tutmuyorsa boş. Şeridin sütunundaki hafta günü de tutmalı. */
+export function bandDay(text: string, month: string, col: number): string {
+  const [yil, ay] = month.split('-')
+  const t = text.replace(/[^0-9.]/g, '')
+  const parts = t.split('.').filter(Boolean)
+  const ayNo = String(Number(ay))
+  const adaylar = parts.length >= 2 ? [parts[0]!] : []
+  const bitis = `${ayNo}${yil}`
+  const bitis0 = `${ay}${yil}`
+  const duz = t.replace(/\./g, '')
+  for (const e of [bitis, bitis0]) if (duz.endsWith(e) && duz.length > e.length) adaylar.push(duz.slice(0, -e.length))
+  if (parts.length >= 2 && Number(parts[1]) !== Number(ay) && !adaylar.slice(1).length) return ''
+  for (const a of adaylar) {
+    const gun = `${month}-${a.padStart(2, '0')}`
+    if (a.length <= 2 && monthDays(month).includes(gun) && isoDow(gun) - 1 === col) return gun
+  }
+  return ''
+}
+/**
+ * Şerit satırı = takvim haftası. Okunan tarihler şerit-hafta farkını oylar; en az iki tarih aynı farkı veriyorsa okunamayan
+ * hücrelerin tarihi takvimden gelir (yalnız tarih; menü okunmazsa gün eklenmez). Okunan hiç tarih yoksa hiçbir şey üretilmez.
+ */
+export function gridDates(reads: { band: number; col: number; day: string }[], bandCount: number, month: string): { band: number; col: number; day: string; read: boolean }[] {
+  const days = monthDays(month)
+  const first = days[0]
+  if (!first) return []
+  const oy = new Map<number, number>()
+  for (const r of reads) {
+    const k = r.band - weekOf(r.day, first)
+    oy.set(k, (oy.get(k) ?? 0) + 1)
+  }
+  const best = [...oy].sort((a, b) => b[1] - a[1])[0]
+  if (!best || best[1] < 2) return reads.map((r) => ({ ...r, read: true }))
+  const out: { band: number; col: number; day: string; read: boolean }[] = []
+  for (const day of days) {
+    const band = weekOf(day, first) + best[0]
+    if (band < 0 || band >= bandCount) continue
+    const col = isoDow(day) - 1
+    out.push({ band, col, day, read: reads.some((r) => r.day === day && r.band === band) })
+  }
+  return out
+}
+
 export async function readMealImage(file: File, month: string, progress: (n:number)=>void, signal:AbortSignal): Promise<MealReading[]> {
   if (!file.type.startsWith('image/') || file.size>10*1024*1024) throw new Error('En fazla 10 MB boyutunda JPG, PNG veya WEBP görseli seç.')
   const url=URL.createObjectURL(file)
@@ -62,9 +160,10 @@ export async function readMealImage(file: File, month: string, progress: (n:numb
   try {
     const image=new Image(); image.src=url; await image.decode().catch(()=>{throw new Error('Görsel açılamadı. JPG, PNG veya WEBP olarak tekrar seç.')})
     if(signal.aborted) throw new Error('İşlem iptal edildi.')
-    const scale=Math.min(1,3200/Math.max(image.width,image.height))
+    // Küçük görsel büyütülür: aşağıdaki piksel ölçüleri ve OCR bu yazı boyutunda çalışır
+    const scale=image.width<1900?Math.min(2000/image.width,3200/Math.max(image.width,image.height)):Math.min(1,3200/Math.max(image.width,image.height))
     const canvas=document.createElement('canvas'); canvas.width=Math.round(image.width*scale); canvas.height=Math.round(image.height*scale)
-    const ctx=canvas.getContext('2d')!; ctx.fillStyle='white'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(image,0,0,canvas.width,canvas.height)
+    const ctx=canvas.getContext('2d')!; ctx.imageSmoothingQuality='high'; ctx.fillStyle='white'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(image,0,0,canvas.width,canvas.height)
     const {createWorker,PSM}=await import('tesseract.js')
     const base=`${location.origin}/program-ocr`
     const starting=createWorker('tur+eng',1,{workerPath:`${base}/worker.min.js`,corePath:base,langPath:base,workerBlobURL:false,logger:()=>{}})
@@ -81,6 +180,45 @@ export async function readMealImage(file: File, month: string, progress: (n:numb
       const result=await abortable(worker.recognize(cell,{}, {blocks:true}),signal)
       words.push(...(result.data.blocks??[]).flatMap(b=>b.paragraphs.flatMap(p=>p.lines.flatMap(l=>l.words))).map(w=>({...w,bbox:{...w.bbox,x0:w.bbox.x0+x0,x1:w.bbox.x1+x0}})))
       progress(Math.round((col+1)*4))
+    }
+    // Gri şeritteki tarihler ilk okumada kaçabilir: şeritler ayrı, kontrastı açılarak yalnız rakam olarak okunur
+    const expected=monthDays(month)
+    if(expected.some(d=>!words.some(w=>w.text.includes(`.${Number(d.slice(5,7))}.${d.slice(0,4)}`)&&w.text.startsWith(String(Number(d.slice(8))))))){
+      const full=ctx.getImageData(0,0,canvas.width,canvas.height).data
+      const gray=new Uint8ClampedArray(canvas.width*canvas.height)
+      for(let i=0;i<gray.length;i++)gray[i]=(full[i*4]!*299+full[i*4+1]!*587+full[i*4+2]!*114)/1000
+      const bands=dateBands(gray,canvas.width,canvas.height)
+      if(bands.length){
+        const left=[...bands.map(b=>b.x0)].sort((a,b)=>a-b)[Math.floor(bands.length/2)]!,right=[...bands.map(b=>b.x1)].sort((a,b)=>a-b)[Math.floor(bands.length/2)]!
+        const cw=(right-left)/5,reads:{band:number;col:number;day:string}[]=[]
+        await worker.setParameters({tessedit_pageseg_mode:PSM.SINGLE_LINE,tessedit_char_whitelist:'0123456789.'})
+        for(let b=0;b<bands.length;b++)for(let col=0;col<5;col++){
+          if(signal.aborted)throw new Error('İşlem iptal edildi.')
+          const band=bands[b]!,pad=3,x=Math.round(left+cw*col)+4,w=Math.round(cw)-8,y=Math.max(0,band.y0-pad),h=Math.min(canvas.height-y,band.y1-band.y0+1+pad*2)
+          const cell=document.createElement('canvas');cell.width=w*3;cell.height=h*3
+          const g=cell.getContext('2d',{willReadFrequently:true})!;g.imageSmoothingQuality='high';g.drawImage(canvas,x,y,w,h,0,0,cell.width,cell.height)
+          const img=g.getImageData(0,0,cell.width,cell.height),px=img.data
+          let lo=255,hi=0
+          for(let i=0;i<px.length;i+=4){const v=(px[i]!+px[i+1]!+px[i+2]!)/3;if(v<lo)lo=v;if(v>hi)hi=v}
+          // Rakam koyu, şerit gri: şerit rengi beyaza çekilir
+          const sort=new Float32Array(px.length/4);for(let i=0;i<sort.length;i++)sort[i]=(px[i*4]!+px[i*4+1]!+px[i*4+2]!)/3
+          sort.sort();const bg=sort[Math.floor(sort.length*.6)]!
+          for(let i=0;i<px.length;i+=4){const v=(px[i]!+px[i+1]!+px[i+2]!)/3,n=Math.max(0,Math.min(255,(v-lo)/Math.max(1,bg-lo-8)*255));px[i]=px[i+1]=px[i+2]=n}
+          g.putImageData(img,0,0)
+          const r=await abortable(worker.recognize(cell),signal)
+          const day=bandDay(r.data.text,month,col)
+          if(day&&r.data.confidence>=20&&!reads.some(x=>x.day===day))reads.push({band:b,col,day})
+          progress(20+Math.round((b*5+col+1)/(bands.length*5)*10))
+        }
+        await worker.setParameters({tessedit_char_whitelist:''})
+        for(const g of gridDates(reads,bands.length,month)){
+          const text=`${Number(g.day.slice(8))}.${Number(g.day.slice(5,7))}.${g.day.slice(0,4)}`
+          if(words.some(w=>w.text.replace(/\s/g,'').replace(/^[^0-9]+|[^0-9]+$/g,'')===text))continue
+          const band=bands[g.band]!,x=left+cw*g.col,alt=bandBottom(gray,canvas.width,canvas.height,band,x+cw*.1,x+cw*.9)
+          // Tarih kelimesi şeridin altına oturur: menü okuması şeritten hemen sonra başlar (y0+16). Bu yoldan gelen gün kontrol ister.
+          words.push({text,confidence:g.read?60:40,bbox:{x0:x+cw*.25,x1:x+cw*.75,y0:alt-14,y1:alt}})
+        }
+      }
     }
     const dateOf=(text:string)=>{const m=text.replace(/\s/g,'').replace(/^[^0-9]+|[^0-9]+$/g,'').match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);return m?`${m[3]}-${m[2]!.padStart(2,'0')}-${m[1]!.padStart(2,'0')}`:''}
     const allowed=new Set(monthDays(month))
@@ -112,17 +250,18 @@ export async function readMealImage(file: File, month: string, progress: (n:numb
       cell.getContext('2d')!.drawImage(canvas,x0,y0,cell.width,cell.height,0,0,cell.width,cell.height)
       await worker.setParameters({tessedit_pageseg_mode:PSM.SPARSE_TEXT})
       let result=await abortable(worker.recognize(cell,{}, {blocks:true}),signal)
-      const foodLines=(d:typeof result.data)=>(d.blocks??[]).flatMap(b=>b.paragraphs.flatMap(p=>p.lines))
-        .map(l=>l.words.filter(w=>w.confidence>=60&&(/[A-Za-zÇĞİÖŞÜçğıöşü]{3}/.test(w.text)||w.text.toUpperCase()==='ET')).map(w=>w.text).join(' ')).filter(Boolean)
+      const foodLines=(d:typeof result.data,min=60)=>(d.blocks??[]).flatMap(b=>b.paragraphs.flatMap(p=>p.lines))
+        .map(l=>l.words.filter(w=>w.confidence>=min&&(/[A-Za-zÇĞİÖŞÜçğıöşü]{3}/.test(w.text)||w.text.toUpperCase()==='ET')).map(w=>w.text).join(' ')).filter(Boolean)
       if(result.data.confidence<80||foodLines(result.data).length!==4){
         await worker.setParameters({tessedit_pageseg_mode:PSM.SINGLE_BLOCK})
         const alternative=await abortable(worker.recognize(cell,{}, {blocks:true}),signal)
         const quality=(d:typeof result.data)=>d.confidence-15*Math.abs(foodLines(d).length-4)
         if(foodLines(alternative.data).length===4&&alternative.data.confidence>70&&quality(alternative.data)>quality(result.data))result=alternative
       }
-      const food=foodLines(result.data)
+      // Şeritten gelen gün zaten kontrol ister: eksik kalan satır düşük güvenle de gösterilir, öğretmen düzeltir
+      const food=anchor.confidence<70&&foodLines(result.data).length<4?foodLines(result.data,30):foodLines(result.data)
       const day=dateOf(anchor.text),fallback=initial.find(r=>r.day===day)
-      if(food.length!==4&&fallback&&!fallback.review&&fallback.items.split('\n').length===4&&fallback.items.split(/\s+/).every(w=>/[A-Za-zÇĞİÖŞÜçğıöşü]{2}/.test(w)))rows.push(fallback)
+      if(food.length!==4&&fallback&&!fallback.review&&fallback.items.split('\n').length===4&&fallback.items.split(/\s+/).every(w=>/[A-Za-zÇĞİÖŞÜçğıöşü]{2}/.test(w)))rows.push({...fallback,review:anchor.confidence<70})
       else rows.push({day,items:food.join('\n'),review:food.length!==4||result.data.confidence<80||anchor.confidence<70})
       progress(20+Math.round((row*5+col+1)/(tops.length*5)*80))
     }
