@@ -119,7 +119,9 @@ describe('Cumartesi etütleri', () => {
     const future = (await rehber.from('etut_hucreler').select('id').eq('gun_id', gun).eq('ders', 1).eq('tur', 'etut').single()).data!.id
     expect((await mat.rpc('etut_yoklama', { p_hucre: future, p_ogrenci: ELIF, p_durum: 'geldi' })).error?.message).toMatch(/etüt günü/)
     for (const c of [fen, veliElif, elif]) expect((await c.rpc('etut_yoklama', { p_hucre: hucre, p_ogrenci: ELIF, p_durum: 'geldi' })).error).not.toBeNull()
-    expect((await mat.rpc('etut_yoklama', { p_hucre: hucre, p_ogrenci: ELIF, p_durum: 'gelmedi' })).error).toBeNull()
+    // Öğretmen geçmiş etütü değiştiremez (yalnız etüt günü); rehber hatalı kaydı düzeltir
+    expect((await mat.rpc('etut_yoklama', { p_hucre: hucre, p_ogrenci: ELIF, p_durum: 'gelmedi' })).error?.message).toMatch(/Geçmiş etüt/)
+    expect((await rehber.rpc('etut_yoklama', { p_hucre: hucre, p_ogrenci: ELIF, p_durum: 'gelmedi' })).error).toBeNull()
     expect((await veliElif.from('etut_ogrenciler').select('yoklama').eq('hucre_id', hucre).single()).data!.yoklama).toBe('gelmedi')
     // Yeniden kaydetmek yoklamayı korur
     expect((await rehber.rpc('etut_kaydet', { p_gun: past, p_data: program(GECMIS, [ELIF]) })).error).toBeNull()

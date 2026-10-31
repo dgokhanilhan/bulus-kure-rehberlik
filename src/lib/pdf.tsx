@@ -434,6 +434,9 @@ export interface PdfVeliToplanti {
       destek: string[]
       degerlendirme: string[]
       odevler: string[]
+      odevIstatistik: string
+      etutMetin: string[]
+      etutler: { tarih: string; konu: string; durum: string }[]
     }
     form: { gozlemler: Partial<Record<string, string>>; katilan: string | null; veli_gorusu: string | null; kararlar: string | null; notlar: string | null; takip_tarihi: string | null }
   }[]
@@ -459,7 +462,10 @@ function Alan({ baslik, metin, satir = 2 }: { baslik: string; metin: string | nu
 
 const trK = [s.tr, { paddingVertical: 1.5 }]
 const h3K = [s.h3, { marginTop: 7, marginBottom: 3 }]
-const paragraf = { fontSize: 10, lineHeight: 1.5, marginBottom: 5 }
+const paragraf = { fontSize: 9.5, lineHeight: 1.42, marginBottom: 4 }
+// Uzun metin 1. sayfadan taşıp 3. sayfa açmasın: harf sayısı eşiği geçince yazı sıklaşır
+const paragrafSik = { fontSize: 8.6, lineHeight: 1.32, marginBottom: 3 }
+const SIK_ESIK = 2900
 
 function VtBaslik({ d, o, alt }: { d: PdfVeliToplanti; o: PdfVeliToplanti['ogrenciler'][number]; alt: string }) {
   return (
@@ -492,7 +498,9 @@ function VeliToplantiDoc(d: PdfVeliToplanti) {
   )
   return (
     <Document title={`Veli toplantısı · ${d.sinif}`} author={d.school}>
-      {d.ogrenciler.flatMap((o, n) => [
+      {d.ogrenciler.flatMap((o, n) => {
+        const yazi = [...o.ozet.degerlendirme, ...o.ozet.odevler, ...o.ozet.etutMetin].join('').length > SIK_ESIK ? paragrafSik : paragraf
+        return [
         <Page key={`${n}a`} size="A4" style={sayfa}>
           <VtBaslik d={d} o={o} alt="Veli toplantısı · değerlendirme" />
           <View style={{ flexDirection: 'row', gap: 14 }}>
@@ -538,16 +546,25 @@ function VeliToplantiDoc(d: PdfVeliToplanti) {
           )}
           <Text style={[h3K, { marginTop: 10 }]}>DEĞERLENDİRME</Text>
           {o.ozet.degerlendirme.map((t, i) => (
-            <Text key={i} style={paragraf}>
+            <Text key={i} style={yazi}>
               {t}
             </Text>
           ))}
           <Text style={[h3K, { marginTop: 8 }]}>ÖDEVLER</Text>
           {o.ozet.odevler.map((t, i) => (
-            <Text key={i} style={paragraf}>
+            <Text key={i} style={yazi}>
               {t}
             </Text>
           ))}
+          {o.ozet.etutMetin.length > 0 && <Text style={[h3K, { marginTop: 8 }]}>ETÜTLER</Text>}
+          {o.ozet.etutMetin.map((t, i) => (
+            <Text key={i} style={yazi}>
+              {t}
+            </Text>
+          ))}
+          {o.ozet.etutler.length > 0 && (
+            <Text style={{ fontSize: 8.5, color: C.muted }}>{o.ozet.etutler.map((e) => `${e.tarih}${e.konu ? ` ${e.konu}` : ''}: ${e.durum}`).join('  ·  ')}</Text>
+          )}
           {ayak}
         </Page>,
         <Page key={`${n}b`} size="A4" style={sayfa}>
@@ -563,7 +580,10 @@ function VeliToplantiDoc(d: PdfVeliToplanti) {
           </View>
           {d.gozlemler.map(([k, t]) => (
             <View key={k} style={[trK, { paddingVertical: 4 }]} wrap={false}>
-              <Text style={{ width: '64%' }}>{t}</Text>
+              <View style={{ width: '64%' }}>
+                <Text>{t}</Text>
+                {k === 'odev' && <Text style={{ fontSize: 8, color: C.muted }}>{o.ozet.odevIstatistik}</Text>}
+              </View>
               {['evet', 'kismen', 'hayir'].map((v) => (
                 <View key={v} style={{ width: '12%', flexDirection: 'row', alignItems: 'center' }}>
                   {isaretli(o.form.gozlemler[k] === v)}
@@ -594,7 +614,8 @@ function VeliToplantiDoc(d: PdfVeliToplanti) {
           </View>
           {ayak}
         </Page>,
-      ])}
+        ]
+      })}
     </Document>
   )
 }

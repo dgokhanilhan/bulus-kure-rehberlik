@@ -8,8 +8,9 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { fmt, signed, type Subject } from '@/lib/analiz'
 import { reportData } from '@/lib/rapor'
-import { degerlendirmeMetni, odevMetni } from '@/lib/veliToplantiMetni'
-import { useClassAttendance, useClassHomework, useCourses, useMeetings, useStudents, useTasks } from '@/lib/data'
+import { degerlendirmeMetni, etutMetni, odevIstatistigi, odevMetni } from '@/lib/veliToplantiMetni'
+import { useClassAttendance, useClassHomework, useCourses, useMeetings, useModules, useStudents, useTasks } from '@/lib/data'
+import { useEtutKatilimi } from '@/lib/etutData'
 import { useExamContext } from '@/lib/sinavBaglami'
 import { sinifAnalizi, type OgrenciSatiri } from '@/lib/sinifAnalizi'
 import { initials, todayISO, trD } from '@/lib/format'
@@ -78,6 +79,12 @@ export interface Ozet {
   degerlendirme: string[]
   /** Ödevler (paragraflar) */
   odevler: string[]
+  /** Ödevler sekmesinden tek satırlık istatistik */
+  odevIstatistik: string
+  /** Etüt katılımı (paragraflar); etüt modülü kapalıysa boş */
+  etutMetin: string[]
+  /** Son etütler, yeni olan önce */
+  etutler: { tarih: string; konu: string; durum: string }[]
 }
 /** Konuşmada kullanılan ad: ilk ad ("Adar Bayat" → "Adar") */
 const ilkAd = (ad: string) => ad.trim().split(/\s+/)[0] ?? ad
@@ -99,6 +106,8 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
   const att = useClassAttendance(ids, yilBasi(bugun))
   const hw = useClassHomework(ids, yilBasi(bugun))
   const courses = useCourses()
+  const mods = useModules()
+  const etq = useEtutKatilimi(ids, yilBasi(bugun), mods.etut)
   const formlar = useFormlar(tarih, ids)
   const [secili, setSecili] = useState<string | null>(null)
   const sid = secili && ids.includes(secili) ? secili : (ids[0] ?? null)
@@ -118,7 +127,7 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
   }, [sid, tarih, formlar.data])
 
   // Özet (rapor verisi dahil) öğrenci başına bir kez hesaplanır; form yazılırken yeniden hesaplanmaz
-  const ozetler = useMemo(() => new Map<string, Ozet>(), [A, hw.data, courses.data, att.data, bugun])
+  const ozetler = useMemo(() => new Map<string, Ozet>(), [A, hw.data, courses.data, att.data, etq.data, bugun])
   function ozetOf(r: OgrenciSatiri): Ozet {
     const v = ozetler.get(r.student.id)
     if (v) return v
@@ -146,6 +155,10 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
     const odevler = (hw.data ?? [])
       .filter((x) => x.student_id === r.student.id)
       .map((x) => ({ baslik: x.homework.title, ders: dersAdi.get(x.homework.course_id) ?? 'Ders', verilis: x.homework.assigned_on, teslim: x.homework.due_on, durum: x.status }))
+    const etutler = (etq.data ?? [])
+      .filter((x) => x.student_id === r.student.id && x.etut_gunler)
+      .map((x) => ({ tarih: x.etut_gunler!.tarih, konu: x.etut_hucreler?.konu ?? '', yoklama: x.yoklama }))
+      .sort((a, b) => b.tarih.localeCompare(a.tarih))
     return {
       denemeler: son.slice(-SATIR).map(({ h, e }, i, arr) => {
         const onceki = i > 0 ? arr[i - 1] : son[son.length - arr.length - 1]
@@ -166,6 +179,12 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
       destek: sirali.length > 2 ? sirali.slice(-2).reverse().map((d) => d.ad) : [],
       degerlendirme: degerlendirmeMetni(sonR ? reportData(ds, r.student.id, sonR.e.id) : null, ad, r.student.id + (sonR?.e.id ?? '')),
       odevler: odevMetni(odevler, ad, bugun, devamsiz),
+      odevIstatistik: odevIstatistigi(odevler),
+      etutMetin: mods.etut ? etutMetni(etutler, ad, bugun) : [],
+      etutler: etutler
+        .filter((e) => e.tarih <= bugun)
+        .slice(0, 6)
+        .map((e) => ({ tarih: trD(e.tarih), konu: e.konu, durum: e.yoklama === 'geldi' ? 'Geldi' : e.yoklama === 'gelmedi' ? 'Gelmedi' : 'Girilmedi' })),
     }
   }
 
@@ -374,6 +393,32 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
                   </p>
                 ))
               )}
+              {oz.etutMetin.length > 0 && (
+                <>
+                  <h3 className="sec" style={{ margin: '14px 0 6px', fontSize: 16 }}>
+                    Etütler
+                  </h3>
+                  {oz.etutMetin.map((t, i) => (
+                    <p key={i} style={{ margin: '0 0 8px', lineHeight: 1.6 }}>
+                      {t}
+                    </p>
+                  ))}
+                  {oz.etutler.length > 0 && (
+                    <table className="vt-tablo">
+                      <tbody>
+                        {oz.etutler.map((e, i) => (
+                          <tr key={i}>
+                            <td>
+                              {e.tarih} <span className="m">{e.konu}</span>
+                            </td>
+                            <td className="num">{e.durum === 'Geldi' ? '✓ Geldi' : e.durum}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </>
+              )}
             </section>
 
             <section className="card" style={{ padding: '16px 20px', display: 'grid', gap: 12 }} aria-label="Görüşme formu">
@@ -381,7 +426,14 @@ export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; gr
               <div style={{ display: 'grid', gap: 6 }}>
                 {GOZLEMLER.map(([k, t]) => (
                   <div key={k} className="vt-madde" role="group" aria-label={t}>
-                    <span>{t}</span>
+                    <span>
+                      {t}
+                      {k === 'odev' && (
+                        <span className="m" style={{ display: 'block', fontSize: 13 }} data-testid="vt-odev-istatistik">
+                          {oz.odevIstatistik}
+                        </span>
+                      )}
+                    </span>
                     <span className="vt-secim">
                       {(Object.keys(DEGER_TR) as GozlemDeger[]).map((v) => (
                         <button key={v} type="button" className={`vt-d vt-${v} ${taslak.gozlemler[k] === v ? 'on' : ''}`} aria-pressed={taslak.gozlemler[k] === v} onClick={() => gozlem(k, v)}>

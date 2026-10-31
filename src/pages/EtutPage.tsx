@@ -29,6 +29,7 @@ import {
   type Hucre,
   type Kademe,
   type Saat,
+  etutBolumleri,
 } from '@/lib/etut'
 import {
   etutKaydet,
@@ -755,6 +756,19 @@ function Yoklama({ hucre, onDone }: { hucre: EtutHucreRow; onDone: () => Promise
   )
 }
 
+function EtutBaslik({ h }: { h: EtutHucreRow & { etut_gunler: EtutGun | null } }) {
+  const g = h.etut_gunler!
+  const sa = g.saatler[h.ders - 1]
+  return (
+    <>
+      <b>
+        {trDW(g.tarih)} · {h.ders}. ders {sa ? `${sa.bas}–${sa.bit}` : ''}
+      </b>
+      <span className="m">{[h.konu, h.salon, KADEME_TR[g.kademe]].filter(Boolean).join(' · ')}</span>
+    </>
+  )
+}
+
 // =====================================================================================================================
 // Öğretmen
 // =====================================================================================================================
@@ -770,9 +784,12 @@ function OgretmenView() {
   const benim = useEtutBenim(profile?.id)
   const gunler = useEtutGunler()
   const today = todayISO()
+  // Bugün ve sonrası üstte (en yakın önce); geçmiş etütler kapalı sekmede, salt okunur
+  const { guncel: guncelEtutler, gecmis: gecmisEtutler } = etutBolumleri(benim.data ?? [], today)
   const [konu, setKonu] = useState('')
   const [aciklama, setAciklama] = useState('')
   const [sel, setSel] = useState<string[]>([])
+  const [gecmisAcik, setGecmisAcik] = useState(false)
   const [q, setQ] = useState('')
   const [istTarih, setIstTarih] = useState('')
   const [istDers, setIstDers] = useState('')
@@ -927,27 +944,53 @@ function OgretmenView() {
       <section className="card et-card">
         <h2 className="sec">Etütlerim</h2>
         {(benim.data ?? []).length ? (
-          <ul className="et-list">
-            {[...(benim.data ?? [])]
-              .sort((a, b) => (b.etut_gunler?.tarih ?? '').localeCompare(a.etut_gunler?.tarih ?? '') || a.ders - b.ders)
-              .map((h) => {
-                const g = h.etut_gunler!
-                const sa = g.saatler[h.ders - 1]
-                return (
-                  <li key={h.id} className="et-item">
-                    <b>
-                      {trDW(g.tarih)} · {h.ders}. ders {sa ? `${sa.bas}–${sa.bit}` : ''}
-                    </b>
-                    <span className="m">{[h.konu, h.salon, KADEME_TR[g.kademe]].filter(Boolean).join(' · ')}</span>
-                    {g.tarih <= today && yoklamaAcik ? (
-                      <Yoklama hucre={h} onDone={async () => void (await refresh())} />
-                    ) : (
-                      <span className="m">{h.etut_ogrenciler.map((o) => `${o.student_name} (${o.class_name})`).join(', ')} · Yoklama etüt günü açılır.</span>
-                    )}
-                  </li>
-                )
-              })}
-          </ul>
+          <>
+            {guncelEtutler.length > 0 ? (
+              <ul className="et-list">
+                {guncelEtutler.map((h) => {
+                  const g = h.etut_gunler!
+                  return (
+                    <li key={h.id} className="et-item">
+                      <EtutBaslik h={h} />
+                      {g.tarih === today && yoklamaAcik ? (
+                        <Yoklama hucre={h} onDone={async () => void (await refresh())} />
+                      ) : (
+                        <span className="m">{h.etut_ogrenciler.map((o) => `${o.student_name} (${o.class_name})`).join(', ')} · Yoklama etüt günü açılır.</span>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <p className="m">Yaklaşan etüdün yok.</p>
+            )}
+            {gecmisEtutler.length > 0 && (
+              <>
+                <button className="btn sm" aria-expanded={gecmisAcik} onClick={() => setGecmisAcik(!gecmisAcik)} style={{ marginTop: 12 }}>
+                  Geçmiş etütler ({gecmisEtutler.length})
+                </button>
+                {gecmisAcik && (
+                  <ul className="et-list" data-testid="gecmis-etutler" style={{ marginTop: 10 }}>
+                    {gecmisEtutler.map((h) => (
+                      <li key={h.id} className="et-item">
+                        <EtutBaslik h={h} />
+                        <div className="et-yoklama">
+                          {h.etut_ogrenciler.map((o) => (
+                            <div key={o.student_id} className="et-yrow">
+                              <span>
+                                {o.student_name} <span className="m">{o.class_name}</span>
+                              </span>
+                              {o.yoklama === 'geldi' ? <span className="chip up">Geldi</span> : o.yoklama === 'gelmedi' ? <span className="chip down">Gelmedi</span> : <span className="chip n">Girilmedi</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </>
         ) : (
           <p className="m">Yayınlanmış etüdün yok.</p>
         )}
