@@ -3,6 +3,15 @@
 import { addDays, isoDow } from './format'
 
 export type Kademe = 'ortaokul' | 'lise'
+/** Öğretmenin etütleri: bugün ve sonrası (yakın olan önce), geçmiş (yeni olan önce). Yoklama yalnız etüt günü girilir. */
+export function etutBolumleri<T extends { ders: number; etut_gunler: { tarih: string } | null }>(list: T[], today: string): { guncel: T[]; gecmis: T[] } {
+  const t = (x: T) => x.etut_gunler?.tarih ?? ''
+  return {
+    guncel: list.filter((x) => t(x) >= today).sort((a, b) => t(a).localeCompare(t(b)) || a.ders - b.ders),
+    gecmis: list.filter((x) => t(x) < today).sort((a, b) => t(b).localeCompare(t(a)) || a.ders - b.ders),
+  }
+}
+
 export interface Saat {
   bas: string
   bit: string

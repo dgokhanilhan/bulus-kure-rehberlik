@@ -75,6 +75,34 @@ const lowerFirst = (s: string) => {
   return /^(Bu|Bir|Son|Genel|Ders|Yanlış|Kalan|Belirgin|Her|Haftalık|Önce|Soruyu|Burada|Şu|Ancak|Özellikle|Tek)$/.test(w) ? s[0]!.toLocaleLowerCase('tr') + s.slice(1) : s
 }
 
+// ---------- Etütler ----------
+export interface EtutSatiri {
+  tarih: string
+  konu: string
+  yoklama: 'geldi' | 'gelmedi' | null
+}
+/** Etüt katılımı: yoklaması alınan etütlerde geldi/gelmedi, kaçırılanlar ve yaklaşan etütler; konuşma dilinde. */
+export function etutMetni(etutler: EtutSatiri[], ad: string, bugun: string): string[] {
+  const gecmis = etutler.filter((e) => e.tarih <= bugun)
+  const yaklasan = etutler.filter((e) => e.tarih > bugun).sort((a, b) => a.tarih.localeCompare(b.tarih))
+  const girilen = gecmis.filter((e) => e.yoklama)
+  const geldi = girilen.filter((e) => e.yoklama === 'geldi').length
+  const gelmedi = girilen.filter((e) => e.yoklama === 'gelmedi').sort((a, b) => a.tarih.localeCompare(b.tarih))
+  const p: string[] = []
+  if (!gecmis.length && !yaklasan.length) return [`Bu dönem ${adEk(ad, 'in')} kayıtlı bir etüdü görünmüyor.`]
+  if (gecmis.length && !girilen.length) p.push(`Bu dönem ${ad} ${gecmis.length} etüde yazıldı; yoklamaları henüz girilmediği için katılımını ilerleyen günlerde konuşacağız.`)
+  if (girilen.length) {
+    p.push(`Bu dönem ${ad} ${gecmis.length} etüde yazıldı; yoklaması alınan ${girilen.length} etüdün ${geldi} tanesine gelmiş${gelmedi.length ? `, ${gelmedi.length} tanesine gelmemiş` : ''}.`)
+    if (!gelmedi.length) p.push('Etütlere düzenli katılıyor; bu güzel bir alışkanlık, devam etmesini destekleyelim.')
+    else {
+      const liste = gelmedi.slice(-3).map((e) => `${trD(e.tarih)} ${e.konu}`.trim()).join(', ')
+      p.push(`Gelmediği ${gelmedi.length === 1 ? 'etüt' : gelmedi.length > 3 ? 'son etütler' : 'etütler'}: ${liste}. ${geldi / girilen.length >= 0.7 ? 'Bu konuları evde kısa bir tekrarla tamamlayabilir.' : 'Etütler eksikleri kapatmak için önemli bir fırsat; katılımını birlikte takip edelim.'}`)
+    }
+  }
+  if (yaklasan.length) p.push(`Yaklaşan etüdü: ${trD(yaklasan[0]!.tarih)}${yaklasan[0]!.konu ? ` ${yaklasan[0]!.konu}` : ''}.`)
+  return p
+}
+
 // ---------- Ödevler ----------
 export type OdevDurum = 'bekliyor' | 'yapti' | 'yapmadi' | 'getirmedi' | 'eksik' | 'gelmedi' | 'izinli'
 export interface OdevSatiri {
@@ -84,6 +112,16 @@ export interface OdevSatiri {
   teslim: string | null
   durum: OdevDurum
 }
+/** Gözlem satırının altındaki tek satırlık istatistik: Ödevler sekmesindeki kontrol sonuçları. */
+export function odevIstatistigi(odevler: OdevSatiri[]): string {
+  const kontrol = odevler.filter((o) => o.durum !== 'bekliyor' && o.durum !== 'izinli' && o.durum !== 'gelmedi')
+  if (!kontrol.length) return 'Sistemde kontrol edilmiş ödev yok.'
+  const yapti = kontrol.filter((o) => o.durum === 'yapti').length
+  const eksik = kontrol.filter((o) => o.durum === 'eksik').length
+  const yok = kontrol.length - yapti - eksik
+  return `Sistemde ${kontrol.length} ödev kontrol edildi: ${[`${yapti} tam`, eksik ? `${eksik} eksik` : '', yok ? `${yok} yapılmadı` : ''].filter(Boolean).join(', ')} (%${Math.round((yapti / kontrol.length) * 100)} tam)`
+}
+
 /**
  * Ödevler: kontrol edilen ödevlerde yapma oranı, yapılmayan / eksik olanların dersleri, teslimi yaklaşan ödevler; konuşma dilinde.
  * Devamsızlık varsa tek cümleyle eklenir. Kontrol edilmemiş (bekliyor ve teslimi geçmiş) ödevler sayılmaz, ayrıca belirtilir.

@@ -105,6 +105,30 @@ export function useEtutOgrenci(studentId: string | null | undefined, enabled = t
       ).sort((a, b) => (a.etut_gunler?.tarih ?? '').localeCompare(b.etut_gunler?.tarih ?? '') || a.ders - b.ders),
   })
 }
+/** Sınıfın yayınlanmış etütleri (veli toplantısı): öğrenci, tarih, konu, yoklama. */
+export interface EtutKatilim {
+  student_id: string
+  yoklama: 'geldi' | 'gelmedi' | null
+  etut_hucreler: { konu: string | null } | null
+  etut_gunler: { tarih: string; durum: 'taslak' | 'yayinda' } | null
+}
+export function useEtutKatilimi(ids: string[], from: string, enabled = true) {
+  return useQuery({
+    queryKey: ['etut', 'katilim', ids.join(','), from],
+    enabled: enabled && ids.length > 0,
+    queryFn: () =>
+      pages<EtutKatilim>((a, b) =>
+        supabase
+          .from('etut_ogrenciler')
+          .select('student_id, yoklama, etut_hucreler(konu), etut_gunler!inner(tarih, durum)')
+          .in('student_id', ids)
+          .eq('etut_gunler.durum', 'yayinda')
+          .gte('etut_gunler.tarih', from)
+          .order('id')
+          .range(a, b),
+      ),
+  })
+}
 /** Öğretmenin yayınlanmış kendi etütleri (yoklama için). */
 export function useEtutBenim(teacherId: string | null | undefined) {
   return useQuery({
