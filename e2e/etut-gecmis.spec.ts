@@ -1,6 +1,6 @@
 // Etütlerim: yoklama yalnız etüt günü açık; geçmiş etütler kapalı sekmede ve salt okunur. Veli toplantısında katılım ve ödev istatistiği.
 import { test, expect } from '@playwright/test'
-import { DEMO, login, menu, service } from './helpers'
+import { DEMO, login, logout, menu, service } from './helpers'
 
 const TARIH = '2026-10-24' // Cumartesi
 test('geçmiş etüt kapalı sekmede salt okunur; etüt gününde yoklama açık; veli toplantısında katılım görünür', async ({ page }) => {
@@ -32,7 +32,10 @@ test('geçmiş etüt kapalı sekmede salt okunur; etüt gününde yoklama açık
     await expect(kart.getByRole('button', { name: 'Gelmedi' })).toHaveAttribute('aria-pressed', 'true')
     await page.clock.setFixedTime(new Date())
 
-    // Veli toplantısı
+    // Veli toplantısı (rehber)
+    await logout(page)
+    await login(page, ...DEMO.rehber)
+    await expect(menu(page).first()).toBeVisible()
     await page.goto('/ogrenciler?sinif=8%2FB&gorunum=veli-toplantisi')
     await page.getByTestId('vt-ogrenci').filter({ hasText: ogr.full_name }).click()
     await expect(page.getByTestId('vt-metin')).toContainText('Etütler')
