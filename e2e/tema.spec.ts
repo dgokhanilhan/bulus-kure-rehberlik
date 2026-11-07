@@ -17,6 +17,7 @@ const KONSEPT = ['ag', 'zaman', 'uzay', 'piksel', 'sakura', 'kutup', 'noir']
 
 async function temaSec(page: Page, ad: string) {
   await page.getByRole('button', { name: /^Profil:/ }).click()
+  await page.getByRole('button', { name: /^Temalar/ }).click()
   await page.getByRole('radio', { name: ad, exact: true }).click()
   await page.keyboard.press('Escape')
 }
