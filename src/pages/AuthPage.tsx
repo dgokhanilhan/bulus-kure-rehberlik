@@ -16,6 +16,12 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       <section className="login-art">
         <span className="orb" style={{ width: 260, height: 260, background: 'var(--orb-1, #1f5f5b)', left: -60, top: '30%' }} />
         <span className="orb" style={{ width: 200, height: 200, background: 'var(--orb-2, #e7c57a)', left: '40%', bottom: -60, animationDelay: '-4s' }} />
+        {/* Konsept temaların giriş süsü (yalnız o temada görünür; yapraklar Sakura içindir) */}
+        <div className="tema-sus" aria-hidden="true">
+          {Array.from({ length: 12 }, (_, i) => (
+            <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDuration: `${7 + (i % 5)}s`, animationDelay: `${-i * 1.3}s` }} />
+          ))}
+        </div>
         {/* Okul logosu madalyon gibi hafifçe sağa sola döner (hareket azaltma tercihinde durur) */}
         <div className="madalyon" aria-hidden="true">
           <div className="coin">
