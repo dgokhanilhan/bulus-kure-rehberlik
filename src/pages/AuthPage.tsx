@@ -14,8 +14,8 @@ export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="login">
       <section className="login-art">
-        <span className="orb" style={{ width: 260, height: 260, background: '#1f5f5b', left: -60, top: '30%' }} />
-        <span className="orb" style={{ width: 200, height: 200, background: '#e7c57a', left: '40%', bottom: -60, animationDelay: '-4s' }} />
+        <span className="orb" style={{ width: 260, height: 260, background: 'var(--orb-1, #1f5f5b)', left: -60, top: '30%' }} />
+        <span className="orb" style={{ width: 200, height: 200, background: 'var(--orb-2, #e7c57a)', left: '40%', bottom: -60, animationDelay: '-4s' }} />
         {/* Okul logosu madalyon gibi hafifçe sağa sola döner (hareket azaltma tercihinde durur) */}
         <div className="madalyon" aria-hidden="true">
           <div className="coin">

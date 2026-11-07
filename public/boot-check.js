@@ -3,6 +3,13 @@
 // yeniden indirir ve sayfayı BİR KEZ yeniler. Yine olmazsa açılış ekranında anlaşılır bir mesaj gösterir.
 // Uygulama açılınca main.tsx window.__bkBooted = true yapar; bekçi o andan sonra hiçbir şey yapmaz.
 ;(function () {
+  // Bu cihazda son seçilen görünüm teması açılış ekranından itibaren uygulanır (src/lib/tema.ts ile aynı anahtar).
+  try {
+    var t = window.localStorage.getItem('bk-tema')
+    if (t && t !== 'buluskure' && /^[a-z]{2,20}$/.test(t)) document.documentElement.setAttribute('data-skin', t)
+  } catch (e) {}
+})()
+;(function () {
   var KEY = 'bk.acilis-yeniden'
   var busy = false
   function store(fn) {

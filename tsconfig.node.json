@@ -28,6 +28,7 @@
     "playwright.config.ts",
     "tests",
     "e2e",
-    "src/**/*.test.ts"
+    "src/**/*.test.ts",
+    "src/fontsource.d.ts"
   ]
 }

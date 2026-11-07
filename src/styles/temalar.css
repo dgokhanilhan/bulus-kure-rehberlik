@@ -1,0 +1,102 @@
+/* Görünüm temaları (src/lib/tema.ts). Her tema tokens.css'teki tüm renk token'larını, yazı tiplerini ve gölgeyi birlikte değiştirir.
+   :root üç kez yazılır: okulun açık/koyu ve vurgu ayarlarından (app.css, [data-theme][data-accent]) daha güçlü olsun diye.
+   Her temada yükselme = primary + ↑, düşüş = signal + ↓; heat-1 ve heat-4 üzerinde beyaz yazı okunur. */
+
+:root:root:root[data-skin="gece"] {
+  color-scheme: dark;
+  --paper:#0b1226; --surface:#131c36; --surface-sunken:#1b2647; --line:#26335a; --line-strong:#6b78a0;
+  --ink:#eef1fb; --ink-muted:#a3acc8; --ink-2:#cfd5ea; --ink-fixed:#1a1404;
+  --primary:#f2c46d; --on-primary:#1a1404; --primary-soft:#3a3220; --primary-line:#5a4a28; --bar-soft:#4a3f26;
+  --signal:#ff8a8a; --signal-soft:#3d1f2a; --signal-line:#6a3040; --signal-ink:#ff9d9d; --highlight:#f2c46d;
+  --nav:#070c1b; --nav-2:#111a33; --nav-active:#1b2647; --on-nav:#eef1fb; --on-nav-muted:#8f9abb;
+  --heat-1:#b3322b; --heat-2:#f2a5a5; --heat-3:#e8d3a3; --heat-4:#7d5e18;
+  --shadow:0 0 0 1px rgba(242,196,109,.08),0 14px 40px rgba(0,0,0,.45);
+  --font-display:"Playfair Display",Georgia,serif; --font-sans:Inter,system-ui,sans-serif;
+}
+:root:root:root[data-skin="defter"] {
+  --paper:#fbfaf6; --surface:#fff; --surface-sunken:#eef2fa; --line:#d7e0f0; --line-strong:#8a94b0;
+  --ink:#1d2540; --ink-muted:#5b6585; --ink-2:#36405e; --ink-fixed:#1d2540;
+  --primary:#2251c7; --on-primary:#fff; --primary-soft:#e5ecfb; --primary-line:#c3d2f3; --bar-soft:#c3d2f3;
+  --signal:#c8322f; --signal-soft:#fbe6e5; --signal-line:#f1c2c0; --signal-ink:#a82a27; --highlight:#ffd84d;
+  --nav:#fff; --nav-2:#eef2fa; --nav-active:#e5ecfb; --on-nav:#1d2540; --on-nav-muted:#5b6585;
+  --heat-1:#c8322f; --heat-2:#f3b4b2; --heat-3:#c3d2f3; --heat-4:#2251c7;
+  --shadow:0 1px 0 #d7e0f0;
+  --font-display:Literata,Georgia,serif; --font-sans:"Source Sans 3",system-ui,sans-serif;
+}
+:root:root:root[data-skin="gunbatimi"] {
+  --paper:#fff6ef; --surface:#fff; --surface-sunken:#fde8da; --line:#f6d6c3; --line-strong:#a7877c;
+  --ink:#3a1f1a; --ink-muted:#7c5a51; --ink-2:#5a3a32; --ink-fixed:#3a1f1a;
+  --primary:#b03c0b; --on-primary:#fff; --primary-soft:#ffe5d4; --primary-line:#f7c4a5; --bar-soft:#f7c4a5;
+  --signal:#6d28d9; --signal-soft:#ede5fb; --signal-line:#cdb9f3; --signal-ink:#5b21b6; --highlight:#fbbf24;
+  --nav:#3a1f1a; --nav-2:#4a2a22; --nav-active:#5a3128; --on-nav:#fff6ef; --on-nav-muted:#e7c4b6;
+  --heat-1:#6d28d9; --heat-2:#cdb9f3; --heat-3:#f7c4a5; --heat-4:#b03c0b;
+  --shadow:0 10px 30px rgba(194,65,12,.10);
+  --font-display:"DM Serif Display",Georgia,serif; --font-sans:"DM Sans",system-ui,sans-serif;
+}
+:root:root:root[data-skin="lavanta"] {
+  --paper:#f7f4ff; --surface:#fff; --surface-sunken:#eee8fd; --line:#e2d9fb; --line-strong:#8f86b5;
+  --ink:#2a2347; --ink-muted:#6a6290; --ink-2:#443c66; --ink-fixed:#2a2347;
+  --primary:#6d4ae0; --on-primary:#fff; --primary-soft:#ece6ff; --primary-line:#d3c6fb; --bar-soft:#d3c6fb;
+  --signal:#c2325a; --signal-soft:#fde6ec; --signal-line:#f4b8c8; --signal-ink:#a8264a; --highlight:#ffcf5c;
+  --nav:#fff; --nav-2:#f3effe; --nav-active:#ece6ff; --on-nav:#2a2347; --on-nav-muted:#6a6290;
+  --heat-1:#c2325a; --heat-2:#f4b8c8; --heat-3:#d3c6fb; --heat-4:#6d4ae0;
+  --shadow:0 8px 26px rgba(109,74,224,.10);
+  --font-display:Nunito,system-ui,sans-serif; --font-sans:Nunito,system-ui,sans-serif;
+}
+:root:root:root[data-skin="grafit"] {
+  --paper:#f2f2f0; --surface:#fff; --surface-sunken:#e6e6e3; --line:#c9c9c4; --line-strong:#111;
+  --ink:#111; --ink-muted:#555; --ink-2:#333; --ink-fixed:#111;
+  --primary:#111; --on-primary:#ffe500; --primary-soft:#ffe500; --primary-line:#111; --bar-soft:#d6d6d2;
+  --signal:#d41f16; --signal-soft:#ffe1de; --signal-line:#f3a29d; --signal-ink:#b81d15; --highlight:#ffe500;
+  --nav:#111; --nav-2:#222; --nav-active:#333; --on-nav:#fff; --on-nav-muted:#b5b5b5;
+  --heat-1:#d41f16; --heat-2:#f5a39e; --heat-3:#fff27a; --heat-4:#111;
+  --shadow:4px 4px 0 #111;
+  --font-display:"Space Grotesk",system-ui,sans-serif; --font-sans:"Space Grotesk",system-ui,sans-serif; --font-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+:root:root:root[data-skin="neon"] {
+  color-scheme: dark;
+  --paper:#0d0b16; --surface:#16131f; --surface-sunken:#201b2e; --line:#2c2540; --line-strong:#6d6590;
+  --ink:#f4f1ff; --ink-muted:#a9a1c4; --ink-2:#d6d0ee; --ink-fixed:#0d0b16;
+  --primary:#22d3ee; --on-primary:#03161a; --primary-soft:#0f2e36; --primary-line:#155e6c; --bar-soft:#155e6c;
+  --signal:#f472b6; --signal-soft:#3a1630; --signal-line:#7a2a5a; --signal-ink:#f78ac4; --highlight:#a3e635;
+  --nav:#0a0812; --nav-2:#14111e; --nav-active:#201b2e; --on-nav:#f4f1ff; --on-nav-muted:#8e86ad;
+  --heat-1:#be185d; --heat-2:#f9a8d4; --heat-3:#67e8f9; --heat-4:#0e7490;
+  --shadow:0 0 0 1px rgba(34,211,238,.15),0 0 30px rgba(34,211,238,.06);
+  --font-display:Sora,system-ui,sans-serif; --font-sans:Sora,system-ui,sans-serif; --font-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+:root:root:root[data-skin="akademi"] {
+  --paper:#f5efe4; --surface:#fffdf8; --surface-sunken:#ece2d0; --line:#ddcfb8; --line-strong:#9a8a7c;
+  --ink:#2b1a17; --ink-muted:#6e5a52; --ink-2:#4a3530; --ink-fixed:#2b1a17;
+  --primary:#7a1f2b; --on-primary:#fff; --primary-soft:#f3e1e1; --primary-line:#e2bcbc; --bar-soft:#e2bcbc;
+  --signal:#b4570f; --signal-soft:#f8e6d3; --signal-line:#ecc49e; --signal-ink:#94460a; --highlight:#c79a3b;
+  --nav:#4a121b; --nav-2:#5a1822; --nav-active:#6a1f2a; --on-nav:#f5efe4; --on-nav-muted:#d8bfb9;
+  --heat-1:#b4570f; --heat-2:#ecc49e; --heat-3:#e2bcbc; --heat-4:#7a1f2b;
+  --shadow:0 1px 0 #ddcfb8,0 6px 18px rgba(74,18,27,.06);
+  --font-display:"Cormorant Garamond",Georgia,serif; --font-sans:Lora,Georgia,serif;
+}
+
+/* Giriş ekranındaki renkli lekeler temanın renklerini alır (Buluş Küre'de değişmez) */
+:root[data-skin] { --orb-1:var(--primary); --orb-2:var(--highlight) }
+
+/* Temaya özgü biçim: köşe, çerçeve, gölge */
+:root:root:root[data-skin="defter"] .card { border-radius:6px }
+:root:root:root[data-skin="defter"] .side { border-right:2px solid #f2a7a7 }
+:root:root:root[data-skin="lavanta"] .card { border-radius:26px }
+:root:root:root[data-skin="lavanta"] .side { border-right:1px solid var(--line) }
+:root:root:root[data-skin="gunbatimi"] .card { border-radius:22px; box-shadow:var(--shadow) }
+:root:root:root[data-skin="grafit"] .card { border:2px solid #111; border-radius:0; box-shadow:var(--shadow) }
+:root:root:root[data-skin="grafit"] .btn, :root:root:root[data-skin="grafit"] .field input, :root:root:root[data-skin="grafit"] .field select,
+:root:root:root[data-skin="grafit"] .field textarea { border-radius:0 }
+:root:root:root[data-skin="grafit"] .btn.pri { border:2px solid #111 }
+:root:root:root[data-skin="neon"] .card { box-shadow:var(--shadow) }
+:root:root:root[data-skin="akademi"] .card { border-radius:4px; box-shadow:var(--shadow) }
+:root:root:root[data-skin="akademi"] .label { font-variant:small-caps; text-transform:none; letter-spacing:1.2px; font-size:13.5px }
+
+/* Profil menüsündeki tema seçici */
+.pmenu { max-height:calc(100dvh - 84px); overflow-y:auto }
+.tema-sec { display:flex; flex-direction:column; gap:8px; padding:10px 16px 14px; border-top:1px solid var(--line); border-bottom:1px solid var(--line) }
+.tema-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px }
+.tema-k { position:relative; aspect-ratio:1; min-height:44px; padding:0; border-radius:12px; border:1px solid rgba(0,0,0,.18); overflow:hidden; cursor:pointer }
+.tema-k span { position:absolute; left:0; right:0; bottom:0; height:42% }
+.tema-k[aria-checked="true"] { outline:3px solid var(--ink); outline-offset:2px }
+.tema-k:focus-visible { outline:3px solid var(--primary); outline-offset:2px }

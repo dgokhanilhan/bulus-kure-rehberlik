@@ -15,6 +15,7 @@ import { useSchoolInfo } from '@/lib/files'
 import { ntype, useOpenNotification } from '@/lib/notifications'
 import { useIndicator } from './Indicator'
 import { useToast } from './Toast'
+import { TemaSecici } from './Tema'
 
 function Brand() {
   const info = useSchoolInfo()
@@ -119,6 +120,7 @@ function ProfileMenu() {
             <Icon name="shield" size={18} />
             Hesap ayarları
           </Link>
+          <TemaSecici />
           {role === 'admin' && (
             <Link
               className="pitem"
