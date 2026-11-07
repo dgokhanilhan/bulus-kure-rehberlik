@@ -223,6 +223,10 @@ h2.sec{font-size:17px;font-weight:600}
 .login-art h1{font-family:var(--font-display);font-size:42px;font-weight:500;line-height:1.08;letter-spacing:-.6px;max-width:460px;text-wrap:balance;position:relative}
 .login-art .globe{position:absolute;top:7%;right:-8%;width:min(68%,420px);opacity:.9}
 .globe .spin{transform-origin:50% 50%;animation:turn 40s linear infinite}
+.login-art .madalyon{position:absolute;top:8%;right:6%;width:min(56%,380px);aspect-ratio:1;perspective:900px}
+.madalyon .coin{width:100%;height:100%;animation:coin 9s ease-in-out infinite}
+.madalyon img{width:100%;height:100%;display:block;border-radius:50%;object-fit:cover;background:#fff;box-shadow:0 0 0 4px #e7c57a,0 0 60px rgba(231,197,122,.25)}
+@keyframes coin{0%,100%{transform:rotateY(-25deg)}50%{transform:rotateY(25deg)}}
 .orb{position:absolute;border-radius:50%;filter:blur(40px);opacity:.35;animation:blob 9s ease-in-out infinite}
 .login-form{display:flex;align-items:flex-start;justify-content:center;padding:40px 20px}
 .login-form .inner{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px}
@@ -244,6 +248,7 @@ h2.sec{font-size:17px;font-weight:600}
   main.view{padding:20px 16px 48px}
   h1.hd{font-size:26px}
   .login{grid-template-columns:1fr}.login-art{min-height:200px;padding:26px 20px}.login-art h1{font-size:28px}
+  .login-art .madalyon{position:relative;top:auto;right:auto;width:96px;margin-bottom:8px}
   .grid2{grid-template-columns:1fr}
   .paper{padding:24px 18px}.paper .info{grid-template-columns:repeat(2,minmax(0,1fr))}
   .mwrap{align-items:flex-end;padding:0}.modal{border-radius:24px 24px 0 0;max-height:94vh}

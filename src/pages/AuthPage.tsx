@@ -3,7 +3,8 @@ import { supabase, signupClient, SCHOOL_SLUG, SOURCE_URL, AUTH_LINK_ERROR } from
 import { ACIK_RIZA_VERSION, KVKK_VERSION, RIZA_ONAY } from '@/lib/kvkk'
 import { useQuery } from '@tanstack/react-query'
 import { BRANS, LEVEL_TR, LEVELS, YAKINLIK, type Level } from '@/lib/roles'
-import { Globe, Icon, SchoolLogo } from '@/components/Icon'
+import { Icon, SchoolLogo } from '@/components/Icon'
+import okulLogo from '@/assets/okul-logo.jpg'
 import { useSchoolInfo } from '@/lib/files'
 import { Dropdown, Seg } from '@/components/Indicator'
 import { clearRoleChoice } from '@/auth/AuthProvider'
@@ -15,7 +16,12 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       <section className="login-art">
         <span className="orb" style={{ width: 260, height: 260, background: '#1f5f5b', left: -60, top: '30%' }} />
         <span className="orb" style={{ width: 200, height: 200, background: '#e7c57a', left: '40%', bottom: -60, animationDelay: '-4s' }} />
-        <Globe size={420} />
+        {/* Okul logosu madalyon gibi hafifçe sağa sola döner (hareket azaltma tercihinde durur) */}
+        <div className="madalyon" aria-hidden="true">
+          <div className="coin">
+            <img src={info.data?.logo ?? okulLogo} alt="" />
+          </div>
+        </div>
         <span className="label a" style={{ color: 'var(--on-nav-muted)', position: 'relative' }}>
           Buluş Küre Koleji
         </span>
