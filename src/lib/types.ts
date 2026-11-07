@@ -26,6 +26,8 @@ export interface Profile {
   consent_version?: string | null
   acik_riza_version?: string | null
   phone?: string | null
+  /** Görünüm teması (0065); boş = Buluş Küre. */
+  tema?: string | null
   /** Uygulama rolleri (profile_roles, 0020); yoksa yalnız ana rol. */
   roles?: DbRole[]
 }

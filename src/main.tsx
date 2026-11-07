@@ -7,6 +7,7 @@ import { AuthProvider } from '@/auth/AuthProvider'
 import { ToastProvider } from '@/components/Toast'
 import { ReportProvider } from '@/components/Report'
 import App from './App'
+import { TemaUygulayici } from '@/components/Tema'
 import { initSentry } from '@/lib/sentry'
 import { MOBIL } from '@/lib/platform'
 // Yazı tipleri uygulamayla birlikte sunulur (Google'a istek gitmez; yalnız Latin + Türkçe karakter alt kümeleri).
@@ -65,6 +66,7 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <ToastProvider>
           <AuthProvider>
+            <TemaUygulayici />
             <ReportProvider>
               <App />
             </ReportProvider>

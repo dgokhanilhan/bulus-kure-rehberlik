@@ -1,6 +1,7 @@
 /* Uygulama stilleri — prototype/prototip.html ile birebir; renkler design/tokens.json'dan (tokens.css). */
 @import "tailwindcss";
 @import "./tokens.css";
+@import "./temalar.css";
 
 @layer base {
   *{box-sizing:border-box}
