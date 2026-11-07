@@ -10,7 +10,10 @@ test.use({ reducedMotion: 'reduce' })
 const TEMALAR = [
   ['gece', 'Gece Mavisi'], ['defter', 'Okul Defteri'], ['gunbatimi', 'Gün Batımı'], ['lavanta', 'Lavanta'],
   ['grafit', 'Grafit'], ['neon', 'Neon'], ['akademi', 'Akademi'],
+  ['ag', 'Ağ Kahramanı'], ['zaman', 'Zaman Yolcusu'], ['uzay', 'Uzay Üssü'], ['piksel', 'Piksel Oyun'],
+  ['sakura', 'Sakura'], ['kutup', 'Kutup Işığı'], ['noir', 'Dedektif'],
 ] as const
+const KONSEPT = ['ag', 'zaman', 'uzay', 'piksel', 'sakura', 'kutup', 'noir']
 
 async function temaSec(page: Page, ad: string) {
   await page.getByRole('button', { name: /^Profil:/ }).click()
@@ -56,6 +59,7 @@ test('tema seçimi: varsayılan Buluş Küre, seçim kaydedilir, yenilemede ve y
 })
 
 test('her temada öğrenci ekranları okunur (kontrast) ve hata yok', async ({ page }) => {
+  test.setTimeout(300_000) // 14 tema × birkaç ekran
   const hatalar: string[] = []
   page.on('pageerror', (e) => hatalar.push(e.message))
   await login(page, ...DEMO.ogrenci)
@@ -80,6 +84,7 @@ test('her temada öğrenci ekranları okunur (kontrast) ve hata yok', async ({ p
 })
 
 test('her temada rehber öğretmen ekranları okunur (tablolar, sınıf analizi)', async ({ page }) => {
+  test.setTimeout(300_000) // 14 tema × birkaç ekran
   const hatalar: string[] = []
   page.on('pageerror', (e) => hatalar.push(e.message))
   await login(page, ...DEMO.rehber)
@@ -97,6 +102,21 @@ test('her temada rehber öğretmen ekranları okunur (tablolar, sınıf analizi)
   }
   await temaSec(page, 'Buluş Küre')
   expect(hatalar).toEqual([])
+})
+
+test('konsept temalarda giriş ekranı süsü görünür ve form okunur; cihazdaki son tema girişte uygulanır', async ({ page }) => {
+  for (const id of KONSEPT) {
+    await page.goto('/')
+    await page.evaluate((t) => localStorage.setItem('bk-tema', t), id)
+    await page.reload()
+    await expect(page.locator('html')).toHaveAttribute('data-skin', id)
+    // Kutup Işığı'nda süs yok, yalnız renkli zemin
+    if (id !== 'kutup') await expect(page.locator('.login-art .tema-sus')).toBeVisible()
+    await page.waitForTimeout(300)
+    await shot(page, `tema-${id}-giris`, false)
+    await kontrast(page, `${id} giriş`)
+  }
+  await page.evaluate(() => localStorage.removeItem('bk-tema'))
 })
 
 test('tema yalnız geçerli biçimde ve yalnız kendi profiline kaydedilir', async () => {

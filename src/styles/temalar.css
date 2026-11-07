@@ -100,3 +100,151 @@
 .tema-k span { position:absolute; left:0; right:0; bottom:0; height:42% }
 .tema-k[aria-checked="true"] { outline:3px solid var(--ink); outline-offset:2px }
 .tema-k:focus-visible { outline:3px solid var(--primary); outline-offset:2px }
+
+.tema-grup { grid-column:1/-1; font-size:12px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; margin-top:2px }
+
+/* ——— Konsept temalar (adları geneldir: marka, karakter ya da logo kullanılmaz) ——— */
+:root:root:root[data-skin="ag"] {
+  --paper:#f4f1ea; --surface:#fff; --surface-sunken:#e9ecf6; --line:#c9ccd8; --line-strong:#111;
+  --ink:#111; --ink-muted:#3c4258; --ink-2:#262a3a; --ink-fixed:#111;
+  --primary:#1d4ed8; --on-primary:#fff; --primary-soft:#dbe6ff; --primary-line:#a9c0f5; --bar-soft:#c3d4fb;
+  --signal:#c81d25; --signal-soft:#ffe0e0; --signal-line:#f3a7aa; --signal-ink:#a8161d; --highlight:#ffd400;
+  --nav:#1d3a8f; --nav-2:#16307a; --nav-active:#c81d25; --on-nav:#fff; --on-nav-muted:#d3ddff;
+  --heat-1:#c81d25; --heat-2:#f3a7aa; --heat-3:#a9c0f5; --heat-4:#1d4ed8;
+  --shadow:4px 4px 0 #111;
+  --font-display:Bangers,Impact,sans-serif; --font-sans:Nunito,system-ui,sans-serif;
+  /* giriş ekranındaki ağ süsü (sol üst köşeden) */
+  --ag:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20300%20300%22%3E%3Cpath%20d%3D%22M0%200L360%200M0%200L355%2063M0%200L338%20123M0%200L312%20180M0%200L276%20231M0%200L231%20276M0%200L180%20312M0%200L123%20338M0%200L63%20355M0%200L0%20360M43%200Q37%203%2042%207M42%207Q35%2010%2040%2015M40%2015Q33%2016%2037%2021M37%2021Q30%2021%2033%2028M33%2028Q26%2026%2028%2033M28%2033Q21%2030%2021%2037M21%2037Q16%2033%2015%2040M15%2040Q10%2035%207%2042M7%2042Q3%2037%200%2043M86%200Q73%206%2084%2015M84%2015Q71%2019%2081%2029M81%2029Q67%2031%2074%2043M74%2043Q60%2042%2066%2055M66%2055Q52%2052%2055%2066M55%2066Q42%2060%2043%2074M43%2074Q31%2067%2029%2081M29%2081Q19%2071%2015%2084M15%2084Q6%2073%200%2086M129%200Q110%2010%20127%2022M127%2022Q106%2029%20121%2044M121%2044Q100%2047%20111%2064M111%2064Q90%2063%2098%2083M98%2083Q78%2078%2083%2098M83%2098Q63%2090%2064%20111M64%20111Q47%20100%2044%20121M44%20121Q29%20106%2022%20127M22%20127Q10%20110%200%20129M171%200Q146%2013%20169%2030M169%2030Q142%2038%20161%2059M161%2059Q133%2062%20148%2086M148%2086Q120%2084%20131%20110M131%20110Q104%20104%20110%20131M110%20131Q84%20120%2086%20148M86%20148Q62%20133%2059%20161M59%20161Q38%20142%2030%20169M30%20169Q13%20146%200%20171M214%200Q183%2016%20211%2037M211%2037Q177%2048%20201%2073M201%2073Q166%2078%20186%20107M186%20107Q150%20105%20164%20138M164%20138Q130%20130%20138%20164M138%20164Q105%20150%20107%20186M107%20186Q78%20166%2073%20201M73%20201Q48%20177%2037%20211M37%20211Q16%20183%200%20214M257%200Q219%2019%20253%2045M253%2045Q213%2057%20242%2088M242%2088Q200%2093%20223%20129M223%20129Q180%20126%20197%20165M197%20165Q156%20156%20165%20197M165%20197Q126%20180%20129%20223M129%20223Q93%20200%2088%20242M88%20242Q57%20213%2045%20253M45%20253Q19%20219%200%20257M300%200Q256%2022%20295%2052M295%2052Q248%2067%20282%20103M282%20103Q233%20109%20260%20150M260%20150Q211%20147%20230%20193M230%20193Q182%20182%20193%20230M193%20230Q147%20211%20150%20260M150%20260Q109%20233%20103%20282M103%20282Q67%20248%2052%20295M52%20295Q22%20256%200%20300%22%20fill%3D%22none%22%20stroke%3D%22%23111%22%20stroke-width%3D%222.2%22%20stroke-linecap%3D%22round%22%20opacity%3D%22.75%22%2F%3E%3C%2Fsvg%3E");
+}
+:root:root:root[data-skin="zaman"] {
+  color-scheme: dark;
+  --paper:#120f1f; --surface:#1c1830; --surface-sunken:#262040; --line:#352c55; --line-strong:#7a6fa0;
+  --ink:#f6f0ff; --ink-muted:#b9afd4; --ink-2:#ddd4f2; --ink-fixed:#1e1300;
+  --primary:#ffb627; --on-primary:#1e1300; --primary-soft:#3b2d12; --primary-line:#6a5020; --bar-soft:#5a4420;
+  --signal:#ff5c93; --signal-soft:#3d1428; --signal-line:#7a2a4a; --signal-ink:#ff7aa6; --highlight:#00e5ff;
+  --nav:#0b0914; --nav-2:#15111f; --nav-active:#262040; --on-nav:#f6f0ff; --on-nav-muted:#a79ec6;
+  --heat-1:#b0154f; --heat-2:#ff9ec0; --heat-3:#ffd98a; --heat-4:#7a4f00;
+  --shadow:0 0 0 1px #352c55,0 10px 30px rgba(0,0,0,.4);
+  --font-display:Audiowide,system-ui,sans-serif; --font-sans:Rajdhani,system-ui,sans-serif; --font-mono:"Share Tech Mono","IBM Plex Mono",ui-monospace,monospace;
+}
+:root:root:root[data-skin="uzay"] {
+  color-scheme: dark;
+  --paper:#060818; --surface:#121638; --surface-sunken:#1b2150; --line:#2a3170; --line-strong:#6a72b0;
+  --ink:#e8eaff; --ink-muted:#a7acd8; --ink-2:#cdd1f5; --ink-fixed:#060818;
+  --primary:#7dd3fc; --on-primary:#04192a; --primary-soft:#123553; --primary-line:#1f4f73; --bar-soft:#1f4f73;
+  --signal:#fb923c; --signal-soft:#3e2410; --signal-line:#7a4520; --signal-ink:#fdab6d; --highlight:#c084fc;
+  --nav:#070a1e; --nav-2:#0f1333; --nav-active:#1b2150; --on-nav:#e8eaff; --on-nav-muted:#9aa0d2;
+  --heat-1:#b23a0a; --heat-2:#fdba8c; --heat-3:#a5e3fd; --heat-4:#0b6085;
+  --shadow:0 0 0 1px rgba(125,211,252,.12),0 18px 40px rgba(0,0,0,.5);
+  --font-display:"Exo 2",system-ui,sans-serif; --font-sans:"Exo 2",system-ui,sans-serif;
+}
+:root:root:root[data-skin="piksel"] {
+  --paper:#f8f3e3; --surface:#fff; --surface-sunken:#efe6c8; --line:#c9c0a0; --line-strong:#1b1b2f;
+  --ink:#1b1b2f; --ink-muted:#4f4a63; --ink-2:#34304a; --ink-fixed:#1b1b2f;
+  --primary:#2b59c3; --on-primary:#fff; --primary-soft:#dce6ff; --primary-line:#a9bff0; --bar-soft:#c3d3f5;
+  --signal:#c62a28; --signal-soft:#ffe1df; --signal-line:#f3a9a7; --signal-ink:#a82220; --highlight:#fcd000;
+  --nav:#1b1b2f; --nav-2:#26263f; --nav-active:#2b59c3; --on-nav:#fff; --on-nav-muted:#c4c1d8;
+  --heat-1:#c62a28; --heat-2:#f3a9a7; --heat-3:#a9bff0; --heat-4:#2b59c3;
+  --shadow:4px 4px 0 #1b1b2f;
+  --font-display:"Press Start 2P",monospace; --font-sans:"Pixelify Sans",system-ui,sans-serif;
+}
+:root:root:root[data-skin="sakura"] {
+  --paper:#fdf6f7; --surface:#fff; --surface-sunken:#f8e8ec; --line:#f0d5dc; --line-strong:#a08a90;
+  --ink:#2d1f24; --ink-muted:#7a6168; --ink-2:#4d3a40; --ink-fixed:#2d1f24;
+  --primary:#b0275a; --on-primary:#fff; --primary-soft:#fbe3ec; --primary-line:#f0b6cb; --bar-soft:#f3c9d8;
+  --signal:#865700; --signal-soft:#f6ead0; --signal-line:#e3c98f; --signal-ink:#6e4800; --highlight:#f6b6c8;
+  --nav:#fff; --nav-2:#fbf0f3; --nav-active:#fbe3ec; --on-nav:#2d1f24; --on-nav-muted:#7a6168;
+  --heat-1:#865700; --heat-2:#e3c98f; --heat-3:#f0b6cb; --heat-4:#b0275a;
+  --shadow:0 8px 24px rgba(176,39,90,.07);
+  --font-display:"Shippori Mincho",Georgia,serif; --font-sans:"M PLUS Rounded 1c",system-ui,sans-serif;
+}
+:root:root:root[data-skin="kutup"] {
+  --paper:#eef6fb; --surface:#f8fcfe; --surface-sunken:#e3eff6; --line:#d3e4ee; --line-strong:#7d98a8;
+  --ink:#0f2533; --ink-muted:#435d6c; --ink-2:#2a4352; --ink-fixed:#0f2533;
+  --primary:#0c6a84; --on-primary:#fff; --primary-soft:#d5eef4; --primary-line:#a8dbe6; --bar-soft:#bfe5ee;
+  --signal:#be185d; --signal-soft:#fbe1ec; --signal-line:#f1a9c6; --signal-ink:#9d174d; --highlight:#a5f3fc;
+  --nav:#f8fcfe; --nav-2:#eaf4f9; --nav-active:#d5eef4; --on-nav:#0f2533; --on-nav-muted:#435d6c;
+  --heat-1:#be185d; --heat-2:#f1a9c6; --heat-3:#a8dbe6; --heat-4:#0c6a84;
+  --shadow:0 10px 40px rgba(15,37,51,.07);
+  --font-display:Lexend,system-ui,sans-serif; --font-sans:Lexend,system-ui,sans-serif;
+}
+:root:root:root[data-skin="noir"] {
+  color-scheme: dark;
+  --paper:#0f0f10; --surface:#18181a; --surface-sunken:#222225; --line:#333336; --line-strong:#77767a;
+  --ink:#ededea; --ink-muted:#a3a29c; --ink-2:#cfcec9; --ink-fixed:#111;
+  --primary:#f2f0e8; --on-primary:#111; --primary-soft:#2c2c2e; --primary-line:#555; --bar-soft:#444;
+  --signal:#ff5a5f; --signal-soft:#3a1517; --signal-line:#6a2a2c; --signal-ink:#ff7a7e; --highlight:#ff5a5f;
+  --nav:#080808; --nav-2:#141414; --nav-active:#222225; --on-nav:#ededea; --on-nav-muted:#9a9993;
+  --heat-1:#b3262a; --heat-2:#f0a0a2; --heat-3:#c9c8c2; --heat-4:#3a3a3c;
+  --shadow:0 20px 40px rgba(0,0,0,.6);
+  --font-display:Oswald,Impact,sans-serif; --font-sans:"Courier Prime",ui-monospace,monospace; --font-mono:"Courier Prime",ui-monospace,monospace;
+}
+
+/* Konsept biçimleri: başlıklar, kartlar */
+:root:root:root[data-skin="ag"] h1.hd, :root:root:root[data-skin="noir"] h1.hd { text-transform:uppercase; letter-spacing:1px }
+:root:root:root[data-skin="ag"] h1.hd { font-size:38px }
+:root:root:root[data-skin="ag"] .card { border:3px solid #111; border-radius:6px; box-shadow:var(--shadow) }
+:root:root:root[data-skin="ag"] .nav button[aria-pressed="true"] { color:#fff }
+:root:root:root[data-skin="zaman"] body { font-weight:500; font-size:16px }
+:root:root:root[data-skin="zaman"] h1.hd { font-style:italic; background:linear-gradient(#fff6c2,#ffd23f 45%,#ff7a3d 55%,#ff2e88); -webkit-background-clip:text; background-clip:text; color:transparent }
+:root:root:root[data-skin="zaman"] .card { border-radius:4px; box-shadow:var(--shadow) }
+:root:root:root[data-skin="uzay"] body { background:radial-gradient(1px 1px at 20px 30px,#fff,transparent) 0 0/200px 200px,radial-gradient(1px 1px at 120px 80px,#cfd6ff,transparent) 0 0/200px 200px,radial-gradient(1.5px 1.5px at 170px 160px,#fff,transparent) 0 0/200px 200px,radial-gradient(ellipse at 80% 0%,#1c1550,#060818 60%) fixed }
+:root:root:root[data-skin="uzay"] .card { border-radius:20px; box-shadow:var(--shadow) }
+:root:root:root[data-skin="piksel"] h1.hd { font-size:22px; line-height:1.5; letter-spacing:0 }
+:root:root:root[data-skin="piksel"] .card { border:3px solid #1b1b2f; border-radius:0; box-shadow:var(--shadow) }
+:root:root:root[data-skin="piksel"] .btn, :root:root:root[data-skin="piksel"] .field input, :root:root:root[data-skin="piksel"] .field select { border-radius:0 }
+:root:root:root[data-skin="sakura"] .card { border-radius:18px; box-shadow:var(--shadow) }
+:root:root:root[data-skin="sakura"] .side, :root:root:root[data-skin="kutup"] .side { border-right:1px solid var(--line) }
+:root:root:root[data-skin="kutup"] body { background:radial-gradient(circle at 10% 10%,#bae6fd,transparent 40%),radial-gradient(circle at 90% 30%,#ddd6fe,transparent 40%),radial-gradient(circle at 50% 100%,#fbcfe8,transparent 45%),#eef6fb; background-attachment:fixed }
+:root:root:root[data-skin="kutup"] .card { background:rgba(255,255,255,.72); -webkit-backdrop-filter:blur(16px) saturate(1.3); backdrop-filter:blur(16px) saturate(1.3); border-color:rgba(255,255,255,.9); border-radius:22px; box-shadow:var(--shadow) }
+:root:root:root[data-skin="kutup"] h1.hd { font-weight:300; letter-spacing:-1px }
+:root:root:root[data-skin="noir"] .card { border-radius:2px; box-shadow:var(--shadow) }
+
+/* Giriş ekranı süsleri: yalnız konsept temalarda; hareket azaltmada durur (app.css genel kuralı) */
+.tema-sus { display:none }
+:root[data-skin="ag"] .login-art .orb, :root[data-skin="zaman"] .login-art .orb, :root[data-skin="piksel"] .login-art .orb,
+:root[data-skin="sakura"] .login-art .orb, :root[data-skin="noir"] .login-art .orb { display:none }
+:root[data-skin] .tema-sus { position:absolute; inset:0; pointer-events:none }
+/* Ağ: benekli çizgi roman zemini, sol üstte ağ, konuşma balonu */
+:root[data-skin="ag"] .login-art { background:radial-gradient(rgba(0,0,0,.22) 1.8px,transparent 2px) 0 0/12px 12px,linear-gradient(160deg,#c81d25 55%,#1d3a8f 55%) }
+:root[data-skin="ag"] .tema-sus { display:block; width:min(70%,460px); height:min(70%,460px); inset:0 auto auto 0; background:var(--ag) no-repeat left top/contain }
+:root[data-skin="ag"] .login-art h1 { font-size:46px; text-transform:uppercase; letter-spacing:1px; color:#fff; text-shadow:3px 3px 0 #111,-1px -1px 0 #111,1px -1px 0 #111,-1px 1px 0 #111 }
+:root[data-skin="ag"] .login-art .label { background:#ffd400; color:#111 !important; align-self:flex-start; padding:2px 8px; border:2px solid #111 }
+:root[data-skin="ag"] .login-art p { align-self:flex-start; background:#fff; color:#111 !important; border:3px solid #111; border-radius:18px; padding:8px 14px; font-weight:700 }
+/* Zaman: koyu gökyüzü, ufka akan neon ızgara, krom başlık */
+:root[data-skin="zaman"] .login-art { background:linear-gradient(#0b0914 0 50%,#3a0f4a 100%) }
+:root[data-skin="zaman"] .tema-sus { display:block; inset:auto -50% -6% -50%; height:45%; transform:perspective(260px) rotateX(58deg); transform-origin:bottom;
+  background:linear-gradient(#ff2e88 2px,transparent 2px) 0 0/100% 34px,linear-gradient(90deg,#ff2e88 2px,transparent 2px) 0 0/44px 100%; opacity:.7; animation:tema-yol 1.6s linear infinite }
+@keyframes tema-yol { to { background-position:0 34px,0 0 } }
+:root[data-skin="zaman"] .login-art .madalyon img { box-shadow:0 0 0 4px #ff7a3d,0 0 80px rgba(255,46,136,.55) }
+:root[data-skin="zaman"] .login-art h1 { font-style:italic; background:linear-gradient(#fff6c2,#ffd23f 45%,#ff7a3d 55%,#ff2e88); -webkit-background-clip:text; background-clip:text; color:transparent }
+/* Uzay: yıldızlar ve sol üstte halkalı gezegen */
+:root[data-skin="uzay"] .login-art { background:radial-gradient(1px 1px at 30px 40px,#fff,transparent) 0 0/70px 70px,radial-gradient(1.5px 1.5px at 10px 20px,#cfd6ff,transparent) 0 0/130px 130px,linear-gradient(170deg,#1c1550,#060818) }
+:root[data-skin="uzay"] .tema-sus { display:block; inset:12% auto auto 8%; width:min(26%,150px); height:auto; aspect-ratio:1; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#ffd1a1,#f472b6 40%,#6d28d9 75%,#2e1065); box-shadow:0 0 50px rgba(192,132,252,.5) }
+:root[data-skin="uzay"] .tema-sus::after { content:""; position:absolute; left:-40%; right:-40%; top:42%; height:18%; border-radius:50%; border:4px solid rgba(255,214,170,.8); border-top-color:transparent; transform:rotate(-16deg) }
+/* Piksel: oyun gökyüzü, piksel bulut, toprak şeridi */
+:root[data-skin="piksel"] .login-art { background:linear-gradient(#5c94fc 0 calc(100% - 26px),#c84c0c calc(100% - 26px) calc(100% - 20px),#fcbc7c calc(100% - 20px)) }
+:root[data-skin="piksel"] .tema-sus { display:block; inset:18% auto auto 12%; width:96px; height:28px; background:#fff; box-shadow:12px -12px 0 #fff,24px 0 0 #fff,-12px 0 0 #fff,60px 22px 0 -2px #fff }
+:root[data-skin="piksel"] .login-art h1 { font-size:24px; line-height:1.5; letter-spacing:0; color:#fff; text-shadow:3px 3px 0 #1b1b2f }
+:root[data-skin="piksel"] .login-art .label, :root[data-skin="piksel"] .login-art p { color:#fff !important; text-shadow:2px 2px 0 #1b1b2f }
+/* Sakura: pembe zemin, kırmızı güneş, süzülen yapraklar */
+:root[data-skin="sakura"] .login-art { background:linear-gradient(170deg,#fff4f6,#f9cfdc) }
+:root[data-skin="sakura"] .tema-sus { display:block; overflow:hidden }
+:root[data-skin="sakura"] .tema-sus::before { content:""; position:absolute; left:10%; top:14%; width:min(24%,140px); aspect-ratio:1; border-radius:50%; background:#e94e3c; opacity:.9 }
+:root[data-skin="sakura"] .tema-sus i { position:absolute; top:-20px; width:12px; height:9px; background:#f7a8bf; border-radius:12px 0 12px 0; opacity:.85; animation:tema-yaprak linear infinite }
+@keyframes tema-yaprak { to { transform:translate(60px,110vh) rotate(540deg) } }
+/* Kutup: kuzey ışığı renkleri */
+:root[data-skin="kutup"] .login-art { background:radial-gradient(circle at 20% 20%,#bae6fd,transparent 45%),radial-gradient(circle at 80% 40%,#ddd6fe,transparent 45%),radial-gradient(circle at 40% 90%,#fbcfe8,transparent 45%),#eef6fb }
+/* Dedektif: panjur gölgesi ve kırmızı mühür */
+:root[data-skin="noir"] .login-art { background:repeating-linear-gradient(-28deg,rgba(0,0,0,.6) 0 22px,transparent 22px 48px),radial-gradient(circle at 65% 30%,#7a7a7a,#0a0a0a 70%) }
+:root[data-skin="noir"] .tema-sus { display:block; inset:14% auto auto 8%; width:max-content; height:auto; border:3px solid #ff5a5f; color:#ff5a5f; font:700 18px Oswald,Impact,sans-serif; letter-spacing:3px; padding:6px 12px; text-transform:uppercase; transform:rotate(-8deg) }
+:root[data-skin="noir"] .tema-sus::before { content:"Dosya No. 8/B" }
+:root[data-skin="noir"] .login-art h1 { text-transform:uppercase; letter-spacing:1.5px }
+:root[data-skin="noir"] .login-art p { font-style:italic }
+@media (max-width:820px) {
+  :root[data-skin] .tema-sus { opacity:.5 }
+  :root[data-skin="ag"] .login-art h1 { font-size:32px }
+  :root[data-skin="piksel"] .login-art h1 { font-size:17px }
+  :root[data-skin="uzay"] .tema-sus, :root[data-skin="noir"] .tema-sus, :root[data-skin="piksel"] .tema-sus { inset:12% 8% auto auto }
+}

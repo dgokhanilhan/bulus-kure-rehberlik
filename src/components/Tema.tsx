@@ -49,7 +49,8 @@ export function TemaSecici() {
         const list = TEMALAR.filter((t) => t.grup === g)
         if (!list.length) return null
         return (
-          <div key={g} className="tema-grid" role="radiogroup" aria-labelledby="tema-baslik">
+          <div key={g} className="tema-grid" role="radiogroup" aria-label={g === 'sade' ? 'Sade temalar' : 'Konsept temalar'}>
+            {g === 'konsept' && <span className="tema-grup m">Konsept</span>}
             {list.map((t) => (
               <button
                 key={t.id}
