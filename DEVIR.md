@@ -11,7 +11,7 @@ Bu belge, projeyi devralıp kendi alan adıyla yayına alacak kişi içindir. Ge
 | Deneme ortamı | https://bulus-kure-staging.pages.dev + Supabase `bulus-kure-staging` (yalnız uydurma veri, demo şifreleri herkese açık) | Aynı hesaplar |
 | Yapay zekâ | DeepSeek API anahtarı, iki Supabase projesinde `DEEPSEEK_API_KEY` secret'ı | DeepSeek hesabı |
 | Günlük yedek | GitHub `karakocyawuz/bulus-kure-yedek` (gizli), her gece 03.00, şifreli, 30 gün | Projeyi hazırlayanın GitHub hesabı |
-| İlk yönetici | Gökhan İlhan (denizgokhanilhan@gmail.com), TOTP zorunlu | — |
+| İlk yönetici | Gökhan İlhan, TOTP zorunlu | — |
 
 Şifreler (veritabanı, yedek şifresi, site ayarları) git'te değildir; `.env.production.local`, `.env.production`, `.env.staging`, `.env.staging.local` dosyalarında durur ve ayrıca teslim edilir.
 

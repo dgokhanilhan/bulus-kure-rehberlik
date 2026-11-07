@@ -53,5 +53,5 @@ export const supabase = createClient(url, key, {
 export const signupClient = () =>
   createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, storageKey: 'bk-signup' } })
 
-/** AGPL-3.0 §13: ağ üzerinden kullananlara kaynak kodu bağlantısı. */
-export const SOURCE_URL = import.meta.env.VITE_SOURCE_URL || '/LICENSE.txt'
+/** AGPL-3.0 §13: ağ üzerinden kullananlara kaynak kodu bağlantısı (herkese açık depo; öğrenci verisi depoda yok). */
+export const SOURCE_URL = import.meta.env.VITE_SOURCE_URL || 'https://github.com/dgokhanilhan/bulus-kure-rehberlik'

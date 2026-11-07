@@ -38,9 +38,12 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
           {children}
-          <a className="m" href={SOURCE_URL} target="_blank" rel="noreferrer" style={{ fontSize: 12, alignSelf: 'center', marginTop: 8 }}>
-            Özgür yazılım (AGPL-3.0) · Kaynak kodu
-          </a>
+          <p className="m" style={{ fontSize: 12, alignSelf: 'center', margin: '8px 0 0' }}>
+            © 2026 Gökhan İlhan · AGPL-3.0 ·{' '}
+            <a className="m" href={SOURCE_URL} target="_blank" rel="noreferrer">
+              Kaynak kodu
+            </a>
+          </p>
         </div>
       </section>
     </div>

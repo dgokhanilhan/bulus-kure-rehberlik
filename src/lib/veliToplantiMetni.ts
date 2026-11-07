@@ -7,7 +7,7 @@ import { trD } from './format'
 const SESLI = 'aeıioöuü'
 const sonSesli = (w: string) => [...w.toLocaleLowerCase('tr')].reverse().find((c) => SESLI.includes(c)) ?? 'e'
 const sesliyleBiter = (w: string) => SESLI.includes(w.slice(-1).toLocaleLowerCase('tr'))
-/** Özel ada ek: "Adar'ın", "Ece'nin", "Adar'a", "Ece'ye", "Adar'ı" (ünlü uyumu ve kaynaştırma harfi) */
+/** Özel ada ek: "Aslan'ın", "Ece'nin", "Aslan'a", "Ece'ye", "Aslan'ı" (ünlü uyumu ve kaynaştırma harfi) */
 export function adEk(ad: string, ek: 'in' | 'e' | 'i'): string {
   const v = sonSesli(ad)
   const kalin = 'aıou'.includes(v)
@@ -71,7 +71,7 @@ function tekrarsiz(par: string): string {
 }
 const lowerFirst = (s: string) => {
   const w = s.split(' ')[0] ?? ''
-  // Özel ad ya da ders adı ("Matematik", "Adar") büyük kalır; yalnız sıradan cümle başı küçülür
+  // Özel ad ya da ders adı ("Matematik", "Aslan") büyük kalır; yalnız sıradan cümle başı küçülür
   return /^(Bu|Bir|Son|Genel|Ders|Yanlış|Kalan|Belirgin|Her|Haftalık|Önce|Soruyu|Burada|Şu|Ancak|Özellikle|Tek)$/.test(w) ? s[0]!.toLocaleLowerCase('tr') + s.slice(1) : s
 }
 
