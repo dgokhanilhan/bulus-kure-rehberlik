@@ -86,7 +86,7 @@ export interface Ozet {
   /** Son etütler, yeni olan önce */
   etutler: { tarih: string; konu: string; durum: string }[]
 }
-/** Konuşmada kullanılan ad: ilk ad ("Adar Bayat" → "Adar") */
+/** Konuşmada kullanılan ad: ilk ad ("Elif Yıldız" → "Elif") */
 const ilkAd = (ad: string) => ad.trim().split(/\s+/)[0] ?? ad
 
 export default function VeliToplantisi({ cls, grade, onBack }: { cls: string; grade: number | null; onBack: () => void }) {
