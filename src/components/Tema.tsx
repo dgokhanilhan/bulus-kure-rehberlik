@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/AuthProvider'
+import { Icon } from '@/components/Icon'
 import { supabase } from '@/lib/supabase'
 import { TEMALAR, VARSAYILAN_TEMA, cihazTemasi, cihazTemasiYaz, temaGecerli, temaUygula } from '@/lib/tema'
 
@@ -25,11 +26,12 @@ export function TemaUygulayici() {
   return null
 }
 
-/** Profil menüsündeki tema seçici: seçim anında uygulanır, profile kaydedilir (her cihazda aynı tema). */
+/** Profil menüsündeki "Temalar" bölümü: tıklanınca açılır; seçim anında uygulanır, profile kaydedilir (her cihazda aynı tema). */
 export function TemaSecici() {
   const { profile } = useAuth()
   const qc = useQueryClient()
   const [secili, setSecili] = useState(() => temaGecerli(profile?.tema))
+  const [acik, setAcik] = useState(false)
   const [hata, setHata] = useState(false)
   async function sec(id: string) {
     setSecili(id)
@@ -39,41 +41,40 @@ export function TemaSecici() {
     if (error) setHata(true)
     else void qc.invalidateQueries({ queryKey: ['me'] })
   }
-  const ad = TEMALAR.find((t) => t.id === secili)?.ad
+  const tema = TEMALAR.find((t) => t.id === secili)
   return (
-    <div className="tema-sec">
-      <span className="label" id="tema-baslik">
-        Tema <span className="m" style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}>· {ad}</span>
-      </span>
-      {(['sade', 'konsept'] as const).map((g) => {
-        const list = TEMALAR.filter((t) => t.grup === g)
-        if (!list.length) return null
-        return (
-          <div key={g} className="tema-grid" role="radiogroup" aria-label={g === 'sade' ? 'Sade temalar' : 'Konsept temalar'}>
-            {g === 'konsept' && <span className="tema-grup m">Konsept</span>}
-            {list.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="radio"
-                aria-checked={secili === t.id}
-                aria-label={t.ad}
-                title={t.ad}
-                className="tema-k"
-                style={{ background: t.zemin }}
-                onClick={() => void sec(t.id)}
-              >
-                <span style={{ background: t.vurgu }} />
-              </button>
-            ))}
-          </div>
-        )
-      })}
-      {hata && (
-        <span role="alert" className="m" style={{ fontSize: 12 }}>
-          Tema bu cihazda uygulandı ama hesabına kaydedilemedi. Bağlantını kontrol edip yeniden seç.
+    <>
+      <button type="button" className="pitem tema-ac" aria-expanded={acik} aria-controls="tema-panel" onClick={() => setAcik(!acik)}>
+        <span className="tema-nokta" style={{ background: `linear-gradient(135deg, ${tema?.zemin} 50%, ${tema?.vurgu} 50%)` }} aria-hidden="true" />
+        <span style={{ flex: 1 }}>
+          Temalar <small className="m">· {tema?.ad}</small>
         </span>
+        <span className="chev" style={{ transform: acik ? 'rotate(180deg)' : undefined }} aria-hidden="true">
+          <Icon name="down" size={16} stroke={2} />
+        </span>
+      </button>
+      {acik && (
+        <div className="tema-sec" id="tema-panel">
+          {(['sade', 'konsept'] as const).map((g) => (
+            <div key={g} className="tema-grid" role="radiogroup" aria-label={g === 'sade' ? 'Sade temalar' : 'Konsept temalar'}>
+              <span className="tema-grup m">{g === 'sade' ? 'Sade' : 'Konsept'}</span>
+              {TEMALAR.filter((t) => t.grup === g).map((t) => (
+                <button key={t.id} type="button" role="radio" aria-checked={secili === t.id} aria-label={t.ad} className="tema-k" onClick={() => void sec(t.id)}>
+                  <span className="tema-ornek" style={{ background: t.zemin }} aria-hidden="true">
+                    <span style={{ background: t.vurgu }} />
+                  </span>
+                  <span className="tema-ad" aria-hidden="true">{t.ad}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+          {hata && (
+            <span role="alert" className="m" style={{ fontSize: 12 }}>
+              Tema bu cihazda uygulandı ama hesabına kaydedilemedi. Bağlantını kontrol edip yeniden seç.
+            </span>
+          )}
+        </div>
       )}
-    </div>
+    </>
   )
 }
