@@ -111,10 +111,11 @@ test('bir sınıfın oturumu iki öğretmene paylaştırılır; saatler çizelge
     .filter((x: { oturum_id: string; role: string }) => x.oturum_id === sozel.id && x.role === 'gozetmen')
     .sort((a: { scope: string }, b: { scope: string }) => a.scope.localeCompare(b.scope))
   expect(g).toHaveLength(2)
-  expect(g[0].teacher_name).toBe(ilk)
-  expect(g[0].scope.slice(0, 5)).toBe(sozel.starts.slice(0, 5))
-  expect(g[1].scope.slice(-5)).toBe(sozel.ends.slice(0, 5))
-  expect(g[0].scope.slice(-5)).toBe(g[1].scope.slice(0, 5))
+  const [a, b] = [g[0]!, g[1]!]
+  expect(a.teacher_name).toBe(ilk)
+  expect(a.scope.slice(0, 5)).toBe(sozel.starts.slice(0, 5))
+  expect(b.scope.slice(-5)).toBe(sozel.ends.slice(0, 5))
+  expect(a.scope.slice(-5)).toBe(b.scope.slice(0, 5))
   await service().from('gozetmen_sinavlar').delete().eq('title', 'E2E Paylaşım')
 })
 
