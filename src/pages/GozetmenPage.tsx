@@ -16,7 +16,13 @@ import {
   PRESETS,
   TYPE_TR,
   addMin,
+  aralikYaz,
   ayarliPresetler,
+  bolmeSaati,
+  cakisanGorevler,
+  fromMin,
+  gorevAraligi,
+  toMin,
   duration,
   dersOgretmeniAta,
   kadro as kadroOf,
@@ -241,6 +247,7 @@ function Planla(p: {
   }
   const kadro: Kadro = useMemo(() => kadroOf(p.lessons, new Map(classes.map((c) => [c.id, c.level]))), [p.lessons, classes])
   const [view, setView] = useState<string | null>(null)
+  const [paylas, setPaylas] = useState<string | null>(null) // paylaştırma seçimi açık hücre (oturum|sınıf)
   const weekday = isoDow(f.date)
   const cls = useMemo(() => classes.filter((c) => f.classIds.includes(c.id)), [classes, f.classIds])
   const siniflar = cls.map((c) => ({ class_id: c.id, class_name: c.name, room: f.rooms[c.id] ?? null, level: c.level }))
@@ -274,16 +281,20 @@ function Planla(p: {
     const g = gecmis.get(tid)
     return g ? g.gozetmen + g.dinlendirici : 0
   }
-  const issues = sorunlar({ oturumlar: f.oturumlar, siniflar, gorevler: f.gorevler, uygun, dinlendiriciBasina: dinPer, kadro })
+  // Oturumun bir bölümünü kapsayan (paylaşılan) görevde o saatlerdeki uygunluk
+  const uygunAralik = (tid: string, a: number, b: number) =>
+    uygunluk({
+      weekday,
+      oturum: { starts: fromMin(a), ends: fromMin(b) },
+      bells: p.bells,
+      lessons: p.lessons,
+      examClassIds: new Set(f.classIds),
+      classNames,
+      teachers: teachers.filter((t) => t.id === tid),
+    }).get(tid)
+  const issues = sorunlar({ oturumlar: f.oturumlar, siniflar, gorevler: f.gorevler, uygun, dinlendiriciBasina: dinPer, kadro, uygunAralik })
   const serious = issues.filter((i) => i.ciddi)
-  const conflictIds = useMemo(() => {
-    const s = new Set<string>()
-    for (const o of f.oturumlar) {
-      const ids = f.gorevler.filter((g) => g.oturum_key === o.key && g.teacher_id).map((g) => g.teacher_id!)
-      ids.forEach((id, i) => ids.indexOf(id) !== i && s.add(`${o.key}|${id}`))
-    }
-    return s
-  }, [f.gorevler, f.oturumlar])
+  const cakisan = useMemo(() => cakisanGorevler(f.oturumlar, f.gorevler), [f.gorevler, f.oturumlar])
 
   // ---------- düzenleme ----------
   const setOturum = (key: string, x: Partial<Oturum>) => set({ oturumlar: f.oturumlar.map((o) => (o.key === key ? { ...o, ...x } : o)) })
@@ -312,13 +323,62 @@ function Planla(p: {
       gorevler: tid ? [...rest, { oturum_key: okey, role: 'gozetmen', class_id: classId, class_name: className, teacher_id: tid, teacher_name: name.get(tid)! }] : rest,
     })
   }
+  // ---------- paylaşılan gözetmenlik: bir sınıfın oturumu saat dilimlerine bölünür ----------
+  const otOf = (okey: string) => f.oturumlar.find((o) => o.key === okey)!
+  const parcalar = (okey: string, className: string) =>
+    f.gorevler
+      .filter((g) => g.oturum_key === okey && g.role === 'gozetmen' && g.class_name === className)
+      .sort((a, b) => gorevAraligi(a, otOf(okey))[0] - gorevAraligi(b, otOf(okey))[0])
+  /** Bölümlerin saatlerini yeniden yazar; tek bölüm kalırsa kapsam silinir (bütün oturum). */
+  const yaz = (okey: string, className: string, list: { g: Gorev; r: [number, number] }[]) => {
+    const out = list.map(({ g, r }) => ({ ...g, scope: list.length > 1 ? aralikYaz(r[0], r[1]) : null }))
+    const old = new Set(parcalar(okey, className))
+    return [...f.gorevler.filter((g) => !old.has(g)), ...out]
+  }
+  const addPart = (okey: string, c: ClassLite, tid: string) => {
+    if (!tid) return
+    const o = otOf(okey)
+    const ps = parcalar(okey, c.name).map((g) => ({ g, r: gorevAraligi(g, o) }))
+    const last = ps.at(-1)
+    if (!last) return setCell(okey, c.name, c.id, tid)
+    const m = bolmeSaati(last.r[0], last.r[1], p.bells)
+    if (m == null) return toast('Bu bölüm bölünemeyecek kadar kısa.', 'warn')
+    const end = last.r[1]
+    last.r = [last.r[0], m]
+    const g: Gorev = { oturum_key: okey, role: 'gozetmen', class_id: c.id, class_name: c.name, teacher_id: tid, teacher_name: name.get(tid)! }
+    set({ gorevler: yaz(okey, c.name, [...ps, { g, r: [m, end] }]) })
+  }
+  const removePart = (okey: string, className: string, g: Gorev) => {
+    const o = otOf(okey)
+    const ps = parcalar(okey, className).map((x) => ({ g: x, r: gorevAraligi(x, o) }))
+    const i = ps.findIndex((x) => x.g === g)
+    if (i < 0) return
+    const [a, b] = ps[i]!.r
+    ps.splice(i, 1)
+    // Boşalan saatler komşu bölüme katılır
+    if (i > 0) ps[i - 1]!.r = [ps[i - 1]!.r[0], b]
+    else if (ps[0]) ps[0].r = [a, ps[0].r[1]]
+    set({ gorevler: yaz(okey, className, ps) })
+  }
+  const setPartTeacher = (g: Gorev, tid: string) =>
+    set({ gorevler: f.gorevler.map((x) => (x === g ? { ...x, teacher_id: tid, teacher_name: name.get(tid)! } : x)) })
+  const setSinir = (okey: string, className: string, g: Gorev, hhmm: string) => {
+    const o = otOf(okey)
+    const ps = parcalar(okey, className).map((x) => ({ g: x, r: gorevAraligi(x, o) }))
+    const i = ps.findIndex((x) => x.g === g)
+    const t = toMin(hhmm)
+    if (i < 1 || t <= ps[i - 1]!.r[0] || t >= ps[i]!.r[1]) return
+    ps[i - 1]!.r = [ps[i - 1]!.r[0], t]
+    ps[i]!.r = [t, ps[i]!.r[1]]
+    set({ gorevler: yaz(okey, className, ps) })
+  }
   const addDin = (okey: string, tid: string) =>
     tid &&
     set({ gorevler: [...f.gorevler, { oturum_key: okey, role: 'dinlendirici', class_id: null, class_name: null, scope: null, teacher_id: tid, teacher_name: name.get(tid)! }] })
   const updDin = (g: Gorev, x: Partial<Gorev> | null) =>
     set({ gorevler: x ? f.gorevler.map((y) => (y === g ? { ...y, ...x } : y)) : f.gorevler.filter((y) => y !== g) })
   const autoFill = () => {
-    const next = oneri({ oturumlar: f.oturumlar, siniflar, teachers: aday, uygun, gecmis, gorevler: f.gorevler, dinlendiriciBasina: dinPer, haric, kadro })
+    const next = oneri({ oturumlar: f.oturumlar, siniflar, teachers: aday, uygun, gecmis, gorevler: f.gorevler, dinlendiriciBasina: dinPer, haric, kadro, dersler: { weekday, bells: p.bells, lessons: p.lessons } })
     const added = next.length - f.gorevler.length
     set({ gorevler: next })
     toast(added ? `${added} görev önerildi. Gözden geçirip "Atamayı yap"a bas.` : 'Boş hücre kalmadı ya da uygun öğretmen yok.', added ? 'spark' : 'warn')
@@ -327,7 +387,7 @@ function Planla(p: {
     const next = dersOgretmeniAta({ weekday, oturumlar: f.oturumlar, siniflar, bells: p.bells, lessons: p.lessons, teachers: aday, gorevler: f.gorevler, haric })
     const added = next.length - f.gorevler.length
     set({ gorevler: next })
-    const empty = f.oturumlar.length * siniflar.length - next.filter((g) => g.role === 'gozetmen').length
+    const empty = f.oturumlar.reduce((n, o) => n + siniflar.filter((c) => !next.some((g) => g.oturum_key === o.key && g.role === 'gozetmen' && g.class_name === c.class_name)).length, 0)
     toast(
       added
         ? `${added} sınıfa o saatteki dersin öğretmeni yazıldı.${empty > 0 ? ` ${empty} hücre boş; "Akıllı dağıt" ile doldurabilirsin.` : ''}`
@@ -610,7 +670,8 @@ function Planla(p: {
         <p className="m gz-hint">
           Akıllı dağıt yalnız boş hücreleri doldurur: önce o sınıfa derse giren öğretmeni seçer, liseye girmeyen öğretmeni lise sınıfına yazmaz,
           dersi olanı ve aynı anda başka görevi olanı seçmez, geçmişte daha az görev almışlara öncelik verir. Dersin öğretmenine ata: sınav saatinde o
-          sınıfta dersi olan öğretmeni gözetmen yazar. İkisi de seçtiğin görevlere dokunmaz.
+          sınıfta dersi olan öğretmeni gözetmen yazar. Oturum o sınıfta iki farklı öğretmenin dersine denk geliyorsa ikisi de gözetmenliği kendi
+          ders saatinde paylaşır; elle paylaştırmak için hücredeki "+ Paylaştır"a dokun. İkisi de seçtiğin görevlere dokunmaz.
         </p>
         {siniflar.length ? (
           <div className="tbl gz-tbl">
@@ -646,24 +707,113 @@ function Planla(p: {
                       />
                     </td>
                     {f.oturumlar.map((o) => {
-                      const g = f.gorevler.find((x) => x.oturum_key === o.key && x.role === 'gozetmen' && x.class_name === c.name)
-                      const u = g?.teacher_id ? uygun.get(o.key)?.get(g.teacher_id) : undefined
-                      const bad =
-                        !!g?.teacher_id &&
-                        (u?.durum === 'dersi_var' || conflictIds.has(`${o.key}|${g.teacher_id}`) || !kademeUygun(kadro, g.teacher_id, c.level))
+                      const ps = parcalar(o.key, c.name)
+                      const s0 = toMin(o.starts)
+                      const e0 = toMin(o.ends)
+                      const durumOf = (g: Gorev) => {
+                        const r = gorevAraligi(g, o)
+                        const tam = r[0] === s0 && r[1] === e0
+                        return tam ? uygun.get(o.key) : uygunluk({ weekday, oturum: { starts: fromMin(r[0]), ends: fromMin(r[1]) }, bells: p.bells, lessons: p.lessons, examClassIds: new Set(f.classIds), classNames, teachers })
+                      }
+                      const badOf = (g: Gorev | undefined, u: Map<string, Uygunluk> | undefined) =>
+                        !!g?.teacher_id && (u?.get(g.teacher_id)?.durum === 'dersi_var' || cakisan.has(g) || !kademeUygun(kadro, g.teacher_id, c.level))
+                      if (ps.length < 2) {
+                        const g = ps[0]
+                        return (
+                          <td key={o.key}>
+                            <TeacherSelect
+                              label={`${o.name} · ${c.name} gözetmeni`}
+                              value={g?.teacher_id ?? ''}
+                              bad={badOf(g, uygun.get(o.key))}
+                              teachers={aday}
+                              uyg={uygun.get(o.key)}
+                              past={past}
+                              kadro={kadro}
+                              cls={{ id: c.id, level: c.level }}
+                              onChange={(tid) => setCell(o.key, c.name, c.id, tid)}
+                            />
+                            {g?.teacher_id &&
+                              (paylas === `${o.key}|${c.id}` ? (
+                                <TeacherSelect
+                                  label={`${o.name} · ${c.name} gözetmenliğini paylaşacak öğretmen ekle`}
+                                  value=""
+                                  small
+                                  teachers={aday.filter((t) => t.id !== g.teacher_id)}
+                                  uyg={uygun.get(o.key)}
+                                  past={past}
+                                  kadro={kadro}
+                                  cls={{ id: c.id, level: c.level }}
+                                  onChange={(tid) => {
+                                    addPart(o.key, c, tid)
+                                    setPaylas(null)
+                                  }}
+                                  placeholder="Paylaşacak öğretmeni seç"
+                                />
+                              ) : (
+                                <button
+                                  className="gz-paylas"
+                                  aria-label={`${o.name} · ${c.name} gözetmenliğini başka öğretmenle paylaştır`}
+                                  onClick={() => setPaylas(`${o.key}|${c.id}`)}
+                                >
+                                  + Paylaştır
+                                </button>
+                              ))}
+                          </td>
+                        )
+                      }
                       return (
                         <td key={o.key}>
-                          <TeacherSelect
-                            label={`${o.name} · ${c.name} gözetmeni`}
-                            value={g?.teacher_id ?? ''}
-                            bad={bad}
-                            teachers={aday}
-                            uyg={uygun.get(o.key)}
-                            past={past}
-                            kadro={kadro}
-                            cls={{ id: c.id, level: c.level }}
-                            onChange={(tid) => setCell(o.key, c.name, c.id, tid)}
-                          />
+                          <div className="gz-parts">
+                            {ps.map((g, i) => {
+                              const r = gorevAraligi(g, o)
+                              const u = durumOf(g)
+                              return (
+                                <div className="gz-part" key={`${g.teacher_id}${i}`}>
+                                  <span className="gz-saat">
+                                    {i === 0 ? (
+                                      fromMin(r[0])
+                                    ) : (
+                                      <input
+                                        type="time"
+                                        aria-label={`${o.name} · ${c.name}: ${g.teacher_name} başlama saati`}
+                                        value={fromMin(r[0])}
+                                        onChange={(e) => e.target.value && setSinir(o.key, c.name, g, e.target.value)}
+                                      />
+                                    )}
+                                    –{fromMin(r[1])}
+                                  </span>
+                                  <TeacherSelect
+                                    label={`${o.name} · ${c.name} gözetmeni ${aralikYaz(r[0], r[1])}`}
+                                    value={g.teacher_id ?? ''}
+                                    bad={badOf(g, u)}
+                                    teachers={aday}
+                                    uyg={u}
+                                    past={past}
+                                    kadro={kadro}
+                                    cls={{ id: c.id, level: c.level }}
+                                    onChange={(tid) => (tid ? setPartTeacher(g, tid) : removePart(o.key, c.name, g))}
+                                  />
+                                  <button className="xbtn" aria-label={`${g.teacher_name} (${aralikYaz(r[0], r[1])}) bölümünü kaldır`} onClick={() => removePart(o.key, c.name, g)}>
+                                    <Icon name="x" size={14} />
+                                  </button>
+                                </div>
+                              )
+                            })}
+                            {ps.length < 4 && (
+                              <TeacherSelect
+                                label={`${o.name} · ${c.name} gözetmenliğini paylaşacak öğretmen ekle`}
+                                value=""
+                                small
+                                teachers={aday}
+                                uyg={uygun.get(o.key)}
+                                past={past}
+                                kadro={kadro}
+                                cls={{ id: c.id, level: c.level }}
+                                onChange={(tid) => addPart(o.key, c, tid)}
+                                placeholder="+ Öğretmen ekle"
+                              />
+                            )}
+                          </div>
                         </td>
                       )
                     })}
@@ -678,7 +828,7 @@ function Planla(p: {
                       {f.gorevler
                         .filter((g) => g.oturum_key === o.key && g.role === 'dinlendirici')
                         .map((g, i) => (
-                          <div className={`gz-dinitem${g.teacher_id && conflictIds.has(`${o.key}|${g.teacher_id}`) ? ' bad' : ''}`} key={`${g.teacher_id}${i}`}>
+                          <div className={`gz-dinitem${cakisan.has(g) ? ' bad' : ''}`} key={`${g.teacher_id}${i}`}>
                             <span>{g.teacher_name}</span>
                             <input
                               aria-label={`${g.teacher_name} sorumlu olduğu yer`}
@@ -761,6 +911,7 @@ function TeacherSelect(p: {
   placeholder?: string
   kadro?: Kadro
   cls?: { id: string; level: string }
+  small?: boolean
 }) {
   const durum = (t: Ogretmen) => p.uyg?.get(t.id)?.durum ?? 'bos'
   const ok = (t: Ogretmen) => kademeUygun(p.kadro, t.id, p.cls?.level)
@@ -774,7 +925,7 @@ function TeacherSelect(p: {
     </option>
   )
   return (
-    <select className={`gz-sel${p.bad ? ' bad' : ''}${p.value ? ' set' : ''}`} aria-label={p.label} value={p.value} onChange={(e) => p.onChange(e.target.value)}>
+    <select className={`gz-sel${p.bad ? ' bad' : ''}${p.value ? ' set' : ''}${p.small ? ' gz-add' : ''}`} aria-label={p.label} value={p.value} onChange={(e) => p.onChange(e.target.value)}>
       <option value="">{p.placeholder ?? '— Seç —'}</option>
       {own.length > 0 && <optgroup label="Bu sınıfa derse girenler">{own.map((t) => opt(t, durum(t)))}</optgroup>}
       {(['bos', 'serbest', 'dersi_var'] as Durum[]).map((d) => (
@@ -920,7 +1071,7 @@ function buildCizelge(d: {
   const per = new Map<string, string[]>()
   for (const o of d.oturumlar)
     for (const g of d.gorevler.filter((x) => x.oturum_key === o.key)) {
-      const t = g.role === 'gozetmen' ? `${o.name}: ${g.class_name}` : `${o.name}: dinlendirici${g.scope ? ` (${g.scope})` : ''}`
+      const t = g.role === 'gozetmen' ? `${o.name}: ${g.class_name}${g.scope ? ` (${g.scope})` : ''}` : `${o.name}: dinlendirici${g.scope ? ` (${g.scope})` : ''}`
       per.set(g.teacher_name, [...(per.get(g.teacher_name) ?? []), t])
     }
   return {
@@ -937,7 +1088,8 @@ function buildCizelge(d: {
       cells: d.oturumlar.map((o) =>
         d.gorevler
           .filter((g) => g.oturum_key === o.key && g.role === 'gozetmen' && g.class_name === c.class_name)
-          .map((g) => g.teacher_name)
+          .sort((a, b) => gorevAraligi(a, o)[0] - gorevAraligi(b, o)[0])
+          .map((g) => `${g.teacher_name}${g.scope ? ` (${g.scope})` : ''}`)
           .join(', '),
       ),
     })),

@@ -36,6 +36,14 @@
 .gz .gz-sel.set{border-color:var(--primary);background:var(--primary-soft)}
 .gz .gz-sel.bad,.gz .gz-dinitem.bad{border-color:var(--signal);background:var(--signal-soft)}
 .gz .gz-dinrow td{background:var(--surface-sunken)}
+/* Paylaşılan gözetmenlik: bir hücrede saat dilimleriyle birden çok öğretmen */
+.gz .gz-parts{display:grid;gap:6px}
+.gz .gz-part{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px}
+.gz .gz-saat{display:inline-flex;align-items:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}
+.gz .gz-saat input{width:auto;min-width:0;min-height:40px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface);color:inherit;padding:0 4px;font:inherit}
+.gz .gz-sel.gz-add{min-height:40px;font-size:13px}
+.gz .gz-paylas{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;border:0;background:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer}
+.gz .gz-paylas:hover{text-decoration:underline}
 .gz .gz-dinitem{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px;margin-bottom:6px;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
 .gz .gz-dinitem span{font-weight:600;font-size:14px;flex:1 1 100%}
 .gz .gz-dinitem input{flex:1;min-width:120px}

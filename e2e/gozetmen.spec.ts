@@ -66,6 +66,59 @@ test('yönetici sınav oluşturur, akıllı dağıtır, atar, geçmişte görür
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
 })
 
+test('bir sınıfın oturumu iki öğretmene paylaştırılır; saatler çizelgeye ve kayda geçer', async ({ page }) => {
+  test.setTimeout(120_000)
+  await service().from('gozetmen_sinavlar').delete().eq('title', 'E2E Paylaşım')
+  await resetAdminMfa()
+  await loginAdmin(page)
+  await menu(page).filter({ hasText: 'Gözetmen Bul' }).click()
+  await page.getByLabel('Sınav adı').fill('E2E Paylaşım')
+  await page.getByLabel('Tarih').fill('2026-10-20')
+  await page.getByRole('button', { name: 'Temizle', exact: true }).click()
+  await page.getByRole('button', { name: '8/A', exact: true }).click()
+  page.on('dialog', (d) => d.accept())
+
+  const cell = page.getByLabel('1. Oturum · Sözel · 8/A gözetmeni', { exact: true })
+  await cell.selectOption({ index: 1 })
+  const ilk = (await cell.locator('option:checked').innerText()).split(' (')[0]!
+  await page.getByRole('button', { name: '1. Oturum · Sözel · 8/A gözetmenliğini başka öğretmenle paylaştır' }).click()
+  const ekle = page.getByLabel('1. Oturum · Sözel · 8/A gözetmenliğini paylaşacak öğretmen ekle')
+  await ekle.selectOption({ index: 1 })
+  // İki bölüm: her biri kendi saatiyle; saatler arka arkaya ve oturumu tam kaplar
+  const parts = page.locator('.gz-part')
+  await expect(parts).toHaveCount(2)
+  await expect(parts.first().locator('select')).toHaveAccessibleName(/^1\. Oturum · Sözel · 8\/A gözetmeni \d{2}:\d{2}–\d{2}:\d{2}$/)
+  await expect(page.getByText(/8\/A sınıfında .* arası gözetmen yok/)).toHaveCount(0)
+  await shot(page, 'gozetmen-paylasim')
+
+  // Bölümü kaldırınca saatleri kalan öğretmene geçer
+  await parts.nth(1).getByRole('button', { name: /bölümünü kaldır$/ }).click()
+  await expect(parts).toHaveCount(0)
+  await expect(cell).toHaveValue(/.+/)
+  await page.getByRole('button', { name: '1. Oturum · Sözel · 8/A gözetmenliğini başka öğretmenle paylaştır' }).click()
+  await ekle.selectOption({ index: 1 })
+  await expect(parts).toHaveCount(2)
+
+  await page.getByRole('button', { name: 'ATAMAYI YAP' }).click()
+  await expect(page.getByText('Atama yapıldı ve kaydedildi')).toBeVisible()
+  const { data } = await service()
+    .from('gozetmen_sinavlar')
+    .select('gozetmen_oturumlar(id, name, starts, ends), gozetmen_gorevler(oturum_id, role, class_name, scope, teacher_name)')
+    .eq('title', 'E2E Paylaşım')
+    .single()
+  const sozel = data!.gozetmen_oturumlar.find((o: { name: string }) => o.name.includes('Sözel'))!
+  const g = data!.gozetmen_gorevler
+    .filter((x: { oturum_id: string; role: string }) => x.oturum_id === sozel.id && x.role === 'gozetmen')
+    .sort((a: { scope: string }, b: { scope: string }) => a.scope.localeCompare(b.scope))
+  expect(g).toHaveLength(2)
+  const [a, b] = [g[0]!, g[1]!]
+  expect(a.teacher_name).toBe(ilk)
+  expect(a.scope.slice(0, 5)).toBe(sozel.starts.slice(0, 5))
+  expect(b.scope.slice(-5)).toBe(sozel.ends.slice(0, 5))
+  expect(a.scope.slice(-5)).toBe(b.scope.slice(0, 5))
+  await service().from('gozetmen_sinavlar').delete().eq('title', 'E2E Paylaşım')
+})
+
 test('rehber öğretmen Gözetmen Bul sayfasını ve verisini göremez', async ({ page }) => {
   await login(page, ...DEMO.rehber)
   await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
