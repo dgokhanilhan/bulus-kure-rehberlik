@@ -79,6 +79,112 @@ export const duration = (o: Pick<Oturum, 'starts' | 'ends'>) => toMin(o.ends) - 
 const overlaps = (a1: number, a2: number, b1: number, b2: number) => a1 < b2 && b1 < a2
 export const oturumOverlap = (a: Oturum, b: Oturum) => overlaps(toMin(a.starts), toMin(a.ends), toMin(b.starts), toMin(b.ends))
 
+// ---------- Paylaşılan gözetmenlik (oturumun bir bölümü) ----------
+// Bir sınıfın oturumu birden çok öğretmene bölünebilir (ör. 1. ders bir öğretmen, 2. ders diğeri). Bu durumda her görevin
+// kapsamı (scope) "SS:DD–SS:DD" saat aralığıdır; kapsamı boş ya da saat olmayan görev bütün oturumu kapsar.
+const ARALIK = /^(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})$/
+export const aralikYaz = (a: number, b: number) => `${fromMin(a)}–${fromMin(b)}`
+/** Görevin kapsadığı saat aralığı (dakika). */
+export function gorevAraligi(g: Pick<Gorev, 'role' | 'scope'>, o: Pick<Oturum, 'starts' | 'ends'>): [number, number] {
+  const s = toMin(o.starts)
+  const e = toMin(o.ends)
+  const m = g.role === 'gozetmen' ? g.scope?.trim().match(ARALIK) : null
+  if (!m) return [s, e]
+  const a = Math.max(s, Number(m[1]) * 60 + Number(m[2]))
+  const b = Math.min(e, Number(m[3]) * 60 + Number(m[4]))
+  return a < b ? [a, b] : [s, e]
+}
+
+/** Aynı öğretmenin saatleri çakışan görevleri (aynı oturumda farklı saat dilimlerinde olmak çakışma değildir). */
+export function cakisanGorevler(oturumlar: Oturum[], gorevler: Gorev[]): Set<Gorev> {
+  const ot = new Map(oturumlar.map((o) => [o.key, o]))
+  const out = new Set<Gorev>()
+  const xs = gorevler
+    .filter((g) => g.teacher_id && ot.has(g.oturum_key))
+    .map((g) => ({ g, r: gorevAraligi(g, ot.get(g.oturum_key)!) }))
+  for (let i = 0; i < xs.length; i++)
+    for (let j = i + 1; j < xs.length; j++) {
+      const a = xs[i]!
+      const b = xs[j]!
+      if (a.g.teacher_id === b.g.teacher_id && overlaps(a.r[0], a.r[1], b.r[0], b.r[1])) out.add(a.g).add(b.g)
+    }
+  return out
+}
+
+export interface Parca {
+  starts: number
+  ends: number
+  teacher_id: string
+}
+/**
+ * Oturumu sınıfın o günkü derslerine böler: her bölüm o saatte sınıfta dersi olan öğretmene düşer. Sınırlar zil saatleridir
+ * (teneffüs önceki bölüme eklenir). 15 dakikadan kısa örtüşen ders ya da öğretmeni uygun olmayan ders komşu bölüme katılır.
+ * Ders bulunamazsa boş liste döner.
+ */
+export function dersParcalari(p: {
+  weekday: number
+  oturum: Pick<Oturum, 'starts' | 'ends'>
+  bells: Zil[]
+  lessons: DersSatiri[]
+  class_id: string
+  uygun: (tid: string, a: number, b: number) => boolean
+  enAz?: number
+}): Parca[] {
+  const s = toMin(p.oturum.starts)
+  const e = toMin(p.oturum.ends)
+  const enAz = p.enAz ?? 15
+  const ders = new Map<number, string>()
+  for (const l of p.lessons)
+    if (l.class_id === p.class_id && l.weekday === p.weekday && l.teacher_id && !ders.has(l.period)) ders.set(l.period, l.teacher_id)
+  const hits = p.bells
+    .filter((b) => b.active !== false && overlaps(s, e, toMin(b.starts), toMin(b.ends)))
+    .sort((a, b) => toMin(a.starts) - toMin(b.starts))
+  if (!hits.length) return []
+  const raw = hits.map((b, i) => {
+    const a = i === 0 ? s : toMin(b.starts)
+    const z = i === hits.length - 1 ? e : toMin(hits[i + 1]!.starts)
+    const ov = Math.min(e, toMin(b.ends)) - Math.max(s, toMin(b.starts))
+    const t = ders.get(b.period)
+    return { a, z, ov, t: t && p.uygun(t, a, z) ? t : null }
+  })
+  // Hepsi kısa örtüşüyorsa en uzun örtüşen ders sayılır
+  const uzun = raw.some((x) => x.t && x.ov >= enAz)
+  const best = uzun ? null : raw.filter((x) => x.t).sort((a, b) => b.ov - a.ov)[0]
+  const tids = raw.map((x) => (x.t && (uzun ? x.ov >= enAz : x === best) ? x.t : null))
+  if (!tids.some(Boolean)) return []
+  // Boş bölümler önceki (yoksa sonraki) öğretmene katılır
+  for (let i = 0; i < tids.length; i++) if (!tids[i]) tids[i] = tids.slice(0, i).reverse().find(Boolean) ?? null
+  for (let i = tids.length - 1; i >= 0; i--) if (!tids[i]) tids[i] = tids[i + 1] ?? null
+  const out: Parca[] = []
+  raw.forEach((x, i) => {
+    const last = out.at(-1)
+    if (last && last.teacher_id === tids[i]) last.ends = x.z
+    else out.push({ starts: x.a, ends: x.z, teacher_id: tids[i]! })
+  })
+  return out
+}
+
+/** Öğretmenin [a, b) aralığında sınava girmeyen bir sınıfta dersi var mı (zil çizelgesine göre). */
+export function araliktaDersi(p: { weekday: number; bells: Zil[]; lessons: DersSatiri[]; examClassIds: Set<string> }, tid: string, a: number, b: number) {
+  const bell = new Map(p.bells.filter((x) => x.active !== false).map((x) => [x.period, x]))
+  return p.lessons.some((l) => {
+    const z = bell.get(l.period)
+    return l.teacher_id === tid && l.weekday === p.weekday && !p.examClassIds.has(l.class_id) && !!z && overlaps(a, b, toMin(z.starts), toMin(z.ends))
+  })
+}
+
+/** Paylaşılan hücreye yeni öğretmen eklerken bölme saati: son bölümün içindeki, ortasına en yakın ders başlangıcı; yoksa ortası. */
+export function bolmeSaati(a: number, b: number, bells: Zil[]): number | null {
+  if (b - a < 20) return null
+  const mid = (a + b) / 2
+  const cand = bells
+    .filter((x) => x.active !== false)
+    .map((x) => toMin(x.starts))
+    .filter((t) => t >= a + 10 && t <= b - 10)
+    .sort((x, y) => Math.abs(x - mid) - Math.abs(y - mid))[0]
+  return cand ?? Math.round(mid / 5) * 5
+}
+
 /** Hazır düzenden oturumlar (anahtarlar benzersiz). */
 export function presetOturumlar(t: ExamType, key = () => Math.random().toString(36).slice(2, 10), presets: typeof PRESETS = PRESETS): Oturum[] {
   return presets[t].oturumlar.map((o) => ({ key: key(), name: o.name, starts: o.starts, ends: addMin(o.starts, o.minutes) }))
@@ -196,6 +302,8 @@ export function oneri(p: {
   dinlendiriciBasina: number // kaç sınıfa bir dinlendirici (0 = yok)
   haric?: Set<string> // görev verilmeyecek öğretmenler
   kadro?: Kadro
+  /** Verilirse: oturum sınıfın iki ya da daha çok farklı öğretmenin dersine denk geliyorsa gözetmenlik o öğretmenler arasında paylaştırılır. */
+  dersler?: { weekday: number; bells: Zil[]; lessons: DersSatiri[] }
 }): Gorev[] {
   const res = [...p.gorevler]
   const name = new Map(p.teachers.map((t) => [t.id, t.full_name]))
@@ -222,10 +330,33 @@ export function oneri(p: {
       .sort((a, b) => a.s - b.s || a.t.full_name.localeCompare(b.t.full_name, 'tr'))
     return cands[0]?.t
   }
+  const examIds = new Set(p.siniflar.map((c) => c.class_id).filter((x): x is string => !!x))
+  const paylasim = (o: Oturum, c: SinavSinif): Parca[] => {
+    if (!p.dersler || !c.class_id) return []
+    const d = p.dersler
+    const busy = busyIn(o.key)
+    return dersParcalari({
+      weekday: d.weekday,
+      oturum: o,
+      bells: d.bells,
+      lessons: d.lessons,
+      class_id: c.class_id,
+      uygun: (tid, a, b) =>
+        name.has(tid) && !busy.has(tid) && !p.haric?.has(tid) && kademeUygun(p.kadro, tid, c.level) && !araliktaDersi({ ...d, examClassIds: examIds }, tid, a, b),
+    })
+  }
   p.oturumlar.forEach((o, oi) => {
     const prev = p.oturumlar[oi - 1]
     for (const c of p.siniflar) {
       if (res.some((g) => g.oturum_key === o.key && g.role === 'gozetmen' && g.class_name === c.class_name)) continue
+      const parts = paylasim(o, c)
+      if (parts.length > 1) {
+        for (const x of parts) {
+          res.push({ oturum_key: o.key, role: 'gozetmen', class_id: c.class_id, class_name: c.class_name, scope: aralikYaz(x.starts, x.ends), teacher_id: x.teacher_id, teacher_name: name.get(x.teacher_id)! })
+          load.set(x.teacher_id, (load.get(x.teacher_id) ?? 0) + 1)
+        }
+        continue
+      }
       const prevT = new Set(
         prev ? res.filter((g) => g.oturum_key === prev.key && g.class_name === c.class_name).map((g) => g.teacher_id) : [],
       )
@@ -248,9 +379,10 @@ export function oneri(p: {
 }
 
 /**
- * "Dersin öğretmeni gözetmen olsun": oturum saatinde sınıfta dersi olan öğretmen o sınıfa gözetmen yazılır
- * (oturumla en çok örtüşen ders; eşitlikte önceki ders saati). Dolu hücreler, görev verilmeyenler ve aynı anda
- * başka görevi olanlar atlanır; kalan boş hücreler "Akıllı dağıt" ile doldurulabilir.
+ * "Dersin öğretmeni gözetmen olsun": oturum saatinde sınıfta dersi olan öğretmen o sınıfa gözetmen yazılır. Oturum iki
+ * farklı öğretmenin dersine denk geliyorsa gözetmenlik saatlerine göre paylaştırılır (ör. 1. ders bir öğretmen, 2. ders
+ * diğeri). Dolu hücreler, görev verilmeyenler ve aynı saatte başka görevi olanlar atlanır; kalan boş hücreler
+ * "Akıllı dağıt" ile doldurulabilir.
  */
 export function dersOgretmeniAta(p: {
   weekday: number
@@ -264,26 +396,37 @@ export function dersOgretmeniAta(p: {
 }): Gorev[] {
   const res = [...p.gorevler]
   const name = new Map(p.teachers.map((t) => [t.id, t.full_name]))
-  const bell = new Map(p.bells.filter((b) => b.active !== false).map((b) => [b.period, b]))
+  const ot = new Map(p.oturumlar.map((o) => [o.key, o]))
+  // Öğretmenin [a, b) aralığında (hangi oturumda olursa olsun) başka görevi var mı
+  const mesgul = (tid: string, a: number, b: number) =>
+    res.some((g) => {
+      const o = ot.get(g.oturum_key)
+      if (g.teacher_id !== tid || !o) return false
+      const r = gorevAraligi(g, o)
+      return overlaps(a, b, r[0], r[1])
+    })
   for (const o of p.oturumlar) {
-    const s = toMin(o.starts)
-    const e = toMin(o.ends)
-    const overl = new Set(p.oturumlar.filter((x) => oturumOverlap(x, o)).map((x) => x.key))
     for (const c of p.siniflar) {
       if (!c.class_id || res.some((g) => g.oturum_key === o.key && g.role === 'gozetmen' && g.class_name === c.class_name)) continue
-      const cands = p.lessons
-        .filter((l) => l.class_id === c.class_id && l.weekday === p.weekday && l.teacher_id && name.has(l.teacher_id) && !p.haric?.has(l.teacher_id))
-        .map((l) => {
-          const b = bell.get(l.period)
-          return { l, ov: b ? Math.min(e, toMin(b.ends)) - Math.max(s, toMin(b.starts)) : 0 }
+      const parts = dersParcalari({
+        weekday: p.weekday,
+        oturum: o,
+        bells: p.bells,
+        lessons: p.lessons,
+        class_id: c.class_id,
+        uygun: (tid, a, b) => name.has(tid) && !p.haric?.has(tid) && !mesgul(tid, a, b),
+      })
+      // Tek öğretmen bütün oturumu alırsa kapsam yazılmaz; birden çok öğretmende her biri kendi dersinin saatini alır
+      for (const x of parts)
+        res.push({
+          oturum_key: o.key,
+          role: 'gozetmen',
+          class_id: c.class_id,
+          class_name: c.class_name,
+          ...(parts.length > 1 ? { scope: aralikYaz(x.starts, x.ends) } : {}),
+          teacher_id: x.teacher_id,
+          teacher_name: name.get(x.teacher_id)!,
         })
-        .filter((x) => x.ov > 0)
-        .sort((a, b) => b.ov - a.ov || a.l.period - b.l.period)
-      const busy = new Set(res.filter((g) => overl.has(g.oturum_key) && g.teacher_id).map((g) => g.teacher_id!))
-      const hit = cands.find((x) => !busy.has(x.l.teacher_id!))
-      if (!hit) continue
-      const tid = hit.l.teacher_id!
-      res.push({ oturum_key: o.key, role: 'gozetmen', class_id: c.class_id, class_name: c.class_name, teacher_id: tid, teacher_name: name.get(tid)! })
     }
   }
   return res
@@ -302,6 +445,8 @@ export function sorunlar(p: {
   uygun: Map<string, Map<string, Uygunluk>>
   dinlendiriciBasina: number
   kadro?: Kadro
+  /** Oturumun yalnız bir bölümünü kapsayan görevde o saatlerdeki uygunluk (verilmezse bütün oturum esas alınır). */
+  uygunAralik?: (tid: string, a: number, b: number) => Uygunluk | undefined
 }): Sorun[] {
   const out: Sorun[] = []
   p.oturumlar.forEach((o, i) => {
@@ -314,6 +459,22 @@ export function sorunlar(p: {
     const missing = p.siniflar.filter((c) => !gs.some((g) => g.role === 'gozetmen' && g.class_name === c.class_name))
     if (missing.length)
       out.push({ tip: 'eksik', ciddi: true, text: `${o.name}: ${missing.map((c) => c.class_name).join(', ')} için gözetmen atanmadı.` })
+    // Paylaşılan sınıfta saatlerin bir kısmı boş kalmış olabilir
+    for (const c of p.siniflar) {
+      const rs = gs
+        .filter((g) => g.role === 'gozetmen' && g.class_name === c.class_name)
+        .map((g) => gorevAraligi(g, o))
+        .sort((a, b) => a[0] - b[0])
+      if (!rs.length) continue
+      let t = toMin(o.starts)
+      const bos: string[] = []
+      for (const [a, b] of rs) {
+        if (a > t) bos.push(aralikYaz(t, a))
+        t = Math.max(t, b)
+      }
+      if (t < toMin(o.ends)) bos.push(aralikYaz(t, toMin(o.ends)))
+      if (bos.length) out.push({ tip: 'eksik', ciddi: true, text: `${o.name}: ${c.class_name} sınıfında ${bos.join(', ')} arası gözetmen yok.` })
+    }
     if (p.dinlendiriciBasina > 0 && p.siniflar.length && !gs.some((g) => g.role === 'dinlendirici'))
       out.push({ tip: 'dinlendirici', ciddi: false, text: `${o.name}: dinlendirici öğretmen yok.` })
     for (const g of gs) {
@@ -323,21 +484,27 @@ export function sorunlar(p: {
     }
     const u = p.uygun.get(o.key)
     for (const g of gs) {
-      const d = g.teacher_id ? u?.get(g.teacher_id) : undefined
+      const r = gorevAraligi(g, o)
+      const kismi = r[0] !== toMin(o.starts) || r[1] !== toMin(o.ends)
+      const d = !g.teacher_id ? undefined : kismi && p.uygunAralik ? p.uygunAralik(g.teacher_id, r[0], r[1]) : u?.get(g.teacher_id)
       if (d?.durum === 'dersi_var') {
         const l = d.dersler.find((x) => !x.inExam)!
-        out.push({ tip: 'ders', ciddi: true, text: `${g.teacher_name}, ${o.name} sırasında ${l.class_name} sınıfında ${l.subject} dersinde.` })
+        out.push({ tip: 'ders', ciddi: true, text: `${g.teacher_name}, ${o.name}${kismi ? ` (${aralikYaz(r[0], r[1])})` : ''} sırasında ${l.class_name} sınıfında ${l.subject} dersinde.` })
       }
     }
   }
-  // Aynı öğretmen aynı ya da çakışan oturumlarda birden çok görevde
+  // Aynı öğretmen aynı saatte birden çok görevde (aynı oturumun farklı saat dilimleri çakışma sayılmaz)
+  const cak = cakisanGorevler(p.oturumlar, p.gorevler)
   const seen = new Set<string>()
-  for (const a of p.gorevler)
-    for (const b of p.gorevler) {
-      if (a === b || !a.teacher_id || a.teacher_id !== b.teacher_id) continue
+  for (const a of cak)
+    for (const b of cak) {
+      if (a === b || a.teacher_id !== b.teacher_id) continue
       const oa = p.oturumlar.find((x) => x.key === a.oturum_key)
       const ob = p.oturumlar.find((x) => x.key === b.oturum_key)
-      if (!oa || !ob || !(oa.key === ob.key || oturumOverlap(oa, ob))) continue
+      if (!oa || !ob) continue
+      const ra = gorevAraligi(a, oa)
+      const rb = gorevAraligi(b, ob)
+      if (!overlaps(ra[0], ra[1], rb[0], rb[1])) continue
       const k = [a.teacher_id, oa.key, ob.key].sort().join('|')
       if (seen.has(k)) continue
       seen.add(k)

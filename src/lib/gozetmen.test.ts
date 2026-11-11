@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addMin, dersOgretmeniAta, kadro, oneri, presetOturumlar, sorunlar, uygunluk, type DersSatiri, type Gorev, type Oturum, type Uygunluk } from './gozetmen'
+import { addMin, bolmeSaati, cakisanGorevler, dersOgretmeniAta, gorevAraligi, kadro, oneri, presetOturumlar, sorunlar, uygunluk, type DersSatiri, type Gorev, type Oturum, type Uygunluk } from './gozetmen'
 
 const bells = [
   { period: 1, starts: '08:40', ends: '09:20' },
@@ -154,11 +154,11 @@ describe('sınıfa giren öğretmen ve kademe kuralı', () => {
     })
     expect(s.map((x) => x.tip)).toContain('kademe')
   })
-  it('dersin öğretmeni: oturumla en çok örtüşen dersin öğretmeni o sınıfa yazılır', () => {
-    const ls = [L('a', '8a', 2), L('c', '8a', 3), L('b', '8b', 4)]
+  it('dersin öğretmeni: oturumda tek ders varsa o dersin öğretmeni bütün oturumu alır', () => {
+    const ls = [L('a', '8a', 2), L('b', '8b', 4)]
     const g = dersOgretmeniAta({
       weekday: 2,
-      oturumlar: [sozel],
+      oturumlar: [{ ...sozel, ends: '10:15' }],
       siniflar: [
         { class_id: '8a', class_name: '8/A' },
         { class_id: '8b', class_name: '8/B' },
@@ -169,9 +169,83 @@ describe('sınıfa giren öğretmen ve kademe kuralı', () => {
       gorevler: [],
       haric: new Set(),
     })
-    // Sözel 09:30–10:45: 2. ders 09:30–10:10 (40 dk) > 3. ders 10:20–11:00 (25 dk); 8/B'nin dersi oturum dışında
+    // 8/B'nin dersi oturum dışında
     expect(g).toHaveLength(1)
     expect(g[0]).toMatchObject({ class_name: '8/A', teacher_id: 'a' })
-    expect(dersOgretmeniAta({ weekday: 2, oturumlar: [sozel], siniflar: [{ class_id: '8a', class_name: '8/A' }], bells, lessons: ls, teachers, gorevler: [], haric: new Set(['a']) })[0]!.teacher_id).toBe('c')
+    expect(g[0]!.scope).toBeUndefined()
+  })
+  it('dersin öğretmeni: oturum iki öğretmenin dersine denk geliyorsa gözetmenlik ders saatlerine göre paylaşılır', () => {
+    const ls = [L('a', '8a', 2), L('c', '8a', 3)]
+    const args = { weekday: 2, oturumlar: [sozel], siniflar: [{ class_id: '8a', class_name: '8/A' }], bells, lessons: ls, teachers, gorevler: [] as Gorev[] }
+    // Sözel 09:30–10:45: 2. ders 09:30–10:10 (Ayşe), 3. ders 10:20–11:00 (Cem); teneffüs önceki bölüme eklenir
+    const g = dersOgretmeniAta({ ...args, haric: new Set() })
+    expect(g.map((x) => [x.teacher_id, x.scope])).toEqual([
+      ['a', '09:30–10:20'],
+      ['c', '10:20–10:45'],
+    ])
+    expect(sorunlar({ oturumlar: [sozel], siniflar: args.siniflar, gorevler: g, uygun: new Map([['s', bos]]), dinlendiriciBasina: 0 })).toEqual([])
+    // Görev verilmeyen öğretmenin bölümü diğerine katılır
+    const h = dersOgretmeniAta({ ...args, haric: new Set(['a']) })
+    expect(h).toHaveLength(1)
+    expect(h[0]).toMatchObject({ teacher_id: 'c' })
+    expect(h[0]!.scope).toBeUndefined()
+    // 15 dakikadan kısa örtüşen ders paylaşıma girmez
+    const kisa = dersOgretmeniAta({ ...args, oturumlar: [{ ...sozel, ends: '10:30' }], haric: new Set() })
+    expect(kisa.map((x) => x.teacher_id)).toEqual(['a'])
+  })
+})
+
+describe('paylaşılan gözetmenlik', () => {
+  const siniflar = [{ class_id: '8a', class_name: '8/A' }]
+  const bos = new Map(teachers.map((t) => [t.id, { durum: 'bos', dersler: [] } as Uygunluk]))
+  const G = (teacher_id: string, scope?: string, class_name = '8/A'): Gorev => ({ oturum_key: 's', role: 'gozetmen', class_id: '8a', class_name, scope, teacher_id, teacher_name: teacher_id })
+  it('gorevAraligi kapsamı okur; saat olmayan kapsam bütün oturumdur', () => {
+    expect(gorevAraligi(G('a', '09:30–10:20'), sozel)).toEqual([570, 620])
+    expect(gorevAraligi(G('a'), sozel)).toEqual([570, 645])
+    expect(gorevAraligi({ role: 'dinlendirici', scope: '09:30–10:20' }, sozel)).toEqual([570, 645])
+  })
+  it('aynı öğretmen aynı oturumda farklı saatlerde çakışmaz; saatler örtüşürse çakışır', () => {
+    const ok = [G('a', '09:30–10:20'), G('a', '10:20–10:45', '8/B')]
+    expect(cakisanGorevler([sozel], ok).size).toBe(0)
+    const bad = [G('a', '09:30–10:30'), G('a', '10:20–10:45', '8/B')]
+    expect(cakisanGorevler([sozel], bad).size).toBe(2)
+    expect(sorunlar({ oturumlar: [sozel], siniflar: [...siniflar, { class_id: '8b', class_name: '8/B' }], gorevler: bad, uygun: new Map([['s', bos]]), dinlendiriciBasina: 0 }).map((x) => x.tip)).toContain('cakisma')
+  })
+  it('paylaşılan sınıfta boş kalan saat bildirilir', () => {
+    const s = sorunlar({ oturumlar: [sozel], siniflar, gorevler: [G('a', '09:30–10:00'), G('c', '10:20–10:45')], uygun: new Map([['s', bos]]), dinlendiriciBasina: 0 })
+    expect(s.map((x) => x.text)).toContain('Sözel: 8/A sınıfında 10:00–10:20 arası gözetmen yok.')
+  })
+  it('akıllı dağıt: ders bilgisi verilince iki öğretmenin dersine denk gelen oturumu paylaştırır', () => {
+    const g = oneri({
+      oturumlar: [sozel],
+      siniflar,
+      teachers,
+      uygun: new Map([['s', bos]]),
+      gecmis: new Map(),
+      gorevler: [],
+      dinlendiriciBasina: 0,
+      dersler: { weekday: 2, bells, lessons: [L('a', '8a', 2), L('c', '8a', 3), L('c', '9a', 2)] },
+    })
+    expect(g.map((x) => [x.teacher_id, x.scope])).toEqual([
+      ['a', '09:30–10:20'],
+      ['c', '10:20–10:45'],
+    ])
+    // Paylaşacak öğretmenin kendi saatinde sınava girmeyen sınıfta dersi varsa paylaşılmaz
+    const h = oneri({
+      oturumlar: [sozel],
+      siniflar,
+      teachers,
+      uygun: new Map([['s', bos]]),
+      gecmis: new Map(),
+      gorevler: [],
+      dinlendiriciBasina: 0,
+      dersler: { weekday: 2, bells, lessons: [L('a', '8a', 2), L('c', '8a', 3), L('c', '9a', 3)] },
+    })
+    expect(h.filter((x) => x.role === 'gozetmen')).toHaveLength(1)
+  })
+  it('bölme saati: ortaya en yakın ders başlangıcı, yoksa ortası', () => {
+    expect(bolmeSaati(570, 645, bells)).toBe(620)
+    expect(bolmeSaati(570, 645, [])).toBe(610)
+    expect(bolmeSaati(570, 585, bells)).toBeNull()
   })
 })
