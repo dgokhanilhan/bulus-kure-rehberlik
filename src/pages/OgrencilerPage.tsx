@@ -10,6 +10,7 @@ import { LEVEL_TR, LEVELS } from '@/lib/roles'
 import { useAuth } from '@/auth/AuthProvider'
 import VeliToplantisi from './VeliToplantisi'
 import BransVeliToplantisi from './BransVeliToplantisi'
+import GunlukKontrol from './GunlukKontrol'
 
 export default function OgrencilerPage() {
   const { role, profile } = useAuth()
@@ -99,6 +100,9 @@ const genel = useGenelDataset()
   // Branş veli toplantısı (?gorunum=brans-toplantisi): öğretmenin kendi dersi için özet ve derse özel gözlem formu
   if (sp.get('gorunum') === 'brans-toplantisi' && cls !== 'all')
     return <BransVeliToplantisi key={cls} cls={cls} grade={grade} onBack={() => setSp({ sinif: cls })} />
+  // Günlük kontrol (?gorunum=gunluk-kontrol): kıyafet / materyal eksikleri; sınıf seçilmediyse yalnız kayıtlar
+  if (sp.get('gorunum') === 'gunluk-kontrol')
+    return <GunlukKontrol key={cls} cls={cls} onBack={() => setSp(cls === 'all' ? {} : { sinif: cls })} />
   // Düğmede öğretmenin branşı yazar (ör. "Branş veli toplantısı · Matematik"); rehberlik ve yönetici dersi içeride seçer
   const bransAdi = scoped && profile?.branch ? profile.branch : ''
 
@@ -131,6 +135,9 @@ const genel = useGenelDataset()
             Branş veli toplantısı{bransAdi ? ` · ${bransAdi}` : ''}
           </button>
         )}
+        <button type="button" className="btn" onClick={() => setSp(cls === 'all' ? { gorunum: 'gunluk-kontrol' } : { sinif: cls, gorunum: 'gunluk-kontrol' })}>
+          Günlük kontrol{cls === 'all' ? ' kayıtları' : ''}
+        </button>
       </div>
       {scoped && (
         <p className="m a" style={{ fontSize: 13, margin: 0 }}>

@@ -673,3 +673,16 @@ h2.sec{font-size:17px;font-weight:600}
 .hd-satir{display:grid;grid-template-columns:minmax(0,1fr) 110px 170px auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .hd-satir.aile{grid-template-columns:minmax(0,1fr) 160px 230px}
 @media (max-width:760px){.hd-satir,.hd-satir.aile{grid-template-columns:minmax(0,1fr) auto}}
+
+/* Günlük kontrol (0067): o günün eksiği kırmızı; açık ve koyu temada okunur kalsın diye temanın renkleriyle karıştırılır */
+:root{--gk-kirmizi:color-mix(in srgb,#d92d20 78%,var(--ink));--gk-kirmizi-soft:color-mix(in srgb,#d92d20 13%,var(--surface));--gk-kirmizi-cizgi:color-mix(in srgb,#d92d20 70%,var(--surface))}
+.gk-m{min-height:44px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface);color:inherit;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.gk-m.on{background:var(--gk-kirmizi-soft);border-color:var(--gk-kirmizi-cizgi);color:var(--gk-kirmizi);font-weight:600}
+.gk-m[aria-disabled="true"]{cursor:not-allowed;opacity:.85}
+.gk-satir{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}
+.gk-ad{flex:0 0 180px;min-width:0;padding-top:12px;font-weight:600;font-size:14px}
+.gk-maddeler{flex:1 1 320px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.gk-bugun{border:2px solid var(--gk-kirmizi-cizgi);background:var(--gk-kirmizi-soft);border-radius:12px;padding:10px 12px}
+.gk-bugun b,.gk-kirmizi{color:var(--gk-kirmizi)}
+.chip.gk-k{background:var(--gk-kirmizi-soft);color:var(--gk-kirmizi);font-weight:600}
+@media (max-width:640px){.gk-ad{flex-basis:100%;padding-top:0}}

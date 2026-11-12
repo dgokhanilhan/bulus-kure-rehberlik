@@ -34,6 +34,7 @@ import { useNavigate } from 'react-router-dom'
 import { DevamsizlikTab } from '@/components/Devamsizlik'
 import HedefTab from '@/components/HedefTab'
 import { EtutTab } from '@/components/EtutTab'
+import { GunlukKontrolSekme } from '@/components/GunlukKontrolKart'
 import { useExamContext } from '@/lib/sinavBaglami'
 
 const TABS = [
@@ -45,6 +46,7 @@ const TABS = [
   ['notlar', 'Notlar'],
   ['raporlar', 'Raporlar'],
   ['devamsizlik', 'Devamsızlık'],
+  ['gunluk-kontrol', 'Günlük kontrol'],
   ['hedef', 'Hedef'],
   ['etut', 'Etüt'],
 ] as const
@@ -492,6 +494,7 @@ export default function OgrenciPage() {
       )}
       {tab === 'notlar' && <NotesTab sid={s.id} F={F} />}
       {tab === 'devamsizlik' && <DevamsizlikTab s={s} />}
+      {tab === 'gunluk-kontrol' && <GunlukKontrolSekme sid={s.id} />}
       {tab === 'hedef' && <HedefTab sid={s.id} grade={sGrade} />}
       {tab === 'etut' && mods.etut && (
         <EtutTab

@@ -28,6 +28,8 @@ Kayıt → `status='pending'`, adminlere bildirim. Admin onayda veli/öğrenci i
 
 **Branş öğretmeni · Sınıflar:** yalnız derse girdiği şubeler ve kendi dersi (ör. Matematik). Sınıf analizi o dersin netleriyle yapılır; puan gösterilmez. Analiz kapsamı her rolde seçilir: tüm denemeler, son deneme ya da tek tek seçilen denemeler; deneme netleri her zaman görünür.
 
+**Günlük kontrol (0067):** Öğrenciler → sınıf → Günlük kontrol. Yoklamadan bağımsızdır; her öğretmen gerektiğinde girip yalnız eksik olanı işaretler (kıyafet, kitap / defter, ajanda imzası, beden kıyafeti, telefon teslim) ve isterse detay yazar (detay veliye görünür). Aynı maddenin aynı ay içindeki 3., 6., 9. eksikliğinde velilere uygulama içi uyarı bildirimi gider. Veli ve öğrenci Okul sayfasındaki kartta görür; o günün eksiği kırmızı kutudadır. Öğretmen kendi kaydını düzeltir / kaldırır; rehberlik ve yönetici bütün kayıtları görür ve kaldırabilir; düzeltme ve kaldırmanın eski hâli geçmişte saklanır.
+
 - **Bugün:** ilgilenilmesi gereken öğrenciler (kurallar aşağıda) + filtre (Tümü/Risk/Takip/Gelişim); son deneme özeti; Görüşmeler kartı (açılır, her satırda "Değiştir"); Görevler kartı (gecikmişler listesi).
 - **Öğrenciler:** şube filtresi, arama (isim/no), tablo (son net, değişim, durum). Satır → öğrenci dosyası.
 - **Öğrenci dosyası:** başlıkta (yalnız tam yetkili) Görüşme planla · Veli raporu · Görev ata. 4 özet kartı. Sekmeler:
