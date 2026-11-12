@@ -31,6 +31,7 @@ import type { Student } from '@/lib/types'
 import { examTrack } from '@/lib/roles'
 import { Icon } from '@/components/Icon'
 import { LimitBars, useAttendanceLimits } from '@/components/Devamsizlik'
+import { GunlukKontrolKart } from '@/components/GunlukKontrolKart'
 import { Dropdown, Seg } from '@/components/Indicator'
 import { LineChart } from '@/components/LineChart'
 import { TaskList } from '@/components/Tasks'
@@ -539,6 +540,7 @@ export function OkulPage() {
               ))}
             </Dropdown>
           )}
+          <GunlukKontrolKart sid={s.id} veli={veli} delay={5} />
         </aside>
       </div>
     </>
