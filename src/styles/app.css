@@ -686,3 +686,37 @@ h2.sec{font-size:17px;font-weight:600}
 .gk-bugun b,.gk-kirmizi{color:var(--gk-kirmizi)}
 .chip.gk-k{background:var(--gk-kirmizi-soft);color:var(--gk-kirmizi);font-weight:600}
 @media (max-width:640px){.gk-ad{flex-basis:100%;padding-top:0}}
+
+/* Tasarım iyileştirmesi (2026-11): sayfa başlığı, geniş ekran ortalama, kart derinliği, boş durumlar, telefonda öğrenci tablosu */
+/* Sayfa başlığı: başlık solda, seçim kutusu ve düğmeler sağda tek grup */
+.head{justify-content:flex-start;align-items:center;column-gap:10px;row-gap:12px}
+.head>:first-child{margin-right:auto}
+.head .btn{min-height:44px}
+/* Geniş ekranda içerik en fazla 1400px, ortada */
+main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,calc((100% - 1400px)/2))}
+/* Kart derinliği ve tıklanabilir satır vurgusu (temaya uyar) */
+.card{box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 5%,transparent),0 8px 24px color-mix(in srgb,var(--ink) 5%,transparent)}
+.tbl tbody tr.click:hover{background:color-mix(in srgb,var(--primary) 8%,transparent)}
+/* Boş durumlar: kesik çizgi yerine sakin zemin; kart içinde ikinci kutu çizilmez */
+.empty{border:1px solid var(--line);background:color-mix(in srgb,var(--surface-sunken) 55%,transparent);padding:32px 22px;font-size:14px}
+.card .empty{border:0;background:transparent}
+/* İletişim: "Bir yazışma seç" alanı liste yüksekliğinde, ortada */
+@media (min-width:861px){.empty.msg-bos{align-self:stretch;display:grid;place-items:center;min-height:320px}}
+/* Duyuru metni okunur satır uzunluğunda */
+.duyuru-metin{max-width:78ch;line-height:1.65}
+@media (max-width:640px){
+  .head{display:grid;grid-template-columns:1fr 1fr;align-items:stretch}
+  .head>:first-child{grid-column:1/-1;margin:0}
+  .head>.field,.head>select,.head>.seg{grid-column:1/-1}
+  .head .btn{justify-content:center;white-space:normal;text-align:center;line-height:1.2;padding:6px 10px}
+  /* Öğrenciler tablosu: sınıf, okul no ve baş harf gizlenir; durum adın altına iner, yatay kaydırma olmaz */
+  .ogr-tbl .ogr-sinif,.ogr-tbl .ogr-no,.ogr-tbl .ogr-av,.ogr-tbl th.ogr-durum{display:none}
+  .ogr-tbl :is(th,td){padding:10px 8px}
+  .ogr-tbl .ogr-ad{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;display:block}
+  .ogr-tbl :is(thead,tbody) tr{display:grid;grid-template-columns:1fr 74px 74px;align-items:center}
+  .ogr-tbl tbody td{border-top:0}
+  .ogr-tbl tbody tr{border-top:1px solid var(--line)}
+  .ogr-tbl tbody td.ogr-durum{grid-column:1/-1;padding-top:0;padding-bottom:12px}
+  /* Etüt: ders saatleri düğmesi ekrana sığar, satır kırılır */
+  .et-saat>.btn{white-space:normal;text-align:left;justify-content:flex-start;height:auto;line-height:1.4;padding-block:8px;max-width:100%}
+}

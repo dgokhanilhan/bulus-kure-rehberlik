@@ -122,7 +122,7 @@ function Duyurular() {
                 <h2 style={{ fontSize: 17 }}>{a.title}</h2>
                 <span className="chip n">{scopeText(a)}</span>
               </div>
-              <p style={{ fontSize: 14, whiteSpace: 'pre-line', margin: 0 }}>{a.body}</p>
+              <p className="duyuru-metin" style={{ fontSize: 14, whiteSpace: 'pre-line', margin: 0 }}>{a.body}</p>
               <AttachmentList items={filesOf(a.id).filter((x) => !x.is_cover)} />
               <div className="kv">
                 <span className="m" style={{ fontSize: 12 }}>
@@ -360,7 +360,7 @@ function Mesajlar({ convs, loading }: { convs: Conversation[]; loading: boolean 
         {cur ? (
           <Thread c={cur} title={other(cur).name} onBack={() => setOpen(null)} />
         ) : (
-          <div className="empty hide-m" style={{ alignSelf: 'flex-start' }}>
+          <div className="empty hide-m msg-bos">
             Bir yazışma seç.
           </div>
         )}

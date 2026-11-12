@@ -79,7 +79,7 @@ export function LineChart({
           </text>
           <text className="lbl" x={X(i)} y={H - 10} textAnchor="middle" fill="var(--ink-muted)" fontSize="12.5" textDecoration={onSelect ? 'underline' : undefined}>
             <title>{labels[i]}</title>
-            {chartLabel(labels[i] ?? '', Math.max(3, Math.min(18, Math.floor((W - 80) / Math.max(1, values.length) / 8))))}
+            {chartLabel(labels[i] ?? '', Math.max(3, Math.min(28, Math.floor((W - 80) / Math.max(1, values.length) / 8))))}
           </text>
         </g>
       ))}
