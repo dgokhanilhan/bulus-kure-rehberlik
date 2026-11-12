@@ -154,15 +154,15 @@ const genel = useGenelDataset()
         {students.isLoading || dsq.isLoading || genel.isLoading || students.isError || dsq.isError || genel.isError ? (
           <VeriDurumu sorgular={[students, dsq, genel]} padding={16} />
         ) : (
-          <div className="tbl">
+          <div className="tbl ogr-tbl">
             <table>
               <thead>
                 <tr>
                   <th>Öğrenci</th>
-                  <th>Sınıf</th>
+                  <th className="ogr-sinif">Sınıf</th>
                   <th className="num">Son net</th>
                   <th className="num">Değişim</th>
-                  <th>Durum</th>
+                  <th className="ogr-durum">Durum</th>
                 </tr>
               </thead>
               <tbody>
@@ -179,21 +179,21 @@ const genel = useGenelDataset()
                     >
                       <td>
                         <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                          <span className="av s" style={{ width: 34, height: 34, fontSize: 12 }}>
+                          <span className="av s ogr-av" style={{ width: 34, height: 34, fontSize: 12 }}>
                             {initials(s.full_name)}
                           </span>
-                          <b>{s.full_name}</b>
-                          <span className="m mono" style={{ fontSize: 12 }}>
+                          <b className="ogr-ad">{s.full_name}</b>
+                          <span className="m mono ogr-no" style={{ fontSize: 12 }}>
                             {s.school_no}
                           </span>
                         </span>
                       </td>
-                      <td>{s.class_name}</td>
+                      <td className="ogr-sinif">{s.class_name}</td>
                       <td className="num">{net != null ? fmt(net, 2) : '—'}</td>
                       <td className="num" style={{ color: d == null ? 'var(--ink-muted)' : d < -1 ? 'var(--signal)' : d > 1 ? 'var(--primary)' : 'var(--ink-muted)', fontWeight: 600 }}>
                         {d == null ? '—' : `${d > 0 ? '↑ ' : d < 0 ? '↓ ' : ''}${fmt(Math.abs(d))}`}
                       </td>
-                      <td>
+                      <td className="ogr-durum">
                         {net == null ? <span className="chip n">{s.grade === 8 && dsq.data?.exams.length ? 'Girmedi' : 'Henüz sonuç yok'}</span> : rep ? <span className="chip down">{rep} tekrar eden hata</span> : <span className="chip up">Takipte</span>}
                       </td>
                     </tr>

@@ -13,24 +13,46 @@ Font.registerHyphenationCallback((w) => [w]) // Türkçe kelimeleri bölme
 const C = { ink: '#1b2a2f', muted: '#56636a', line: '#e3ddd0', paper: '#f6f3ec', primary: '#1f5f5b', signal: '#b5541a', hl: '#c9962e' }
 const s = StyleSheet.create({
   page: { padding: 36, fontFamily: 'Plex', fontSize: 10, color: C.ink, lineHeight: 1.5 },
-  head: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 2, borderBottomColor: C.ink, paddingBottom: 10, marginBottom: 12 },
-  brand: { fontSize: 15, fontWeight: 600 },
-  logo: { width: 30, height: 30, marginRight: 8 },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8 },
+  // Başlığın altındaki iki renkli şerit (altın + ana renk)
+  serit: { flexDirection: 'row', height: 3, marginBottom: 12 },
+  brand: { fontSize: 15, fontWeight: 600, color: C.primary, lineHeight: 1.3 },
+  // Okul logosu olduğu gibi (oranı korunur, üzerine renk/çerçeve konmaz)
+  logo: { width: 36, height: 36, marginRight: 9, objectFit: 'contain' },
   brandRow: { flexDirection: 'row', alignItems: 'center' },
   sub: { fontSize: 9, color: C.muted },
   info: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 },
   infoCell: { width: '33.33%', padding: 3 },
-  infoBox: { backgroundColor: C.paper, borderRadius: 6, padding: 6 },
-  infoK: { fontSize: 8, color: C.muted },
+  infoBox: { backgroundColor: C.paper, borderRadius: 7, paddingVertical: 6, paddingHorizontal: 8 },
+  infoK: { fontSize: 7.5, color: C.muted, letterSpacing: 0.3 },
   infoV: { fontSize: 11, fontWeight: 600 },
-  h3: { fontSize: 9, fontWeight: 600, color: C.muted, letterSpacing: 0.6, marginTop: 10, marginBottom: 4 },
+  h3: { fontSize: 9, fontWeight: 600, color: C.primary, letterSpacing: 0.8, marginTop: 11, marginBottom: 5, borderLeftWidth: 2.5, borderLeftColor: C.hl, paddingLeft: 5, lineHeight: 1.25 },
   p: { fontSize: 10, marginBottom: 4 },
   tr: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: C.line, paddingVertical: 3 },
+  trHead: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.ink, paddingVertical: 3 },
+  zebra: { backgroundColor: '#faf8f3' },
   th: { fontSize: 8, color: C.muted, fontWeight: 600 },
   num: { fontFamily: 'PlexMono', fontSize: 9.5, textAlign: 'right' },
   li: { flexDirection: 'row', marginBottom: 3 },
-  foot: { position: 'absolute', bottom: 20, left: 36, right: 36, flexDirection: 'row', justifyContent: 'space-between', fontSize: 8, color: C.muted, borderTopWidth: 0.5, borderTopColor: C.line, paddingTop: 6 },
+  kutu: { borderWidth: 0.6, borderColor: C.line, borderRadius: 7, paddingVertical: 6, paddingHorizontal: 9, marginBottom: 4 },
+  // Alt bilgi "top" ile konur: satır yüksekliği verilmiş sayfada "bottom" ile konan sabit öğe @react-pdf'te hiç çizilmiyor
+  // (A4 dikey 842pt, yatay 595pt; içerik alanının hemen altında başlar).
+  foot: { position: 'absolute', top: 808, left: 36, right: 36, flexDirection: 'row', justifyContent: 'space-between', fontSize: 8, color: C.muted, borderTopWidth: 0.5, borderTopColor: C.line, paddingTop: 6 },
 })
+
+/** Başlık altı şeridi: soldan altın, kalan ana renk */
+const Serit = () => (
+  <View style={s.serit}>
+    <View style={{ width: '28%', backgroundColor: C.hl }} />
+    <View style={{ flex: 1, backgroundColor: C.primary }} />
+  </View>
+)
+const sayfaNo = ({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => `Sayfa ${pageNumber} / ${totalPages}`
+/** "14,33" → 14.33; okunamazsa null */
+const sayi = (t: string) => {
+  const n = Number(String(t).replace(',', '.'))
+  return Number.isFinite(n) && String(t).trim() !== '' ? n : null
+}
 
 export interface PdfSubjectRow {
   ad: string
@@ -83,7 +105,7 @@ const H = ({ children }: { children: string }) => <Text style={s.h3}>{children.t
 function Table({ head, rows, widths, numFrom }: { head: string[]; rows: string[][]; widths: number[]; numFrom: number }) {
   return (
     <View>
-      <View style={s.tr}>
+      <View style={s.trHead}>
         {head.map((h, i) => (
           <Text key={i} style={[s.th, { width: `${widths[i]}%`, textAlign: i >= numFrom ? 'right' : 'left' }]}>
             {h}
@@ -91,7 +113,7 @@ function Table({ head, rows, widths, numFrom }: { head: string[]; rows: string[]
         ))}
       </View>
       {rows.map((r, i) => (
-        <View style={s.tr} key={i} wrap={false}>
+        <View style={i % 2 ? [s.tr, s.zebra] : s.tr} key={i} wrap={false}>
           {r.map((c, j) => (
             <Text key={j} style={[j >= numFrom ? s.num : { fontSize: 9.5 }, { width: `${widths[j]}%` }]}>
               {c}
@@ -99,6 +121,47 @@ function Table({ head, rows, widths, numFrom }: { head: string[]; rows: string[]
           ))}
         </View>
       ))}
+    </View>
+  )
+}
+
+/** Ders performansı: D/Y/B/net, netin soru sayısına oranı çubukla, önceki net yön oku ve renkle (renk tek başına anlam taşımaz) */
+function DersTablosu({ rows }: { rows: PdfSubjectRow[] }) {
+  const w = ['33%', '8%', '8%', '8%', '12%', '16%', '15%']
+  return (
+    <View>
+      <View style={s.trHead}>
+        {['Ders', 'D', 'Y', 'B', 'Net', '', 'Önceki'].map((h, i) => (
+          <Text key={i} style={[s.th, { width: w[i], textAlign: i === 0 || i === 5 ? 'left' : 'right', paddingLeft: i === 5 ? 10 : 0 }]}>
+            {h}
+          </Text>
+        ))}
+      </View>
+      {rows.map((r, i) => {
+        const soru = [r.d, r.y, r.b].map(sayi)
+        const toplam = soru.every((x) => x !== null) ? (soru as number[]).reduce((a, b) => a + b, 0) : 0
+        const net = sayi(r.net)
+        const oran = toplam > 0 && net !== null ? Math.max(0, Math.min(1, net / toplam)) : null
+        return (
+          <View style={i % 2 ? [s.tr, s.zebra, { alignItems: 'center' }] : [s.tr, { alignItems: 'center' }]} key={i} wrap={false}>
+            <Text style={{ width: w[0], fontSize: 9.5 }}>{r.ad}</Text>
+            <Text style={[s.num, { width: w[1] }]}>{r.d}</Text>
+            <Text style={[s.num, { width: w[2] }]}>{r.y}</Text>
+            <Text style={[s.num, { width: w[3] }]}>{r.b}</Text>
+            <Text style={[s.num, { width: w[4] }]}>{r.net}</Text>
+            <View style={{ width: w[5], paddingLeft: 10 }}>
+              {oran !== null && (
+                <View style={{ height: 4.5, borderRadius: 2.25, backgroundColor: '#ece6d9' }}>
+                  <View style={{ width: `${Math.round(oran * 100)}%`, height: 4.5, borderRadius: 2.25, backgroundColor: C.primary }} />
+                </View>
+              )}
+            </View>
+            <Text style={[s.num, { width: w[6], color: r.trend === 'up' ? C.primary : r.trend === 'down' ? C.signal : C.ink }]}>
+              {`${r.prev}${r.trend === 'up' ? ' ↑' : r.trend === 'down' ? ' ↓' : ''}`}
+            </Text>
+          </View>
+        )
+      })}
     </View>
   )
 }
@@ -122,6 +185,7 @@ function Report(d: PdfVeli | PdfOgretmen) {
             <Text style={{ fontSize: 10, fontWeight: 600, textAlign: 'right' }}>{d.reportDate}</Text>
           </View>
         </View>
+        <Serit />
         <H>Öğrenci Bilgileri</H>
         <View style={s.info}>
           {[
@@ -152,12 +216,7 @@ function Report(d: PdfVeli | PdfOgretmen) {
           </>
         )}
         <H>Ders Performansı</H>
-        <Table
-          head={['Ders', 'D', 'Y', 'B', 'Net', 'Önceki']}
-          rows={d.subjects.map((r) => [r.ad, r.d, r.y, r.b, r.net, `${r.prev}${r.trend === 'up' ? ' ↑' : r.trend === 'down' ? ' ↓' : ''}`])}
-          widths={[40, 10, 10, 10, 15, 15]}
-          numFrom={1}
-        />
+        <DersTablosu rows={d.subjects} />
         {!V && <>
         {(['official','pdf'] as const).map(source=>{
           const rows=(d.weaknesses??[]).filter(w=>w.source===source)
@@ -169,9 +228,13 @@ function Report(d: PdfVeli | PdfOgretmen) {
             <H>Genel Değerlendirme</H>
             <Text style={s.p}>{d.genel}</Text>
             <H>Güçlü Yönler</H>
-            <Text style={s.p}>{d.guclu}</Text>
+            <View style={[s.kutu, { borderLeftWidth: 3, borderLeftColor: C.primary }]}>
+              <Text style={{ fontSize: 10 }}>{d.guclu}</Text>
+            </View>
             <H>Üzerinde Çalışılması Gereken Alanlar</H>
-            <Text style={s.p}>{d.gelisim}</Text>
+            <View style={[s.kutu, { borderLeftWidth: 3, borderLeftColor: C.hl }]}>
+              <Text style={{ fontSize: 10 }}>{d.gelisim}</Text>
+            </View>
             <H>Çalışma Önerileri</H>
             {d.oneriler.map((o, i) => (
               <View style={s.li} key={i} wrap={false}>
@@ -180,11 +243,15 @@ function Report(d: PdfVeli | PdfOgretmen) {
               </View>
             ))}
             <H>Mentör Yorumu</H>
-            <Text style={s.p}>{d.mentor || '—'}</Text>
+            <View style={s.kutu}>
+              <Text style={{ fontSize: 10 }}>{d.mentor || '—'}</Text>
+            </View>
             {d.rehber.trim() && (
               <>
                 <H>Rehber Öğretmen Yorumu</H>
-                <Text style={s.p}>{d.rehber}</Text>
+                <View style={s.kutu}>
+                  <Text style={{ fontSize: 10 }}>{d.rehber}</Text>
+                </View>
               </>
             )}
         {(['official','pdf'] as const).map(source=>{
@@ -228,7 +295,7 @@ function Report(d: PdfVeli | PdfOgretmen) {
         ) : null}
         <View style={s.foot} fixed>
           <Text>{d.altBilgi || (V ? 'Bu rapor öğrencinin yalnızca kendi önceki denemeleriyle karşılaştırılmasına dayanır.' : 'Kurum içi kullanım içindir. Veli ile paylaşılmaz.')}</Text>
-          <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+          <Text render={sayfaNo} />
         </View>
       </Page>
     </Document>
@@ -266,6 +333,7 @@ function AttendanceDoc(d: PdfAttendance) {
           </View>
           <Text style={s.sub}>{d.printed}</Text>
         </View>
+        <Serit />
         <View style={s.info}>
           {[
             ['Öğrenci', d.student],
@@ -292,14 +360,14 @@ function AttendanceDoc(d: PdfAttendance) {
           ))}
         </View>
         <Text style={s.h3}>KAYITLAR</Text>
-        <View style={s.tr}>
+        <View style={s.trHead}>
           <Text style={[s.th, { width: '34%' }]}>Tarih</Text>
           <Text style={[s.th, { width: '22%' }]}>Durum</Text>
           <Text style={[s.th, { width: '44%' }]}>Açıklama</Text>
         </View>
         {d.rows.length ? (
           d.rows.map((r, i) => (
-            <View key={i} style={s.tr} wrap={false}>
+            <View key={i} style={i % 2 ? [s.tr, s.zebra] : s.tr} wrap={false}>
               <Text style={{ width: '34%' }}>{r.date}</Text>
               <Text style={{ width: '22%', fontWeight: 600 }}>{r.status}</Text>
               <Text style={{ width: '44%', color: C.muted }}>{r.note}</Text>
@@ -310,7 +378,7 @@ function AttendanceDoc(d: PdfAttendance) {
         )}
         <View style={s.foot} fixed>
           <Text>{d.school} · Bilgilendirme amaçlıdır.</Text>
-          <Text render={({ pageNumber, totalPages }) => `${pageNumber}/${totalPages}`} />
+          <Text render={sayfaNo} />
         </View>
       </Page>
     </Document>
@@ -353,6 +421,7 @@ function SinifDoc(d: PdfSinif) {
             <Text style={s.sub}>{d.printed}</Text>
           </View>
         </View>
+        <Serit />
         <View style={s.info}>
           {d.ozet.map(([k, v]) => (
             <View key={k} style={{ width: `${100 / Math.max(1, d.ozet.length)}%`, padding: 3 }}>
@@ -375,7 +444,7 @@ function SinifDoc(d: PdfSinif) {
           </>
         )}
         <Text style={s.h3}>ÖĞRENCİLER</Text>
-        <View style={s.tr} fixed>
+        <View style={s.trHead} fixed>
           {d.table.head.map((h, i) => (
             <Text key={i} style={[s.th, { width: `${d.table.widths[i]}%` }]}>
               {h}
@@ -383,7 +452,7 @@ function SinifDoc(d: PdfSinif) {
           ))}
         </View>
         {d.table.rows.map((r, n) => (
-          <View key={n} style={s.tr} wrap={false}>
+          <View key={n} style={n % 2 ? [s.tr, s.zebra] : s.tr} wrap={false}>
             {r.map((v, i) => (
               <Text key={i} style={{ width: `${d.table.widths[i]}%`, fontSize: 8.5, fontWeight: i === 1 ? 600 : 400 }}>
                 {v}
@@ -399,7 +468,7 @@ function SinifDoc(d: PdfSinif) {
               const w = (i: number) => (i === 0 ? '22%' : `${78 / n}%`)
               return (
                 <>
-                  <View style={s.tr} fixed>
+                  <View style={s.trHead} fixed>
                     {d.netler!.head.map((h, i) => (
                       <Text key={i} style={[s.th, { width: w(i) }]}>
                         {h}
@@ -407,7 +476,7 @@ function SinifDoc(d: PdfSinif) {
                     ))}
                   </View>
                   {d.netler!.rows.map((r, k) => (
-                    <View key={k} style={s.tr} wrap={false}>
+                    <View key={k} style={k % 2 ? [s.tr, s.zebra] : s.tr} wrap={false}>
                       {r.map((v, i) => (
                         <Text key={i} style={{ width: w(i), fontSize: 8.5, fontWeight: i === 0 || k === d.netler!.rows.length - 1 ? 600 : 400 }}>
                           {v}
@@ -432,9 +501,9 @@ function SinifDoc(d: PdfSinif) {
             ))}
           </View>
         )}
-        <View style={s.foot} fixed>
+        <View style={[s.foot, { top: 561 }]} fixed>
           <Text>{d.school} · Öğretmen içi; sıralama içerir, veliyle paylaşılmaz.</Text>
-          <Text render={({ pageNumber, totalPages }) => `${pageNumber}/${totalPages}`} />
+          <Text render={sayfaNo} />
         </View>
       </Page>
     </Document>
@@ -500,7 +569,8 @@ const SIK_ESIK = 2900
 
 function VtBaslik({ d, o, alt }: { d: PdfVeliToplanti; o: PdfVeliToplanti['ogrenciler'][number]; alt: string }) {
   return (
-    <View style={s.head}>
+    <>
+    <View style={[s.head, { paddingBottom: 6 }]}>
       <View style={s.brandRow}>
         {d.logo !== false && <Image src={logo} style={s.logo} />}
         <View>
@@ -516,6 +586,11 @@ function VtBaslik({ d, o, alt }: { d: PdfVeliToplanti; o: PdfVeliToplanti['ogren
         </Text>
       </View>
     </View>
+    <View style={[s.serit, { marginBottom: 8 }]}>
+      <View style={{ width: '28%', backgroundColor: C.hl }} />
+      <View style={{ flex: 1, backgroundColor: C.primary }} />
+    </View>
+    </>
   )
 }
 
@@ -524,7 +599,7 @@ function VeliToplantiDoc(d: PdfVeliToplanti) {
   const ayak = (
     <View style={s.foot} fixed>
       <Text>{d.school} · Öğrenci kendi gelişimiyle değerlendirilir.</Text>
-      <Text render={({ pageNumber, totalPages }) => `${pageNumber}/${totalPages}`} />
+      <Text render={sayfaNo} />
     </View>
   )
   return (
@@ -697,14 +772,14 @@ function BransToplantiDoc(d: PdfBransToplanti) {
       <Text>
         {d.school} · {d.ders} · Öğrenci kendi gelişimiyle değerlendirilir.
       </Text>
-      <Text render={({ pageNumber, totalPages }) => `${pageNumber}/${totalPages}`} />
+      <Text render={sayfaNo} />
     </View>
   )
   return (
     <Document title={`${d.ders} · veli toplantısı · ${d.sinif}`} author={d.school}>
       {d.ogrenciler.map((o, n) => (
         <Page key={n} size="A4" style={sayfa}>
-          <View style={s.head}>
+          <View style={[s.head, { paddingBottom: 6 }]}>
             <View style={s.brandRow}>
               {d.logo !== false && <Image src={logo} style={s.logo} />}
               <View>
@@ -722,6 +797,10 @@ function BransToplantiDoc(d: PdfBransToplanti) {
               </Text>
               {d.ogretmen ? <Text style={[s.sub, { textAlign: 'right' }]}>Öğretmen: {d.ogretmen}</Text> : null}
             </View>
+          </View>
+          <View style={[s.serit, { marginBottom: 6 }]}>
+            <View style={{ width: '28%', backgroundColor: C.hl }} />
+            <View style={{ flex: 1, backgroundColor: C.primary }} />
           </View>
 
           {!d.yalnizForm && (
