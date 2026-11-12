@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bransDersleri, denemeNetleri, denemeSuz, dersSuz, kapsamDenemeleri, konuToplam } from './denemeSecimi'
+import { bransDersleri, denemeNetleri, denemeSuz, dersSuz, kapsamDenemeleri, konuToplam, talepKonusu } from './denemeSecimi'
 import { sinifAnalizi } from './sinifAnalizi'
 import { totalNet, type Dataset, type Result } from './analiz'
 
@@ -85,5 +85,15 @@ describe('deneme netleri ve konu toplamı', () => {
     const o = { code: 'M.1', subject: 'MAT' as const, title: 'Kesirler' }
     expect(konuToplam({ outcome: o, cells: [{ p: 40, wrong: ['a'] }, { p: null, wrong: [] }, { p: 61, wrong: ['a', 'b'] }] })).toEqual({ p: 51, wrong: ['a', 'b'] })
     expect(konuToplam({ outcome: o, cells: [{ p: null, wrong: [] }] })).toEqual({ p: null, wrong: [] })
+  })
+})
+
+describe('etüt talebi konusu', () => {
+  it('ders adı ve konular; 120 karakteri aşan konu eklenmez', () => {
+    expect(talepKonusu('Matematik', ['Kareköklü ifadeler', 'Üslü ifadeler'], '')).toBe('Matematik: Kareköklü ifadeler, Üslü ifadeler')
+    expect(talepKonusu('Matematik', [], ' karışık tekrar ')).toBe('Matematik: karışık tekrar')
+    const uzun = talepKonusu('Fen', ['a'.repeat(100), 'b'.repeat(40), 'kısa'], '')
+    expect(uzun.length).toBeLessThanOrEqual(120)
+    expect(uzun).toBe(`Fen: ${'a'.repeat(100)}, kısa`)
   })
 })

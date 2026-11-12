@@ -70,3 +70,17 @@ export function konuToplam(r: HeatRow): { p: number | null; wrong: string[] } {
   const ps = r.cells.flatMap((c) => (c.p === null ? [] : [c.p]))
   return { p: ps.length ? Math.round(ps.reduce((a, b) => a + b, 0) / ps.length) : null, wrong: [...new Set(r.cells.flatMap((c) => c.wrong))] }
 }
+
+/** Talep başlığı: "Matematik: Kareköklü ifadeler, Üslü ifadeler" (120 karaktere sığacak kadar konu). */
+export function talepKonusu(dersAdi: string, basliklar: string[], ek: string): string {
+  const parca = [...basliklar, ek.trim()].filter(Boolean)
+  let out = dersAdi
+  let ilk = true
+  for (const b of parca) {
+    const next = `${out}${ilk ? ': ' : ', '}${b}`
+    if (next.length > 120) continue
+    out = next
+    ilk = false
+  }
+  return out.slice(0, 120)
+}

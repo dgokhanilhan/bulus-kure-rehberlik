@@ -14,6 +14,8 @@ import { kademeOfGrade } from '@/lib/etutGrup'
 import { useSinifEtutleri } from '@/lib/etutData'
 import SinifAnalizi, { heatStyle } from './SinifAnalizi'
 import { useAuth } from '@/auth/AuthProvider'
+import { useAyar } from '@/lib/ayarlar'
+import { EtutTalep } from '@/components/EtutTalep'
 import { DenemeSecici, useDenemeSecimi } from '@/components/DenemeSecici'
 import { bransDersleri, denemeNetleri, kapsamDenemeleri, konuToplam } from '@/lib/denemeSecimi'
 
@@ -28,6 +30,9 @@ export default function SiniflarPage() {
   const gorunen = new Set((students.data ?? []).map((s) => s.class_name))
   const all = (classes.data ?? []).filter((c) => c.name && (!scoped || gorunen.has(c.name)))
   const secim = useDenemeSecimi()
+  const ayar = useAyar()
+  // Branş öğretmeni etüt planlamaz, talep eder: seçili konu kodları
+  const [talep, setTalep] = useState<string[] | null>(null)
   const [pick, setCls] = useState<string | null>(null)
   const cls = pick ?? all.find((c) => c.grade === DENEME_GRADE)?.name ?? all[0]?.name ?? ''
   const cg = all.find((c) => c.name === cls)?.grade ?? null
@@ -97,7 +102,10 @@ export default function SiniflarPage() {
   const sd = subjectOf(ds, sub)
   const et = sinifEtut.data ?? []
   // Etüt: 5–12. sınıflar ve modül açıkken; konular en zorlanılandan başlayarak (son denemedeki doğru oranı)
-  const kademe = mods.etut && !scoped ? kademeOfGrade(cg) : null
+  const etutKademe = mods.etut ? kademeOfGrade(cg) : null
+  // Yönetici / rehber planlar; branş öğretmeni talep eder (talepler açıksa); planlanan etütleri hepsi görür
+  const kademe = scoped ? null : etutKademe
+  const talepAcik = scoped && !!etutKademe && ayar.bool('etut.talep_acik')
   const ogrAdi = (id: string) => students.data?.find((x) => x.id === id)?.full_name ?? ''
   const konuKaynak = [...rows]
     .sort((a, b) => (a.toplam.p ?? 101) - (b.toplam.p ?? 101))
@@ -271,9 +279,15 @@ export default function SiniflarPage() {
             Etüt planla
           </button>
         )}
+        {talepAcik && worst.length > 0 && (
+          <button className="btn gold" style={{ alignSelf: 'flex-start' }} onClick={() => setTalep(worst.map((w) => w.outcome.code))}>
+            <Icon name="cal" size={18} />
+            Etüt talep et
+          </button>
+        )}
       </Dropdown>
 
-      {kademe && (
+      {etutKademe && (
         <Dropdown title="Planlanan etütler" sub={et.length ? `${et.length} etüt` : 'Etüt yok'} icon={<Icon name="cal" size={22} />} delay={5}>
           {et.length ? (
             et.map((x) => (
@@ -290,7 +304,9 @@ export default function SiniflarPage() {
               </div>
             ))
           ) : (
-            <span className="m">Bu sınıfın yaklaşan etüdü yok. Konu satırına tıklayıp yanlış yapan öğrencilere etüt planlayabilirsin.</span>
+            <span className="m">
+              Bu sınıfın yaklaşan etüdü yok. Konu satırına tıklayıp yanlış yapan öğrenciler için {scoped ? 'etüt talep edebilirsin' : 'etüt planlayabilirsin'}.
+            </span>
           )}
         </Dropdown>
       )}
@@ -303,7 +319,24 @@ export default function SiniflarPage() {
           examName={kapsamAd}
           wrong={konuToplam(konu).wrong}
           onClose={() => setKonu(null)}
-          onEtut={kademe ? () => (setEtut({ secili: [konu.outcome.code], son: Math.max(1, ex.length) }), setKonu(null)) : undefined}
+          onEtut={
+            kademe
+              ? () => (setEtut({ secili: [konu.outcome.code], son: Math.max(1, ex.length) }), setKonu(null))
+              : talepAcik
+                ? () => (setTalep([konu.outcome.code]), setKonu(null))
+                : undefined
+          }
+          etutMetni={scoped ? 'Bu öğrenciler için etüt talep et' : 'Bu öğrencilere etüt planla'}
+        />
+      )}
+      {talep && talepAcik && (
+        <EtutTalep
+          baslik={`${cls} · ${sd.ad} · ${kapsamAd}`}
+          dersAdi={sd.ad}
+          konular={[...rows].sort((a, b) => (a.toplam.p ?? 101) - (b.toplam.p ?? 101)).map((r) => ({ code: r.outcome.code, title: r.outcome.title, wrong: r.toplam.wrong }))}
+          secili={talep}
+          ogrenciAdi={ogrAdi}
+          onClose={() => setTalep(null)}
         />
       )}
       {etut && kademe && (
@@ -332,6 +365,7 @@ function KonuStudents({
   wrong,
   onClose,
   onEtut,
+  etutMetni,
 }: {
   ds: Dataset
   row: HeatRow
@@ -340,6 +374,7 @@ function KonuStudents({
   wrong: string[]
   onClose: () => void
   onEtut?: () => void
+  etutMetni: string
 }) {
   const nav = useNavigate()
   const students = useStudents()
@@ -355,7 +390,7 @@ function KonuStudents({
           </button>
           {onEtut && wrong.length > 0 && (
             <button className="btn gold" onClick={onEtut}>
-              <Icon name="cal" size={16} /> Bu öğrencilere etüt planla
+              <Icon name="cal" size={16} /> {etutMetni}
             </button>
           )}
         </>
