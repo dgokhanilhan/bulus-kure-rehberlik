@@ -13,6 +13,8 @@ import { useAyar } from '@/lib/ayarlar'
 import { Icon } from '@/components/Icon'
 import { Dropdown, Seg } from '@/components/Indicator'
 import { useToast } from '@/components/Toast'
+import { DenemeSecici, useDenemeSecimi } from '@/components/DenemeSecici'
+import { bransDersleri, denemeSuz, dersSuz, kapsamDenemeleri } from '@/lib/denemeSecimi'
 
 export const heatStyle = (p: number | null): React.CSSProperties =>
   p === null
@@ -70,7 +72,8 @@ function Degisim({ v, birim = 'net', ters = false }: { v: number | null; birim?:
   )
 }
 
-export default function SinifAnalizi({ cls, grade, onBack }: { cls: string; grade: number | null; onBack: () => void }) {
+/** brans verilirse (branş öğretmeni) analiz yalnız o öğretmenin dersini kapsar: netler ve sıra o dersten, puan gösterilmez. */
+export default function SinifAnalizi({ cls, grade, onBack, brans }: { cls: string; grade: number | null; onBack: () => void; brans?: string | null }) {
   const nav = useNavigate()
   const toast = useToast()
   const ayar = useAyar()
@@ -89,18 +92,33 @@ export default function SinifAnalizi({ cls, grade, onBack }: { cls: string; grad
   const [sira, setSira] = useState<{ k: Sira; artan: boolean }>({ k: 'sira', artan: true })
   const [suz, setSuz] = useState<Isaret | 'hepsi'>('hepsi')
   const [busy, setBusy] = useState(false)
+  const secim = useDenemeSecimi()
+  // Branş öğretmeni: yalnız kendi dersi (eşleşen ders yoksa bütün dersler). Sonra analiz kapsamındaki denemeler.
+  const kaynak = useMemo(() => {
+    if (!dsq.data) return null
+    const codes = brans ? bransDersleri(dsq.data.subjects, brans) : []
+    const base = codes.length ? dersSuz(dsq.data, codes) : dsq.data
+    const ids = new Set(sinif.map((s) => s.id))
+    const mine = new Set(base.results.filter((r) => ids.has(r.student_id)).map((r) => r.exam_id))
+    const hepsi = base.exams.filter((e) => mine.has(e.id))
+    return { base, hepsi, dersli: codes.length > 0 }
+  }, [dsq.data, brans, sinif])
+  const dsSel = useMemo(
+    () => (kaynak ? denemeSuz(kaynak.base, kapsamDenemeleri(kaynak.hepsi, secim.kapsam, secim.secili)) : null),
+    [kaynak, secim.kapsam, secim.secili],
+  )
 
   const A = useMemo(() => {
-    if (!dsq.data || !students.data) return null
+    if (!dsSel || !students.data) return null
     const netDusus = Number((settings.data?.bugun as { netDrop?: number } | undefined)?.netDrop) || 3
-    return sinifAnalizi(dsq.data, sinif, {
+    return sinifAnalizi(dsSel, sinif, {
       bugun,
       gorevler: tasks.data ?? [],
       gorusmeler: meetings.data ?? [],
       devamsizlik: att.data ?? [],
       ayar: { netDusus },
     })
-  }, [dsq.data, students.data, sinif, tasks.data, meetings.data, att.data, settings.data, bugun])
+  }, [dsSel, students.data, sinif, tasks.data, meetings.data, att.data, settings.data, bugun])
 
   if (!A)
     return (
@@ -108,7 +126,14 @@ export default function SinifAnalizi({ cls, grade, onBack }: { cls: string; grad
         <span className="spinner" aria-hidden="true" /> Yükleniyor…
       </p>
     )
-  const ds = dsq.data!
+  const ds = dsSel!
+  const dersli = !!kaynak?.dersli
+  const dersBaslik = dersli ? ds.subjects.map((x) => x.ad).join(', ') : ''
+  // Deneme deneme sınıf ortalaması (net; girmeyen sıfır sayılmaz)
+  const denemeOrt = A.denemeler.map((_, i) => {
+    const ns = A.satirlar.flatMap((r) => (r.hucreler[i]?.net == null ? [] : [r.hucreler[i]!.net!]))
+    return ns.length ? ns.reduce((a, b) => a + b, 0) / ns.length : null
+  })
   const dersAd = (c: Subject) => ds.subjects.find((x) => x.code === c)?.short ?? c
   const ad = new Map(sinif.map((s) => [s.id, s.full_name]))
   const val = (r: OgrenciSatiri): number | string => {
@@ -156,8 +181,17 @@ export default function SinifAnalizi({ cls, grade, onBack }: { cls: string; grad
       const blob = await sinifPdfBlob({
         school: info.data?.name ?? 'Buluş Küre Koleji',
         logo: ayar.bool('rapor.logo'),
-        title: `${cls} · Sınıf analizi`,
-        sub: `${dsq.title}${sonD ? ` · son deneme: ${sonD.name}` : ''}`,
+        title: `${cls} · Sınıf analizi${dersBaslik ? ` · ${dersBaslik}` : ''}`,
+        sub: `${dsq.title} · ${A.denemeler.length} deneme${sonD ? ` · son deneme: ${sonD.name}` : ''}`,
+        netler: {
+          head: ['Öğrenci', ...A.denemeler.map((e) => e.name), 'Ort. net'],
+          rows: [
+            ...[...A.satirlar]
+              .sort((a, b) => a.student.full_name.localeCompare(b.student.full_name, 'tr'))
+              .map((r) => [r.student.full_name, ...r.hucreler.map((h) => (h.net === null ? 'girmedi' : fmt(h.net))), r.ortalamaNet === null ? '—' : fmt(r.ortalamaNet)]),
+            ['Sınıf ortalaması', ...denemeOrt.map((n) => (n === null ? '—' : fmt(n))), ''],
+          ],
+        },
         printed: trD(bugun),
         ozet: [
           ['Öğrenci', String(o.ogrenci)],
@@ -212,7 +246,9 @@ export default function SinifAnalizi({ cls, grade, onBack }: { cls: string; grad
           <button type="button" className="btn ghost sm" onClick={onBack} style={{ marginBottom: 6 }}>
             <Icon name="back" size={16} stroke={2} /> Sınıflar
           </button>
-          <h1 className="hd">{cls} · Sınıf analizi</h1>
+          <h1 className="hd">
+            {cls} · Sınıf analizi{dersBaslik ? ` · ${dersBaslik}` : ''}
+          </h1>
           <p className="m" style={{ fontSize: 14, margin: '4px 0 0' }}>
             {dsq.title} · {A.denemeler.length} deneme{sonD ? ` · son: ${sonD.name} (${trD(sonD.exam_date)})` : ''}
           </p>
@@ -225,6 +261,7 @@ export default function SinifAnalizi({ cls, grade, onBack }: { cls: string; grad
         </div>
       </div>
 
+      {kaynak && <DenemeSecici exams={kaynak.hepsi} s={secim} />}
       {!A.denemeler.length ? (
         <div className="empty a">Bu şubenin henüz yayında denemesi yok.</div>
       ) : (
@@ -353,7 +390,7 @@ export default function SinifAnalizi({ cls, grade, onBack }: { cls: string; grad
             </div>
           </section>
 
-          <Dropdown title="Deneme deneme sıralama" sub={`${A.denemeler.length} deneme`} icon={<Icon name="grid" size={22} />} delay={4}>
+          <Dropdown title="Deneme deneme sıralama ve netler" sub={`${A.denemeler.length} deneme`} icon={<Icon name="grid" size={22} />} delay={4} defaultOpen>
             <div className="tbl" tabIndex={0} role="region" aria-label="Sıralama tablosu (yana kaydırılabilir)">
               <table data-testid="sira-tablo">
                 <thead>
@@ -378,7 +415,10 @@ export default function SinifAnalizi({ cls, grade, onBack }: { cls: string; grad
                           <td key={i} className="num">
                             {h.rank ? (
                               <>
-                                {h.rank}.<div className="m" style={{ fontSize: 12 }}>{h.score != null ? fmt(h.score) : `${fmt(h.net!)} net`}</div>
+                                <b className="mono">{fmt(h.net!)} net</b>
+                                <div className="m" style={{ fontSize: 12 }}>
+                                  {h.rank}. sıra{h.score != null ? ` · ${fmt(h.score)} puan` : ''}
+                                </div>
                               </>
                             ) : (
                               <span className="m">girmedi</span>
@@ -387,6 +427,14 @@ export default function SinifAnalizi({ cls, grade, onBack }: { cls: string; grad
                         ))}
                       </tr>
                     ))}
+                  <tr data-testid="deneme-ort">
+                    <td className="m">Sınıf ortalaması (net)</td>
+                    {denemeOrt.map((n, i) => (
+                      <td key={i} className="num mono">
+                        {n === null ? '—' : fmt(n)}
+                      </td>
+                    ))}
+                  </tr>
                 </tbody>
               </table>
             </div>

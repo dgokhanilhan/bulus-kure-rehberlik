@@ -87,7 +87,8 @@ const GOZETMEN: NavItem = { id: 'gozetmen', label: 'Gözetmen Bul', icon: 'searc
 function navFor(r: Role): NavItem[] {
   if (r === 'admin') return [...STAFF, ETUT, DUYURULAR, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, GOZETMEN, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
   if (r === 'rehber') return [...STAFF, ETUT, DUYURULAR, ILETISIM]
-  if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, ETUT, DUYURULAR, ILETISIM]
+  // Branş öğretmeni Sınıflar'da yalnız derse girdiği şubeleri ve kendi dersini görür (SiniflarPage; öğrenci verisi RLS 0023)
+  if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, STAFF[5]!, ETUT, DUYURULAR, ILETISIM]
   const fam = [...FAMILY.slice(0, 4), ETUT, ...FAMILY.slice(4)] // Ödevler'den sonra
   if (r === 'ogrenci') return fam.filter((n) => n.id !== 'iletisim') // öğrenci mesajlaşmaz; duyuruları görür
   return fam

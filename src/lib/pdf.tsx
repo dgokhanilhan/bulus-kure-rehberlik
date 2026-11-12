@@ -331,6 +331,8 @@ export interface PdfSinif {
   ozet: [string, string][]
   bulgular: string[]
   table: { head: string[]; widths: number[]; rows: string[][] }
+  /** Deneme deneme netler (öğrenci × deneme); son satır sınıf ortalaması */
+  netler?: { head: string[]; rows: string[][] }
   konular: { konu: string; oran: string; ogrenciler: string }[]
 }
 
@@ -389,6 +391,35 @@ function SinifDoc(d: PdfSinif) {
             ))}
           </View>
         ))}
+        {d.netler && d.netler.head.length > 2 && (
+          <View break>
+            <Text style={s.h3}>DENEME DENEME NETLER</Text>
+            {(() => {
+              const n = d.netler!.head.length - 1
+              const w = (i: number) => (i === 0 ? '22%' : `${78 / n}%`)
+              return (
+                <>
+                  <View style={s.tr} fixed>
+                    {d.netler!.head.map((h, i) => (
+                      <Text key={i} style={[s.th, { width: w(i) }]}>
+                        {h}
+                      </Text>
+                    ))}
+                  </View>
+                  {d.netler!.rows.map((r, k) => (
+                    <View key={k} style={s.tr} wrap={false}>
+                      {r.map((v, i) => (
+                        <Text key={i} style={{ width: w(i), fontSize: 8.5, fontWeight: i === 0 || k === d.netler!.rows.length - 1 ? 600 : 400 }}>
+                          {v}
+                        </Text>
+                      ))}
+                    </View>
+                  ))}
+                </>
+              )
+            })()}
+          </View>
+        )}
         {d.konular.length > 0 && (
           <View break>
             <Text style={s.h3}>SINIFIN ORTAK YANLIŞ KONULARI (SON DENEME)</Text>

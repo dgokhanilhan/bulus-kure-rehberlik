@@ -26,8 +26,8 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('branş öğretmeni yalnız Öğrenciler sekmesini görür', async ({ page }) => {
     await login(page, ...DEMO.matematik)
     await expect(page).toHaveURL(/\/panel$/)
-    await expect(menu(page)).toHaveText(['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Etüt', 'Duyurular', /^İletişim/])
-    for (const p of ['/bugun', '/denemeler', '/siniflar', '/onaylar', '/ozet']) {
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/])
+    for (const p of ['/bugun', '/denemeler', '/onaylar', '/ozet']) {
       await page.goto(p)
       await expect(page).toHaveURL(/\/panel$/)
     }

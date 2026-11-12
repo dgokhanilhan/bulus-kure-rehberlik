@@ -26,6 +26,8 @@ Kayıt → `status='pending'`, adminlere bildirim. Admin onayda veli/öğrenci i
 
 **Yönetici / Rehber menüsü:** Bugün · Öğrenciler · Denemeler · Sınıflar · (admin) Onaylar. Üstte bildirim zili.
 
+**Branş öğretmeni · Sınıflar:** yalnız derse girdiği şubeler ve kendi dersi (ör. Matematik). Sınıf analizi o dersin netleriyle yapılır; puan gösterilmez. Analiz kapsamı her rolde seçilir: tüm denemeler, son deneme ya da tek tek seçilen denemeler; deneme netleri her zaman görünür.
+
 - **Bugün:** ilgilenilmesi gereken öğrenciler (kurallar aşağıda) + filtre (Tümü/Risk/Takip/Gelişim); son deneme özeti; Görüşmeler kartı (açılır, her satırda "Değiştir"); Görevler kartı (gecikmişler listesi).
 - **Öğrenciler:** şube filtresi, arama (isim/no), tablo (son net, değişim, durum). Satır → öğrenci dosyası.
 - **Öğrenci dosyası:** başlıkta (yalnız tam yetkili) Görüşme planla · Veli raporu · Görev ata. 4 özet kartı. Sekmeler:
