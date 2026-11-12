@@ -14,7 +14,7 @@ test('veli toplantısı: öğrenci özeti, gözlem formu kaydı, PDF', async ({ 
   await login(page, ...DEMO.rehber)
   await page.getByRole('link', { name: 'Öğrenciler', exact: true }).click()
   await page.getByLabel('Sınıf').selectOption('8/B')
-  await page.getByRole('button', { name: 'Veli toplantısı' }).click()
+  await page.getByRole('button', { name: 'Veli toplantısı', exact: true }).click()
   await expect(page.getByRole('heading', { name: '8/B · Veli toplantısı' })).toBeVisible()
   await page.locator('#vtTarih').fill(TARIH)
   const kart = page.getByTestId('vt-kart')

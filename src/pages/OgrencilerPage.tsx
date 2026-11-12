@@ -9,9 +9,10 @@ import { fold, initials } from '@/lib/format'
 import { LEVEL_TR, LEVELS } from '@/lib/roles'
 import { useAuth } from '@/auth/AuthProvider'
 import VeliToplantisi from './VeliToplantisi'
+import BransVeliToplantisi from './BransVeliToplantisi'
 
 export default function OgrencilerPage() {
-  const { role } = useAuth()
+  const { role, profile } = useAuth()
   // Branş öğretmeni yalnız atandığı sınıfların öğrencilerini görür (RLS, 0023); sınıf filtresi de yalnız o sınıflardan oluşur
   const scoped = role === 'brans'
   const students = useStudents()
@@ -95,6 +96,11 @@ const genel = useGenelDataset()
   const grade = (classes.data ?? []).find((c) => c.name === cls)?.grade ?? null
   if (sp.get('gorunum') === 'veli-toplantisi' && cls !== 'all')
     return <VeliToplantisi key={cls} cls={cls} grade={grade} onBack={() => setSp({ sinif: cls })} />
+  // Branş veli toplantısı (?gorunum=brans-toplantisi): öğretmenin kendi dersi için özet ve derse özel gözlem formu
+  if (sp.get('gorunum') === 'brans-toplantisi' && cls !== 'all')
+    return <BransVeliToplantisi key={cls} cls={cls} grade={grade} onBack={() => setSp({ sinif: cls })} />
+  // Düğmede öğretmenin branşı yazar (ör. "Branş veli toplantısı · Matematik"); rehberlik ve yönetici dersi içeride seçer
+  const bransAdi = scoped && profile?.branch ? profile.branch : ''
 
   return (
     <>
@@ -118,6 +124,11 @@ const genel = useGenelDataset()
         {cls !== 'all' && (
           <button type="button" className="btn" onClick={() => setSp({ sinif: cls, gorunum: 'veli-toplantisi' })}>
             Veli toplantısı
+          </button>
+        )}
+        {cls !== 'all' && (
+          <button type="button" className="btn" onClick={() => setSp({ sinif: cls, gorunum: 'brans-toplantisi' })}>
+            Branş veli toplantısı{bransAdi ? ` · ${bransAdi}` : ''}
           </button>
         )}
       </div>

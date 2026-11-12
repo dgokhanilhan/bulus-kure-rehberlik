@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { VeriDurumu } from '@/components/VeriDurumu'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { classHeat, fmt, indexResults, outcomeCode, repeats, subjectOf, type Dataset, type HeatRow, type Subject } from '@/lib/analiz'
+import { classHeat, fmt, outcomeCode, repeats, subjectOf, type Dataset, type HeatRow, type Subject } from '@/lib/analiz'
 import { useClasses, useModules, useStudents } from '@/lib/data'
-import { initials, todayISO, trDW } from '@/lib/format'
+import { initials, todayISO, trD, trDW } from '@/lib/format'
 import { DENEME_GRADE } from '@/lib/roles'
 import { Icon } from '@/components/Icon'
 import { Dropdown, Seg } from '@/components/Indicator'
@@ -13,20 +13,35 @@ import { GrupEtut } from '@/components/GrupEtut'
 import { kademeOfGrade } from '@/lib/etutGrup'
 import { useSinifEtutleri } from '@/lib/etutData'
 import SinifAnalizi, { heatStyle } from './SinifAnalizi'
+import { useAuth } from '@/auth/AuthProvider'
+import { useAyar } from '@/lib/ayarlar'
+import { EtutTalep } from '@/components/EtutTalep'
+import { DenemeSecici, useDenemeSecimi } from '@/components/DenemeSecici'
+import { bransDersleri, denemeNetleri, kapsamDenemeleri, konuToplam } from '@/lib/denemeSecimi'
 
 export default function SiniflarPage() {
   const students = useStudents()
   const classes = useClasses()
   const mods = useModules()
   // Şube listesi gerçek sınıf tablosundan (denemesi olmayan şube de seçilebilir); ilk açılış 8. sınıf (mevcut davranış)
-  const all = (classes.data ?? []).filter((c) => c.name)
+  // Branş öğretmeni yalnız derse girdiği sınıfları (RLS, 0023: öğrenci listesi zaten o sınıflarla sınırlı) ve kendi dersini görür
+  const { role, profile } = useAuth()
+  const scoped = role === 'brans'
+  const gorunen = new Set((students.data ?? []).map((s) => s.class_name))
+  const all = (classes.data ?? []).filter((c) => c.name && (!scoped || gorunen.has(c.name)))
+  const secim = useDenemeSecimi()
+  const ayar = useAyar()
+  // Branş öğretmeni etüt planlamaz, talep eder: seçili konu kodları
+  const [talep, setTalep] = useState<string[] | null>(null)
   const [pick, setCls] = useState<string | null>(null)
   const cls = pick ?? all.find((c) => c.grade === DENEME_GRADE)?.name ?? all[0]?.name ?? ''
   const cg = all.find((c) => c.name === cls)?.grade ?? null
   // Seçilen şubenin bağlamı: 8 → LGS veri seti (değişmedi); 5–7 okul denemeleri; 9–12 seçili TYT / AYT
   const dsq = useExamContext(cg, !!classes.data)
   const [pickSub, setSub] = useState<Subject>('MAT')
-  const subs = dsq.data?.subjects ?? []
+  const benim = scoped && dsq.data ? bransDersleri(dsq.data.subjects, profile?.branch) : []
+  // Branşı denemede yer almayan öğretmen (ör. sınıf öğretmeni) bütün dersleri görür
+  const subs = (dsq.data?.subjects ?? []).filter((x) => !benim.length || benim.includes(x.code))
   const sub = subs.some((x) => x.code === pickSub) ? pickSub : (subs.find((x) => x.code === 'MAT') ?? subs[0])?.code ?? pickSub
   const [konu, setKonu] = useState<HeatRow | null>(null)
   // Sınıf analizi görünümü adreste (?gorunum=analiz): tarayıcının geri tuşu Sınıflar'a döner
@@ -43,20 +58,22 @@ export default function SiniflarPage() {
     const ids = inClass.map((s) => s.id)
     // LGS: son 5 deneme (mevcut). Genel: bu şubenin sonucu olan son 5 deneme (başka sınıf düzeyinin denemesi sütun olmaz)
     const mine = new Set(ds.results.filter((r) => ids.includes(r.student_id)).map((r) => r.exam_id))
-    const ex = (dsq.kind === 'LGS' ? ds.exams : ds.exams.filter((e) => mine.has(e.id))).slice(-5)
-    const rows = classHeat(ds, ids, sub, ex)
-    const lastIdx = ex.length - 1
+    // Bu şubenin denemeleri (LGS: hepsi; genel: şubenin sonucu olanlar) ve analiz kapsamı (tümü / son / seçilenler)
+    const hepsi = dsq.kind === 'LGS' ? ds.exams : ds.exams.filter((e) => mine.has(e.id))
+    const ex = kapsamDenemeleri(hepsi, secim.kapsam, secim.secili)
+    const rows = classHeat(ds, ids, sub, ex).map((r) => ({ ...r, toplam: konuToplam(r) }))
     const worst = rows
-      .filter((r) => r.cells[lastIdx]?.p != null)
-      .sort((a, b) => a.cells[lastIdx]!.p! - b.cells[lastIdx]!.p!)
+      .filter((r) => r.toplam.p != null)
+      .sort((a, b) => a.toplam.p! - b.toplam.p!)
       .slice(0, 3)
-    const idx = indexResults(ds.results)
     const L = ex.at(-1)
-    const nets = L ? ids.map((id) => idx.get(`${L.id}|${id}`)?.subjects[sub]?.net).filter((n): n is number => n != null) : []
-    return { ds, ex, rows, worst, L, inClass, avg: nets.length ? nets.reduce((a, b) => a + b, 0) / nets.length : null, lastIdx, idx }
-  }, [dsq.data, dsq.kind, students.data, cls, sub])
+    // Deneme deneme ortalama net (girmeyen öğrenci sıfır sayılmaz); özet = kapsamdaki denemelerin ortalaması
+    const netler = denemeNetleri(ds, ids, sub, ex)
+    const dolu = netler.flatMap((n) => (n.ort === null ? [] : [n.ort]))
+    return { ds, hepsi, ex, rows, worst, L, inClass, netler, avg: dolu.length ? dolu.reduce((a, b) => a + b, 0) / dolu.length : null }
+  }, [dsq.data, dsq.kind, students.data, cls, sub, secim.kapsam, secim.secili])
 
-  if (analiz && cls) return <SinifAnalizi key={cls} cls={cls} grade={cg} onBack={() => setSp({})} />
+  if (analiz && cls) return <SinifAnalizi key={cls} cls={cls} grade={cg} onBack={() => setSp({})} brans={scoped ? (profile?.branch ?? null) : undefined} />
   const analizDugme = cls ? (
     <button type="button" className="btn pri" onClick={() => setSp({ gorunum: 'analiz' })}>
       <Icon name="grid" size={16} /> Sınıf analizi
@@ -76,14 +93,22 @@ export default function SiniflarPage() {
         <div className="empty a">Bu şube için deneme analizi yok (yalnız 5–12. sınıflarda deneme analizi yapılır).</div>
       </>
     )
-  const { ds, ex, rows, worst, L, inClass, avg, lastIdx } = data
+  const { ds, hepsi, ex, rows, worst, L, inClass, avg, netler } = data
+  const tek = ex.length === 1
+  const kapsamAd = tek ? (L?.name ?? '') : `${ex.length} deneme`
+  const olan = netler.flatMap((n) => (n.ort === null ? [] : [n.ort]))
+  // Eğilim: kapsamdaki ilk denemeden son denemeye ortalama net farkı (en az iki deneme)
+  const egilim = olan.length > 1 ? olan.at(-1)! - olan[0]! : null
   const sd = subjectOf(ds, sub)
   const et = sinifEtut.data ?? []
   // Etüt: 5–12. sınıflar ve modül açıkken; konular en zorlanılandan başlayarak (son denemedeki doğru oranı)
-  const kademe = mods.etut ? kademeOfGrade(cg) : null
+  const etutKademe = mods.etut ? kademeOfGrade(cg) : null
+  // Yönetici / rehber planlar; branş öğretmeni talep eder (talepler açıksa); planlanan etütleri hepsi görür
+  const kademe = scoped ? null : etutKademe
+  const talepAcik = scoped && !!etutKademe && ayar.bool('etut.talep_acik')
   const ogrAdi = (id: string) => students.data?.find((x) => x.id === id)?.full_name ?? ''
   const konuKaynak = [...rows]
-    .sort((a, b) => (a.cells[lastIdx]?.p ?? 101) - (b.cells[lastIdx]?.p ?? 101))
+    .sort((a, b) => (a.toplam.p ?? 101) - (b.toplam.p ?? 101))
     .map((r) => ({ code: r.outcome.code, title: r.outcome.title, wrongByExam: r.cells.map((c) => c.wrong) }))
 
   return (
@@ -99,15 +124,16 @@ export default function SiniflarPage() {
           {dsq.kind === 'YKS' && <Seg label="YKS oturumu" value={dsq.fam} onChange={dsq.setFam} options={[['TYT', 'TYT'], ['AYT', 'AYT']] as const} />}
         </div>
       )}
-      {ds.subjects.length > 0 && (
+      {subs.length > 0 && (
         <div className="a" style={{ ['--d' as string]: 1, overflowX: 'auto', alignSelf: 'flex-start', maxWidth: '100%' }}>
-          <Seg label="Ders" value={sub} onChange={setSub} options={ds.subjects.map((s) => [s.code, s.short] as const)} />
+          <Seg label="Ders" value={sub} onChange={setSub} options={subs.map((s) => [s.code, s.short] as const)} />
         </div>
       )}
+      <DenemeSecici exams={hepsi} s={secim} />
       <section className="card a" style={{ ['--d' as string]: 2, padding: '16px 20px', display: 'flex', gap: 26, alignItems: 'center', flexWrap: 'wrap' }}>
         <div>
           <div className="m" style={{ fontSize: 13 }}>
-            Ortalama net{L ? ` · ${L.name}` : ''}
+            Ortalama net{L ? ` · ${kapsamAd}` : ''}
           </div>
           <div className="big">
             {avg != null ? fmt(avg) : '—'}
@@ -116,6 +142,11 @@ export default function SiniflarPage() {
               / {sd.q}
             </span>
           </div>
+          {egilim !== null && Math.abs(egilim) >= 0.05 && (
+            <div style={{ fontSize: 13, fontWeight: 600, color: egilim > 0 ? 'var(--primary)' : 'var(--signal)' }} data-testid="net-egilim">
+              {egilim > 0 ? '↑' : '↓'} ilk denemeden sona {fmt(Math.abs(egilim))} net {egilim > 0 ? 'yükseldi' : 'düştü'}
+            </div>
+          )}
         </div>
         <div>
           <div className="m" style={{ fontSize: 13 }}>
@@ -127,18 +158,55 @@ export default function SiniflarPage() {
           <div className="m" style={{ fontSize: 13 }}>
             En zor konu
           </div>
-          <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--signal)' }}>{worst[0] ? `↓ ${worst[0].outcome.title} · %${worst[0].cells[lastIdx]!.p}` : '—'}</div>
+          <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--signal)' }}>{worst[0] ? `↓ ${worst[0].outcome.title} · %${worst[0].toplam.p}` : '—'}</div>
         </div>
       </section>
+
+      {ex.length > 0 && (
+        <section className="card a" style={{ ['--d' as string]: 2, padding: 20, minWidth: 0 }}>
+          <h2 className="sec" style={{ marginBottom: 8 }}>
+            Deneme netleri · {sd.ad}
+          </h2>
+          <div className="tbl" tabIndex={0} role="region" aria-label="Deneme netleri tablosu (yana kaydırılabilir)">
+            <table data-testid="deneme-netleri">
+              <thead>
+                <tr>
+                  <th>Deneme</th>
+                  <th>Tarih</th>
+                  <th className="num">Giren öğrenci</th>
+                  <th className="num">Ortalama net (/{sd.q})</th>
+                </tr>
+              </thead>
+              <tbody>
+                {netler.map((n) => (
+                  <tr key={n.exam.id}>
+                    <td>
+                      <b>{n.exam.name}</b>
+                    </td>
+                    <td>{trD(n.exam.exam_date)}</td>
+                    <td className="num">
+                      {n.giren} / {inClass.length}
+                    </td>
+                    <td className="num mono">{n.ort === null ? '—' : fmt(n.ort)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section className="card a" style={{ ['--d' as string]: 3, padding: 20, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
         {rows.length ? (
           <div style={{ overflowX: 'auto', padding: '4px 2px' }} role="table" aria-label={`${cls} ${sd.ad} konu doğru oranları`}>
             <div className="heat" role="row" style={{ ['--n' as string]: ex.length, fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)' }}>
               <span role="columnheader">KONU</span>
-              {ex.map((e) => (
+              {ex.map((e, i) => (
                 <span key={e.id} role="columnheader" style={{ textAlign: 'center' }}>
                   {e.name}
+                  <span className="mono" style={{ display: 'block', fontWeight: 500 }}>
+                    {netler[i]?.ort == null ? 'net —' : `${fmt(netler[i]!.ort!)} net`}
+                  </span>
                 </span>
               ))}
             </div>
@@ -194,26 +262,32 @@ export default function SiniflarPage() {
         {worst.map((w) => (
           <button key={w.outcome.code} className="srow" style={{ border: '1px solid var(--line)', borderRadius: 12 }} onClick={() => setKonu(w)} data-testid="hard-topic">
             <span className="mono" style={{ fontSize: 20, width: 56, color: 'var(--signal)' }}>
-              %{w.cells[lastIdx]!.p}
+              %{w.toplam.p}
             </span>
             <span style={{ flex: 1 }}>
               <b style={{ display: 'block' }}>{w.outcome.title}</b>
               <span className="m" style={{ fontSize: 13 }}>
-                {w.cells[lastIdx]!.wrong.length} öğrenci {L?.name}'de yanlış yaptı · listeyi gör
+                {w.toplam.wrong.length} öğrenci {tek ? `${L?.name}'de` : `seçili ${ex.length} denemede`} yanlış yaptı · listeyi gör
               </span>
             </span>
             <Icon name="right" size={18} stroke={2} />
           </button>
         ))}
         {kademe && worst.length > 0 && (
-          <button className="btn gold" style={{ alignSelf: 'flex-start' }} onClick={() => setEtut({ secili: worst.map((w) => w.outcome.code), son: 1 })}>
+          <button className="btn gold" style={{ alignSelf: 'flex-start' }} onClick={() => setEtut({ secili: worst.map((w) => w.outcome.code), son: Math.max(1, ex.length) })}>
             <Icon name="cal" size={18} />
             Etüt planla
           </button>
         )}
+        {talepAcik && worst.length > 0 && (
+          <button className="btn gold" style={{ alignSelf: 'flex-start' }} onClick={() => setTalep(worst.map((w) => w.outcome.code))}>
+            <Icon name="cal" size={18} />
+            Etüt talep et
+          </button>
+        )}
       </Dropdown>
 
-      {kademe && (
+      {etutKademe && (
         <Dropdown title="Planlanan etütler" sub={et.length ? `${et.length} etüt` : 'Etüt yok'} icon={<Icon name="cal" size={22} />} delay={5}>
           {et.length ? (
             et.map((x) => (
@@ -230,7 +304,9 @@ export default function SiniflarPage() {
               </div>
             ))
           ) : (
-            <span className="m">Bu sınıfın yaklaşan etüdü yok. Konu satırına tıklayıp yanlış yapan öğrencilere etüt planlayabilirsin.</span>
+            <span className="m">
+              Bu sınıfın yaklaşan etüdü yok. Konu satırına tıklayıp yanlış yapan öğrenciler için {scoped ? 'etüt talep edebilirsin' : 'etüt planlayabilirsin'}.
+            </span>
           )}
         </Dropdown>
       )}
@@ -240,10 +316,27 @@ export default function SiniflarPage() {
           ds={ds}
           row={konu}
           cls={cls}
-          examName={L?.name ?? ''}
-          lastIdx={lastIdx}
+          examName={kapsamAd}
+          wrong={konuToplam(konu).wrong}
           onClose={() => setKonu(null)}
-          onEtut={kademe ? () => (setEtut({ secili: [konu.outcome.code], son: 1 }), setKonu(null)) : undefined}
+          onEtut={
+            kademe
+              ? () => (setEtut({ secili: [konu.outcome.code], son: Math.max(1, ex.length) }), setKonu(null))
+              : talepAcik
+                ? () => (setTalep([konu.outcome.code]), setKonu(null))
+                : undefined
+          }
+          etutMetni={scoped ? 'Bu öğrenciler için etüt talep et' : 'Bu öğrencilere etüt planla'}
+        />
+      )}
+      {talep && talepAcik && (
+        <EtutTalep
+          baslik={`${cls} · ${sd.ad} · ${kapsamAd}`}
+          dersAdi={sd.ad}
+          konular={[...rows].sort((a, b) => (a.toplam.p ?? 101) - (b.toplam.p ?? 101)).map((r) => ({ code: r.outcome.code, title: r.outcome.title, wrong: r.toplam.wrong }))}
+          secili={talep}
+          ogrenciAdi={ogrAdi}
+          onClose={() => setTalep(null)}
         />
       )}
       {etut && kademe && (
@@ -269,21 +362,22 @@ function KonuStudents({
   row,
   cls,
   examName,
-  lastIdx,
+  wrong,
   onClose,
   onEtut,
+  etutMetni,
 }: {
   ds: Dataset
   row: HeatRow
   cls: string
   examName: string
-  lastIdx: number
+  wrong: string[]
   onClose: () => void
   onEtut?: () => void
+  etutMetni: string
 }) {
   const nav = useNavigate()
   const students = useStudents()
-  const wrong = row.cells[lastIdx]?.wrong ?? []
   return (
     <Modal
       title={row.outcome.title}
@@ -296,7 +390,7 @@ function KonuStudents({
           </button>
           {onEtut && wrong.length > 0 && (
             <button className="btn gold" onClick={onEtut}>
-              <Icon name="cal" size={16} /> Bu öğrencilere etüt planla
+              <Icon name="cal" size={16} /> {etutMetni}
             </button>
           )}
         </>
@@ -313,7 +407,7 @@ function KonuStudents({
                 <span style={{ flex: 1 }}>
                   <b style={{ display: 'block' }}>{s?.full_name}</b>
                   <span className="m" style={{ fontSize: 13 }}>
-                    {rp ? `${rp.count} denemede yanlış` : 'Bu denemede yanlış'}
+                    {rp ? `${rp.count} denemede yanlış` : 'Yanlış yaptı'}
                   </span>
                 </span>
                 {rp && rp.count >= 2 && <span className="chip down">↓ Tekrar</span>}

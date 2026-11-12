@@ -331,6 +331,8 @@ export interface PdfSinif {
   ozet: [string, string][]
   bulgular: string[]
   table: { head: string[]; widths: number[]; rows: string[][] }
+  /** Deneme deneme netler (öğrenci × deneme); son satır sınıf ortalaması */
+  netler?: { head: string[]; rows: string[][] }
   konular: { konu: string; oran: string; ogrenciler: string }[]
 }
 
@@ -389,6 +391,35 @@ function SinifDoc(d: PdfSinif) {
             ))}
           </View>
         ))}
+        {d.netler && d.netler.head.length > 2 && (
+          <View break>
+            <Text style={s.h3}>DENEME DENEME NETLER</Text>
+            {(() => {
+              const n = d.netler!.head.length - 1
+              const w = (i: number) => (i === 0 ? '22%' : `${78 / n}%`)
+              return (
+                <>
+                  <View style={s.tr} fixed>
+                    {d.netler!.head.map((h, i) => (
+                      <Text key={i} style={[s.th, { width: w(i) }]}>
+                        {h}
+                      </Text>
+                    ))}
+                  </View>
+                  {d.netler!.rows.map((r, k) => (
+                    <View key={k} style={s.tr} wrap={false}>
+                      {r.map((v, i) => (
+                        <Text key={i} style={{ width: w(i), fontSize: 8.5, fontWeight: i === 0 || k === d.netler!.rows.length - 1 ? 600 : 400 }}>
+                          {v}
+                        </Text>
+                      ))}
+                    </View>
+                  ))}
+                </>
+              )
+            })()}
+          </View>
+        )}
         {d.konular.length > 0 && (
           <View break>
             <Text style={s.h3}>SINIFIN ORTAK YANLIŞ KONULARI (SON DENEME)</Text>
@@ -622,4 +653,173 @@ function VeliToplantiDoc(d: PdfVeliToplanti) {
 
 export async function veliToplantiPdfBlob(d: PdfVeliToplanti): Promise<Blob> {
   return pdf(<VeliToplantiDoc {...d} />).toBlob()
+}
+
+// ---------------------------------------------------------------- branş veli toplantısı (öğrenci başına bir yaprak)
+// Toplantı sonunda veliye teslim edilir: dersin özeti (ödev, deneme, etüt, devamsızlık) ve öğretmenin gözlem formu.
+// Sınıf sıralaması / sınıf ortalaması yok; öğretmenin iç notu bu çıktıya girmez. yalnizForm: yalnız gözlem formu basılır.
+export interface PdfBransSoru {
+  k: string
+  metin: string
+  /** Boşsa üç seçenekli (Evet / Kısmen / Henüz değil) satır; doluysa seçenekleri satırda yazılır */
+  secenekler?: [string, string][]
+}
+export interface PdfBransToplanti {
+  school: string
+  logo?: boolean
+  sinif: string
+  tarih: string
+  ders: string
+  ogretmen: string
+  yalnizForm?: boolean
+  uclu: [string, string][]
+  bolumler: { baslik: string; sorular: PdfBransSoru[] }[]
+  yazi: { k: string; metin: string; satir: number }[]
+  ogrenciler: {
+    ad: string
+    no: string
+    ozet: {
+      odev: string
+      odevler: { baslik: string; tarih: string; durum: string }[]
+      denemeler: { ad: string; tarih: string; net: string; degisim: number | null }[]
+      egilim: string | null
+      konular: string[]
+      ek: string[]
+    }
+    cevaplar: Record<string, string | undefined>
+  }[]
+}
+
+function BransToplantiDoc(d: PdfBransToplanti) {
+  const sayfa = [s.page, { fontSize: 9, paddingTop: 28, paddingBottom: 44 }]
+  const ayak = (
+    <View style={s.foot} fixed>
+      <Text>
+        {d.school} · {d.ders} · Öğrenci kendi gelişimiyle değerlendirilir.
+      </Text>
+      <Text render={({ pageNumber, totalPages }) => `${pageNumber}/${totalPages}`} />
+    </View>
+  )
+  return (
+    <Document title={`${d.ders} · veli toplantısı · ${d.sinif}`} author={d.school}>
+      {d.ogrenciler.map((o, n) => (
+        <Page key={n} size="A4" style={sayfa}>
+          <View style={s.head}>
+            <View style={s.brandRow}>
+              {d.logo !== false && <Image src={logo} style={s.logo} />}
+              <View>
+                <Text style={[s.brand, { lineHeight: 1.3 }]}>{d.school}</Text>
+                <Text style={[s.sub, { lineHeight: 1.3 }]}>
+                  {d.ders} · veli toplantısı{d.yalnizForm ? ' · gözlem formu' : ''}
+                </Text>
+              </View>
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontWeight: 600, textAlign: 'right' }}>{o.ad}</Text>
+              <Text style={[s.sub, { textAlign: 'right' }]}>
+                {d.sinif}
+                {o.no ? ` · No ${o.no}` : ''} · {d.tarih}
+              </Text>
+              {d.ogretmen ? <Text style={[s.sub, { textAlign: 'right' }]}>Öğretmen: {d.ogretmen}</Text> : null}
+            </View>
+          </View>
+
+          {!d.yalnizForm && (
+            <>
+              <Text style={h3K}>ÖDEVLER</Text>
+              <Text style={{ fontSize: 9.5 }}>{o.ozet.odev}</Text>
+              {o.ozet.odevler.length > 0 && (
+                <Text style={{ fontSize: 8.5, color: C.muted }}>{o.ozet.odevler.map((x) => `${x.tarih} ${x.baslik}: ${x.durum}`).join('  ·  ')}</Text>
+              )}
+              {o.ozet.denemeler.length > 0 && (
+                <>
+                  <Text style={h3K}>DENEMELERDE {d.ders.toLocaleUpperCase('tr')}</Text>
+                  <View style={[trK, { borderBottomColor: C.ink }]}>
+                    <Text style={[s.th, { width: '52%' }]}>Deneme</Text>
+                    <Text style={[s.th, { width: '18%' }]}>Tarih</Text>
+                    <Text style={[s.th, { width: '15%' }]}>Net</Text>
+                    <Text style={[s.th, { width: '15%' }]}>Değişim</Text>
+                  </View>
+                  {o.ozet.denemeler.map((x, i) => (
+                    <View key={i} style={trK} wrap={false}>
+                      <Text style={{ width: '52%' }}>{x.ad}</Text>
+                      <Text style={{ width: '18%', color: C.muted }}>{x.tarih}</Text>
+                      <Text style={{ width: '15%', fontWeight: 600 }}>{x.net}</Text>
+                      <Text style={{ width: '15%', color: x.degisim === null ? C.muted : x.degisim >= 0 ? C.primary : C.signal }}>
+                        {x.degisim === null ? '—' : `${x.degisim >= 0 ? '↑' : '↓'} ${fark(x.degisim)}`}
+                      </Text>
+                    </View>
+                  ))}
+                  {o.ozet.egilim && <Text style={{ fontSize: 8.5, color: C.muted, marginTop: 2 }}>{o.ozet.egilim}</Text>}
+                  {o.ozet.konular.length > 0 && (
+                    <Text style={{ fontSize: 9, marginTop: 3 }}>
+                      <Text style={{ fontWeight: 600 }}>Üzerinde duracağımız konular: </Text>
+                      {o.ozet.konular.join(' · ')}
+                    </Text>
+                  )}
+                </>
+              )}
+              {o.ozet.ek.length > 0 && <Text style={{ fontSize: 8.5, color: C.muted, marginTop: 4 }}>{o.ozet.ek.join('  ·  ')}</Text>}
+            </>
+          )}
+
+          {d.bolumler.map((b) => {
+            const uclu = b.sorular.filter((q) => !q.secenekler)
+            const secim = b.sorular.filter((q) => q.secenekler)
+            return (
+              <View key={b.baslik}>
+                <View style={[trK, { borderBottomColor: C.ink, marginTop: 7 }]}>
+                  <Text style={[s.th, { width: '58%' }]}>{b.baslik.toLocaleUpperCase('tr')}</Text>
+                  {d.uclu.map(([k, t]) => (
+                    <Text key={k} style={[s.th, { width: '14%' }]}>
+                      {t}
+                    </Text>
+                  ))}
+                </View>
+                {uclu.map((q) => (
+                  <View key={q.k} style={[trK, { paddingVertical: d.yalnizForm ? 4 : 1.8 }]} wrap={false}>
+                    <Text style={{ width: '58%' }}>{q.metin}</Text>
+                    {d.uclu.map(([k]) => (
+                      <View key={k} style={{ width: '14%', flexDirection: 'row', alignItems: 'center' }}>
+                        {isaretli(o.cevaplar[q.k] === k)}
+                      </View>
+                    ))}
+                  </View>
+                ))}
+                {secim.map((q) => (
+                  <View key={q.k} style={[trK, { paddingVertical: d.yalnizForm ? 4 : 1.8 }]} wrap={false}>
+                    <Text style={{ width: '38%' }}>{q.metin}</Text>
+                    <View style={{ width: '62%', flexDirection: 'row', flexWrap: 'wrap' }}>
+                      {q.secenekler!.map(([k, t]) => (
+                        <View key={k} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
+                          {isaretli(o.cevaplar[q.k] === k)}
+                          <Text style={{ fontSize: 8.5 }}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )
+          })}
+          <View style={{ marginTop: 4 }} />
+          {d.yazi.map((q) => (
+            <Alan key={q.k} baslik={q.metin} metin={o.cevaplar[q.k] ?? null} satir={d.yalnizForm ? q.satir + 1 : 1} />
+          ))}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: d.yalnizForm ? 30 : 16 }} wrap={false}>
+            {['Öğretmen', 'Veli'].map((t) => (
+              <View key={t} style={{ width: '40%', borderTopWidth: 0.5, borderTopColor: C.ink, paddingTop: 3 }}>
+                <Text style={{ fontSize: 8, color: C.muted }}>{t} (ad soyad, imza)</Text>
+              </View>
+            ))}
+          </View>
+          {ayak}
+        </Page>
+      ))}
+    </Document>
+  )
+}
+
+export async function bransToplantiPdfBlob(d: PdfBransToplanti): Promise<Blob> {
+  return pdf(<BransToplantiDoc {...d} />).toBlob()
 }
