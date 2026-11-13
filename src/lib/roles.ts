@@ -82,24 +82,25 @@ const FAMILY: NavItem[] = [
 
 /** Gözetmen Bul (bağımsız modül, 0048): yalnız yönetici. Kaldırmak için bu satırı ve aşağıdaki kullanımını sil. */
 const GOZETMEN: NavItem = { id: 'gozetmen', label: 'Gözetmen Bul', icon: 'search' }
-/** Öğretmenler Odası (0068): yönetici ve bütün öğretmenler; menünün sonunda. Veli/öğrenci görmez (RLS de kapalı). */
+/** Öğretmenler Odası (0068): yönetici ve bütün öğretmenler; Öğrenciler'in hemen altında. Veli/öğrenci görmez (RLS de kapalı). */
 const ODA: NavItem = { id: 'ogretmenler-odasi', label: 'Öğretmenler Odası', icon: 'cup' }
 
 /** Rol bazlı menü — prototipteki navItems() ile aynı. Yetki ayrıca veritabanında (RLS) zorlanır. */
 function navFor(r: Role): NavItem[] {
-  if (r === 'admin') return [...STAFF, ETUT, DUYURULAR, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, GOZETMEN, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }, ODA]
-  if (r === 'rehber') return [...STAFF, ETUT, DUYURULAR, ILETISIM, ODA]
+  const staff = [...STAFF.slice(0, 2), ODA, ...STAFF.slice(2)]
+  if (r === 'admin') return [...staff, ETUT, DUYURULAR, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, GOZETMEN, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
+  if (r === 'rehber') return [...staff, ETUT, DUYURULAR, ILETISIM]
   // Branş öğretmeni Sınıflar'da yalnız derse girdiği şubeleri ve kendi dersini görür (SiniflarPage; öğrenci verisi RLS 0023)
-  if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, STAFF[5]!, ETUT, DUYURULAR, ILETISIM, ODA]
+  if (r === 'brans') return [PANEL, STAFF[1]!, ODA, STAFF[2]!, STAFF[3]!, STAFF[5]!, ETUT, DUYURULAR, ILETISIM]
   const fam = [...FAMILY.slice(0, 4), ETUT, ...FAMILY.slice(4)] // Ödevler'den sonra
   if (r === 'ogrenci') return fam.filter((n) => n.id !== 'iletisim') // öğrenci mesajlaşmaz; duyuruları görür
   return fam
 }
 
 /** Modüller (Yönetim → Modüller). Kapalı modülün sayfası menüden kalkar; veri erişimi veritabanında da kapanır (0011). */
-export type ModuleId = 'lgs' | 'yoklama' | 'ders_programi' | 'yemek' | 'duyuru' | 'mesaj' | 'odev' | 'takvim' | 'bursluluk' | 'galeri' | 'etut'
+export type ModuleId = 'lgs' | 'yoklama' | 'ders_programi' | 'yemek' | 'duyuru' | 'mesaj' | 'odev' | 'takvim' | 'bursluluk' | 'galeri' | 'etut' | 'oda'
 export type Modules = Record<ModuleId, boolean>
-export const MODULE_DEFAULTS: Modules = { lgs: true, yoklama: true, ders_programi: true, yemek: true, duyuru: true, mesaj: true, odev: true, takvim: true, bursluluk: false, galeri: false, etut: true }
+export const MODULE_DEFAULTS: Modules = { lgs: true, yoklama: true, ders_programi: true, yemek: true, duyuru: true, mesaj: true, odev: true, takvim: true, bursluluk: false, galeri: false, etut: true, oda: true }
 
 /** Sayfanın bağlı olduğu modüller: hepsi kapalıysa sayfa menüden kalkar. */
 const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
@@ -113,6 +114,7 @@ const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
   duyurular: ['duyuru'],
   iletisim: ['mesaj'],
   etut: ['etut'],
+  'ogretmenler-odasi': ['oda'],
 }
 
 /** Galeri (0022): herkes için, Takvim'den sonra; modül kapalıyken menüde yok. */

@@ -1,5 +1,5 @@
 // Öğrenciler → Günlük kontrol (0067): öğretmen gerektiğinde girer, yalnız eksik olanı işaretler, isterse detay yazar.
-// Yoklamayla bağlantısı yoktur. Aynı maddenin ay içindeki her 3. eksikliğinde veliye uyarı bildirimi sunucuda gider.
+// Yoklamayla bağlantısı yoktur. Aynı maddenin ay içindeki her n. eksikliğinde (Yönetim → Günlük kontrol) veliye uyarı sunucuda gider.
 // "Kayıtlar" görünümü kim, ne zaman, neyi işaretledi listesidir (öğretmen kendi sınıfları, rehberlik/yönetici tümü — RLS).
 import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -10,8 +10,6 @@ import { isFullAccess } from '@/lib/roles'
 import { todayISO, trDM, trDW } from '@/lib/format'
 import {
   DETAY_EN_COK,
-  MADDELER,
-  MADDE_TR,
   ayBasi,
   aySonu,
   donemBasi,
@@ -23,7 +21,7 @@ import {
   type Madde,
   type Taslak,
 } from '@/lib/gunlukKontrol'
-import { useGunlukKontrol } from '@/lib/gunlukKontrolData'
+import { useGunlukKontrol, useGunlukMaddeler } from '@/lib/gunlukKontrolData'
 import { Icon } from '@/components/Icon'
 import { Seg } from '@/components/Indicator'
 import { useToast } from '@/components/Toast'
@@ -33,6 +31,7 @@ type Gorunum = 'isaretle' | 'kayitlar'
 export default function GunlukKontrol({ cls, onBack }: { cls: string; onBack: () => void }) {
   const tek = cls !== 'all'
   const [gor, setGor] = useState<Gorunum>(tek ? 'isaretle' : 'kayitlar')
+  const gm = useGunlukMaddeler()
   return (
     <>
       <div className="head a">
@@ -42,7 +41,7 @@ export default function GunlukKontrol({ cls, onBack }: { cls: string; onBack: ()
           </button>
           <h1 className="hd">{tek ? `${cls} · Günlük kontrol` : 'Günlük kontrol'}</h1>
           <p className="m" style={{ fontSize: 14, margin: '4px 0 0' }}>
-            Gerektiğinde gir, yalnız eksik olanı işaretle. Yoklamayla bağlantısı yoktur. Aynı eksik ay içinde 3. kez olursa veliye uyarı bildirimi gider.
+            Gerektiğinde gir, yalnız eksik olanı işaretle. Yoklamayla bağlantısı yoktur.{gm.aralik > 0 ? ` Aynı eksik ay içinde ${gm.aralik}. kez olursa veliye uyarı bildirimi gider.` : ''}
           </p>
         </div>
         {tek && (
@@ -69,6 +68,7 @@ function Isaretle({ cls }: { cls: string }) {
   const yonetim = isFullAccess(role!)
   const people = usePeople()
   const students = useStudents()
+  const gm = useGunlukMaddeler()
   const [tarih, setTarih] = useState(todayISO())
   const sinif = useMemo(
     () => (students.data ?? []).filter((s) => s.class_name === cls).sort((a, b) => a.full_name.localeCompare(b.full_name, 'tr')),
@@ -149,7 +149,7 @@ function Isaretle({ cls }: { cls: string }) {
               <span className="gk-ad">{s.full_name}</span>
               <div className="gk-maddeler">
                 <div role="group" aria-label={`${s.full_name} eksikleri`} style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {MADDELER.map(([m, t]) => {
+                  {gm.liste.filter((x) => x.aktif || x.kod in sec).map(({ kod: m, ad: t }) => {
                     const on = m in sec
                     const k = gun.find((x) => x.student_id === s.id && x.madde === m)
                     const kilitli = !!k && k.teacher_id !== uid && !yonetim
@@ -169,7 +169,7 @@ function Isaretle({ cls }: { cls: string }) {
                     )
                   })}
                 </div>
-                {MADDELER.filter(([m]) => m in sec).map(([m, t]) => {
+                {gm.liste.filter(({ kod: m }) => m in sec).map(({ kod: m, ad: t }) => {
                   const k = gun.find((x) => x.student_id === s.id && x.madde === m)
                   const benim = !k || k.teacher_id === uid
                   const n = kacinci(ay.data ?? [], s.id, m, tarih)
@@ -192,13 +192,13 @@ function Isaretle({ cls }: { cls: string }) {
                           {t} · {ad(k!.teacher_id)} işaretledi{k!.detay ? `: ${k!.detay}` : ''}
                         </span>
                       )}
-                      {uyariGider(n) && (
+                      {uyariGider(n, gm.aralik) && (
                         <span className="chip down" style={{ alignSelf: 'flex-start', whiteSpace: 'normal' }} data-testid="gk-uyari-onizleme">
                           <Icon name="warn" size={14} /> Bu ay {n}. kez ·{' '}
                           {k ? (k.veli_uyarildi ? 'veliye uyarı gönderildi' : 'velisi kayıtlı olmadığı için uyarı gitmedi') : 'kaydedince veliye uyarı bildirimi gidecek'}
                         </span>
                       )}
-                      {!uyariGider(n) && n > 1 && (
+                      {!uyariGider(n, gm.aralik) && n > 1 && (
                         <span className="m" style={{ fontSize: 12 }}>
                           Bu ay {n}. kez
                         </span>
@@ -234,6 +234,7 @@ function Kayitlar({ cls }: { cls: string }) {
   const [aralik, setAralik] = useState<'ay' | 'donem'>('ay')
   const [sinifSec, setSinifSec] = useState(cls)
   const [madde, setMadde] = useState<Madde | ''>('')
+  const gm = useGunlukMaddeler()
   const from = aralik === 'ay' ? ayBasi(bugun) : donemBasi(bugun)
   const sinif = cls !== 'all' ? cls : sinifSec
   const ids = useMemo(
@@ -268,7 +269,7 @@ function Kayitlar({ cls }: { cls: string }) {
           <span className="label">Madde</span>
           <select value={madde} onChange={(e) => setMadde(e.target.value as Madde | '')}>
             <option value="">Tüm maddeler</option>
-            {MADDELER.map(([k, t]) => (
+            {gm.liste.map(({ kod: k, ad: t }) => (
               <option key={k} value={k}>
                 {t}
               </option>
@@ -315,7 +316,7 @@ function Kayitlar({ cls }: { cls: string }) {
                       <b>{s.full_name}</b> <span className="m">· {s.class_name}</span>
                     </td>
                     <td>
-                      {MADDE_TR[k.madde]}
+                      {gm.ad(k.madde)}
                       {k.detay && <span className="m"> · {k.detay}</span>}
                     </td>
                     <td>{kisi(k.teacher_id)}</td>

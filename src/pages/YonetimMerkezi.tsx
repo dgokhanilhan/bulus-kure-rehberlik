@@ -25,7 +25,7 @@ function useInvalidate() {
   return (...keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }))
 }
 
-function Check({ on, onClick, label, hint }: { on: boolean; onClick: () => void; label: string; hint?: string }) {
+export function Check({ on, onClick, label, hint }: { on: boolean; onClick: () => void; label: string; hint?: string }) {
   return (
     <button type="button" className="check" role="switch" aria-checked={on} onClick={onClick} style={{ alignItems: 'flex-start' }}>
       <span className={`box ${on ? 'on' : ''}`}>{on && <Icon name="check" size={13} stroke={3} />}</span>
@@ -109,6 +109,7 @@ const MODULES: [ModuleId, string, string][] = [
   ['bursluluk', 'Bursluluk', 'Bursluluk sınavı tanımlama ve herkese açık başvuru formu'],
   ['galeri', 'Galeri', 'Okulun özel fotoğraf ve video albümleri (yalnız yetkili kullanıcılar görür)'],
   ['etut', 'Cumartesi etütleri', 'Rehber öğretmenin etüt planı, öğretmen talepleri, yoklama; veli ve öğrenci kendi etüdünü görür'],
+  ['oda', 'Öğretmenler Odası', 'Öğretmenlerin ortak alanı: Öğrenci Takip, sohbet, pano ve oyunlar (bölümleri Yönetim → Öğretmenler Odası)'],
 ]
 const SOON: ModuleId[] = []
 
@@ -1126,6 +1127,8 @@ const NOTIF: [string, string, string][] = [
   ['bildirim.gorusme', 'Görüşmeler', 'Görüşme planlandı, değişti, yanıtlandı'],
   ['bildirim.not', 'Rehberlik notları', 'Öğretmenin veliye açık notu'],
   ['bildirim.bursluluk', 'Bursluluk', 'Yeni bursluluk başvurusu (yöneticilere), salon/saat atanınca (okul öğrencisinin velisine)'],
+  ['bildirim.oda', 'Öğretmenler Odası', 'Sohbette anılma, teşekkür kartı, ders/nöbet değişimini birinin alması'],
+  ['bildirim.gunluk_kontrol', 'Günlük kontrol uyarısı', 'Aynı eksik ay içinde tekrar edince veliye (aralık Günlük kontrol ayarlarında)'],
   ['bildirim.etut', 'Etüt', 'Etüt programı yayınlanınca ya da değişince öğrenci ve veliye; yeni etüt talebi rehberlere; talep yanıtı öğretmene'],
   ['bildirim.galeri', 'Galeri', 'Albüm yayınlanırken "Kullanıcılara bildirim gönder" seçilirse albümün kitlesine; öğretmen albümü onay bekleyince yöneticilere'],
 ]

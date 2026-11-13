@@ -26,6 +26,7 @@ import { RolesSection, AccountRolesAdmin } from './YonetimRoller'
 import { GirisBilgileri } from './YonetimGiris'
 import { DenemeMerkezi } from './DenemeMerkezi'
 import { AyarGecmisi, TumAyarlar } from './YonetimAyarlar'
+import { GunlukKontrolAyarlari, OdaAyarlari } from './YonetimOda'
 import { AppearanceSettings } from './OkulKontrolleri'
 import { DenemeBilgi, DuyuruListesi, EtkinlikListesi, GuvenlikOzeti, MesajAyarlari } from './YonetimIcerik'
 import {
@@ -77,6 +78,8 @@ type Tab =
   | 'galeri'
   | 'hedefler'
   | 'hatalar'
+  | 'oda'
+  | 'gunluk_kontrol'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
   {
@@ -105,6 +108,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['program', 'Ders programı', 'ders_programi'],
       ['yoklama', 'Yoklama', 'yoklama'],
       ['yoklama_ayar', 'Yoklama ayarları', 'yoklama'],
+      ['gunluk_kontrol', 'Günlük kontrol'],
       ['yemek', 'Yemek listesi', 'yemek'],
       ['odev', 'Ödev ayarları', 'odev'],
       ['takvim', 'Takvim ayarları', 'takvim'],
@@ -118,6 +122,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['mesaj', 'Mesajlaşma', 'mesaj'],
       ['duyurular', 'Duyurular', 'duyuru'],
       ['etkinlikler', 'Takvim etkinlikleri', 'takvim'],
+      ['oda', 'Öğretmenler Odası', 'oda'],
     ],
   },
   {
@@ -167,6 +172,8 @@ const KEYWORDS: Partial<Record<Tab, string>> = {
   kapali: 'kapalı hesap aç',
   aktarim: 'excel csv toplu içe aktar',
   hatalar: 'hata kayıt sorun çöktü yüklenemedi zaman aşımı',
+  oda: 'öğretmenler odası sohbet kanal zümre kademe özel kanal pano anket teşekkür değişim oyun sudoku lig doğum günü öğrenci takip saklama süre',
+  gunluk_kontrol: 'günlük kontrol kıyafet kitap defter ajanda telefon beden madde eksik veli uyarı',
   hedefler: 'lise üniversite taban puan yüzdelik tercih hedef lgs yks ösym tablo',
   bursluluk: 'bursluluk başvuru seans kontenjan',
 }
@@ -329,6 +336,8 @@ export default function YonetimPage() {
                 </>
               )}
               {tab === 'mesaj' && <MesajAyarlari />}
+              {tab === 'oda' && <OdaAyarlari />}
+              {tab === 'gunluk_kontrol' && <GunlukKontrolAyarlari />}
               {tab === 'duyurular' && <DuyuruListesi />}
               {tab === 'etkinlikler' && <EtkinlikListesi />}
             </>

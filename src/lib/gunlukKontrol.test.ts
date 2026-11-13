@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MADDELER, MADDE_CUMLE, ayBasi, ayOzeti, aySonu, donemBasi, farkBul, kacinci, taslakKur, uyariGider, type Kayit, type Madde } from './gunlukKontrol'
+import { MADDELER, MADDE_CUMLE, maddeKodu, ayBasi, ayOzeti, aySonu, donemBasi, farkBul, kacinci, taslakKur, uyariGider, type Kayit, type Madde } from './gunlukKontrol'
 
 let n = 0
 const k = (student_id: string, tarih: string, madde: Madde, teacher_id = 'ben', extra: Partial<Kayit> = {}): Kayit => ({
@@ -37,8 +37,18 @@ describe('kaçıncı eksik ve uyarı', () => {
     expect(kacinci(kayitlar, 'a', 'ajanda', '2026-11-05')).toBe(2)
   })
   it('uyarı her 3. eksikte', () => {
-    expect([1, 2, 3, 4, 5, 6, 9].map(uyariGider)).toEqual([false, false, true, false, false, true, true])
+    expect([1, 2, 3, 4, 5, 6, 9].map((n) => uyariGider(n))).toEqual([false, false, true, false, false, true, true])
     expect(uyariGider(0)).toBe(false)
+  })
+  it('uyarı aralığı okul ayarından; 0 = hiç', () => {
+    expect([1, 2, 3, 4].map((n) => uyariGider(n, 2))).toEqual([false, true, false, true])
+    expect([1, 3, 6].map((n) => uyariGider(n, 0))).toEqual([false, false, false])
+  })
+  it('yeni madde kodu addan türer, çakışmaz', () => {
+    expect(maddeKodu('Saç / tıraş', [])).toBe('sac_tiras')
+    expect(maddeKodu('Kıyafet', ['kiyafet'])).toBe('kiyafet_2')
+    expect(maddeKodu('8. sınıf', [])).toBe('m_8_sinif')
+    expect(maddeKodu('İçecek şişesi', [])).toMatch(/^[a-z][a-z0-9_]{1,30}$/)
   })
 })
 

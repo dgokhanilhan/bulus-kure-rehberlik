@@ -11,7 +11,7 @@ async function axe(page: Page, label: string) {
   expect(bad.map((v) => `${label}: ${v.id} (${v.nodes.length}) ${v.nodes[0]?.target}`)).toEqual([])
 }
 
-const tab = (page: Page, name: string) => page.getByRole('group', { name: 'Yönetim bölümü' }).getByRole('button', { name })
+const tab = (page: Page, name: string | RegExp) => page.getByRole('group', { name: 'Yönetim bölümü' }).getByRole('button', { name })
 
 test.describe.serial('Yönetim paneli', () => {
   let secret = ''
@@ -25,7 +25,7 @@ test.describe.serial('Yönetim paneli', () => {
 
   test('menü ve sınıflar: kademelere göre liste, sınıf ekle/düzenle', async ({ page }) => {
     secret = await loginAdmin(page)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/, 'Yönetim', 'Gözetmen Bul', /Onaylar/, /^Öğretmenler Odası/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', /^Öğretmenler Odası/, 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/, 'Yönetim', 'Gözetmen Bul', /Onaylar/])
     await page.getByRole('link', { name: 'Yönetim', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Yönetim' })).toBeVisible()
     for (const k of ['İlkokul', 'Ortaokul', 'Lise']) await expect(page.getByRole('region', { name: k })).toBeVisible()
@@ -118,7 +118,7 @@ test.describe.serial('Yönetim paneli', () => {
 
     await tab(page, 'Kapalı hesaplar').click()
     await page.getByRole('button', { name: 'Esra Demir hesabını yeniden aç' }).click()
-    await tab(page, 'Öğretmenler').click()
+    await tab(page, /^Öğretmenler$/).click() // "Öğretmenler Odası" ayar sekmesiyle karışmasın
     await page.getByRole('button', { name: 'Esra Demir düzenle' }).click()
     await ed.getByLabel('Branş').selectOption('Fen Bilimleri')
     await ed.getByRole('button', { name: 'Kaydet' }).click()
@@ -154,7 +154,7 @@ test.describe.serial('Yönetim paneli', () => {
 
   test('rehber: Yönetim menüsü yok, adresle de açılmaz', async ({ page }) => {
     await login(page, ...DEMO.rehber)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Denemeler', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/, /^Öğretmenler Odası/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', /^Öğretmenler Odası/, 'Ödevler', 'Takvim', 'Nöbet Takip', 'Denemeler', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/])
     await page.goto('/yonetim')
     await expect(page).toHaveURL(/\/bugun$/)
   })

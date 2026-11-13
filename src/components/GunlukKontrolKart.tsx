@@ -3,17 +3,18 @@
 import { useMemo } from 'react'
 import { usePeople } from '@/lib/data'
 import { todayISO, trDW } from '@/lib/format'
-import { MADDELER, MADDE_CUMLE, MADDE_TR, UYARI_ARALIGI, ayBasi, ayOzeti, donemBasi, type Kayit } from '@/lib/gunlukKontrol'
-import { useGunlukKontrol } from '@/lib/gunlukKontrolData'
+import { ayBasi, ayOzeti, donemBasi, type Kayit } from '@/lib/gunlukKontrol'
+import { useGunlukKontrol, useGunlukMaddeler } from '@/lib/gunlukKontrolData'
 import { Icon } from '@/components/Icon'
 import { Dropdown } from '@/components/Indicator'
 
-const cumle = (k: Kayit) => (k.detay ? `${MADDE_TR[k.madde]}: ${k.detay}` : MADDE_CUMLE[k.madde])
 
 /** Veli ve öğrenci: Okul sayfasında Devamsızlık'ın altındaki kart */
 export function GunlukKontrolKart({ sid, veli, delay = 4 }: { sid: string; veli: boolean; delay?: number }) {
   const bugun = todayISO()
   const q = useGunlukKontrol([sid], ayBasi(bugun), bugun)
+  const gm = useGunlukMaddeler()
+  const cumle = (k: Kayit) => (k.detay ? `${gm.ad(k.madde)}: ${k.detay}` : gm.cumle(k.madde))
   const o = ayOzeti(q.data ?? [], bugun)
   const sub = o.bugun.length ? `Bugün ${o.bugun.length} eksik · bu ay ${o.toplam}` : o.toplam ? `Bu ay ${o.toplam} eksik` : 'Bu ay eksik görülmedi'
   return (
@@ -46,8 +47,8 @@ export function GunlukKontrolKart({ sid, veli, delay = 4 }: { sid: string; veli:
         )}
         {o.toplam > 0 && (
           <div className="btns" style={{ gap: 6 }}>
-            {MADDELER.filter(([m]) => o.sayac[m]).map(([m, t]) => (
-              <span key={m} className={`chip ${(o.sayac[m] ?? 0) >= UYARI_ARALIGI ? 'gk-k' : 'n'}`}>
+            {gm.liste.filter(({ kod: m }) => o.sayac[m]).map(({ kod: m, ad: t }) => (
+              <span key={m} className={`chip ${gm.aralik > 0 && (o.sayac[m] ?? 0) >= gm.aralik ? 'gk-k' : 'n'}`}>
                 {t} · bu ay {o.sayac[m]}
               </span>
             ))}
@@ -68,7 +69,7 @@ export function GunlukKontrolKart({ sid, veli, delay = 4 }: { sid: string; veli:
           </span>
         )}
         <span className="m" style={{ fontSize: 12 }}>
-          Öğretmenler yalnız eksik olanı işaretler. Aynı eksik ay içinde {UYARI_ARALIGI}. kez olursa veliye bildirim gider.
+          Öğretmenler yalnız eksik olanı işaretler.{gm.aralik > 0 ? ` Aynı eksik ay içinde ${gm.aralik}. kez olursa veliye bildirim gider.` : ''}
         </span>
       </div>
     </Dropdown>
@@ -80,6 +81,7 @@ export function GunlukKontrolSekme({ sid }: { sid: string }) {
   const bugun = todayISO()
   const q = useGunlukKontrol([sid], donemBasi(bugun), bugun)
   const people = usePeople()
+  const gm = useGunlukMaddeler()
   const kisi = (id: string | null) => {
     const p = people.data?.find((x) => x.id === id)
     return p ? `${p.full_name}${p.branch ? ` · ${p.branch}` : ''}` : '—'
@@ -104,11 +106,12 @@ export function GunlukKontrolSekme({ sid }: { sid: string }) {
               <span className="m">{o.toplam} kayıt</span>
             </div>
             <div className="btns" style={{ gap: 6, marginTop: 8 }}>
-              {MADDELER.map(([m, t]) => {
+              {gm.liste.filter((x) => x.aktif || o.sayac[x.kod]).map(({ kod: m, ad: t }) => {
                 const n = o.sayac[m] ?? 0
+                const uyari = gm.aralik > 0 && n >= gm.aralik
                 return (
-                  <span key={m} className={`chip ${n >= UYARI_ARALIGI ? 'gk-k' : n ? 'n' : 'up'}`}>
-                    {t} · {n ? `${n} kez${n >= UYARI_ARALIGI ? ' · veliye uyarı' : ''}` : 'eksik yok'}
+                  <span key={m} className={`chip ${uyari ? 'gk-k' : n ? 'n' : 'up'}`}>
+                    {t} · {n ? `${n} kez${uyari ? ' · veliye uyarı' : ''}` : 'eksik yok'}
                   </span>
                 )
               })}
@@ -119,7 +122,7 @@ export function GunlukKontrolSekme({ sid }: { sid: string }) {
                   {trDW(k.tarih)}
                 </span>
                 <span style={{ flex: 1 }}>
-                  {MADDE_TR[k.madde]}
+                  {gm.ad(k.madde)}
                   {k.detay && <span className="m"> · {k.detay}</span>}
                   {k.veli_uyarildi && <span className="chip gk-k" style={{ marginLeft: 6 }}>Veliye uyarı · {k.sira}.</span>}
                 </span>

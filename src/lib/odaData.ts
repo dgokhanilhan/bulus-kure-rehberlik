@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import { useAuth } from '@/auth/AuthProvider'
-import { kanalSirala } from './oda'
+import { kanalSirala, type KanalAyar } from './oda'
 
 async function rows<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await q
@@ -212,6 +212,20 @@ export function useBugunNobet(gun: number) {
       const { data, error } = await supabase.from('teacher_duties').select('period, location').eq('teacher_id', profile!.id).eq('weekday', gun).order('period', { ascending: false })
       if (error) throw new Error(error.message)
       return (data ?? []) as { period: 'before_noon' | 'after_noon'; location: string }[]
+    },
+  })
+}
+
+/** Yönetimin kanal düzenlemeleri (0071): ad, açıklama, sıra, gizleme, özel kanallar */
+export function useOdaKanalAyar(enabled = true) {
+  const { profile } = useAuth()
+  return useQuery({
+    queryKey: ['oda', 'kanal-ayar', profile?.school_id],
+    enabled: enabled && !!profile,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const r = await rows<KanalAyar>(supabase.from('oda_kanal').select('kanal, ad, aciklama, gizli, sira, uyeler'))
+      return new Map(r.map((x) => [x.kanal, x]))
     },
   })
 }

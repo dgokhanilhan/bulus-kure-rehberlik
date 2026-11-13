@@ -9,7 +9,7 @@ export interface AyarTanim {
   tur: string
   varsayilan: unknown
 }
-export const AYAR_GRUPLARI = ["Genel", "Görünüm", "Metinler", "Menü", "Modüller", "Bildirimler", "Kayıt ve güvenlik", "Veli ve öğrenci", "Öğretmen yetkileri", "Analiz", "Deneme ve raporlar", "Ödev", "Dosya ve duyuru", "Galeri", "Yoklama", "Takvim", "Etüt", "Gözetmen", "Bursluluk", "Ana sayfa"] as const
+export const AYAR_GRUPLARI = ["Genel", "Görünüm", "Metinler", "Menü", "Modüller", "Bildirimler", "Kayıt ve güvenlik", "Veli ve öğrenci", "Öğretmen yetkileri", "Analiz", "Deneme ve raporlar", "Ödev", "Dosya ve duyuru", "Galeri", "Yoklama", "Takvim", "Etüt", "Gözetmen", "Bursluluk", "Öğretmenler Odası", "Günlük kontrol", "Ana sayfa"] as const
 export const AYARLAR: AyarTanim[] = [
   { key: "genel.adres", grup: "Genel", ad: "Adres", aciklama: "Okulun adresi.", ekranlar: "İletişim, KVKK", tur: "text", varsayilan: "" },
   { key: "genel.alt_baslik", grup: "Genel", ad: "Alt başlık", aciklama: "Okul adının altındaki satır (ör. Rehberlik & Mentörlük).", ekranlar: "Giriş, üst bilgi", tur: "text", varsayilan: "Rehberlik & Mentörlük" },
@@ -160,4 +160,15 @@ export const AYARLAR: AyarTanim[] = [
   { key: "panel.ogretmen", grup: "Ana sayfa", ad: "Öğretmen ana sayfa düzeni", aciklama: "Kartların sırası ve görünürlüğü; Yönetim → Ana sayfa düzeni ekranından düzenlenir.", ekranlar: "Ana sayfa", tur: "layout", varsayilan: [{"id": "derslerim", "on": true}, {"id": "odev_kontrol", "on": true}, {"id": "duyuru", "on": true}, {"id": "takvim", "on": true}, {"id": "mesaj", "on": true}, {"id": "devamsizlik", "on": true}, {"id": "yemek", "on": false}] },
   { key: "panel.veli", grup: "Ana sayfa", ad: "Veli ana sayfa düzeni", aciklama: "Kartların sırası ve görünürlüğü; Yönetim → Ana sayfa düzeni ekranından düzenlenir.", ekranlar: "Ana sayfa", tur: "layout", varsayilan: [{"id": "duyuru", "on": true}, {"id": "odev", "on": true}, {"id": "program", "on": true}, {"id": "yemek", "on": true}, {"id": "yoklama", "on": true}, {"id": "takvim", "on": true}, {"id": "mesaj", "on": true}, {"id": "lgs", "on": true}, {"id": "bursluluk", "on": false}] },
   { key: "panel.yonetim", grup: "Ana sayfa", ad: "Yönetim ana sayfa düzeni", aciklama: "Kartların sırası ve görünürlüğü; Yönetim → Ana sayfa düzeni ekranından düzenlenir.", ekranlar: "Ana sayfa", tur: "layout", varsayilan: [{"id": "deneme", "on": true}, {"id": "devamsizlik", "on": true}, {"id": "gorusmeler", "on": true}, {"id": "gorevler", "on": true}] },
+  { key: "modul.oda", grup: "Modüller", ad: "Öğretmenler Odası", aciklama: "Kapalıyken modül menüden kalkar ve yönetici dışında verisi okunamaz.", ekranlar: "Menü, ilgili ekranlar", tur: "bool", varsayilan: true },
+  { key: "oda.takip", grup: "Öğretmenler Odası", ad: "Öğrenci Takip bölümü", aciklama: "Kapalıyken Öğretmenler Odası'nda Öğrenci Takip sekmesi görünmez.", ekranlar: "Öğretmenler Odası", tur: "bool", varsayilan: true },
+  { key: "oda.sohbet", grup: "Öğretmenler Odası", ad: "Sohbet bölümü", aciklama: "Kapalıyken sohbet görünmez; yönetici dışında mesajlar veritabanında da okunamaz ve yazılamaz.", ekranlar: "Öğretmenler Odası", tur: "bool", varsayilan: true },
+  { key: "oda.pano", grup: "Öğretmenler Odası", ad: "Pano bölümü", aciklama: "Pano notları, hızlı anket, teşekkür kartı ve ders/nöbet değişimi. Kapalıyken veri de kapanır.", ekranlar: "Öğretmenler Odası", tur: "bool", varsayilan: true },
+  { key: "oda.oyunlar", grup: "Öğretmenler Odası", ad: "Oyunlar bölümü", aciklama: "Günün bulmacaları, kısa oyunlar, skor tablosu ve haftalık lig. Kapalıyken veri de kapanır.", ekranlar: "Öğretmenler Odası", tur: "bool", varsayilan: true },
+  { key: "oda.dogum_gunu", grup: "Öğretmenler Odası", ad: "Doğum günleri", aciklama: "Öğretmenlerin isteğe bağlı paylaştığı doğum günleri \"Bugün okulda\" kartında.", ekranlar: "Öğretmenler Odası", tur: "bool", varsayilan: true },
+  { key: "oda.saklama_gun", grup: "Öğretmenler Odası", ad: "Sohbet mesajlarının saklanma süresi (gün)", aciklama: "Bu kadar günden eski mesajlar her gece silinir (7–365).", ekranlar: "Öğretmenler Odası", tur: "int", varsayilan: 30 },
+  { key: "bildirim.oda", grup: "Bildirimler", ad: "Öğretmenler Odası", aciklama: "Kapalıyken bu türden bildirim oluşmaz.", ekranlar: "Bildirimler", tur: "bool", varsayilan: true },
+  { key: "bildirim.gunluk_kontrol", grup: "Bildirimler", ad: "Günlük kontrol uyarısı", aciklama: "Kapalıyken bu türden bildirim oluşmaz.", ekranlar: "Bildirimler", tur: "bool", varsayilan: true },
+  { key: "gunluk_kontrol.uyari_araligi", grup: "Günlük kontrol", ad: "Veli uyarı aralığı", aciklama: "Aynı eksik ay içinde bu kadar kez (ve katları) tekrar edince veliye uyarı gider (0 = uyarı yok). Maddeler Yönetim → Günlük kontrol ekranında.", ekranlar: "Günlük kontrol, Bildirimler", tur: "int", varsayilan: 3 },
+  { key: "menu.ad.ogretmenler_odasi", grup: "Menü", ad: "Menü adı: Öğretmenler Odası", aciklama: "Boşsa varsayılan ad kullanılır.", ekranlar: "Menü", tur: "text", varsayilan: "" },
 ]
