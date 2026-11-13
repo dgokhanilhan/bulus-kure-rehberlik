@@ -6,8 +6,8 @@ import { createClient } from '@supabase/supabase-js'
 import { DEMO, login, service, shot } from './helpers'
 
 const ELIF = '00000000-0000-4000-8001-000000001184' // seed: Elif Yıldız, 8/A (velisi Ayşe Yıldız, matematik öğretmeninin sınıfı)
-// Uygulamanın todayISO'su gibi yerel tarih (tarayıcı ve test aynı makinede)
-const bugun = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+// Uygulamanın todayISO'su gibi tarih: tarayıcı Europe/Istanbul'da çalışır (playwright.config timezoneId); CI makinesi UTC olabilir
+const bugun = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbul' }).format(new Date())
 const temizle = async () => {
   const svc = service()
   await svc.from('gunluk_kontrol').delete().eq('student_id', ELIF)

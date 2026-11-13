@@ -1,22 +1,30 @@
 // Öğretmenler Odası: öğretmenlerin ortak alanı. Ad kademeye göre ("Ortaokul Öğretmenler Odası", "Ortaokul/Lise …").
-// Sekmeler: Oda (özet ve "Bugün okulda"), Öğrenci Takip, Sohbet. Veli ve öğrenci bu sayfayı göremez (menü + RLS).
-import { lazy, Suspense } from 'react'
+// Sekmeler: Oda (özet ve "Bugün okulda"), Öğrenci Takip, Sohbet, Pano, Oyunlar. Veli ve öğrenci bu sayfayı göremez (menü + RLS).
+import { lazy, Suspense, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useCalendar, useMeals, useModules } from '@/lib/data'
 import { addDays, isoDow, todayISO, trDM, trDW } from '@/lib/format'
 import { odaAdi } from '@/lib/oda'
 import { useBugunNobet, useOdaCanli, useOdaKanallari, useOdaOkunmamis } from '@/lib/odaData'
+import { useDogumGunleri, useDogumKaydet } from '@/lib/panoData'
+import { yaklasanDogumGunleri } from '@/lib/pano'
+import { useAuth } from '@/auth/AuthProvider'
+import { useToast } from '@/components/Toast'
 import { useIndicator } from '@/components/Indicator'
 import { Icon } from '@/components/Icon'
 import { VeriDurumu } from '@/components/VeriDurumu'
 
 const OdaOgrenciTakip = lazy(() => import('./OdaOgrenciTakip'))
 const OdaSohbet = lazy(() => import('./OdaSohbet'))
+const OdaPano = lazy(() => import('./OdaPano'))
+const OdaOyunlar = lazy(() => import('./OdaOyunlar'))
 
 const TABS = [
   ['oda', 'Oda'],
   ['takip', 'Öğrenci Takip'],
   ['sohbet', 'Sohbet'],
+  ['pano', 'Pano'],
+  ['oyunlar', 'Oyunlar'],
 ] as const
 type Tab = (typeof TABS)[number][0]
 
@@ -62,6 +70,8 @@ export default function OgretmenlerOdasi() {
           {tab === 'oda' && <OdaGiris okunmamis={toplam} onTab={setTab} />}
           {tab === 'takip' && <OdaOgrenciTakip />}
           {tab === 'sohbet' && (kanallar.isLoading ? <Bekle /> : <OdaSohbet kanallar={kanallar.data ?? []} />)}
+          {tab === 'pano' && <OdaPano />}
+          {tab === 'oyunlar' && <OdaOyunlar />}
         </Suspense>
       )}
     </>
@@ -103,9 +113,29 @@ function OdaGiris({ okunmamis, onTab }: { okunmamis: number; onTab: (t: Tab) => 
             {okunmamis > 0 ? <span className="chip gold">{okunmamis} yeni mesaj</span> : 'Aç'} <Icon name="right" size={16} />
           </span>
         </button>
+        <button type="button" className="card oda-kutu a" style={{ ['--d' as string]: 4 }} onClick={() => onTab('pano')}>
+          <span className="oda-ikon">
+            <Icon name="clip" size={22} />
+          </span>
+          <b>Pano</b>
+          <span className="m">Duyuru notları, hızlı anket, teşekkür kartları ve ders/nöbet değişimi.</span>
+          <span className="oda-git">
+            Aç <Icon name="right" size={16} />
+          </span>
+        </button>
+        <button type="button" className="card oda-kutu a" style={{ ['--d' as string]: 5 }} onClick={() => onTab('oyunlar')}>
+          <span className="oda-ikon">
+            <Icon name="play" size={22} />
+          </span>
+          <b>Oyunlar</b>
+          <span className="m">Teneffüs için günün sudokusu, günün kelimesi ve kısa oyunlar; dostça skor tablosu ve haftalık lig.</span>
+          <span className="oda-git">
+            Aç <Icon name="right" size={16} />
+          </span>
+        </button>
       </div>
 
-      <section className="card a oda-bugun" style={{ ['--d' as string]: 4 }}>
+      <section className="card a oda-bugun" style={{ ['--d' as string]: 6 }}>
         <div className="kv">
           <h2 className="sec">Bugün okulda</h2>
           <span className="m" style={{ fontSize: 13 }}>
@@ -172,8 +202,110 @@ function OdaGiris({ okunmamis, onTab }: { okunmamis: number; onTab: (t: Tab) => 
               </span>
             </li>
           )}
+          <DogumGunleri bugun={bugun} />
         </ul>
       </section>
     </div>
+  )
+}
+
+const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
+
+/** Doğum günleri: yalnız kendi isteğiyle paylaşan öğretmenler görünür; yıl tutulmaz. */
+function DogumGunleri({ bugun }: { bugun: string }) {
+  const { profile } = useAuth()
+  const toast = useToast()
+  const dg = useDogumGunleri()
+  const kaydet = useDogumKaydet()
+  const [acik, setAcik] = useState(false)
+  const [ay, setAy] = useState<number | ''>('')
+  const [gun, setGun] = useState<number | ''>('')
+  const benim = (dg.data ?? []).find((d) => d.user_id === profile?.id)
+  const yakin = yaklasanDogumGunleri((dg.data ?? []).filter((d) => d.goster), bugun)
+  const gunSayisi = ay ? new Date(Date.UTC(2024, ay, 0)).getUTCDate() : 31
+  const ac = () => {
+    setAy(benim?.ay ?? '')
+    setGun(benim?.gun ?? '')
+    setAcik(true)
+  }
+  const bitti = (m: string) => () => (setAcik(false), toast(m))
+  const hata = (e: unknown) => toast((e as Error).message, 'warn')
+
+  return (
+    <li>
+      <span className="oda-bugun-ikon">
+        <Icon name="spark" size={18} />
+      </span>
+      <span style={{ minWidth: 0, flex: 1 }}>
+        <b>Doğum günleri</b>
+        {dg.isLoading ? (
+          <span className="m" style={{ display: 'block' }}>
+            Yükleniyor…
+          </span>
+        ) : yakin.length ? (
+          <span className="oda-dogum">
+            {yakin.map((d) => (
+              <span key={d.user_id} className={d.kalan === 0 ? 'chip gold' : 'chip'}>
+                {d.kalan === 0 ? '🎂 Bugün · ' : `${d.gun} ${AYLAR[d.ay - 1]} · `}
+                {d.p?.full_name ?? 'Öğretmen'}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className="m" style={{ display: 'block' }}>
+            Önümüzdeki 7 günde paylaşılmış doğum günü yok.
+          </span>
+        )}
+        {!acik ? (
+          <button type="button" className="btn ghost sm oda-dogum-ac" onClick={ac}>
+            {benim ? `Doğum günün: ${benim.gun} ${AYLAR[benim.ay - 1]} · Değiştir` : 'Doğum gününü paylaş (isteğe bağlı)'}
+          </button>
+        ) : (
+          <span className="oda-dogum-form">
+            <label className="field">
+              Ay
+              <select value={ay} onChange={(e) => setAy(e.target.value ? Number(e.target.value) : '')}>
+                <option value="">Seç</option>
+                {AYLAR.map((a, i) => (
+                  <option key={a} value={i + 1}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              Gün
+              <select value={gun} onChange={(e) => setGun(e.target.value ? Number(e.target.value) : '')}>
+                <option value="">Seç</option>
+                {Array.from({ length: gunSayisi }, (_, i) => i + 1).map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className="oda-dogum-dugmeler">
+              <button
+                type="button"
+                className="btn pri sm"
+                disabled={!ay || !gun || Number(gun) > gunSayisi || kaydet.isPending}
+                onClick={() => kaydet.mutate({ ay: Number(ay), gun: Number(gun), goster: true }, { onSuccess: bitti('Doğum günün odada görünecek'), onError: hata })}
+              >
+                Odada göster
+              </button>
+              {benim && (
+                <button type="button" className="btn ghost sm" disabled={kaydet.isPending} onClick={() => kaydet.mutate(null, { onSuccess: bitti('Doğum günün kaldırıldı'), onError: hata })}>
+                  Kaldır
+                </button>
+              )}
+              <button type="button" className="btn ghost sm" onClick={() => setAcik(false)}>
+                Vazgeç
+              </button>
+            </span>
+            <span className="m oda-dogum-not">Yalnız gün ve ay saklanır; yalnız okulundaki öğretmenler görür. İstediğin zaman kaldırabilirsin.</span>
+          </span>
+        )}
+      </span>
+    </li>
   )
 }
