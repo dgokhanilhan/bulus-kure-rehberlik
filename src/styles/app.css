@@ -882,8 +882,11 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .kl-h.r0{background:var(--surface-sunken);border-color:var(--surface-sunken);color:var(--ink-muted)}
 .kl-h.r1{background:var(--highlight);border-color:var(--highlight);color:var(--ink-fixed)}
 .kl-h.r2{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
-.kl-isaret{position:absolute;top:2px;right:4px;font-size:10px;font-style:normal}
-.kl-ipucu{font-size:13px;margin:0}
+.kl-isaret{position:absolute;top:1px;right:4px;font-size:15px;font-weight:800;font-style:normal;line-height:1}
+.kl-aciklama{list-style:none;margin:0;padding:10px 12px;display:flex;flex-direction:column;gap:8px;width:min(100%,420px);border-radius:12px;border:1px solid var(--line);font-size:14px}
+.kl-aciklama li{display:flex;gap:10px;align-items:center}
+.kl-h.kucuk{flex:none;width:36px;height:36px;font-size:17px}
+.kl-h.kucuk .kl-isaret{font-size:11px}
 .kl-sonuc{margin:0;text-align:center}
 .kl-klavye{display:flex;flex-direction:column;gap:6px;width:min(100%,520px)}
 .kl-sira{display:flex;gap:4px;justify-content:center}
@@ -907,7 +910,9 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .oy-sprint{display:flex;flex-direction:column;gap:16px;align-items:center;width:100%}
 .sp-basla{min-height:56px;font-size:17px;padding:0 28px}
 .sp-soru{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
-.sp-islem{font-size:clamp(28px,7vw,40px);font-weight:700}
+.sp-islem{font-size:clamp(28px,7vw,40px);font-weight:700;text-align:center;overflow-wrap:anywhere}
+.sp-islem.uzun{font-size:clamp(22px,5.6vw,34px)}
+.sp-not{margin:0;font-size:13px;min-height:1.4em;text-align:center}
 .sp-cevap{width:120px;min-height:56px;font-size:28px;text-align:center;border-radius:12px;border:2px solid var(--line-strong);background:var(--surface)}
 .sp-cevap:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
 .sp-soru .btn{min-height:56px}
