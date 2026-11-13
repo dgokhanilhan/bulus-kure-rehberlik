@@ -70,6 +70,7 @@ export interface Notification {
     event?: string
     kind?: string
     album?: string
+    kanal?: string
   }
   read_at: string | null
   created_at: string

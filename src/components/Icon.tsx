@@ -33,6 +33,7 @@ const PATHS = {
   mega: '<path d="M3 10v4h3l6 4V6L6 10zM16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/>',
   play: '<path d="M8 5v14l11-7z"/>',
+  cup: '<path d="M4 9h13v5a5 5 0 01-5 5H9a5 5 0 01-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 010 5H17M8 3c0 1.2-1 1.6-1 3M12 3c0 1.2-1 1.6-1 3"/>',
 } as const
 
 export type IconName = keyof typeof PATHS

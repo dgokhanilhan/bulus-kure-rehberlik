@@ -45,12 +45,12 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'odevler' | 'takvim' | 'bildirimler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
   | 'nobet-takip' | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler' | 'galeri'
-  | 'gozetmen' | 'etut'
+  | 'gozetmen' | 'etut' | 'ogretmenler-odasi'
 
 export interface NavItem {
   id: PageId
   label: string
-  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega' | 'image' | 'search' | 'flag'
+  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega' | 'image' | 'search' | 'flag' | 'cup'
 }
 
 const STAFF: NavItem[] = [
@@ -82,13 +82,15 @@ const FAMILY: NavItem[] = [
 
 /** Gözetmen Bul (bağımsız modül, 0048): yalnız yönetici. Kaldırmak için bu satırı ve aşağıdaki kullanımını sil. */
 const GOZETMEN: NavItem = { id: 'gozetmen', label: 'Gözetmen Bul', icon: 'search' }
+/** Öğretmenler Odası (0068): yönetici ve bütün öğretmenler; menünün sonunda. Veli/öğrenci görmez (RLS de kapalı). */
+const ODA: NavItem = { id: 'ogretmenler-odasi', label: 'Öğretmenler Odası', icon: 'cup' }
 
 /** Rol bazlı menü — prototipteki navItems() ile aynı. Yetki ayrıca veritabanında (RLS) zorlanır. */
 function navFor(r: Role): NavItem[] {
-  if (r === 'admin') return [...STAFF, ETUT, DUYURULAR, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, GOZETMEN, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }]
-  if (r === 'rehber') return [...STAFF, ETUT, DUYURULAR, ILETISIM]
+  if (r === 'admin') return [...STAFF, ETUT, DUYURULAR, ILETISIM, { id: 'yonetim', label: 'Yönetim', icon: 'pen' }, GOZETMEN, { id: 'onaylar', label: 'Onaylar', icon: 'shield' }, ODA]
+  if (r === 'rehber') return [...STAFF, ETUT, DUYURULAR, ILETISIM, ODA]
   // Branş öğretmeni Sınıflar'da yalnız derse girdiği şubeleri ve kendi dersini görür (SiniflarPage; öğrenci verisi RLS 0023)
-  if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, STAFF[5]!, ETUT, DUYURULAR, ILETISIM]
+  if (r === 'brans') return [PANEL, STAFF[1]!, STAFF[2]!, STAFF[3]!, STAFF[5]!, ETUT, DUYURULAR, ILETISIM, ODA]
   const fam = [...FAMILY.slice(0, 4), ETUT, ...FAMILY.slice(4)] // Ödevler'den sonra
   if (r === 'ogrenci') return fam.filter((n) => n.id !== 'iletisim') // öğrenci mesajlaşmaz; duyuruları görür
   return fam

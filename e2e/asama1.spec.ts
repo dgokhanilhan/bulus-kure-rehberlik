@@ -12,7 +12,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('rehber öğretmen: Bugün, Öğrenciler, Denemeler, Sınıflar — Onaylar yok', async ({ page }) => {
     await login(page, ...DEMO.rehber)
     await expect(page).toHaveURL(/\/bugun$/)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Denemeler', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Denemeler', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/, /^Öğretmenler Odası/])
     await page.goto('/onaylar')
     await expect(page).toHaveURL(/\/bugun$/)
     await expect(page.getByText('Rehber öğretmen').first()).toBeVisible()
@@ -26,7 +26,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('branş öğretmeni yalnız Öğrenciler sekmesini görür', async ({ page }) => {
     await login(page, ...DEMO.matematik)
     await expect(page).toHaveURL(/\/panel$/)
-    await expect(menu(page)).toHaveText(['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/])
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'Öğrenciler', 'Ödevler', 'Takvim', 'Nöbet Takip', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/, /^Öğretmenler Odası/])
     for (const p of ['/bugun', '/denemeler', '/onaylar', '/ozet']) {
       await page.goto(p)
       await expect(page).toHaveURL(/\/panel$/)
@@ -85,7 +85,7 @@ test.describe.serial('Admin iki adımlı doğrulama ve kayıt onayı', () => {
     await expect(page.getByRole('alert')).toContainText('Kod hatalı')
 
     secret = await completeMfa(page)
-    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/, 'Yönetim', 'Gözetmen Bul', /Onaylar/])
+    await expect(menu(page)).toHaveText(['Bugün', 'Öğrenciler', 'Ödevler', 'Takvim', 'Denemeler', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/, 'Yönetim', 'Gözetmen Bul', /Onaylar/, /^Öğretmenler Odası/])
     await page.getByRole('link', { name: /Onaylar/ }).click()
     await expect(page.getByRole('heading', { name: 'Kayıt onayları' })).toBeVisible()
     await expect(page.getByTestId('pending-card')).toHaveCount(await pendingCount())
