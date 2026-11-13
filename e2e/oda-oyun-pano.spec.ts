@@ -94,7 +94,11 @@ test('pano: not, anket (gizli oy), teşekkür (bildirim), ders değişimi; veli 
   expect((await veli.from('oda_pano').select('id')).data).toEqual([])
   expect((await reh.from('oda_pano').select('id').like('metin', `%${IZ}%`)).data).toHaveLength(1)
 
-  const { data: a } = await reh.from('oda_anket').insert({ soru: `${IZ} toplantı günü?`, secenekler: ['Salı', 'Perşembe', ' '] }).select('id, secenekler').single()
+  const { data: a } = await reh
+    .from('oda_anket')
+    .insert({ soru: `${IZ} toplantı günü?`, secenekler: ['Salı', 'Perşembe', ' '] })
+    .select('id, secenekler')
+    .single()
   expect(a!.secenekler).toEqual(['Salı', 'Perşembe'])
   expect((await mat.rpc('oda_anket_oyla', { p_anket: a!.id, p_secim: 1 })).error).toBeNull()
   expect((await mat.rpc('oda_anket_oyla', { p_anket: a!.id, p_secim: 5 })).error).not.toBeNull()
@@ -107,7 +111,11 @@ test('pano: not, anket (gizli oy), teşekkür (bildirim), ders değişimi; veli 
   expect((await svc.from('notifications').select('id').eq('user_id', rehId).eq('type', 'oda').like('text', `%${IZ}%`)).data).toHaveLength(1)
 
   const yarin = new Date(Date.now() + 86400_000 + 3 * 3600_000).toISOString().slice(0, 10)
-  const { data: d } = await mat.from('oda_degisim').insert({ tur: 'ders', tarih: yarin, saat: `3. ders ${IZ}`, sinif: '8/A' }).select('id').single()
+  const { data: d } = await mat
+    .from('oda_degisim')
+    .insert({ tur: 'ders', tarih: yarin, saat: `3. ders ${IZ}`, sinif: '8/A' })
+    .select('id')
+    .single()
   expect((await mat.rpc('oda_degisim_al', { p_id: d!.id })).error).not.toBeNull() // kendi talebi
   expect((await reh.rpc('oda_degisim_al', { p_id: d!.id })).error).toBeNull()
   expect((await svc.from('oda_degisim').select('durum, alan').eq('id', d!.id).single()).data).toEqual({ durum: 'alindi', alan: rehId })
@@ -130,7 +138,36 @@ test('arayüz: oyunlar ve pano sekmeleri, sudoku ve kelime oynanır', async ({ p
   await page.keyboard.type('kalem')
   await page.keyboard.press('Enter')
   await expect(page.getByRole('grid', { name: 'Tahminler' }).getByRole('row').first().getByRole('gridcell').first()).toHaveAttribute('aria-label', /K: /)
+  // Renklerin anlamı oyundaki kutuların aynısıyla açıklanır
+  const aciklama = page.getByTestId('kelime-aciklama')
+  await expect(aciklama).toContainText('Doğru yerde (✓)')
+  await expect(aciklama).toContainText('Yeri yanlış (↔)')
+  await expect(aciklama).toContainText('Kelimede yok')
+  const axeK = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa']).analyze()
+  expect(axeK.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([])
   await shot(page, 'oda-kelime')
+  await page.getByRole('button', { name: 'Oyunlar' }).click()
+
+  // Hesap Sprinti: her doğruda seviye artar, hızlı doğruda daha çok; yanlışta aynı kalır
+  await page.getByRole('button', { name: /Hesap Sprinti/ }).click()
+  await page.getByRole('button', { name: 'Başla (60 sn)' }).click()
+  const seviye = page.getByTestId('sprint-seviye')
+  await expect(seviye).toHaveText('Seviye 1')
+  const islem = page.locator('.sp-islem')
+  const coz = async () => {
+    const m = (await islem.innerText()).replace('=', '').replace(/−/g, '-').replace(/×/g, '*').replace(/÷/g, '/')
+    return String(await page.evaluate((x) => Function(`return (${x})`)(), m))
+  }
+  await page.getByLabel('Cevap').fill(await coz())
+  await page.keyboard.press('Enter')
+  await expect(seviye).toHaveText('Seviye 3') // hızlı doğru: +2
+  await expect(page.getByText('Hızlı! +2 seviye')).toBeVisible()
+  await page.getByLabel('Cevap').fill(String(Number(await coz()) + 1))
+  await page.keyboard.press('Enter')
+  await expect(page.getByText('✗ 1')).toBeVisible()
+  await expect(seviye).toHaveText('Seviye 3') // yanlış: aynı
+  await expect(page.getByText('Olmadı; seviye aynı kaldı.')).toBeVisible()
+  await shot(page, 'oda-sprint')
   await page.getByRole('button', { name: 'Oyunlar' }).click()
   await page.getByRole('button', { name: /Günün Sudokusu/ }).click()
   await expect(page.getByRole('grid', { name: 'Sudoku tahtası' })).toBeVisible()

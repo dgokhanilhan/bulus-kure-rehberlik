@@ -6,7 +6,13 @@ export const OYUNLAR: { id: OyunId; ad: string; aciklama: string; birim: 'sn' | 
   { id: 'sudoku', ad: 'Günün Sudokusu', aciklama: 'Bütün okul aynı bulmacayı çözer; süre sunucuda ölçülür.', birim: 'sn', gunluk: true },
   { id: 'kelime', ad: 'Günün Kelimesi', aciklama: 'Beş harfli kelimeyi altı denemede bul.', birim: 'deneme', gunluk: true },
   { id: 'yilan', ad: 'Yılan', aciklama: 'Yemleri topla, kendine ve duvara çarpma.', birim: 'puan', gunluk: false },
-  { id: 'sprint', ad: 'Hesap Sprinti', aciklama: '60 saniyede olabildiğince çok işlem.', birim: 'puan', gunluk: false },
+  {
+    id: 'sprint',
+    ad: 'Hesap Sprinti',
+    aciklama: '60 saniyede olabildiğince çok işlem; her doğruda zorlaşır, hızlı bildikçe daha da.',
+    birim: 'puan',
+    gunluk: false,
+  },
   { id: 'mayin', ad: 'Mayın Tarlası', aciklama: '9×9 alanda 10 mayın; en kısa sürede temizle.', birim: 'sn', gunluk: false },
   { id: 'hafiza', ad: 'Hafıza Kartları', aciklama: '8 çifti en kısa sürede eşleştir.', birim: 'sn', gunluk: false },
 ]
@@ -46,7 +52,10 @@ export const sudokuDolu = (a: readonly number[]) => a.length === 81 && a.every((
 export const ALFABE = 'abcçdefgğhıijklmnoöprsştuüvyz'
 export const KLAVYE = ['ertyuıopğü', 'asdfghjklşi', 'zcvbnmöç']
 export function kelimeTemizle(s: string): string {
-  return [...s.toLocaleLowerCase('tr')].filter((c) => ALFABE.includes(c)).join('').slice(0, 5)
+  return [...s.toLocaleLowerCase('tr')]
+    .filter((c) => ALFABE.includes(c))
+    .join('')
+    .slice(0, 5)
 }
 /** Klavyede harf rengi: en iyi bilinen durum (2 > 1 > 0) */
 export function harfDurumlari(tahminler: readonly { t: string; r: number[] }[]): Map<string, number> {
@@ -114,29 +123,116 @@ export interface Islem {
   metin: string
   cevap: number
 }
-/** Seviye arttıkça sayılar büyür; bölme her zaman tam çıkar, çıkarma eksiye düşmez */
+/** Kaç adımlı işlem: 1–11 tek, 12–27 iki, 28+ üç adım (seviye 0'dan başlar) */
+export const sprintAdim = (seviye: number) => (seviye < 12 ? 1 : seviye < 28 ? 2 : 3)
+
+/**
+ * Seviye arttıkça sayılar büyür ve işlemler çok adımlı olur. Bölme her zaman tam çıkar,
+ * hiçbir ara sonuç ve cevap eksiye düşmez, cevap en çok 4 basamak.
+ */
 export function islemUret(seviye: number, rnd: () => number = Math.random): Islem {
-  const r = (a: number, b: number) => a + Math.floor(rnd() * (b - a + 1))
-  const ust = 10 + seviye * 5
-  const tur = r(0, seviye < 3 ? 1 : 3)
+  const r = (a: number, b: number) => a + Math.floor(rnd() * (Math.max(a, b) - a + 1))
+  const L = Math.max(0, Math.floor(seviye))
+  const adim = sprintAdim(L)
+  if (adim === 1) {
+    const ust = 10 + L * 6
+    const tur = r(0, L < 2 ? 1 : L < 5 ? 2 : 3)
+    if (tur === 0) {
+      const a = r(2, ust)
+      const b = r(2, ust)
+      return { metin: `${a} + ${b}`, cevap: a + b }
+    }
+    if (tur === 1) {
+      const a = r(5, ust + 10)
+      const b = r(1, a)
+      return { metin: `${a} − ${b}`, cevap: a - b }
+    }
+    if (tur === 2) {
+      const a = r(2, Math.min(12, 4 + L))
+      const b = r(2, 12)
+      return { metin: `${a} × ${b}`, cevap: a * b }
+    }
+    const b = r(2, 12)
+    const c = r(2, Math.min(12, 3 + L))
+    return { metin: `${b * c} ÷ ${b}`, cevap: c }
+  }
+  if (adim === 2) {
+    const q = Math.min(L - 12, 30) // 0–30
+    const k = Math.min(12, 6 + q) // çarpan üstü
+    const t = 10 + q * 4 // toplanan üstü
+    const tur = r(0, 4)
+    if (tur === 0) {
+      const a = r(2, k),
+        b = r(2, 12),
+        c = r(2, t)
+      return { metin: `${a} × ${b} + ${c}`, cevap: a * b + c }
+    }
+    if (tur === 1) {
+      const a = r(2, k),
+        b = r(2, 12),
+        c = r(1, a * b)
+      return { metin: `${a} × ${b} − ${c}`, cevap: a * b - c }
+    }
+    if (tur === 2) {
+      const a = r(2, t),
+        b = r(2, t),
+        c = r(2, Math.min(9, 3 + q))
+      return { metin: `(${a} + ${b}) × ${c}`, cevap: (a + b) * c }
+    }
+    if (tur === 3) {
+      const a = r(10, 20 + q * 8),
+        b = r(10, 20 + q * 8),
+        c = r(1, a + b)
+      return { metin: `${a} + ${b} − ${c}`, cevap: a + b - c }
+    }
+    const b = r(2, 12),
+      c = r(2, k),
+      d = r(2, t)
+    return { metin: `${b * c} ÷ ${b} + ${d}`, cevap: c + d }
+  }
+  const q = Math.min(L - 28, 30) // 0–30
+  const k = Math.min(15, 6 + Math.floor(q / 2))
+  const tur = r(0, 3)
   if (tur === 0) {
-    const a = r(2, ust)
-    const b = r(2, ust)
-    return { metin: `${a} + ${b}`, cevap: a + b }
+    const a = r(2, k),
+      b = r(2, 12),
+      c = r(2, k),
+      d = r(2, 12)
+    return { metin: `${a} × ${b} + ${c} × ${d}`, cevap: a * b + c * d }
   }
   if (tur === 1) {
-    const a = r(5, ust + 10)
-    const b = r(1, a)
-    return { metin: `${a} − ${b}`, cevap: a - b }
+    let x = [r(2, k), r(2, 12)],
+      y = [r(2, k), r(2, 12)]
+    if (x[0]! * x[1]! < y[0]! * y[1]!) [x, y] = [y, x]
+    return { metin: `${x[0]} × ${x[1]} − ${y[0]} × ${y[1]}`, cevap: x[0]! * x[1]! - y[0]! * y[1]! }
   }
   if (tur === 2) {
-    const a = r(2, Math.min(12, 3 + seviye))
-    const b = r(2, 12)
-    return { metin: `${a} × ${b}`, cevap: a * b }
+    const a = r(5, 20 + q * 2),
+      b = r(5, 20 + q * 2),
+      c = r(2, Math.min(12, 4 + q)),
+      d = r(1, (a + b) * c)
+    return { metin: `(${a} + ${b}) × ${c} − ${d}`, cevap: (a + b) * c - d }
   }
-  const b = r(2, 12)
-  const c = r(2, Math.min(12, 3 + seviye))
-  return { metin: `${b * c} ÷ ${b}`, cevap: c }
+  const b = r(2, 12),
+    c = r(2, k),
+    d = r(2, 9),
+    e = r(2, 20 + q * 3)
+  return { metin: `${b * c} ÷ ${b} × ${d} + ${e}`, cevap: c * d + e }
+}
+
+/** Hızlı sayılan cevap süresi (ms): adım arttıkça daha uzun */
+export const hizliEsik = (seviye: number) => [0, 2500, 4500, 7000][sprintAdim(seviye)]!
+
+/**
+ * Doğru cevaptan sonra seviye: her doğru +1; hızlı bilinirse fazladan, art arda hızlıysa gittikçe daha çok
+ * (+2, +3, +4…). Yanlışta seviye aynı kalır, hızlı seri sıfırlanır.
+ */
+export function sprintIlerle(seviye: number, dogruMu: boolean, sureMs: number, seri: number): { seviye: number; seri: number; artis: number } {
+  if (!dogruMu) return { seviye, seri: 0, artis: 0 }
+  const hizli = sureMs <= hizliEsik(seviye)
+  const yeniSeri = hizli ? seri + 1 : 0
+  const artis = 1 + (hizli ? Math.min(3, yeniSeri) : 0)
+  return { seviye: seviye + artis, seri: yeniSeri, artis }
 }
 
 // ---------- Yılan ----------
@@ -210,10 +306,16 @@ export const ROZETLER: { id: string; ad: string; simge: string; aciklama: string
   { id: 'kasif', ad: 'Kâşif', simge: '🧭', aciklama: 'Altı oyunun hepsini dene', kosul: (i) => i.oyun_turu >= 6 },
   { id: 'seri3', ad: 'Üç gün üst üste', simge: '🔥', aciklama: '3 gün üst üste oyna', kosul: (_i, s) => s >= 3 },
   { id: 'seri7', ad: 'Haftanın müdavimi', simge: '📅', aciklama: '7 gün üst üste oyna', kosul: (_i, s) => s >= 7 },
-  { id: 'sudoku5', ad: 'Sudoku ustası', simge: '🧩', aciklama: 'Günün Sudokusunu 5 dakikadan kısa sürede çöz', kosul: (i) => i.sudoku_en_iyi != null && i.sudoku_en_iyi < 300 },
+  {
+    id: 'sudoku5',
+    ad: 'Sudoku ustası',
+    simge: '🧩',
+    aciklama: 'Günün Sudokusunu 5 dakikadan kısa sürede çöz',
+    kosul: (i) => i.sudoku_en_iyi != null && i.sudoku_en_iyi < 300,
+  },
   { id: 'sudoku10', ad: 'Sabırlı', simge: '🐢', aciklama: '10 Günün Sudokusu çöz', kosul: (i) => i.sudoku >= 10 },
   { id: 'kelime2', ad: 'Keskin göz', simge: '🎯', aciklama: 'Günün Kelimesini 2 denemede bul', kosul: (i) => i.kelime_ikide >= 1 },
   { id: 'kelime10', ad: 'Söz ustası', simge: '📖', aciklama: '10 kez Günün Kelimesini bul', kosul: (i) => i.kelime_bulunan >= 10 },
   { id: 'yilan30', ad: 'Uzun yılan', simge: '🐍', aciklama: 'Yılanda 30 puan', kosul: (i) => (i.yilan_en_iyi ?? 0) >= 30 },
-  { id: 'sprint40', ad: 'Hesap makinesi', simge: '⚡', aciklama: 'Hesap Sprintinde 40 doğru', kosul: (i) => (i.sprint_en_iyi ?? 0) >= 40 },
+  { id: 'sprint40', ad: 'Hesap makinesi', simge: '⚡', aciklama: 'Hesap Sprintinde 20 doğru', kosul: (i) => (i.sprint_en_iyi ?? 0) >= 20 },
 ]

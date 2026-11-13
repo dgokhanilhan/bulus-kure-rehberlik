@@ -4,8 +4,40 @@ import { harfDurumlari, kelimeTemizle, KLAVYE } from '@/lib/oyunlar'
 import { useKelime, useKelimeTahmin } from '@/lib/oyunData'
 import { useToast } from '@/components/Toast'
 
-const DURUM_TR = ['kelimede yok', 'kelimede var, yeri farklı', 'doğru yerde']
-const ISARET = ['', '○', '●']
+const DURUM_TR = ['kelimede yok', 'kelimede var ama yeri yanlış', 'doğru yerde']
+// Renk temaya göre değişir; anlamı işaret ve açıklama taşır (✓ doğru yer, ↔ yeri yanlış)
+const ISARET = ['', '↔', '✓']
+
+/** Renklerin anlamı: oyundaki kutuların aynısıyla gösterilir (tema hangi rengi verirse) */
+function RenkAciklama() {
+  const ornek = (r: 0 | 1 | 2) => (
+    <span className={`kl-h kucuk r${r}`} aria-hidden="true">
+      A{r > 0 && <i className="kl-isaret">{ISARET[r]}</i>}
+    </span>
+  )
+  return (
+    <ul className="kl-aciklama" aria-label="Kutuların anlamı" data-testid="kelime-aciklama">
+      <li>
+        {ornek(2)}
+        <span>
+          <b>Doğru yerde (✓):</b> harf kelimede var, yeri de doğru. Bu harfi orada bırak.
+        </span>
+      </li>
+      <li>
+        {ornek(1)}
+        <span>
+          <b>Yeri yanlış (↔):</b> harf kelimede var ama bu kutuda değil. Başka bir kutuya dene.
+        </span>
+      </li>
+      <li>
+        {ornek(0)}
+        <span>
+          <b>Kelimede yok:</b> bu harf kelimede hiç geçmiyor.
+        </span>
+      </li>
+    </ul>
+  )
+}
 
 export default function Kelime() {
   const q = useKelime(true)
@@ -21,7 +53,11 @@ export default function Kelime() {
     tahmin.mutate(yazi, {
       onSuccess: (r) => {
         setYazi('')
-        if (r.bitti) toast(r.puan != null && r.puan <= 6 ? `Bildin! ${r.puan}. denemede` : `Bu sefer olmadı: ${r.cevap?.toLocaleUpperCase('tr')}`, r.puan != null && r.puan <= 6 ? 'check' : 'warn')
+        if (r.bitti)
+          toast(
+            r.puan != null && r.puan <= 6 ? `Bildin! ${r.puan}. denemede` : `Bu sefer olmadı: ${r.cevap?.toLocaleUpperCase('tr')}`,
+            r.puan != null && r.puan <= 6 ? 'check' : 'warn',
+          )
       },
       onError: (e) => toast((e as Error).message, 'warn'),
     })
@@ -53,6 +89,7 @@ export default function Kelime() {
 
   return (
     <div className="oy-kelime">
+      <RenkAciklama />
       <div className="kl-izgara" role="grid" aria-label="Tahminler">
         {satirlar.map((s, i) => (
           <div role="row" key={i} className="kl-satir">
@@ -80,11 +117,10 @@ export default function Kelime() {
       </div>
       {bitti ? (
         <p className="kl-sonuc">
-          {d.puan != null && d.puan <= 6 ? `Bildin: ${d.puan}. denemede.` : 'Bu sefer olmadı.'} Kelime: <b>{d.cevap?.toLocaleUpperCase('tr')}</b>. Yarın yeni kelime!
+          {d.puan != null && d.puan <= 6 ? `Bildin: ${d.puan}. denemede.` : 'Bu sefer olmadı.'} Kelime: <b>{d.cevap?.toLocaleUpperCase('tr')}</b>. Yarın yeni
+          kelime!
         </p>
-      ) : (
-        <p className="m kl-ipucu">● doğru yerde · ○ kelimede var ama yeri farklı</p>
-      )}
+      ) : null}
       {!bitti && (
         <div className="kl-klavye" role="group" aria-label="Klavye">
           {KLAVYE.map((sira, i) => (
