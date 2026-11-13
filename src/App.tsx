@@ -27,6 +27,7 @@ const BildirimlerPage = lazy(() => import('@/pages/BildirimlerPage'))
 const BugunPage = lazy(() => import('@/pages/BugunPage'))
 const GozetmenPage = lazy(() => import('@/pages/GozetmenPage')) // bağımsız modül (0048), yalnız yönetici
 const EtutPage = lazy(() => import('@/pages/EtutPage')) // Cumartesi etütleri (0051)
+const OgretmenlerOdasi = lazy(() => import('@/pages/OgretmenlerOdasi')) // Öğretmenler Odası (0068)
 const DenemelerPage = lazy(() => import('@/pages/DenemelerPage'))
 const SiniflarPage = lazy(() => import('@/pages/SiniflarPage'))
 const HesapAyarlari = lazy(() => import('@/pages/HesapAyarlari'))
@@ -70,6 +71,7 @@ const PAGES: Record<PageId, JSX.Element> = {
   gorusmeler: <GorusmelerPage />,
   gozetmen: <GozetmenPage />,
   etut: <EtutPage />,
+  'ogretmenler-odasi': <OgretmenlerOdasi />,
 }
 
 // Oturum süresi: genel 12 saat (supabase/config.toml [auth.sessions]); yönetici için 2 saat (burada).

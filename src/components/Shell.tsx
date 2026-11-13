@@ -7,6 +7,7 @@ import { supabase, SOURCE_URL } from '@/lib/supabase'
 import { gateOf, useAuth } from '@/auth/AuthProvider'
 import { navItems, ROLE_HINT, ROLE_TR, SWITCH_TR } from '@/lib/roles'
 import { menuAyarla, useAyar } from '@/lib/ayarlar'
+import { useOdaOkunmamis } from '@/lib/odaData'
 import { useConversations, useFamilyTracks, useModules, useSettings } from '@/lib/data'
 import type { Notification } from '@/lib/types'
 import { ago, initials } from '@/lib/format'
@@ -327,6 +328,10 @@ export function AppShell() {
   const pending = usePendingCount(role === 'admin')
   const convs = useConversations(role !== 'ogrenci')
   const unread = (convs.data ?? []).reduce((n, c) => n + c.unread, 0)
+  // Öğretmenler Odası sohbetinde okunmamış mesaj (menüde sayfa varsa)
+  const odaVar = items.some((x) => x.id === 'ogretmenler-odasi')
+  const odaQ = useOdaOkunmamis(odaVar)
+  const oda = odaVar ? Object.values(odaQ.data ?? {}).reduce((a, b) => a + b, 0) : 0
   const active = items.find((i) => loc.pathname === `/${i.id}` || loc.pathname.startsWith(`/${i.id}/`))?.id
   const { ref, ind } = useIndicator<HTMLDivElement>(active)
   const [enterKey, setEnterKey] = useState(loc.pathname)
@@ -338,7 +343,8 @@ export function AppShell() {
   // Telefonda alt çubukta ilk 4 sayfa + "Daha" (menü 5'ten uzunsa); geniş ekranda hepsi yan menüde.
   const overflow = items.length > 5
   const extra = overflow ? items.slice(4) : []
-  const extraBadge = (extra.some((x) => x.id === 'iletisim') ? unread : 0) + (extra.some((x) => x.id === 'onaylar') ? pending : 0)
+  const extraBadge =
+    (extra.some((x) => x.id === 'iletisim') ? unread : 0) + (extra.some((x) => x.id === 'onaylar') ? pending : 0) + (extra.some((x) => x.id === 'ogretmenler-odasi') ? oda : 0)
 
   return (
     <div className="app">
@@ -357,6 +363,11 @@ export function AppShell() {
               {it.id === 'onaylar' && pending > 0 && (
                 <span className="badge" aria-label={`${pending} bekleyen`}>
                   {pending}
+                </span>
+              )}
+              {it.id === 'ogretmenler-odasi' && oda > 0 && (
+                <span className="badge" aria-label={`${oda} okunmamış sohbet mesajı`}>
+                  {oda > 99 ? '99+' : oda}
                 </span>
               )}
             </NavLink>
@@ -387,6 +398,7 @@ export function AppShell() {
                 <span className="lbl">{it.label}</span>
                 {it.id === 'onaylar' && pending > 0 && <span className="badge">{pending}</span>}
                 {it.id === 'iletisim' && unread > 0 && <span className="badge">{unread}</span>}
+                {it.id === 'ogretmenler-odasi' && oda > 0 && <span className="badge">{oda > 99 ? '99+' : oda}</span>}
               </NavLink>
             ))}
           </div>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useOpenReport } from '@/components/Report'
 import type { Notification } from './types'
 
-type IconName = 'book' | 'chat' | 'doc' | 'cal' | 'warn' | 'task' | 'shield' | 'bell' | 'spark' | 'users' | 'image'
+type IconName = 'book' | 'chat' | 'doc' | 'cal' | 'warn' | 'task' | 'shield' | 'bell' | 'spark' | 'users' | 'image' | 'cup'
 export const NTYPES: Record<string, { label: string; icon: IconName }> = {
   nobet: { label: 'Nöbet hatırlatması', icon: 'cal' },
   etut: { label: 'Etüt', icon: 'cal' },
@@ -24,6 +24,7 @@ export const NTYPES: Record<string, { label: string; icon: IconName }> = {
   kayit: { label: 'Kayıt', icon: 'shield' },
   bursluluk: { label: 'Bursluluk', icon: 'users' },
   galeri: { label: 'Galeri', icon: 'image' },
+  oda: { label: 'Öğretmenler Odası', icon: 'cup' },
   sistem: { label: 'Sistem', icon: 'warn' },
   diger: { label: 'Genel', icon: 'bell' },
 }
@@ -42,6 +43,7 @@ export function useOpenNotification() {
     else if (L.conversation) nav(`/iletisim?c=${L.conversation}`)
     else if (L.announcement) nav(`/duyurular?d=${L.announcement}`)
     else if (L.page === 'ogrenci' && L.sid) nav(`/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`)
+    else if (L.page === 'ogretmenler-odasi' && L.kanal) nav(`/ogretmenler-odasi?sekme=sohbet&kanal=${encodeURIComponent(L.kanal)}`)
     else if (L.page) nav(L.tab ? `/${L.page}?sekme=${L.tab}` : `/${L.page}`)
   }
 }
