@@ -7,7 +7,8 @@ import { HW_TR, useClassHomework, useClasses, useDataset, useModules, useStudent
 import { useGenelDataset } from '@/lib/denemeData'
 import { lastExamDelta } from '@/lib/denemeGenel'
 import { useGunlukKontrol } from '@/lib/gunlukKontrolData'
-import { ayBasi, MADDE_TR } from '@/lib/gunlukKontrol'
+import { ayBasi } from '@/lib/gunlukKontrol'
+import { useGunlukMaddeler } from '@/lib/gunlukKontrolData'
 import { fold, initials, todayISO, trDM } from '@/lib/format'
 import { cizgiNoktalari, dikkatNedenleri, odevOzeti, secimOku, suzgecUyar, type TakipSuzgec } from '@/lib/oda'
 import { useOdaDevamsizlik, useOdaNotlar } from '@/lib/odaData'
@@ -347,12 +348,13 @@ type Satir = {
   tekrar: { ad: string; kez: number }[]
   odevler: { status: keyof typeof HW_TR; homework: { title: string; assigned_on: string } }[]
   dv: { label: string; used: number; lim: number; level: keyof typeof DEV_TR } | null
-  gkAy: { id: string; tarih: string; madde: keyof typeof MADDE_TR }[]
+  gkAy: { id: string; tarih: string; madde: string }[]
   notlar: { id: string; body: string | null; created_at: string; visibility: string }[]
   neden: string[]
 }
 
 function Detay({ r }: { r: Satir }) {
+  const gm = useGunlukMaddeler()
   return (
     <div className="oda-detay-ic">
       {r.neden.length > 0 && (
@@ -410,7 +412,7 @@ function Detay({ r }: { r: Satir }) {
             )}
             {r.gkAy.slice(0, 4).map((k) => (
               <li key={k.id}>
-                <span>{MADDE_TR[k.madde]}</span>
+                <span>{gm.ad(k.madde)}</span>
                 <span className="m">{trDM(k.tarih)}</span>
               </li>
             ))}

@@ -1,5 +1,6 @@
 // Günlük kontrol (0067): öğretmenin gerektiğinde işaretlediği kılık kıyafet / materyal eksikleri. Yoklamadan bağımsızdır.
-// Yalnız eksik kaydedilir; aynı maddenin ay içindeki her 3. eksikliğinde veliye uyarı bildirimi gider (sunucuda, 0067).
+// Yalnız eksik kaydedilir; aynı maddenin ay içindeki her n. eksikliğinde veliye uyarı bildirimi gider (sunucuda, 0067/0071).
+// Maddeler okulca düzenlenir (gunluk_kontrol_madde, Yönetim → Günlük kontrol); aşağıdaki liste yalnız varsayılandır.
 
 export const MADDELER = [
   ['kiyafet', 'Kıyafet'],
@@ -8,7 +9,8 @@ export const MADDELER = [
   ['beden_kiyafeti', 'Beden kıyafeti'],
   ['telefon', 'Telefon teslim'],
 ] as const
-export type Madde = (typeof MADDELER)[number][0]
+/** Madde kodu (okulun listesinden) */
+export type Madde = string
 export const MADDE_TR = Object.fromEntries(MADDELER) as Record<Madde, string>
 /** Veli ve öğrenci ekranındaki cümle: "11 Kasım: Ders kitabı / defteri yanında değildi." */
 export const MADDE_CUMLE: Record<Madde, string> = {
@@ -19,6 +21,32 @@ export const MADDE_CUMLE: Record<Madde, string> = {
   telefon: 'Telefon teslim edilmedi',
 }
 export const UYARI_ARALIGI = 3
+
+/** Okulun madde tanımı (0071) */
+export interface MaddeTanim {
+  kod: string
+  ad: string
+  cumle: string
+  sira: number
+  aktif: boolean
+}
+/** Okulun listesi yüklenene kadar (ya da boşsa) varsayılan maddeler */
+export const VARSAYILAN_MADDELER: MaddeTanim[] = MADDELER.map(([kod, ad], i) => ({ kod, ad, cumle: MADDE_CUMLE[kod]!, sira: i + 1, aktif: true }))
+/** Yeni madde kodu: addan türetilir, çakışırsa sayı eklenir (veritabanı kalıbı ^[a-z][a-z0-9_]{1,30}$) */
+export function maddeKodu(ad: string, var_: readonly string[]): string {
+  const tr: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', i: 'i', ö: 'o', ş: 's', ü: 'u' }
+  let k = ad
+    .toLocaleLowerCase('tr')
+    .replace(/[çğıiöşü]/g, (c) => tr[c] ?? c)
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 24)
+  if (!/^[a-z]/.test(k)) k = `m_${k}`.slice(0, 24)
+  if (k.length < 2) k = 'madde'
+  let s = k
+  for (let i = 2; var_.includes(s); i++) s = `${k}_${i}`
+  return s
+}
 export const DETAY_EN_COK = 300
 
 export interface Kayit {
@@ -52,7 +80,8 @@ export function kacinci(kayitlar: Kayit[], sid: string, madde: Madde, tarih: str
   const var_ = ayni.find((k) => k.tarih === tarih)
   return var_ ? var_.sira : ayni.length + 1
 }
-export const uyariGider = (n: number) => n > 0 && n % UYARI_ARALIGI === 0
+/** Bu sıradaki eksik veliye uyarı gönderir mi (aralık 0 = hiç) */
+export const uyariGider = (n: number, aralik = UYARI_ARALIGI) => aralik > 0 && n > 0 && n % aralik === 0
 
 export interface Taslak {
   /** öğrenci → madde → detay */

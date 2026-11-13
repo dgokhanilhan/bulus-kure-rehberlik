@@ -1,17 +1,18 @@
-// Öğretmenler Odası → Sohbet: öğretmenlerin kendi aralarındaki canlı sohbet (0068). Mesajlar 30 gün saklanır.
+// Öğretmenler Odası → Sohbet: öğretmenlerin kendi aralarındaki canlı sohbet (0068). Saklama süresi ve kanallar Yönetim'den (0071).
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { usePeople } from '@/lib/data'
 import { isTeacherP } from '@/lib/roles'
 import { initials, localDate, localHM, todayISO, addDays, trD } from '@/lib/format'
-import { anilanlar, anmaAramasi, anmaParcala, kanalAciklama, kanalAdi, MESAJ_EN_COK, SAKLAMA_GUN, TEPKILER } from '@/lib/oda'
+import { anilanlar, anmaAramasi, anmaParcala, kanalAciklama, kanalAdi as kanalAdiTemel, MESAJ_EN_COK, TEPKILER, type KanalAyar } from '@/lib/oda'
 import { useOdaMesajlar, useOdaOkundu, useOdaOkunmamis, useOdaSil, useOdaTepki, useOdaYaz, type OdaMesaj } from '@/lib/odaData'
 import { Confirm } from '@/components/Confirm'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 
-export default function OdaSohbet({ kanallar }: { kanallar: string[] }) {
+export default function OdaSohbet({ kanallar, ayar, saklama }: { kanallar: string[]; ayar?: ReadonlyMap<string, KanalAyar>; saklama: number }) {
+  const kanalAdi = (k: string) => kanalAdiTemel(k, ayar?.get(k))
   const { profile, role } = useAuth()
   const [sp, setSp] = useSearchParams()
   const kanal = kanallar.includes(sp.get('kanal') ?? '') ? sp.get('kanal')! : (kanallar[0] ?? null)
@@ -73,7 +74,7 @@ export default function OdaSohbet({ kanallar }: { kanallar: string[] }) {
           })}
         </div>
         <p className="m oda-saklama">
-          <Icon name="lock" size={14} /> Mesajlar {SAKLAMA_GUN} gün saklanır, sonra kendiliğinden silinir. Veli ve öğrenciler göremez.
+          <Icon name="lock" size={14} /> Mesajlar {saklama} gün saklanır, sonra kendiliğinden silinir. Veli ve öğrenciler göremez.
         </p>
       </aside>
       <section className="oda-pano" aria-label={kanal ? `${kanalAdi(kanal)} kanalı` : 'Sohbet'}>
@@ -81,7 +82,7 @@ export default function OdaSohbet({ kanallar }: { kanallar: string[] }) {
           <header className="oda-pano-bas">
             <b># {kanalAdi(kanal)}</b>
             <span className="m" style={{ fontSize: 13 }}>
-              {kanalAciklama(kanal)}
+              {kanalAciklama(kanal, ayar?.get(kanal))}
             </span>
           </header>
         )}
@@ -129,7 +130,7 @@ export default function OdaSohbet({ kanallar }: { kanallar: string[] }) {
             ))
           )}
         </div>
-        {kanal && <Yazici key={kanal} kanal={kanal} ogretmenler={ogretmenler} onGonderildi={() => (altta.current = true)} />}
+        {kanal && <Yazici key={kanal} kanal={kanal} kanalAd={kanalAdi(kanal)} ogretmenler={ogretmenler} onGonderildi={() => (altta.current = true)} />}
       </section>
       {silinecek && (
         <Confirm
@@ -258,7 +259,7 @@ function Mesaj({
   )
 }
 
-function Yazici({ kanal, ogretmenler, onGonderildi }: { kanal: string; ogretmenler: { id: string; ad: string; brans: string | null }[]; onGonderildi: () => void }) {
+function Yazici({ kanal, kanalAd, ogretmenler, onGonderildi }: { kanal: string; kanalAd: string; ogretmenler: { id: string; ad: string; brans: string | null }[]; onGonderildi: () => void }) {
   const [metin, setMetin] = useState('')
   const [secilen, setSecilen] = useState<{ id: string; ad: string }[]>([])
   const [arama, setArama] = useState<{ bas: number; q: string } | null>(null)
@@ -327,7 +328,7 @@ function Yazici({ kanal, ogretmenler, onGonderildi }: { kanal: string; ogretmenl
       <label className="field" style={{ flex: 1 }}>
         <textarea
           ref={ta}
-          aria-label={`#${kanalAdi(kanal)} kanalına mesaj`}
+          aria-label={`#${kanalAd} kanalına mesaj`}
           placeholder="Mesaj yaz… (@ ile an)"
           rows={1}
           maxLength={MESAJ_EN_COK}

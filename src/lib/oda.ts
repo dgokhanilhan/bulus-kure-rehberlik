@@ -12,22 +12,41 @@ export function odaAdi(kanallar: readonly string[]): string {
   return k.length ? `${k.join('/')} Öğretmenler Odası` : 'Öğretmenler Odası'
 }
 
-/** Kanalın ekrandaki adı */
-export function kanalAdi(k: string): string {
+/** Yönetimin kanal düzenlemesi (0071 oda_kanal): ad, açıklama, gizleme, sıra; özel kanalda üyeler (null = herkes) */
+export interface KanalAyar {
+  kanal: string
+  ad: string | null
+  aciklama: string | null
+  gizli: boolean
+  sira: number | null
+  uyeler: string[] | null
+}
+export const ozelKanal = (k: string) => k.startsWith('ozel:')
+
+/** Kanalın ekrandaki adı (yönetimin verdiği ad önce) */
+export function kanalAdi(k: string, a?: Pick<KanalAyar, 'ad'> | null): string {
+  if (a?.ad) return a.ad
+  if (ozelKanal(k)) return 'Özel kanal'
   if (k === 'genel') return 'Genel'
   if (k.startsWith('zumre:')) return `${k.slice(6)} zümresi`
   return KADEME_TR[k as Kademe] ?? k
 }
 /** Kanalın açıklaması */
-export function kanalAciklama(k: string): string {
+export function kanalAciklama(k: string, a?: Pick<KanalAyar, 'aciklama' | 'uyeler'> | null): string {
+  if (a?.aciklama) return a.aciklama
+  if (ozelKanal(k)) return a?.uyeler ? 'seçilen öğretmenler' : 'okulun bütün öğretmenleri'
   if (k === 'genel') return 'okulun bütün öğretmenleri'
   if (k.startsWith('zumre:')) return `${k.slice(6)} öğretmenleri`
   return `${(KADEME_TR[k as Kademe] ?? k).toLocaleLowerCase('tr')} öğretmenleri`
 }
-/** Kanal sırası: Genel, kademeler, zümreler (ada göre) */
-export function kanalSirala(l: readonly string[]): string[] {
-  const p = (k: string) => (k === 'genel' ? 0 : (KADEMELER as readonly string[]).includes(k) ? 1 + KADEMELER.indexOf(k as Kademe) : 10)
-  return [...l].sort((a, b) => p(a) - p(b) || a.localeCompare(b, 'tr'))
+/** Kanal sırası: yönetimin verdiği sıra önce; sonra Genel, kademeler, özel kanallar, zümreler (ada göre) */
+export function kanalSirala(l: readonly string[], ayar?: ReadonlyMap<string, Pick<KanalAyar, 'sira' | 'ad'>>): string[] {
+  const p = (k: string) => {
+    const s = ayar?.get(k)?.sira
+    if (s != null) return s
+    return 1000 + (k === 'genel' ? 0 : (KADEMELER as readonly string[]).includes(k) ? 1 + KADEMELER.indexOf(k as Kademe) : ozelKanal(k) ? 5 : 10)
+  }
+  return [...l].sort((a, b) => p(a) - p(b) || kanalAdi(a, ayar?.get(a)).localeCompare(kanalAdi(b, ayar?.get(b)), 'tr'))
 }
 
 export const MESAJ_EN_COK = 2000
