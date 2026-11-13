@@ -1,0 +1,19 @@
+-- 0069_oda_oyunlar geri alma: yalnız bu migration'ın eklediklerini kaldırır (oyun skorları silinir).
+drop function if exists oda_skor_tablosu;
+drop function if exists oda_lig;
+drop function if exists oda_oyun_istatistik;
+drop function if exists oda_skor_kaydet;
+drop function if exists oda_sudoku_ac;
+drop function if exists oda_sudoku_bitir;
+drop function if exists oda_sudoku_gecerli;
+drop function if exists oda_sudoku_uret;
+drop function if exists oda_kelime_ac;
+drop function if exists oda_kelime_tahmin;
+drop function if exists oda_kelime_durum_of;
+drop function if exists oda_kelime_gunun;
+drop function if exists oda_kelime_renk;
+drop function if exists oda_rs;
+drop function if exists oda_hafta_basi;
+drop table if exists oda_oyun_tercih;
+drop table if exists oda_oyun;
+drop table if exists oda_kelime;

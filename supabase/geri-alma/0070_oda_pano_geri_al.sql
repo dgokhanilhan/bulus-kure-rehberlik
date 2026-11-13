@@ -1,0 +1,21 @@
+-- 0070_oda_pano geri alma: yalnız bu migration'ın eklediklerini kaldırır (pano, anket, teşekkür, değişim ve doğum günü kayıtları silinir;
+-- gönderilmiş bildirimler notifications tablosunda kalır).
+select cron.unschedule('oda-pano-temizlik') where exists (select 1 from cron.job where jobname = 'oda-pano-temizlik');
+drop function if exists oda_anket_oyla;
+drop function if exists oda_anket_sonuc;
+drop function if exists oda_degisim_al;
+drop function if exists oda_degisim_iptal;
+drop function if exists oda_pano_temizlik;
+drop table if exists oda_tesekkur_alkis;
+drop table if exists oda_tesekkur;
+drop table if exists oda_anket_oy;
+drop table if exists oda_anket;
+drop table if exists oda_degisim;
+drop table if exists oda_pano;
+drop table if exists oda_dogum_gunu;
+drop function if exists oda_anket_damga;
+drop function if exists oda_degisim_damga;
+drop function if exists oda_dogum_damga;
+drop function if exists oda_pano_damga;
+drop function if exists oda_tesekkur_bildir;
+drop function if exists oda_tesekkur_damga;
