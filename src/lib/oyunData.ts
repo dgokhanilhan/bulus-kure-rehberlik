@@ -127,3 +127,80 @@ export function useOyunGizli() {
   })
   return { gizli: q.data ?? false, yukleniyor: q.isLoading, ayarla: m.mutate, kaydediliyor: m.isPending }
 }
+
+// ---------- Günün Şehri, 5 Soruda Bugün, Mini Bulmaca (0073) ----------
+export interface SehirDurum {
+  gun: string
+  bitti: string | null
+  puan: number | null
+  tahminler: { plaka: number; ad: string; km: number; yon: string | null }[]
+  ipuclari: string[]
+  cevap: string | null
+  iller: { plaka: number; ad: string }[]
+}
+export function useSehir(acik: boolean) {
+  const { profile } = useAuth()
+  return useQuery({ queryKey: ['oyun', 'sehir', profile?.id], enabled: acik && !!profile, staleTime: Infinity, queryFn: () => rpc<SehirDurum>('oda_sehir_ac') })
+}
+export function useSehirTahmin() {
+  const qc = useQueryClient()
+  const { profile } = useAuth()
+  return useMutation({
+    mutationFn: (p: number) => rpc<SehirDurum>('oda_sehir_tahmin', { p }),
+    onSuccess: (d) => {
+      qc.setQueryData(['oyun', 'sehir', profile?.id], d)
+      if (d.bitti) void qc.invalidateQueries({ queryKey: ['oyun', 'tablo'] })
+    },
+  })
+}
+
+export interface SoruDurum {
+  gun: string
+  bitti: string | null
+  puan: number | null
+  /** cevap: verdiğim cevap (1–4); dogru: yalnız cevaplanan soruda dolu */
+  sorular: { soru: string; secenekler: string[]; cevap: number | null; dogru: number | null }[]
+}
+export function useSoru(acik: boolean) {
+  const { profile } = useAuth()
+  return useQuery({ queryKey: ['oyun', 'soru', profile?.id], enabled: acik && !!profile, staleTime: Infinity, queryFn: () => rpc<SoruDurum>('oda_soru_ac') })
+}
+export function useSoruCevap() {
+  const qc = useQueryClient()
+  const { profile } = useAuth()
+  return useMutation({
+    mutationFn: (p: number) => rpc<SoruDurum>('oda_soru_cevap', { p }),
+    onSuccess: (d) => {
+      qc.setQueryData(['oyun', 'soru', profile?.id], d)
+      if (d.bitti) void qc.invalidateQueries({ queryKey: ['oyun', 'tablo'] })
+    },
+  })
+}
+
+export interface BulmacaDurum {
+  gun: string
+  basladi: string
+  bitti: string | null
+  puan: number | null
+  yatay: string[]
+  dusey: string[]
+  cozum: string[] | null
+}
+export function useBulmaca(acik: boolean) {
+  const { profile } = useAuth()
+  return useQuery({
+    queryKey: ['oyun', 'bulmaca', profile?.id],
+    enabled: acik && !!profile,
+    staleTime: Infinity,
+    queryFn: () => rpc<BulmacaDurum>('oda_bulmaca_ac'),
+  })
+}
+export function useBulmacaBitir() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (p: string[]) => rpc<{ dogru: boolean; puan?: number; yanlis?: number }>('oda_bulmaca_bitir', { p }),
+    onSuccess: (r) => {
+      if (r.dogru) void qc.invalidateQueries({ queryKey: ['oyun'] })
+    },
+  })
+}
