@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Seg } from '@/components/Indicator'
-import { skorYaz, type OyunId } from '@/lib/oyunlar'
+import { OYUNLAR, skorYaz, type OyunId } from '@/lib/oyunlar'
 import { useSkorTablosu } from '@/lib/oyunData'
 import { initials } from '@/lib/format'
 
 export function SkorTablosu({ oyun }: { oyun: OyunId }) {
-  const [donem, setDonem] = useState<'gun' | 'hafta'>(oyun === 'sudoku' || oyun === 'kelime' ? 'gun' : 'hafta')
+  const [donem, setDonem] = useState<'gun' | 'hafta'>(OYUNLAR.find((o) => o.id === oyun)?.gunluk ? 'gun' : 'hafta')
   const q = useSkorTablosu(oyun, donem)
   return (
     <section className="card oy-tablo" aria-label="Skor tablosu">

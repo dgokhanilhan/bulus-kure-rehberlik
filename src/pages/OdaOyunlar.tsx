@@ -12,12 +12,15 @@ import { SkorTablosu } from './oyun/SkorTablosu'
 const OYUN: Record<OyunId, React.LazyExoticComponent<() => JSX.Element>> = {
   sudoku: lazy(() => import('./oyun/Sudoku')),
   kelime: lazy(() => import('./oyun/Kelime')),
+  sehir: lazy(() => import('./oyun/Sehir')),
+  soru: lazy(() => import('./oyun/Soru')),
+  bulmaca: lazy(() => import('./oyun/Bulmaca')),
   yilan: lazy(() => import('./oyun/Yilan')),
   sprint: lazy(() => import('./oyun/Sprint')),
   mayin: lazy(() => import('./oyun/Mayin')),
   hafiza: lazy(() => import('./oyun/Hafiza')),
 }
-const SIMGE: Record<OyunId, string> = { sudoku: '🧩', kelime: '🔤', yilan: '🐍', sprint: '⚡', mayin: '💣', hafiza: '🃏' }
+const SIMGE: Record<OyunId, string> = { sudoku: '🧩', kelime: '🔤', sehir: '🗺️', soru: '❓', bulmaca: '✏️', yilan: '🐍', sprint: '⚡', mayin: '💣', hafiza: '🃏' }
 
 export default function OdaOyunlar() {
   const [sp, setSp] = useSearchParams()

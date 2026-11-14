@@ -1,10 +1,14 @@
 // Öğretmenler Odası oyunları (0069): saf hesaplar. Günün Sudokusu ve Günün Kelimesi sunucuda doğrulanır;
-// Yılan, Hesap Sprinti, Mayın Tarlası ve Hafıza Kartları tarayıcıda oynanır.
+// Yılan, Hesap Sprinti, Mayın Tarlası ve Hafıza Kartları tarayıcıda oynanır. Günün Şehri, 5 Soruda Bugün ve Mini Bulmaca da
+// sunucuda üretilir ve doğrulanır (0073).
 
-export type OyunId = 'sudoku' | 'kelime' | 'yilan' | 'sprint' | 'mayin' | 'hafiza'
-export const OYUNLAR: { id: OyunId; ad: string; aciklama: string; birim: 'sn' | 'puan' | 'deneme'; gunluk: boolean }[] = [
+export type OyunId = 'sudoku' | 'kelime' | 'sehir' | 'soru' | 'bulmaca' | 'yilan' | 'sprint' | 'mayin' | 'hafiza'
+export const OYUNLAR: { id: OyunId; ad: string; aciklama: string; birim: 'sn' | 'puan' | 'deneme' | 'dogru'; gunluk: boolean }[] = [
   { id: 'sudoku', ad: 'Günün Sudokusu', aciklama: 'Bütün okul aynı bulmacayı çözer; süre sunucuda ölçülür.', birim: 'sn', gunluk: true },
   { id: 'kelime', ad: 'Günün Kelimesi', aciklama: 'Beş harfli kelimeyi altı denemede bul.', birim: 'deneme', gunluk: true },
+  { id: 'sehir', ad: 'Günün Şehri', aciklama: 'İli altı tahminde bul; uzaklık, yön ve yöresel ipuçları yol gösterir.', birim: 'deneme', gunluk: true },
+  { id: 'soru', ad: '5 Soruda Bugün', aciklama: 'Her gün beş genel kültür sorusu.', birim: 'dogru', gunluk: true },
+  { id: 'bulmaca', ad: 'Mini Bulmaca', aciklama: 'Üç yatay, üç düşey kelimelik küçük bulmaca; süre sunucuda ölçülür.', birim: 'sn', gunluk: true },
   { id: 'yilan', ad: 'Yılan', aciklama: 'Yemleri topla, kendine ve duvara çarpma.', birim: 'puan', gunluk: false },
   {
     id: 'sprint',
@@ -22,6 +26,7 @@ export function skorYaz(oyun: OyunId, puan: number): string {
   const o = OYUNLAR.find((x) => x.id === oyun)!
   if (o.birim === 'sn') return sureYaz(puan)
   if (o.birim === 'deneme') return puan > 6 ? 'Bulamadı' : `${puan}/6`
+  if (o.birim === 'dogru') return `${puan}/5`
   return `${puan} puan`
 }
 export function sureYaz(sn: number): string {
@@ -116,6 +121,45 @@ export function hafizaDeste(rnd: () => number = Math.random): string[] {
     ;[d[i], d[j]] = [d[j]!, d[i]!]
   }
   return d
+}
+
+// ---------- Günün Şehri ----------
+export const SEHIR_HAK = 6
+const YON_OK: Record<string, string> = { kuzey: '↑', kuzeydoğu: '↗', doğu: '→', güneydoğu: '↘', güney: '↓', güneybatı: '↙', batı: '←', kuzeybatı: '↖' }
+export const yonOku = (yon: string | null) => (yon ? (YON_OK[yon] ?? '') : '')
+/** "kuzeydoğu" → "kuzeydoğuda": hedef, tahmin edilen ilin o yönündedir */
+export const yonYaz = (yon: string | null) => (!yon ? '' : /[eiöü][^aeıioöuü]*$/.test(yon) ? `${yon}de` : `${yon}da`)
+
+// ---------- Mini Bulmaca (5×5 kafes) ----------
+// Yatay kelimeler 1., 3., 5. satırda; düşey kelimeler 1., 3., 5. sütunda. Tek satır + tek sütundaki dört kare karadır.
+export type BulmacaYon = 'y' | 'd'
+export const bulmacaKara = (i: number) => Math.floor(i / 5) % 2 === 1 && (i % 5) % 2 === 1
+/** Kelime başlangıç numaraları (soldan sağa, yukarıdan aşağıya) */
+export const BULMACA_NO: Record<number, number> = { 0: 1, 2: 2, 4: 3, 10: 4, 20: 5 }
+export const bulmacaBos = (): string[] => Array.from({ length: 25 }, () => '')
+/** Karede geçerli yön: tek satırda yalnız düşey, tek sütunda yalnız yatay; kesişimde istenen */
+export function bulmacaYonSec(i: number, istenen: BulmacaYon): BulmacaYon {
+  const yatay = Math.floor(i / 5) % 2 === 0
+  const dusey = (i % 5) % 2 === 0
+  return yatay && dusey ? istenen : yatay ? 'y' : 'd'
+}
+/** Karenin o yöndeki kelimesinin beş karesi (yön o karede geçersizse boş) */
+export function bulmacaKelime(i: number, yon: BulmacaYon): number[] {
+  if (bulmacaKara(i) || bulmacaYonSec(i, yon) !== yon) return []
+  const r = Math.floor(i / 5)
+  const c = i % 5
+  return Array.from({ length: 5 }, (_, k) => (yon === 'y' ? r * 5 + k : k * 5 + c))
+}
+/** Yazarken sıradaki kare: kelimenin içinde ilerler, uçta durur */
+export function bulmacaSonraki(i: number, yon: BulmacaYon, adim: 1 | -1): number {
+  const k = bulmacaKelime(i, bulmacaYonSec(i, yon))
+  const n = k.indexOf(i) + adim
+  return n < 0 || n >= k.length ? i : k[n]!
+}
+export const bulmacaDolu = (a: readonly string[]) => a.every((h, i) => bulmacaKara(i) || !!h)
+/** Sunucuya giden beş satır; kara kareler nokta */
+export function bulmacaSatirlar(a: readonly string[]): string[] {
+  return Array.from({ length: 5 }, (_, r) => Array.from({ length: 5 }, (_, c) => (bulmacaKara(r * 5 + c) ? '.' : a[r * 5 + c] || ' ')).join(''))
 }
 
 // ---------- Hesap Sprinti ----------
@@ -281,6 +325,9 @@ export interface Istatistik {
   kelime_bulunan: number
   kelime_ikide: number
   yilan_en_iyi: number | null
+  sehir_ikide?: number
+  soru_tam?: number
+  bulmaca?: number
   sprint_en_iyi: number | null
   oyun_turu: number
   gunler: string[]
@@ -325,6 +372,9 @@ export const ROZETLER: {
   { id: 'sudoku10', oyun: 'sudoku', ad: 'Sabırlı', simge: '🐢', aciklama: '10 Günün Sudokusu çöz', kosul: (i) => i.sudoku >= 10 },
   { id: 'kelime2', oyun: 'kelime', ad: 'Keskin göz', simge: '🎯', aciklama: 'Günün Kelimesini 2 denemede bul', kosul: (i) => i.kelime_ikide >= 1 },
   { id: 'kelime10', oyun: 'kelime', ad: 'Söz ustası', simge: '📖', aciklama: '10 kez Günün Kelimesini bul', kosul: (i) => i.kelime_bulunan >= 10 },
+  { id: 'sehir2', oyun: 'sehir', ad: 'Gezgin', simge: '🧳', aciklama: 'Günün Şehrini 2 tahminde bul', kosul: (i) => (i.sehir_ikide ?? 0) >= 1 },
+  { id: 'soru5', oyun: 'soru', ad: 'Tam isabet', simge: '🎓', aciklama: "5 Soruda Bugün'de beşte beş yap", kosul: (i) => (i.soru_tam ?? 0) >= 1 },
+  { id: 'bulmaca10', oyun: 'bulmaca', ad: 'Bulmacacı', simge: '✏️', aciklama: '10 Mini Bulmaca çöz', kosul: (i) => (i.bulmaca ?? 0) >= 10 },
   { id: 'yilan30', oyun: 'yilan', ad: 'Uzun yılan', simge: '🐍', aciklama: 'Yılanda 30 puan', kosul: (i) => (i.yilan_en_iyi ?? 0) >= 30 },
   { id: 'sprint40', oyun: 'sprint', ad: 'Hesap makinesi', simge: '⚡', aciklama: 'Hesap Sprintinde 20 doğru', kosul: (i) => (i.sprint_en_iyi ?? 0) >= 20 },
 ]

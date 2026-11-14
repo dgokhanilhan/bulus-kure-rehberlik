@@ -175,3 +175,65 @@ describe('oyunlar', () => {
     expect(skorYaz('yilan', 12)).toBe('12 puan')
   })
 })
+
+describe('günlük oyunlar (0073)', () => {
+  it('yön: ok ve bulunma eki', async () => {
+    const { yonOku, yonYaz } = await import('./oyunlar')
+    expect(['kuzey', 'güney', 'doğu', 'batı', 'kuzeydoğu', 'güneybatı'].map(yonYaz)).toEqual([
+      'kuzeyde',
+      'güneyde',
+      'doğuda',
+      'batıda',
+      'kuzeydoğuda',
+      'güneybatıda',
+    ])
+    expect(yonYaz(null)).toBe('')
+    expect([yonOku('kuzey'), yonOku('güneydoğu'), yonOku(null)]).toEqual(['↑', '↘', ''])
+  })
+  it('mini bulmaca kafesi: kara kareler, yön, kelime, ilerleme, gönderilen satırlar', async () => {
+    const o = await import('./oyunlar')
+    expect(Array.from({ length: 25 }, (_, i) => i).filter(o.bulmacaKara)).toEqual([6, 8, 16, 18])
+    // Kesişimde istenen yön; tek satırda yalnız düşey, tek sütunda yalnız yatay
+    expect([o.bulmacaYonSec(0, 'd'), o.bulmacaYonSec(0, 'y'), o.bulmacaYonSec(5, 'y'), o.bulmacaYonSec(1, 'd')]).toEqual(['d', 'y', 'd', 'y'])
+    expect(o.bulmacaKelime(12, 'y')).toEqual([10, 11, 12, 13, 14])
+    expect(o.bulmacaKelime(12, 'd')).toEqual([2, 7, 12, 17, 22])
+    expect(o.bulmacaKelime(1, 'd')).toEqual([])
+    expect(o.bulmacaKelime(6, 'y')).toEqual([])
+    // İlerleme kelimenin içinde kalır
+    expect([
+      o.bulmacaSonraki(0, 'y', 1),
+      o.bulmacaSonraki(4, 'y', 1),
+      o.bulmacaSonraki(0, 'y', -1),
+      o.bulmacaSonraki(2, 'd', 1),
+      o.bulmacaSonraki(22, 'd', 1),
+    ]).toEqual([1, 4, 0, 7, 22])
+    expect(o.bulmacaSonraki(5, 'y', 1)).toBe(10) // tek satırda yön düşeye döner
+    const a = o.bulmacaBos()
+    expect(o.bulmacaDolu(a)).toBe(false)
+    const dolu = a.map((_, i) => (o.bulmacaKara(i) ? '' : 'a'))
+    expect(o.bulmacaDolu(dolu)).toBe(true)
+    expect(o.bulmacaSatirlar(dolu)).toEqual(['aaaaa', 'a.a.a', 'aaaaa', 'a.a.a', 'aaaaa'])
+    expect(o.bulmacaSatirlar(a)[1]).toBe(' . . ')
+    expect(Object.keys(o.BULMACA_NO).map(Number)).toEqual([0, 2, 4, 10, 20])
+  })
+  it('skor yazımı ve yeni rozetler', async () => {
+    const o = await import('./oyunlar')
+    expect([o.skorYaz('soru', 4), o.skorYaz('sehir', 2), o.skorYaz('sehir', 7), o.skorYaz('bulmaca', 75)]).toEqual(['4/5', '2/6', 'Bulamadı', '1:15'])
+    expect(o.OYUNLAR.filter((x) => x.gunluk).map((x) => x.id)).toEqual(['sudoku', 'kelime', 'sehir', 'soru', 'bulmaca'])
+    const i = {
+      toplam: 3,
+      sudoku: 0,
+      sudoku_en_iyi: null,
+      kelime_bulunan: 0,
+      kelime_ikide: 0,
+      yilan_en_iyi: null,
+      sprint_en_iyi: null,
+      oyun_turu: 3,
+      gunler: [],
+      sehir_ikide: 1,
+      soru_tam: 1,
+      bulmaca: 9,
+    }
+    expect(o.ROZETLER.filter((r) => ['sehir', 'soru', 'bulmaca'].includes(r.oyun ?? '') && r.kosul(i, 0)).map((r) => r.id)).toEqual(['sehir2', 'soru5'])
+  })
+})
