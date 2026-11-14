@@ -1,4 +1,5 @@
 // Öğretmenler Odası Pano (0070): yapışkan notlar, hızlı anket, teşekkür kartı, ders/nöbet değişimi, doğum günü.
+// 0075: "okudum" onayı, etkinlik ve katılım, değişimde idare onayı, anonim öneri kutusu.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import { useAuth } from '@/auth/AuthProvider'
@@ -26,15 +27,50 @@ export interface PanoNot {
   renk: NotRenk
   bitis: string
   created_at: string
+  /** Yönetim "herkes okusun" dedi: öğretmenler "Okudum" ile onaylar */
+  onay_iste: boolean
   yazan_p: { full_name: string } | null
 }
 export const usePanoNotlar = () =>
   useQuery({
     queryKey: ['oda', 'pano'],
     queryFn: () =>
-      rows<PanoNot>(supabase.from('oda_pano').select('id, yazan, metin, renk, bitis, created_at, yazan_p:profiles!oda_pano_yazan_fkey(full_name)').order('created_at', { ascending: false }).limit(60)),
+      rows<PanoNot>(
+        supabase
+          .from('oda_pano')
+          .select('id, yazan, metin, renk, bitis, created_at, onay_iste, yazan_p:profiles!oda_pano_yazan_fkey(full_name)')
+          .order('created_at', { ascending: false })
+          .limit(60),
+      ),
   })
-export const usePanoEkle = () => useYaz((n: { metin: string; renk: NotRenk; bitis: string }) => yap(supabase.from('oda_pano').insert(n)), 'pano')
+export const usePanoEkle = () =>
+  useYaz((n: { metin: string; renk: NotRenk; bitis: string; onay_iste?: boolean }) => yap(supabase.from('oda_pano').insert(n)), 'pano')
+/** Onayladığım notlar */
+export const usePanoOnaylarim = () =>
+  useQuery({
+    queryKey: ['oda', 'pano', 'onaylarim'],
+    queryFn: async () => new Set((await rows<{ pano_id: string }>(supabase.from('oda_pano_onay').select('pano_id'))).map((x) => x.pano_id)),
+  })
+export function usePanoOnayla() {
+  const { profile } = useAuth()
+  return useYaz(async (id: string) => {
+    const { error } = await supabase.from('oda_pano_onay').insert({ pano_id: id, user_id: profile!.id })
+    if (error && error.code !== '23505') throw new Error(error.message)
+  }, 'pano')
+}
+export interface OnayDurum {
+  pano_id: string
+  okuyan: number
+  toplam: number
+  okumayanlar: string[]
+}
+/** Onay durumu: yalnız notu yazana ve yönetime satır döner */
+export const usePanoOnayDurum = (ids: string[]) =>
+  useQuery({
+    queryKey: ['oda', 'pano', 'durum', ids.join(',')],
+    enabled: ids.length > 0,
+    queryFn: async () => new Map((await rows<OnayDurum>(supabase.rpc('oda_pano_onay_durum', { p_ids: ids }))).map((x) => [x.pano_id, x])),
+  })
 export const usePanoSil = () => useYaz((id: string) => yap(supabase.from('oda_pano').delete().eq('id', id)), 'pano')
 
 // ---------- Hızlı anket ----------
@@ -53,7 +89,11 @@ export function useAnketler() {
     queryKey: ['oda', 'anket', profile?.id],
     queryFn: async () => {
       const l = await rows<Anket>(
-        supabase.from('oda_anket').select('id, soran, soru, secenekler, bitis, created_at, soran_p:profiles!oda_anket_soran_fkey(full_name)').order('created_at', { ascending: false }).limit(20),
+        supabase
+          .from('oda_anket')
+          .select('id, soran, soru, secenekler, bitis, created_at, soran_p:profiles!oda_anket_soran_fkey(full_name)')
+          .order('created_at', { ascending: false })
+          .limit(20),
       )
       const ids = l.map((a) => a.id)
       const [sonuc, oy] = ids.length
@@ -71,7 +111,8 @@ export function useAnketler() {
   })
 }
 export const useAnketEkle = () => useYaz((a: { soru: string; secenekler: string[]; bitis: string }) => yap(supabase.from('oda_anket').insert(a)), 'anket')
-export const useAnketOyla = () => useYaz((o: { anket: string; secim: number | null }) => yap(supabase.rpc('oda_anket_oyla', { p_anket: o.anket, p_secim: o.secim })), 'anket')
+export const useAnketOyla = () =>
+  useYaz((o: { anket: string; secim: number | null }) => yap(supabase.rpc('oda_anket_oyla', { p_anket: o.anket, p_secim: o.secim })), 'anket')
 export const useAnketSil = () => useYaz((id: string) => yap(supabase.from('oda_anket').delete().eq('id', id)), 'anket')
 
 // ---------- Teşekkür kartı ----------
@@ -92,7 +133,9 @@ export const useTesekkurler = () =>
       rows<Tesekkur>(
         supabase
           .from('oda_tesekkur')
-          .select('id, gonderen, alan, metin, created_at, gonderen_p:profiles!oda_tesekkur_gonderen_fkey(full_name), alan_p:profiles!oda_tesekkur_alan_fkey(full_name, branch), oda_tesekkur_alkis(user_id)')
+          .select(
+            'id, gonderen, alan, metin, created_at, gonderen_p:profiles!oda_tesekkur_gonderen_fkey(full_name), alan_p:profiles!oda_tesekkur_alan_fkey(full_name, branch), oda_tesekkur_alkis(user_id)',
+          )
           .order('created_at', { ascending: false })
           .limit(40),
       ),
@@ -119,7 +162,8 @@ export interface Degisim {
   saat: string
   sinif: string | null
   aciklama: string | null
-  durum: 'acik' | 'alindi' | 'iptal'
+  /** onay: üstlenildi, idare onayı bekliyor (oda.degisim_onay açıksa) */
+  durum: 'acik' | 'onay' | 'alindi' | 'iptal'
   alan: string | null
   created_at: string
   isteyen_p: { full_name: string; branch: string | null } | null
@@ -132,7 +176,9 @@ export const useDegisimler = (bugun: string) =>
       rows<Degisim>(
         supabase
           .from('oda_degisim')
-          .select('id, isteyen, tur, tarih, saat, sinif, aciklama, durum, alan, created_at, isteyen_p:profiles!oda_degisim_isteyen_fkey(full_name, branch), alan_p:profiles!oda_degisim_alan_fkey(full_name)')
+          .select(
+            'id, isteyen, tur, tarih, saat, sinif, aciklama, durum, alan, created_at, isteyen_p:profiles!oda_degisim_isteyen_fkey(full_name, branch), alan_p:profiles!oda_degisim_alan_fkey(full_name)',
+          )
           .gte('tarih', bugun)
           .neq('durum', 'iptal')
           .order('tarih')
@@ -140,9 +186,70 @@ export const useDegisimler = (bugun: string) =>
       ),
   })
 export const useDegisimEkle = () =>
-  useYaz((d: { tur: 'ders' | 'nobet'; tarih: string; saat: string; sinif: string | null; aciklama: string | null }) => yap(supabase.from('oda_degisim').insert(d)), 'degisim')
+  useYaz(
+    (d: { tur: 'ders' | 'nobet'; tarih: string; saat: string; sinif: string | null; aciklama: string | null }) => yap(supabase.from('oda_degisim').insert(d)),
+    'degisim',
+  )
 export const useDegisimAl = () => useYaz((id: string) => yap(supabase.rpc('oda_degisim_al', { p_id: id })), 'degisim')
 export const useDegisimIptal = () => useYaz((id: string) => yap(supabase.rpc('oda_degisim_iptal', { p_id: id })), 'degisim')
+export const useDegisimOnayla = () =>
+  useYaz((o: { id: string; onay: boolean }) => yap(supabase.rpc('oda_degisim_onayla', { p_id: o.id, p_onay: o.onay })), 'degisim')
+
+// ---------- Etkinlik ve katılım ----------
+export interface Etkinlik {
+  id: string
+  acan: string | null
+  baslik: string
+  aciklama: string | null
+  tarih: string
+  saat: string | null
+  kontenjan: number | null
+  acan_p: { full_name: string } | null
+  oda_etkinlik_katilim: { user_id: string; p: { full_name: string } | null }[]
+}
+export const useEtkinlikler = (bugun: string) =>
+  useQuery({
+    queryKey: ['oda', 'etkinlik', bugun],
+    queryFn: () =>
+      rows<Etkinlik>(
+        supabase
+          .from('oda_etkinlik')
+          .select(
+            'id, acan, baslik, aciklama, tarih, saat, kontenjan, acan_p:profiles!oda_etkinlik_acan_fkey(full_name), oda_etkinlik_katilim(user_id, p:profiles!oda_etkinlik_katilim_user_id_fkey(full_name))',
+          )
+          .gte('tarih', bugun)
+          .order('tarih')
+          .limit(30),
+      ),
+  })
+export const useEtkinlikEkle = () =>
+  useYaz(
+    (e: { baslik: string; aciklama: string | null; tarih: string; saat: string | null; kontenjan: number | null }) =>
+      yap(supabase.from('oda_etkinlik').insert(e)),
+    'etkinlik',
+  )
+export const useEtkinlikSil = () => useYaz((id: string) => yap(supabase.from('oda_etkinlik').delete().eq('id', id)), 'etkinlik')
+export const useEtkinlikKatil = () =>
+  useYaz((k: { id: string; katil: boolean }) => yap(supabase.rpc('oda_etkinlik_katil', { p_id: k.id, p_katil: k.katil })), 'etkinlik')
+
+// ---------- Anonim öneri kutusu ----------
+/** Öneri adsız gider: veritabanında yazan tutulmaz */
+export const useOneriGonder = () => useYaz((metin: string) => yap(supabase.rpc('oda_oneri_gonder', { p_metin: metin })), 'oneri')
+export interface Oneri {
+  id: string
+  metin: string
+  gun: string
+  durum: 'yeni' | 'okundu'
+}
+/** Yalnız yönetici okur */
+export const useOneriler = (acik: boolean) =>
+  useQuery({
+    queryKey: ['oda', 'oneri'],
+    enabled: acik,
+    queryFn: () => rows<Oneri>(supabase.from('oda_oneri').select('id, metin, gun, durum').order('gun', { ascending: false }).limit(100)),
+  })
+export const useOneriOkundu = () => useYaz((id: string) => yap(supabase.from('oda_oneri').update({ durum: 'okundu' }).eq('id', id)), 'oneri')
+export const useOneriSil = () => useYaz((id: string) => yap(supabase.from('oda_oneri').delete().eq('id', id)), 'oneri')
 
 // ---------- Doğum günü ----------
 export interface DogumGunu {
@@ -162,7 +269,9 @@ export function useDogumKaydet() {
   const { profile } = useAuth()
   return useYaz(
     (d: { ay: number; gun: number; goster: boolean } | null) =>
-      d ? yap(supabase.from('oda_dogum_gunu').upsert({ user_id: profile!.id, ...d })) : yap(supabase.from('oda_dogum_gunu').delete().eq('user_id', profile!.id)),
+      d
+        ? yap(supabase.from('oda_dogum_gunu').upsert({ user_id: profile!.id, ...d }))
+        : yap(supabase.from('oda_dogum_gunu').delete().eq('user_id', profile!.id)),
     'dogum',
   )
 }

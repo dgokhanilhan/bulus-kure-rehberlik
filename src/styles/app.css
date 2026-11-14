@@ -1071,3 +1071,12 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .ya-dugmeler{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .ya-dugmeler .btn{min-height:44px;min-width:44px}
 .ya-secim{display:flex;flex-direction:column;gap:2px;max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px}
+/* Pano: okudum onayı */
+.pn-not.onayli{outline:2px solid var(--ink);outline-offset:-2px}
+.pn-onay-etiket{align-self:flex-start;font-size:12px;font-weight:700}
+.pn-okudum{align-self:flex-start;min-height:44px}
+.pn-okudum[aria-pressed="true"]{opacity:1;font-weight:700}
+.pn-durum{align-self:flex-start;min-height:44px;text-decoration:underline}
+.pn-okumayan{margin:0;font-size:13px}
+.pn-onay-sec{display:flex;gap:8px;align-items:center;min-height:44px;font-size:14px;cursor:pointer}
+.pn-onay-sec input{width:20px;height:20px;flex:none}
