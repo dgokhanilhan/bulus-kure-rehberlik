@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { supabase } from '@/lib/supabase'
-import { SUBJECTS, type Outcome, type Repeat, type Subject, type SubjectDef } from '@/lib/analiz'
+import { SUBJECTS, type GorevEtki, type Outcome, type Repeat, type Subject, type SubjectDef } from '@/lib/analiz'
 import type { Task } from '@/lib/data'
 import { useRefresh } from '@/lib/data'
 import { addDays, nextDow, todayISO, trD, trDShort, trDW } from '@/lib/format'
@@ -12,8 +12,37 @@ import { useToast } from './Toast'
 
 type Mode = 'staff' | 'student' | 'view'
 
-/** Görev kartları (prototipteki taskList). */
-export function TaskList({ tasks, mode, onEdit }: { tasks: Task[]; mode: Mode; onEdit?: (t: Task) => void }) {
+/** Görevden sonraki denemelerde konunun gidişi: olgu olarak, yorumsuz (0076 değil; istemcide hesaplanır) */
+function EtkiSatiri({ e, mode }: { e: GorevEtki; mode: Mode }) {
+  const gecmis = e.sonra.map((s) => (s === 'd' ? 'doğru' : s === 'y' ? 'yanlış' : 'boş')).join(', ')
+  if (e.durum === 'bekliyor')
+    return mode === 'staff' ? (
+      <span className="m" style={{ fontSize: 12 }} data-testid="gorev-etki">
+        Görevden sonraki denemelerde bu konu henüz sorulmadı.
+      </span>
+    ) : null
+  return (
+    <span data-testid="gorev-etki" style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+      {e.durum === 'duzeldi' ? (
+        <span className="chip up" title={`Görevden sonraki denemeler: ${gecmis}`}>
+          ↑ Görevden sonra {e.dogruSeri > 1 ? `${e.dogruSeri} denemedir` : 'son denemede'} doğru
+        </span>
+      ) : (
+        <span className="chip n" title={`Görevden sonraki denemeler: ${gecmis}`}>
+          {e.durum === 'suruyor' ? 'Görevden sonraki denemede bu konuda yine yanlış var' : 'Görevden sonraki denemede bu konu boş bırakıldı'}
+        </span>
+      )}
+      {mode === 'staff' && (
+        <span className="m" style={{ fontSize: 12 }}>
+          {e.once > 0 ? `Önce ${e.once} denemede yanlıştı. ` : ''}Sonra: {gecmis}.
+        </span>
+      )}
+    </span>
+  )
+}
+
+/** Görev kartları (prototipteki taskList). `etki`: kazanıma bağlı görevin sonraki denemelerdeki karşılığı. */
+export function TaskList({ tasks, mode, onEdit, etki }: { tasks: Task[]; mode: Mode; onEdit?: (t: Task) => void; etki?: (t: Task) => GorevEtki | null }) {
   const toast = useToast()
   const refresh = useRefresh()
   const today = todayISO()
@@ -80,7 +109,14 @@ export function TaskList({ tasks, mode, onEdit }: { tasks: Task[]; mode: Mode; o
             <span className="m" style={{ fontSize: 13 }}>
               {SUBJECT_SHORT[t.subject] ?? t.subject} · {t.question_count} soru{t.parent_visible && mode !== 'view' ? ' · veli görüyor' : ''}
             </span>
-            <div className="prog" role="progressbar" aria-valuemin={0} aria-valuemax={t.question_count} aria-valuenow={t.solved} aria-label={`${t.topic} ilerlemesi`}>
+            <div
+              className="prog"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={t.question_count}
+              aria-valuenow={t.solved}
+              aria-label={`${t.topic} ilerlemesi`}
+            >
               <i className="bar-g" style={{ width: `${Math.min(100, (t.solved / t.question_count) * 100)}%`, ...(done ? { background: '#7cc2b5' } : {}) }} />
             </div>
             <span className="mono" style={{ fontSize: 13 }}>
@@ -91,6 +127,7 @@ export function TaskList({ tasks, mode, onEdit }: { tasks: Task[]; mode: Mode; o
                 {t.note}
               </p>
             )}
+            {etki?.(t) && <EtkiSatiri e={etki(t)!} mode={mode} />}
             {mode === 'student' && !done && (
               <div className="btns">
                 <button className="btn sm soft" disabled={busy === t.id} onClick={() => progress(t, false)}>
@@ -107,7 +144,7 @@ export function TaskList({ tasks, mode, onEdit }: { tasks: Task[]; mode: Mode; o
                   <Icon name="pen" size={14} />
                   Düzenle
                 </button>
-                <button className="btn sm ghost" style={{ color: 'var(--signal)' }} onClick={() => remove(t)}>
+                <button className="btn sm ghost" style={done ? undefined : { color: 'var(--signal)' }} onClick={() => remove(t)}>
                   <Icon name="trash" size={14} />
                   Sil
                 </button>
@@ -122,8 +159,20 @@ export function TaskList({ tasks, mode, onEdit }: { tasks: Task[]; mode: Mode; o
 
 /** Görev/etüt ders kodu (subject_code enum) → kısa ad (LGS + 0032 ile eklenen 5–12 dersleri). */
 export const SUBJECT_SHORT: Record<string, string> = {
-  TUR: 'Türkçe', MAT: 'Matematik', FEN: 'Fen', INK: 'İnkılap', DIN: 'Din', ING: 'İngilizce',
-  SOS: 'Sosyal', TDE: 'Edebiyat', TAR: 'Tarih', COG: 'Coğrafya', FEL: 'Felsefe', FIZ: 'Fizik', KIM: 'Kimya', BIY: 'Biyoloji',
+  TUR: 'Türkçe',
+  MAT: 'Matematik',
+  FEN: 'Fen',
+  INK: 'İnkılap',
+  DIN: 'Din',
+  ING: 'İngilizce',
+  SOS: 'Sosyal',
+  TDE: 'Edebiyat',
+  TAR: 'Tarih',
+  COG: 'Coğrafya',
+  FEL: 'Felsefe',
+  FIZ: 'Fizik',
+  KIM: 'Kimya',
+  BIY: 'Biyoloji',
 }
 
 interface TaskForm {
@@ -167,8 +216,21 @@ export function TaskModal({
     if (edit) {
       const sd = subjects.find((x) => x.code === edit.subject) ?? subjects.find((x) => x.base === edit.subject)
       const subj = sd?.code ?? edit.subject
-      const std = outcomes.find((o) => o.subject === subj && ((edit.learning_outcome_id && o.outcomeId === edit.learning_outcome_id) || o.code === edit.outcome_code || o.title === edit.topic))
-      return { subject: subj, konu: std?.code ?? null, konuOther: std ? '' : edit.topic, adet: String(edit.question_count), due: edit.due_date, weekly: edit.weekly, veli: edit.parent_visible, note: edit.note ?? '' }
+      const std = outcomes.find(
+        (o) =>
+          o.subject === subj &&
+          ((edit.learning_outcome_id && o.outcomeId === edit.learning_outcome_id) || o.code === edit.outcome_code || o.title === edit.topic),
+      )
+      return {
+        subject: subj,
+        konu: std?.code ?? null,
+        konuOther: std ? '' : edit.topic,
+        adet: String(edit.question_count),
+        due: edit.due_date,
+        weekly: edit.weekly,
+        veli: edit.parent_visible,
+        note: edit.note ?? '',
+      }
     }
     const top = repeats[0]
     const subject = preset?.subject ?? top?.outcome.subject ?? (subjects.find((x) => x.code === 'MAT') ?? subjects[0])?.code ?? 'MAT'
@@ -300,7 +362,15 @@ export function TaskModal({
               <button type="button" aria-label="Azalt" onClick={() => set({ adet: String(Math.max(1, (parseInt(m.adet, 10) || 0) - 5)) })}>
                 −
               </button>
-              <input type="number" min={1} max={500} inputMode="numeric" aria-label="Soru sayısı" value={m.adet} onChange={(e) => set({ adet: e.target.value })} />
+              <input
+                type="number"
+                min={1}
+                max={500}
+                inputMode="numeric"
+                aria-label="Soru sayısı"
+                value={m.adet}
+                onChange={(e) => set({ adet: e.target.value })}
+              />
               <button type="button" aria-label="Artır" onClick={() => set({ adet: String(Math.min(500, (parseInt(m.adet, 10) || 0) + 5)) })}>
                 +
               </button>
@@ -323,7 +393,12 @@ export function TaskModal({
             </span>
           </div>
         </div>
-        <Toggle on={m.weekly} onClick={() => set({ weekly: !m.weekly })} title="Her hafta tekrarla" sub="Süre dolunca ya da bitince aynı görev 1 hafta sonrasına yeniden açılır" />
+        <Toggle
+          on={m.weekly}
+          onClick={() => set({ weekly: !m.weekly })}
+          title="Her hafta tekrarla"
+          sub="Süre dolunca ya da bitince aynı görev 1 hafta sonrasına yeniden açılır"
+        />
         <Toggle on={m.veli} onClick={() => set({ veli: !m.veli })} title="Veli de görsün" sub="Veli panelinde görünür, bildirim gider" />
         <label className="field" htmlFor="tNote">
           Not (isteğe bağlı)

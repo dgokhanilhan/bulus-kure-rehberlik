@@ -82,9 +82,12 @@ describe('repeats / wrongOutcomes', () => {
 describe('attention (Bugün)', () => {
   it('düşüş, kalıcı hata, gelişim, eksik ve gecikme kuralları', () => {
     const d = ds()
-    const list = attention(d, [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }], [
-      { student_id: 'b', topic: 'Basınç', solved: 3, question_count: 10, due_date: '2026-09-01', completed_at: null },
-    ], '2026-09-10')
+    const list = attention(
+      d,
+      [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }],
+      [{ student_id: 'b', topic: 'Basınç', solved: 3, question_count: 10, due_date: '2026-09-01', completed_at: null }],
+      '2026-09-10',
+    )
     const by = (sid: string) => list.filter((x) => x.sid === sid).map((x) => `${x.tag}: ${x.short}`)
     expect(by('a')).toEqual(['Düşüş: Matematik 14 → 12 → 9'])
     expect(by('b')).toEqual(['Gecikme: Basınç görevi 3/10', 'Gelişim: Toplam net 14 → 20'])
@@ -112,5 +115,44 @@ describe('classHeat', () => {
     expect(m1.cells[2]!.wrong).toEqual(['a'])
     d.results.find((r) => r.student_id === 'a' && r.exam_id === 'e3')!.outcomes_ok = false
     expect(classHeat(d, ['a', 'b'], 'MAT', d.exams)[0]!.cells[2]).toEqual({ p: 100, wrong: [] })
+  })
+})
+
+import { gorevEtkisi, gorevEtkiOzeti } from './analiz'
+describe('görevin etkisi (işe yaradı mı?)', () => {
+  // Öğrenci a: M.1 e1, e2, e3'te yanlış; M.2 e1, e2'de doğru, e3'te yanlış
+  const gorev = (code: string | null, gun: string) => ({ outcome_code: code, created_at: `${gun}T09:00:00+03:00` })
+  it('görevden sonraki denemelerde konu doğruya döndüyse düzeldi; art arda doğru sayılır', () => {
+    const d = ds()
+    d.exams.push({ id: 'e4', name: 'TG-4', publisher: null, exam_date: '2026-09-04' }, { id: 'e5', name: 'TG-5', publisher: null, exam_date: '2026-09-05' })
+    d.questionsByExam.set('e4', [q('e4', 1, 'M.1'), q('e4', 2, 'M.2')])
+    d.questionsByExam.set('e5', [q('e5', 1, 'M.1'), q('e5', 2, 'M.2')])
+    d.results.push(res('e4', 'a', 'AA'), res('e5', 'a', 'A_'))
+    // M.1 görevi e3 günü verildi: önce 3 yanlış, sonra e4 ve e5 doğru
+    expect(gorevEtkisi(d, 'a', gorev('M.1', '2026-09-03'))).toEqual({ once: 3, sonra: ['d', 'd'], durum: 'duzeldi', dogruSeri: 2 })
+    // M.2: e4 doğru, e5 boş → son durum boş
+    expect(gorevEtkisi(d, 'a', gorev('M.2', '2026-09-03'))).toEqual({ once: 1, sonra: ['d', 'b'], durum: 'bos', dogruSeri: 0 })
+    expect(gorevEtkiOzeti([gorevEtkisi(d, 'a', gorev('M.1', '2026-09-03')), gorevEtkisi(d, 'a', gorev('M.2', '2026-09-03')), null])).toEqual({
+      olculen: 2,
+      duzelen: 1,
+      bekleyen: 0,
+    })
+  })
+  it('sonraki denemede yine yanlışsa sürüyor; sonra deneme yoksa bekliyor', () => {
+    const d = ds()
+    expect(gorevEtkisi(d, 'a', gorev('M.1', '2026-09-01'))).toEqual({ once: 1, sonra: ['y', 'y'], durum: 'suruyor', dogruSeri: 0 })
+    expect(gorevEtkisi(d, 'a', gorev('M.1', '2026-09-03'))).toEqual({ once: 3, sonra: [], durum: 'bekliyor', dogruSeri: 0 })
+    expect(gorevEtkiOzeti([gorevEtkisi(d, 'a', gorev('M.1', '2026-09-03'))])).toEqual({ olculen: 0, duzelen: 0, bekleyen: 1 })
+  })
+  it('güvenilir okunmayan deneme sayılmaz; kazanımsız ya da bilinmeyen kazanımlı görevde sonuç yok', () => {
+    const d = ds()
+    // e2'de eşleşme güvenilir değil, e3'te kazanım okunamadı: ikisi de "sonra"ya girmez
+    d.questionsByExam.set('e2', [q('e2', 1, 'M.1', 'semantic'), q('e2', 2, 'M.2')])
+    d.results[2] = res('e3', 'a', 'BB', 9, false)
+    expect(gorevEtkisi(d, 'a', gorev('M.1', '2026-09-01'))).toEqual({ once: 1, sonra: [], durum: 'bekliyor', dogruSeri: 0 })
+    expect(gorevEtkisi(d, 'a', gorev(null, '2026-09-01'))).toBeNull()
+    expect(gorevEtkisi(d, 'a', gorev('M.99', '2026-09-01'))).toBeNull()
+    // Denemeye girmeyen öğrenci: sonra boş
+    expect(gorevEtkisi(d, 'c', gorev('M.1', '2026-09-01'))!.durum).toBe('bekliyor')
   })
 })

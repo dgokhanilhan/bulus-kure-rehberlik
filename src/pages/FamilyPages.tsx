@@ -5,7 +5,7 @@ import { VeriDurumu } from '@/components/VeriDurumu'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
-import { fmt, indexResults, studentExams, totalNet } from '@/lib/analiz'
+import { fmt, gorevEtkisi, indexResults, studentExams, totalNet } from '@/lib/analiz'
 import { SUBJECT_SHORT } from '@/components/Tasks'
 import {
   ATT_TR,
@@ -305,6 +305,9 @@ export function OzetPage() {
 export function GorevlerPage() {
   const { s, list, loading, choose, veli, students } = useMyStudent()
   const tasks = useTasks(s?.id)
+  // Görevden sonraki denemelerde konunun gidişi (LGS denemeleri; veri yoksa satır görünmez)
+  const dsq = useDataset()
+  const ds = dsq.data
   if (!s) return <Wait loading={loading} sorgular={[students]} />
   const ts = (tasks.data ?? []).slice().sort((a, b) => Number(!!a.completed_at) - Number(!!b.completed_at) || a.due_date.localeCompare(b.due_date))
   return (
@@ -312,7 +315,7 @@ export function GorevlerPage() {
       <h1 className="hd a">{veli ? `${gen(s.full_name.split(' ')[0]!)} görevleri` : 'Görevlerim'}</h1>
       <ChildPicker list={list} s={s} choose={choose} />
       {!veli && <p className="m a">Çözdükçe işaretle; öğretmenin ilerlemeni görür.</p>}
-      {tasks.isLoading ? null : <TaskList tasks={ts} mode={veli ? 'view' : 'student'} />}
+      {tasks.isLoading ? null : <TaskList tasks={ts} mode={veli ? 'view' : 'student'} etki={ds ? (t) => gorevEtkisi(ds, s.id, t) : undefined} />}
     </>
   )
 }
