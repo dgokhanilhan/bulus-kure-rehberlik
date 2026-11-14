@@ -47,3 +47,18 @@ describe('Öğretmenler Odası', () => {
     expect(secimOku('bozuk', ['8/A'])).toEqual([])
   })
 })
+
+describe('sınıf seçici grupları', () => {
+  it('okulun kademe sırasıyla gruplar; boş grup yok; kademesi bilinmeyen Diğer', async () => {
+    const { sinifGruplari } = await import('./oda')
+    const k: Record<string, string> = { '1/A': 'ilkokul', '8/A': 'ortaokul', '8/B': 'ortaokul', '11/A · SAY': 'lise' }
+    expect(sinifGruplari(['8/A', '1/A', 'Kurs', '8/B', '11/A · SAY'], (a) => k[a])).toEqual([
+      { id: 'ilkokul', ad: 'İlkokul', siniflar: ['1/A'] },
+      { id: 'ortaokul', ad: 'Ortaokul', siniflar: ['8/A', '8/B'] },
+      { id: 'lise', ad: 'Lise', siniflar: ['11/A · SAY'] },
+      { id: 'diger', ad: 'Diğer', siniflar: ['Kurs'] },
+    ])
+    expect(sinifGruplari(['8/A'], () => 'ortaokul')).toHaveLength(1)
+    expect(sinifGruplari([], () => null)).toEqual([])
+  })
+})

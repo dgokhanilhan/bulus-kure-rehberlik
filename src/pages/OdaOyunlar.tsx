@@ -1,10 +1,12 @@
-// Öğretmenler Odası → Oyunlar: haftalık lig, altı oyun, skor tabloları ve rozetler (0069). Yalnız öğretmenler.
+// Öğretmenler Odası → Oyunlar: haftalık lig, oyunlar, skor tabloları ve rozetler (0069). Yalnız öğretmenler.
+// Hangi oyunların açık olduğu okul ayarıdır (oda.oyun.*, 0072); kapalı oyun listede ve rozetlerde görünmez.
 import { lazy, Suspense } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { OYUNLAR, ROZETLER, seri, skorYaz, type OyunId } from '@/lib/oyunlar'
 import { useLig, useOyunGizli, useOyunIstatistik, useSkorTablosu } from '@/lib/oyunData'
 import { initials, todayISO } from '@/lib/format'
 import { Icon } from '@/components/Icon'
+import { useAyar } from '@/lib/ayarlar'
 import { SkorTablosu } from './oyun/SkorTablosu'
 
 const OYUN: Record<OyunId, React.LazyExoticComponent<() => JSX.Element>> = {
@@ -19,7 +21,9 @@ const SIMGE: Record<OyunId, string> = { sudoku: '🧩', kelime: '🔤', yilan: '
 
 export default function OdaOyunlar() {
   const [sp, setSp] = useSearchParams()
-  const secili = OYUNLAR.find((o) => o.id === sp.get('oyun'))?.id ?? null
+  const ayar = useAyar()
+  const acik = OYUNLAR.filter((o) => ayar.bool(`oda.oyun.${o.id}`))
+  const secili = acik.find((o) => o.id === sp.get('oyun'))?.id ?? null
   const ac = (o: OyunId | null) => setSp(o ? { sekme: 'oyunlar', oyun: o } : { sekme: 'oyunlar' })
 
   if (secili) {
@@ -49,10 +53,10 @@ export default function OdaOyunlar() {
       </div>
     )
   }
-  return <OyunMerkezi onAc={ac} />
+  return <OyunMerkezi onAc={ac} acik={acik.map((o) => o.id)} />
 }
 
-function OyunMerkezi({ onAc }: { onAc: (o: OyunId) => void }) {
+function OyunMerkezi({ onAc, acik }: { onAc: (o: OyunId) => void; acik: OyunId[] }) {
   const lig = useLig()
   const ist = useOyunIstatistik()
   const gizli = useOyunGizli()
@@ -63,9 +67,10 @@ function OyunMerkezi({ onAc }: { onAc: (o: OyunId) => void }) {
     <div className="oy-merkez">
       <div className="oy-duzen">
         <div className="oy-kartlar">
-          {OYUNLAR.map((o) => (
-            <OyunKarti key={o.id} id={o.id} onAc={() => onAc(o.id)} />
+          {acik.map((id) => (
+            <OyunKarti key={id} id={id} onAc={() => onAc(id)} />
           ))}
+          {!acik.length && <div className="empty">Okulda şu an açık oyun yok.</div>}
         </div>
         <section className="card oy-lig" aria-label="Haftalık lig">
           <div className="kv">
@@ -115,8 +120,8 @@ function OyunMerkezi({ onAc }: { onAc: (o: OyunId) => void }) {
           {s > 0 && <span className="chip gold">🔥 {s} gün üst üste</span>}
         </div>
         <ul className="oy-rozetler">
-          {ROZETLER.map((r) => {
-            const var_ = !!ist.data && r.kosul(ist.data, s)
+          {ROZETLER.filter((r) => !r.oyun || acik.includes(r.oyun)).map((r) => {
+            const var_ = !!ist.data && r.kosul(ist.data, s, acik.length)
             return (
               <li key={r.id} className={var_ ? 'var' : ''} title={r.aciklama}>
                 <span className="oy-rozet-simge" aria-hidden="true">
@@ -147,7 +152,15 @@ function OyunKarti({ id, onAc }: { id: OyunId; onAc: () => void }) {
       <b>{o.ad}</b>
       <span className="m oy-aciklama">{o.aciklama}</span>
       <span className="oy-durum">
-        {o.gunluk ? (ben ? <span className="chip up">✓ Bugün: {skorYaz(id, ben.puan)}</span> : <span className="chip gold">Bugün oynanmadı</span>) : ben ? <span className="chip n">En iyin: {skorYaz(id, ben.puan)}</span> : null}
+        {o.gunluk ? (
+          ben ? (
+            <span className="chip up">✓ Bugün: {skorYaz(id, ben.puan)}</span>
+          ) : (
+            <span className="chip gold">Bugün oynanmadı</span>
+          )
+        ) : ben ? (
+          <span className="chip n">En iyin: {skorYaz(id, ben.puan)}</span>
+        ) : null}
         {lider && !lider.ben && (
           <span className="m" style={{ fontSize: 12 }}>
             🥇 {lider.ad.split(' ')[0]} · {skorYaz(id, lider.puan)}

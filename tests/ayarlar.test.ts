@@ -32,7 +32,7 @@ const PREFIX = 'genel|gorunum|modul|bildirim|odev|duyuru|dosya|galeri|yoklama|ta
 /** 0052 öncesinden kalan, tanımlı ama hiçbir yerde okunmayan ayarlar (docs/ayarlar-envanteri.md). Yenisi eklenmez. */
 const ESKI_KULLANILMAYAN = ['yoklama.ogretmen_girebilir', 'bursluluk.aciklama']
 /** Kodda dinamik kurulan anahtarlar (ör. `menu.ad.${sayfa}`) */
-const DINAMIK = ['menu.ad.', 'menu.gizli.', 'menu.sira.', 'modul.', 'bildirim.', 'yoklama.limit_', 'etut.saatler_']
+const DINAMIK = ['menu.ad.', 'menu.gizli.', 'menu.sira.', 'modul.', 'bildirim.', 'yoklama.limit_', 'etut.saatler_', 'oda.oyun.']
 
 describe('ayar tanımları', () => {
   it('veritabanı spec ile ayar adları birebir aynı (anahtar, tür, varsayılan)', async () => {

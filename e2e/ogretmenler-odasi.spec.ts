@@ -44,7 +44,11 @@ test('yetki: veli ve öğrenci okuyamaz/yazamaz; öğretmen yalnız kendi kanall
   expect(kM).not.toContain('zumre:Türkçe')
   // Başka zümreye yazamaz; yazan ve okul sunucuda damgalanır
   expect((await mat.from('oda_mesaj').insert({ kanal: 'zumre:Türkçe', metin: `${IZ} başka zümre` })).error).not.toBeNull()
-  const { data: m, error } = await mat.from('oda_mesaj').insert({ kanal: 'genel', metin: `  ${IZ} merhaba  ` }).select('id, yazan, metin').single()
+  const { data: m, error } = await mat
+    .from('oda_mesaj')
+    .insert({ kanal: 'genel', metin: `  ${IZ} merhaba  ` })
+    .select('id, yazan, metin')
+    .single()
   expect(error).toBeNull()
   const { data: matP } = await svc.from('profiles').select('id').eq('email', DEMO.matematik[0]).single()
   expect(m).toMatchObject({ yazan: matP!.id, metin: `${IZ} merhaba` })
@@ -58,8 +62,15 @@ test('yetki: veli ve öğrenci okuyamaz/yazamaz; öğretmen yalnız kendi kanall
   expect((await veli.rpc('oda_devamsizlik', { p_ogrenciler: [el!.id] })).data ?? []).toEqual([])
 
   // 30 günü geçen mesaj gece temizliğinde silinir, yenisi kalır
-  const { data: eski } = await mat.from('oda_mesaj').insert({ kanal: 'genel', metin: `${IZ} eski` }).select('id').single()
-  await svc.from('oda_mesaj').update({ created_at: new Date(Date.now() - 31 * 86400_000).toISOString() }).eq('id', eski!.id)
+  const { data: eski } = await mat
+    .from('oda_mesaj')
+    .insert({ kanal: 'genel', metin: `${IZ} eski` })
+    .select('id')
+    .single()
+  await svc
+    .from('oda_mesaj')
+    .update({ created_at: new Date(Date.now() - 31 * 86400_000).toISOString() })
+    .eq('id', eski!.id)
   await svc.rpc('oda_temizlik')
   expect((await svc.from('oda_mesaj').select('id').eq('id', eski!.id)).data).toEqual([])
   expect((await svc.from('oda_mesaj').select('id').eq('id', m!.id)).data).toHaveLength(1)
@@ -83,10 +94,17 @@ test('rehber: Oda, Öğrenci Takip ve Sohbet; matematik öğretmeni anılınca b
 
   // Öğrenci Takip: sınıf seç, tablo, ayrıntı
   await page.getByRole('tab', { name: 'Öğrenci Takip' }).click()
-  const cips = page.getByRole('group', { name: 'Sınıf seçimi' }).getByRole('button')
-  await expect(cips.first()).toBeVisible()
+  // Ekranda yalnız seçili sınıflar durur; "Sınıf ekle" listeyi açar
+  const secili = page.getByRole('group', { name: 'Seçili sınıflar' })
+  await expect(secili.getByRole('button', { name: 'Sınıf ekle' })).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.getByRole('group', { name: 'Sınıf seçimi' })).toHaveCount(0)
+  await secili.getByRole('button', { name: 'Sınıf ekle' }).click()
   const sinif8A = page.getByRole('group', { name: 'Sınıf seçimi' }).getByRole('button', { name: '8/A' })
   if ((await sinif8A.getAttribute('aria-pressed')) !== 'true') await sinif8A.click()
+  await expect(secili.getByRole('button', { name: '8/A: seçimden çıkar' })).toBeVisible()
+  await shot(page, 'oda-sinif-secici')
+  await secili.getByRole('button', { name: 'Listeyi kapat' }).click()
+  await expect(page.getByRole('group', { name: 'Sınıf seçimi' })).toHaveCount(0)
   const satir = page.locator('.oda-tbl tbody tr.click').first()
   await expect(satir).toBeVisible()
   await expect(page.locator('.oda-tbl thead')).toContainText('Notlar')
@@ -104,7 +122,10 @@ test('rehber: Oda, Öğrenci Takip ve Sohbet; matematik öğretmeni anılınca b
   await expect(page.getByRole('tab', { name: /Genel/ })).toHaveAttribute('aria-selected', 'true')
   const kutu = page.getByRole('textbox', { name: /kanalına mesaj/ })
   await kutu.fill(`${IZ} toplantı 15.00'te @${matP!.full_name.slice(0, 3)}`)
-  await page.getByRole('listbox', { name: 'Öğretmen an' }).getByRole('button', { name: new RegExp(matP!.full_name) }).click()
+  await page
+    .getByRole('listbox', { name: 'Öğretmen an' })
+    .getByRole('button', { name: new RegExp(matP!.full_name) })
+    .click()
   await kutu.press('End')
   await kutu.type('lütfen notları getir')
   await kutu.press('Enter')
@@ -147,7 +168,13 @@ test('rehber: Oda, Öğrenci Takip ve Sohbet; matematik öğretmeni anılınca b
 })
 
 test('telefonda: sohbet kanalları üstte, yazı kutusu ekranda', async ({ browser }) => {
-  const ctx = await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: { width: 390, height: 844 }, locale: 'tr-TR', timezoneId: 'Europe/Istanbul', hasTouch: true })
+  const ctx = await browser.newContext({
+    baseURL: test.info().project.use.baseURL,
+    viewport: { width: 390, height: 844 },
+    locale: 'tr-TR',
+    timezoneId: 'Europe/Istanbul',
+    hasTouch: true,
+  })
   const page = await ctx.newPage()
   await login(page, ...DEMO.matematik)
   await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
@@ -156,13 +183,16 @@ test('telefonda: sohbet kanalları üstte, yazı kutusu ekranda', async ({ brows
   await expect(kutu).toBeInViewport()
   // Yazı kutusu alttaki menünün üstünde kalır
   const kutuAlt = await kutu.evaluate((el) => el.getBoundingClientRect().bottom)
-  const menuUst = await page.getByRole('navigation', { name: 'Ana menü' }).locator('.nav').evaluate((el) => el.getBoundingClientRect().top)
+  const menuUst = await page
+    .getByRole('navigation', { name: 'Ana menü' })
+    .locator('.nav')
+    .evaluate((el) => el.getBoundingClientRect().top)
   expect(kutuAlt).toBeLessThanOrEqual(menuUst)
   const w = await page.evaluate(() => document.documentElement.scrollWidth)
   expect(w).toBeLessThanOrEqual(390)
   await shot(page, 'oda-sohbet-mobil', false)
   await page.goto('/ogretmenler-odasi?sekme=takip')
-  await expect(page.getByRole('group', { name: 'Sınıf seçimi' })).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Seçili sınıflar' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await shot(page, 'oda-takip-mobil', false)
   await ctx.close()

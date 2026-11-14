@@ -18,8 +18,22 @@ const temizle = async () => {
   await svc.from('oda_dogum_gunu').delete().in('user_id', ids)
   await svc.from('notifications').delete().eq('type', 'oda').like('text', `%${IZ}%`)
 }
-test.beforeAll(temizle)
-test.afterAll(temizle)
+// Okul yalnız Günün Sudokusu ve Günün Kelimesi açık başlar (0072); bu testler diğer oyunları da açar
+const OYUN_AYAR = ['yilan', 'sprint', 'mayin', 'hafiza'].map((o) => `oda.oyun.${o}`)
+const oyunAyar = async (key: string, value: boolean) => {
+  const svc = service()
+  const { data: okul } = await svc.from('profiles').select('school_id').eq('email', DEMO.matematik[0]).single()
+  const { error } = await svc.from('school_settings').upsert({ school_id: okul!.school_id, key, value }, { onConflict: 'school_id,key' })
+  expect(error).toBeNull()
+}
+test.beforeAll(async () => {
+  await temizle()
+  for (const k of OYUN_AYAR) await oyunAyar(k, true)
+})
+test.afterAll(async () => {
+  await temizle()
+  await service().from('school_settings').delete().in('key', OYUN_AYAR)
+})
 test.describe.configure({ mode: 'serial' })
 
 const oturum = async (kim: readonly [string, string]) => {
@@ -71,6 +85,16 @@ test('oyunlar: sudoku ve kelime sunucuda doğrulanır; skor sınırları; lig; v
   // Sudoku 1. (10) + Yılan 2. (8); bulunamayan kelime ligde sayılmaz
   expect(lig.find((x) => x.ben)!.puan).toBe(18)
   // Gizlenen öğretmen başkasının tablosunda görünmez, kendininkinde görünür
+  // Kapalı oyun: yeni skor reddedilir, lige sayılmaz; eski skor silinmez, açınca geri gelir
+  await oyunAyar('oda.oyun.yilan', false)
+  const kapali = await mat.rpc('oda_skor_kaydet', { p_oyun: 'yilan', p_puan: 15, p_sure_ms: 30000 })
+  expect(kapali.error?.message).toContain('Bu oyun okulda kapalı.')
+  const ligKapali = (await mat.rpc('oda_lig')).data as { puan: number; ben: boolean }[]
+  expect(ligKapali.find((r) => r.ben)!.puan).toBe(10)
+  expect((await service().from('oda_oyun').select('id').eq('oyun', 'yilan')).data!.length).toBeGreaterThanOrEqual(2)
+  await oyunAyar('oda.oyun.yilan', true)
+  expect(((await mat.rpc('oda_lig')).data as { puan: number; ben: boolean }[]).find((r) => r.ben)!.puan).toBe(18)
+
   await reh.from('oda_oyun_tercih').upsert({ user_id: (await reh.auth.getUser()).data.user!.id, gizli: true })
   expect(((await mat.rpc('oda_skor_tablosu', { p_oyun: 'yilan', p_donem: 'gun' })).data as unknown[]).length).toBe(1)
   expect(((await reh.rpc('oda_skor_tablosu', { p_oyun: 'yilan', p_donem: 'gun' })).data as unknown[]).length).toBe(2)
@@ -130,6 +154,14 @@ test('arayüz: oyunlar ve pano sekmeleri, sudoku ve kelime oynanır', async ({ p
   await expect(page.getByRole('heading', { name: /Haftalık lig/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Rozetlerim' })).toBeVisible()
   await shot(page, 'oda-oyunlar')
+  // Kapalı oyun listede yok; adresle de açılmaz
+  await oyunAyar('oda.oyun.mayin', false)
+  await page.reload()
+  await expect(page.getByRole('button', { name: /Günün Sudokusu/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Mayın Tarlası/ })).toHaveCount(0)
+  await page.goto('/ogretmenler-odasi?sekme=oyunlar&oyun=mayin')
+  await expect(page.getByRole('heading', { name: /Haftalık lig/ })).toBeVisible()
+  await oyunAyar('oda.oyun.mayin', true)
   await page.getByRole('button', { name: /Hafıza Kartları/ }).click()
   await expect(page.getByRole('grid', { name: 'Hafıza kartları' }).getByRole('gridcell')).toHaveCount(16)
   await page.getByRole('button', { name: 'Oyunlar' }).click()

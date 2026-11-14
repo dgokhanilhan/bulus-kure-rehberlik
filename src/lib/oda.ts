@@ -128,8 +128,26 @@ export function cizgiNoktalari(degerler: readonly number[], g = 84, y = 22, pay 
   const max = Math.max(...degerler)
   const ara = max - min || 1
   return degerler
-    .map((v, i) => `${Math.round((pay + (i * (g - 2 * pay)) / (degerler.length - 1)) * 10) / 10},${Math.round((y - pay - ((v - min) / ara) * (y - 2 * pay)) * 10) / 10}`)
+    .map(
+      (v, i) =>
+        `${Math.round((pay + (i * (g - 2 * pay)) / (degerler.length - 1)) * 10) / 10},${Math.round((y - pay - ((v - min) / ara) * (y - 2 * pay)) * 10) / 10}`,
+    )
     .join(' ')
+}
+
+/** Sınıf seçicide kademe grupları: okulun kademe sırasıyla, boş grup yok; kademesi bilinmeyen sınıflar "Diğer" */
+export function sinifGruplari(
+  siniflar: readonly string[],
+  kademe: (ad: string) => string | null | undefined,
+): { id: string; ad: string; siniflar: string[] }[] {
+  const AD: Record<string, string> = { ilkokul: 'İlkokul', ortaokul: 'Ortaokul', lise: 'Lise', diger: 'Diğer' }
+  const g = new Map<string, string[]>()
+  for (const s of siniflar) {
+    const k = kademe(s) ?? 'diger'
+    const id = k in AD ? k : 'diger'
+    g.set(id, [...(g.get(id) ?? []), s])
+  }
+  return ['ilkokul', 'ortaokul', 'lise', 'diger'].filter((k) => g.has(k)).map((k) => ({ id: k, ad: AD[k]!, siniflar: g.get(k)! }))
 }
 
 /** Seçili sınıflar (cihazda hatırlanır); bilinmeyenler atılır */

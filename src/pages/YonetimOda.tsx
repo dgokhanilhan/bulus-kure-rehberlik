@@ -13,6 +13,7 @@ import { useAyar } from '@/lib/ayarlar'
 import { isTeacherP } from '@/lib/roles'
 import { kanalAciklama, kanalAdi, kanalSirala, ozelKanal, type KanalAyar } from '@/lib/oda'
 import { maddeKodu, type MaddeTanim } from '@/lib/gunlukKontrol'
+import { OYUNLAR } from '@/lib/oyunlar'
 import { Modal } from '@/components/Modal'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
@@ -20,7 +21,11 @@ import { useToast } from '@/components/Toast'
 import { Check } from './YonetimMerkezi'
 
 const hataMetni = (e: { code?: string; message?: string } | null) =>
-  !e ? null : /row-level security|42501/i.test(`${e.code} ${e.message}`) ? 'Bu işlem için yönetici yetkisi (iki adımlı doğrulama) gerekir.' : (e.message ?? 'Kaydedilemedi.')
+  !e
+    ? null
+    : /row-level security|42501/i.test(`${e.code} ${e.message}`)
+      ? 'Bu işlem için yönetici yetkisi (iki adımlı doğrulama) gerekir.'
+      : (e.message ?? 'Kaydedilemedi.')
 
 function useAyarYaz() {
   const qc = useQueryClient()
@@ -93,7 +98,9 @@ export function OdaAyarlari() {
         <div style={{ padding: 8 }}>
           <Check
             on={ayar.bool('bildirim.oda')}
-            onClick={() => yaz({ 'bildirim.oda': !ayar.bool('bildirim.oda') }, `Öğretmenler Odası bildirimleri ${ayar.bool('bildirim.oda') ? 'kapatıldı' : 'açıldı'}`)}
+            onClick={() =>
+              yaz({ 'bildirim.oda': !ayar.bool('bildirim.oda') }, `Öğretmenler Odası bildirimleri ${ayar.bool('bildirim.oda') ? 'kapatıldı' : 'açıldı'}`)
+            }
             label="Bildirimler"
             hint="Sohbette anılma, teşekkür kartı, değişim talebini birinin alması"
           />
@@ -115,6 +122,27 @@ export function OdaAyarlari() {
         <span className="m" style={{ fontSize: 12 }}>
           Bu süreden eski mesajlar her gece kendiliğinden silinir. Süreyi kısaltmak eski mesajları ilk gece siler.
         </span>
+      </section>
+      <section className="card a" style={{ ['--d' as string]: 3, padding: 8 }} aria-label="Oyunlar">
+        <h2 className="sec" style={{ padding: '8px 8px 0' }}>
+          Oyunlar
+        </h2>
+        <p className="m" style={{ fontSize: 13, padding: '0 8px' }}>
+          Kapalı oyun öğretmenlerin listesinde görünmez, yeni skor kaydedilmez ve haftalık lige sayılmaz. Eski skorlar silinmez; açınca geri gelir.
+        </p>
+        {OYUNLAR.map((o) => {
+          const k = `oda.oyun.${o.id}`
+          return (
+            <div key={o.id} style={{ padding: 8 }}>
+              <Check
+                on={ayar.bool(k)}
+                onClick={() => yaz({ [k]: !ayar.bool(k) }, `${o.ad}: ${ayar.bool(k) ? 'kapatıldı' : 'açıldı'}`)}
+                label={o.ad}
+                hint={o.aciklama}
+              />
+            </div>
+          )
+        })}
       </section>
       <Kanallar />
     </>
@@ -176,8 +204,8 @@ function Kanallar() {
         </button>
       </div>
       <p className="m" style={{ fontSize: 13, margin: 0 }}>
-        Genel, kademe ve zümre kanalları kendiliğinden oluşur (zümre: öğretmenin branşından). Adını, açıklamasını ve sırasını değiştirebilir, istemediğini gizleyebilirsin.
-        Okula özel kanal (ör. "8. sınıf öğretmenleri", "İdare") bütün öğretmenlere ya da seçtiğin öğretmenlere açılır.
+        Genel, kademe ve zümre kanalları kendiliğinden oluşur (zümre: öğretmenin branşından). Adını, açıklamasını ve sırasını değiştirebilir, istemediğini
+        gizleyebilirsin. Okula özel kanal (ör. "8. sınıf öğretmenleri", "İdare") bütün öğretmenlere ya da seçtiğin öğretmenlere açılır.
       </p>
       {q.isLoading ? (
         <p className="m">Yükleniyor…</p>
@@ -195,7 +223,11 @@ function Kanallar() {
                 <span className="ya-ad">
                   <b># {ad}</b>
                   <span className="m" style={{ fontSize: 12 }}>
-                    {ozelKanal(k) ? `Özel kanal · ${r.uyeler ? `${r.uyeler.length} öğretmen` : 'bütün öğretmenler'}` : r.ad ? `Hazır kanal · asıl adı: ${kanalAdi(k)}` : 'Hazır kanal'}
+                    {ozelKanal(k)
+                      ? `Özel kanal · ${r.uyeler ? `${r.uyeler.length} öğretmen` : 'bütün öğretmenler'}`
+                      : r.ad
+                        ? `Hazır kanal · asıl adı: ${kanalAdi(k)}`
+                        : 'Hazır kanal'}
                     {' · '}
                     {kanalAciklama(k, r)}
                   </span>
@@ -220,14 +252,7 @@ function Kanallar() {
           })}
         </ul>
       )}
-      {duzenle && (
-        <KanalModal
-          r={duzenle === 'yeni' ? null : satir(duzenle)}
-          sira={liste.length + 1}
-          onKaydet={kaydet}
-          onClose={() => setDuzenle(null)}
-        />
-      )}
+      {duzenle && <KanalModal r={duzenle === 'yeni' ? null : satir(duzenle)} sira={liste.length + 1} onKaydet={kaydet} onClose={() => setDuzenle(null)} />}
       {sil && (
         <ConfirmDelete
           title="Kanalı sil"
@@ -249,9 +274,22 @@ function Kanallar() {
   )
 }
 
-function KanalModal({ r, sira, onKaydet, onClose }: { r: KanalAyar | null; sira: number; onKaydet: (rows: KanalAyar[]) => Promise<string | null>; onClose: () => void }) {
+function KanalModal({
+  r,
+  sira,
+  onKaydet,
+  onClose,
+}: {
+  r: KanalAyar | null
+  sira: number
+  onKaydet: (rows: KanalAyar[]) => Promise<string | null>
+  onClose: () => void
+}) {
   const people = usePeople()
-  const ogretmenler = useMemo(() => (people.data ?? []).filter((p) => isTeacherP(p)).sort((a, b) => a.full_name.localeCompare(b.full_name, 'tr')), [people.data])
+  const ogretmenler = useMemo(
+    () => (people.data ?? []).filter((p) => isTeacherP(p)).sort((a, b) => a.full_name.localeCompare(b.full_name, 'tr')),
+    [people.data],
+  )
   const yeni = !r
   const ozel = yeni || ozelKanal(r.kanal)
   const [ad, setAd] = useState(r?.ad ?? '')
@@ -301,16 +339,33 @@ function KanalModal({ r, sira, onKaydet, onClose }: { r: KanalAyar | null; sira:
       </label>
       <label className="field">
         Açıklama (isteğe bağlı)
-        <input value={aciklama} maxLength={120} placeholder={r ? kanalAciklama(r.kanal, { aciklama: null, uyeler: r.uyeler }) : 'Kanalın konusu'} onChange={(e) => setAciklama(e.target.value)} />
+        <input
+          value={aciklama}
+          maxLength={120}
+          placeholder={r ? kanalAciklama(r.kanal, { aciklama: null, uyeler: r.uyeler }) : 'Kanalın konusu'}
+          onChange={(e) => setAciklama(e.target.value)}
+        />
       </label>
       {ozel && (
         <div className="stack" style={{ gap: 8 }}>
           <span className="label">Kimler görür?</span>
           <div className="btns" role="radiogroup" aria-label="Kimler görür">
-            <button type="button" role="radio" aria-checked={secili === null} className={`btn sm ${secili === null ? 'pri' : ''}`} onClick={() => setSecili(null)}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={secili === null}
+              className={`btn sm ${secili === null ? 'pri' : ''}`}
+              onClick={() => setSecili(null)}
+            >
               Bütün öğretmenler
             </button>
-            <button type="button" role="radio" aria-checked={secili !== null} className={`btn sm ${secili !== null ? 'pri' : ''}`} onClick={() => setSecili(secili ?? [])}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={secili !== null}
+              className={`btn sm ${secili !== null ? 'pri' : ''}`}
+              onClick={() => setSecili(secili ?? [])}
+            >
               Seçtiğim öğretmenler
             </button>
           </div>
@@ -405,8 +460,8 @@ export function GunlukKontrolAyarlari() {
           </button>
         </div>
         <p className="m" style={{ fontSize: 13, margin: 0 }}>
-          Öğretmenler Öğrenciler → sınıf → Günlük kontrol'de yalnız açık maddeleri işaretler. Cümle veli ve öğrencinin gördüğü ve veli uyarısında yazan metindir.
-          Kullanılmış madde silinmez; kapatırsan eski kayıtlar adıyla görünmeye devam eder.
+          Öğretmenler Öğrenciler → sınıf → Günlük kontrol'de yalnız açık maddeleri işaretler. Cümle veli ve öğrencinin gördüğü ve veli uyarısında yazan
+          metindir. Kullanılmış madde silinmez; kapatırsan eski kayıtlar adıyla görünmeye devam eder.
         </p>
         {q.isLoading ? (
           <p className="m">Yükleniyor…</p>
@@ -465,7 +520,10 @@ export function GunlukKontrolAyarlari() {
           <Check
             on={ayar.bool('bildirim.gunluk_kontrol')}
             onClick={() =>
-              yaz({ 'bildirim.gunluk_kontrol': !ayar.bool('bildirim.gunluk_kontrol') }, `Günlük kontrol bildirimi ${ayar.bool('bildirim.gunluk_kontrol') ? 'kapatıldı' : 'açıldı'}`)
+              yaz(
+                { 'bildirim.gunluk_kontrol': !ayar.bool('bildirim.gunluk_kontrol') },
+                `Günlük kontrol bildirimi ${ayar.bool('bildirim.gunluk_kontrol') ? 'kapatıldı' : 'açıldı'}`,
+              )
             }
             label="Veli uyarı bildirimi"
             hint="Kapalıyken uyarı bildirimi hiç oluşmaz (kayıtlar yine tutulur)"
@@ -502,7 +560,13 @@ export function GunlukKontrolAyarlari() {
   )
 }
 
-function MaddeModal(p: { m: MaddeTanim | null; kodlar: string[]; sira: number; onKaydet: (rows: MaddeTanim[]) => Promise<string | null>; onClose: () => void }) {
+function MaddeModal(p: {
+  m: MaddeTanim | null
+  kodlar: string[]
+  sira: number
+  onKaydet: (rows: MaddeTanim[]) => Promise<string | null>
+  onClose: () => void
+}) {
   const [ad, setAd] = useState(p.m?.ad ?? '')
   const [cumle, setCumle] = useState(p.m?.cumle ?? '')
   const [hata, setHata] = useState<string | null>(null)

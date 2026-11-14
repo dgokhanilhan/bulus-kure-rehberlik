@@ -10,7 +10,9 @@ import { useGunlukKontrol } from '@/lib/gunlukKontrolData'
 import { ayBasi } from '@/lib/gunlukKontrol'
 import { useGunlukMaddeler } from '@/lib/gunlukKontrolData'
 import { fold, initials, todayISO, trDM } from '@/lib/format'
-import { cizgiNoktalari, dikkatNedenleri, odevOzeti, secimOku, suzgecUyar, type TakipSuzgec } from '@/lib/oda'
+import { cizgiNoktalari, dikkatNedenleri, odevOzeti, secimOku, sinifGruplari, suzgecUyar, type TakipSuzgec } from '@/lib/oda'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 import { useOdaDevamsizlik, useOdaNotlar } from '@/lib/odaData'
 import { useAuth } from '@/auth/AuthProvider'
 import { Seg } from '@/components/Indicator'
@@ -62,8 +64,7 @@ export default function OdaOgrenciTakip() {
     const s = secimHam ?? okuSecim(key, siniflar)
     return s.length ? s.filter((x) => siniflar.includes(x)) : siniflar.slice(0, 1)
   }, [secimHam, key, siniflar])
-  const sec = (c: string) => {
-    const yeni = secim.includes(c) ? secim.filter((x) => x !== c) : [...secim, c]
+  const secimYaz = (yeni: string[]) => {
     setSecimHam(yeni)
     try {
       localStorage.setItem(key, JSON.stringify(yeni))
@@ -71,6 +72,29 @@ export default function OdaOgrenciTakip() {
       /* depolama kapalı: seçim yalnız bu oturumda */
     }
   }
+  const sec = (c: string) => secimYaz(secim.includes(c) ? secim.filter((x) => x !== c) : [...secim, c])
+
+  // Sınıf seçici: ekranda yalnız seçili sınıflar durur; "Sınıf ekle" kademe sekmeli listeyi açar
+  const [panel, setPanel] = useState(false)
+  const [grupHam, setGrup] = useState<string | null>(null)
+  const benim = useQuery({
+    queryKey: ['oda', 'siniflarim', profile?.id],
+    enabled: !!profile && panel,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('teacher_classes', { uid: profile!.id })
+      if (error) throw new Error(error.message)
+      return ((data ?? []) as (string | { teacher_classes: string })[]).map((x) => (typeof x === 'string' ? x : x.teacher_classes))
+    },
+  })
+  const gruplar = useMemo(() => {
+    const kademe = new Map((classes.data ?? []).map((c) => [c.name, c.level as string | null]))
+    const g = sinifGruplari(siniflar, (ad) => kademe.get(ad))
+    const idler = new Set(benim.data ?? [])
+    const benimkiler = (classes.data ?? []).filter((c) => idler.has(c.id) && siniflar.includes(c.name)).map((c) => c.name)
+    return benimkiler.length && benimkiler.length < siniflar.length ? [...g, { id: 'benim', ad: 'Benimkiler', siniflar: benimkiler }] : g
+  }, [classes.data, siniflar, benim.data])
+  const grup = gruplar.find((g) => g.id === grupHam) ?? gruplar.find((g) => g.siniflar.some((c) => secim.includes(c))) ?? gruplar[0]
 
   const ogrenciler = useMemo(() => (students.data ?? []).filter((s) => secim.includes(s.class_name)), [students.data, secim])
   const ids = useMemo(() => ogrenciler.map((s) => s.id), [ogrenciler])
@@ -157,42 +181,87 @@ export default function OdaOgrenciTakip() {
   return (
     <div className="oda-takip">
       <section className="card a" style={{ padding: 16 }}>
-        <div className="kv" style={{ marginBottom: 10 }}>
+        <div className="oda-sinifsec">
           <h2 className="sec">Sınıflar</h2>
-          <span className="m" style={{ fontSize: 13 }}>
-            Seçimin bu cihazda hatırlanır
-          </span>
-        </div>
-        <div className="oda-cips" role="group" aria-label="Sınıf seçimi">
-          {siniflar.map((c) => (
-            <button key={c} type="button" className="oda-cip" aria-pressed={secim.includes(c)} onClick={() => sec(c)}>
-              {secim.includes(c) && <Icon name="check" size={14} stroke={2.4} />}
-              {c}
+          <div className="oda-cips" role="group" aria-label="Seçili sınıflar">
+            {secim.map((c) => (
+              <button key={c} type="button" className="oda-cip secili" aria-label={`${c}: seçimden çıkar`} onClick={() => sec(c)}>
+                {c}
+                <Icon name="x" size={14} stroke={2.4} />
+              </button>
+            ))}
+            <button type="button" className="oda-cip ekle" aria-expanded={panel} aria-controls="sinifPanel" onClick={() => setPanel((x) => !x)}>
+              <Icon name={panel ? 'up' : 'plus'} size={14} stroke={2.4} />
+              {panel ? 'Listeyi kapat' : 'Sınıf ekle'}
             </button>
-          ))}
+          </div>
         </div>
+        {panel && grup && (
+          <div id="sinifPanel" className="oda-panel">
+            {gruplar.length > 1 && (
+              <Seg label="Kademe" value={grup.id} options={gruplar.map((g) => [g.id, g.ad] as const)} onChange={setGrup} style={{ alignSelf: 'flex-start' }} />
+            )}
+            <div className="oda-cips" role="group" aria-label="Sınıf seçimi">
+              {grup.siniflar.map((c) => (
+                <button key={c} type="button" className="oda-cip" aria-pressed={secim.includes(c)} onClick={() => sec(c)}>
+                  {secim.includes(c) && <Icon name="check" size={14} stroke={2.4} />}
+                  {c}
+                </button>
+              ))}
+            </div>
+            <div className="btns" style={{ alignItems: 'center' }}>
+              <button type="button" className="btn sm" onClick={() => secimYaz([...new Set([...secim, ...grup.siniflar])])}>
+                {grup.ad}: tümünü seç
+              </button>
+              <button type="button" className="btn sm" onClick={() => secimYaz(secim.filter((c) => !grup.siniflar.includes(c)))}>
+                {grup.ad}: temizle
+              </button>
+              <span className="m" style={{ fontSize: 13 }}>
+                Seçimin bu cihazda hatırlanır
+              </span>
+            </div>
+          </div>
+        )}
       </section>
 
       <div className="stats a oda-ozet">
         <div className="card stat">
-          <span className="m" style={{ fontSize: 13 }}>Öğrenci</span>
+          <span className="m" style={{ fontSize: 13 }}>
+            Öğrenci
+          </span>
           <span className="big">{satirlar.length}</span>
-          <span className="m" style={{ fontSize: 13 }}>{secim.length} sınıf</span>
+          <span className="m" style={{ fontSize: 13 }}>
+            {secim.length} sınıf
+          </span>
         </div>
         <div className="card stat">
-          <span className="m" style={{ fontSize: 13 }}>Dikkat</span>
-          <span className="big" style={{ color: dikkat ? 'var(--signal)' : undefined }}>{dikkat}</span>
-          <span className="m" style={{ fontSize: 13 }}>öğrenci</span>
+          <span className="m" style={{ fontSize: 13 }}>
+            Dikkat
+          </span>
+          <span className="big" style={{ color: dikkat ? 'var(--signal)' : undefined }}>
+            {dikkat}
+          </span>
+          <span className="m" style={{ fontSize: 13 }}>
+            öğrenci
+          </span>
         </div>
         <div className="card stat">
-          <span className="m" style={{ fontSize: 13 }}>Ödev ortalaması</span>
+          <span className="m" style={{ fontSize: 13 }}>
+            Ödev ortalaması
+          </span>
           <span className="big">{odevOrt == null ? '—' : `%${Math.round(odevOrt * 100)}`}</span>
-          <span className="m" style={{ fontSize: 13 }}>bu eğitim yılı</span>
+          <span className="m" style={{ fontSize: 13 }}>
+            bu eğitim yılı
+          </span>
         </div>
         <div className="card stat">
-          <span className="m" style={{ fontSize: 13 }}>Günlük kontrol</span>
+          <span className="m" style={{ fontSize: 13 }}>
+            Günlük kontrol
+          </span>
           <span className="big">{gkToplam}</span>
-          <span className="m" style={{ fontSize: 13 }}>bu ay eksik</span>
+          <span className="m" style={{ fontSize: 13 }}>
+            bu ay eksik
+          </span>
         </div>
       </div>
 
@@ -252,19 +321,41 @@ export default function OdaOgrenciTakip() {
                         <span className="oda-net">
                           <b className="mono">{r.net != null ? fmt(r.net, 2) : '—'}</b>
                           {r.d != null && (
-                            <span className="mono" style={{ fontSize: 12, fontWeight: 600, color: r.d < -1 ? 'var(--signal)' : r.d > 1 ? 'var(--primary)' : 'var(--ink-muted)' }}>
+                            <span
+                              className="mono"
+                              style={{ fontSize: 12, fontWeight: 600, color: r.d < -1 ? 'var(--signal)' : r.d > 1 ? 'var(--primary)' : 'var(--ink-muted)' }}
+                            >
                               {r.d > 0 ? '↑ ' : r.d < 0 ? '↓ ' : ''}
                               {fmt(Math.abs(r.d))}
                             </span>
                           )}
                           {nokta && (
                             <svg width="64" height="22" viewBox="0 0 84 22" preserveAspectRatio="none" aria-hidden="true" className="oda-cizgi">
-                              <polyline points={nokta} fill="none" stroke={r.d != null && r.d < -1 ? 'var(--signal)' : 'var(--primary)'} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+                              <polyline
+                                points={nokta}
+                                fill="none"
+                                stroke={r.d != null && r.d < -1 ? 'var(--signal)' : 'var(--primary)'}
+                                strokeWidth="1.8"
+                                strokeLinejoin="round"
+                                strokeLinecap="round"
+                              />
                             </svg>
                           )}
                         </span>
                       </td>
-                      <td>{r.s.grade === 8 ? r.tekrar.length ? <span className="chip down">{r.tekrar.length} konu</span> : <span className="m">—</span> : <span className="m" title="Yalnız 8. sınıf (LGS)">—</span>}</td>
+                      <td>
+                        {r.s.grade === 8 ? (
+                          r.tekrar.length ? (
+                            <span className="chip down">{r.tekrar.length} konu</span>
+                          ) : (
+                            <span className="m">—</span>
+                          )
+                        ) : (
+                          <span className="m" title="Yalnız 8. sınıf (LGS)">
+                            —
+                          </span>
+                        )}
+                      </td>
                       <td>
                         {r.odev.toplam ? (
                           <span className={`chip ${r.odev.oran! < 0.7 ? 'down' : 'n'}`}>
@@ -291,7 +382,13 @@ export default function OdaOgrenciTakip() {
                           )}
                         </td>
                       )}
-                      <td>{r.gkAy.length ? <span className={`chip ${r.gkAy.length >= 3 ? 'down' : 'n'}`}>{r.gkAy.length} eksik</span> : <span className="m">—</span>}</td>
+                      <td>
+                        {r.gkAy.length ? (
+                          <span className={`chip ${r.gkAy.length >= 3 ? 'down' : 'n'}`}>{r.gkAy.length} eksik</span>
+                        ) : (
+                          <span className="m">—</span>
+                        )}
+                      </td>
                       <td>
                         {r.notlar.length ? (
                           <span style={{ fontSize: 13 }}>
@@ -374,7 +471,9 @@ function Detay({ r }: { r: Satir }) {
               {r.odevler.slice(0, 5).map((h, i) => (
                 <li key={i}>
                   <span className="oda-kirp">{h.homework.title}</span>
-                  <span className={`chip ${h.status === 'yapti' ? 'up' : h.status === 'bekliyor' || h.status === 'izinli' ? 'n' : 'down'}`}>{HW_TR[h.status]}</span>
+                  <span className={`chip ${h.status === 'yapti' ? 'up' : h.status === 'bekliyor' || h.status === 'izinli' ? 'n' : 'down'}`}>
+                    {HW_TR[h.status]}
+                  </span>
                 </li>
               ))}
             </ul>
