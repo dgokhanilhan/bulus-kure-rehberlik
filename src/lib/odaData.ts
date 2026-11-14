@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import { useAuth } from '@/auth/AuthProvider'
-import { kanalSirala, type KanalAyar } from './oda'
+import { ARAMA_EN_AZ, aramaDeseni, aramaUyar, kanalSirala, type KanalAyar } from './oda'
 
 async function rows<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await q
@@ -47,9 +47,16 @@ export interface OdaMesaj {
   metin: string
   anilan: string[]
   created_at: string
+  /** Yanıtlanan mesaj (0074); asıl mesaj silindiyse yanit_id de boşalır */
+  yanit_id: string | null
+  yanit: { id: string; metin: string; yazan: string | null } | null
+  sabit_at: string | null
   yazan_p: { full_name: string; branch: string | null } | null
   oda_tepki: { user_id: string; emoji: string }[]
 }
+
+const MESAJ_ALANLARI =
+  'id, kanal, yazan, metin, anilan, created_at, yanit_id, sabit_at, yanit:yanit_id(id, metin, yazan), yazan_p:profiles!oda_mesaj_yazan_fkey(full_name, branch), oda_tepki(user_id, emoji)'
 
 /** Kanalın son 200 mesajı (eskiden yeniye) */
 export function useOdaMesajlar(kanal: string | null) {
@@ -60,14 +67,7 @@ export function useOdaMesajlar(kanal: string | null) {
     refetchInterval: 30_000,
     queryFn: async () =>
       (
-        await rows<OdaMesaj>(
-          supabase
-            .from('oda_mesaj')
-            .select('id, kanal, yazan, metin, anilan, created_at, yazan_p:profiles!oda_mesaj_yazan_fkey(full_name, branch), oda_tepki(user_id, emoji)')
-            .eq('kanal', kanal!)
-            .order('created_at', { ascending: false })
-            .limit(200),
-        )
+        await rows<OdaMesaj>(supabase.from('oda_mesaj').select(MESAJ_ALANLARI).eq('kanal', kanal!).order('created_at', { ascending: false }).limit(200))
       ).reverse(),
   })
 }
@@ -101,7 +101,7 @@ export function useOdaCanli(enabled: boolean) {
 export function useOdaYaz() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (m: { kanal: string; metin: string; anilan: string[] }) => {
+    mutationFn: async (m: { kanal: string; metin: string; anilan: string[]; yanit_id?: string | null }) => {
       const { error } = await supabase.from('oda_mesaj').insert(m)
       if (error) throw new Error(error.message)
     },
@@ -144,6 +144,70 @@ export function useOdaOkundu() {
       if (error) throw new Error(error.message)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['oda', 'okunmamis'] }),
+  })
+}
+
+/** Kanalın sabitlenmiş mesajları (en çok 3; son 200 mesajın dışında da olabilir) */
+export function useOdaSabitler(kanal: string | null) {
+  return useQuery({
+    queryKey: ['oda', 'mesaj', kanal, 'sabit'],
+    enabled: !!kanal,
+    queryFn: () =>
+      rows<OdaMesaj>(
+        supabase.from('oda_mesaj').select(MESAJ_ALANLARI).eq('kanal', kanal!).not('sabit_at', 'is', null).order('sabit_at', { ascending: false }).limit(5),
+      ),
+  })
+}
+/** Sabitle / sabiti kaldır: yalnız yönetici ve rehber öğretmen (veritabanı denetler) */
+export function useOdaSabitle() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (p: { id: string; sabit: boolean }) => {
+      const { error } = await supabase.rpc('oda_mesaj_sabitle', { p_id: p.id, p_sabit: p.sabit })
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['oda', 'mesaj'] }),
+  })
+}
+export interface OkunduBilgisi {
+  okuyan: number
+  toplam: number
+  /** Yalnız yönetime dolu gelir */
+  okumayanlar: string[] | null
+}
+/** Mesajdan sonra kanalı açan öğretmen sayısı: mesajı yazan ve yönetim görür */
+export function useOdaOkunduBilgisi(mesajId: string | null) {
+  return useQuery({
+    queryKey: ['oda', 'okundu-bilgisi', mesajId],
+    enabled: !!mesajId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('oda_okundu_bilgisi', { p_id: mesajId })
+      if (error) throw new Error(error.message)
+      return data as OkunduBilgisi
+    },
+  })
+}
+/** Kanalda arama (saklanan bütün mesajlarda; en yeni 50 sonuç) */
+export function useOdaArama(kanal: string | null, q: string) {
+  const s = q.trim()
+  return useQuery({
+    queryKey: ['oda', 'mesaj', kanal, 'ara', s],
+    enabled: !!kanal && s.length >= ARAMA_EN_AZ,
+    staleTime: 30_000,
+    queryFn: async () =>
+      (
+        await rows<OdaMesaj>(
+          supabase
+            .from('oda_mesaj')
+            .select(MESAJ_ALANLARI)
+            .eq('kanal', kanal!)
+            .ilike('metin', aramaDeseni(s))
+            .order('created_at', { ascending: false })
+            .limit(120),
+        )
+      )
+        .filter((m) => aramaUyar(m.metin, s))
+        .slice(0, 50),
   })
 }
 
@@ -209,7 +273,12 @@ export function useBugunNobet(gun: number) {
     enabled: !!profile && gun >= 1 && gun <= 5,
     staleTime: 10 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.from('teacher_duties').select('period, location').eq('teacher_id', profile!.id).eq('weekday', gun).order('period', { ascending: false })
+      const { data, error } = await supabase
+        .from('teacher_duties')
+        .select('period, location')
+        .eq('teacher_id', profile!.id)
+        .eq('weekday', gun)
+        .order('period', { ascending: false })
       if (error) throw new Error(error.message)
       return (data ?? []) as { period: 'before_noon' | 'after_noon'; location: string }[]
     },

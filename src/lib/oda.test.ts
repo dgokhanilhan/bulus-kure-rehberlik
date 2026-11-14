@@ -12,10 +12,19 @@ describe('Öğretmenler Odası', () => {
     expect(kanalAdi('genel')).toBe('Genel')
     expect(kanalAdi('zumre:Fen Bilimleri')).toBe('Fen Bilimleri zümresi')
     expect(kanalAdi('lise')).toBe('Lise')
-    expect(kanalSirala(['zumre:Türkçe', 'lise', 'genel', 'zumre:Matematik', 'ortaokul'])).toEqual(['genel', 'ortaokul', 'lise', 'zumre:Matematik', 'zumre:Türkçe'])
+    expect(kanalSirala(['zumre:Türkçe', 'lise', 'genel', 'zumre:Matematik', 'ortaokul'])).toEqual([
+      'genel',
+      'ortaokul',
+      'lise',
+      'zumre:Matematik',
+      'zumre:Türkçe',
+    ])
   })
   it('anma: yalnız metinde kalanlar; öneri araması', () => {
-    const k = [{ id: 'a', ad: 'Murat Kaya' }, { id: 'b', ad: 'Zehra Yılmaz' }]
+    const k = [
+      { id: 'a', ad: 'Murat Kaya' },
+      { id: 'b', ad: 'Zehra Yılmaz' },
+    ]
     expect(anilanlar('Merhaba @Murat Kaya nasılsın', k)).toEqual(['a'])
     expect(anilanlar('Merhaba', k)).toEqual([])
     expect(anmaAramasi('selam @Mur', 10)).toEqual({ bas: 6, q: 'Mur' })
@@ -60,5 +69,27 @@ describe('sınıf seçici grupları', () => {
     ])
     expect(sinifGruplari(['8/A'], () => 'ortaokul')).toHaveLength(1)
     expect(sinifGruplari([], () => null)).toEqual([])
+  })
+})
+
+describe('sohbette arama (0074)', () => {
+  it('Türkçe büyük-küçük harf ayrımı olmadan vurgular', async () => {
+    const { vurguParcala, aramaUyar } = await import('./oda')
+    expect(vurguParcala('Toplantı Işık salonunda, ışıklar açık', 'IŞIK')).toEqual([
+      { t: 'Toplantı ', vurgu: false },
+      { t: 'Işık', vurgu: true },
+      { t: ' salonunda, ', vurgu: false },
+      { t: 'ışık', vurgu: true },
+      { t: 'lar açık', vurgu: false },
+    ])
+    expect(aramaUyar('İstanbul gezisi', 'istanbul')).toBe(true)
+    expect(aramaUyar('Istakoz', 'istakoz')).toBe(false) // I ↔ ı, i değil
+    expect(aramaUyar('gezi', 'toplantı')).toBe(false)
+    expect(vurguParcala('metin', '  ')).toEqual([{ t: 'metin', vurgu: false }])
+  })
+  it('veritabanı deseni: özel karakterler kaçırılır, I/ı/İ/i joker olur', async () => {
+    const { aramaDeseni } = await import('./oda')
+    expect(aramaDeseni(' Işık ')).toBe('%_ş_k%')
+    expect(aramaDeseni(String.raw`%50_a\b`)).toBe(String.raw`%\%50\_a\\b%`)
   })
 })

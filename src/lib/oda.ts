@@ -50,6 +50,38 @@ export function kanalSirala(l: readonly string[], ayar?: ReadonlyMap<string, Pic
 }
 
 export const MESAJ_EN_COK = 2000
+export const SABIT_EN_COK = 3
+export const ARAMA_EN_AZ = 2
+
+/** Aranan söz metinde geçiyor mu / nerede: Türkçe büyük-küçük harf ayrımı olmadan parçalar */
+export function vurguParcala(metin: string, q: string): { t: string; vurgu: boolean }[] {
+  const s = q.trim().toLocaleLowerCase('tr')
+  if (!s) return [{ t: metin, vurgu: false }]
+  const kucuk = metin.toLocaleLowerCase('tr')
+  // Küçültme uzunluğu değiştirirse (nadir birleşik harfler) konumlar kayar: o zaman vurgusuz göster
+  if (kucuk.length !== metin.length) return [{ t: metin, vurgu: false }]
+  const p: { t: string; vurgu: boolean }[] = []
+  let i = 0
+  for (;;) {
+    const j = kucuk.indexOf(s, i)
+    if (j < 0) break
+    if (j > i) p.push({ t: metin.slice(i, j), vurgu: false })
+    p.push({ t: metin.slice(j, j + s.length), vurgu: true })
+    i = j + s.length
+  }
+  if (i < metin.length) p.push({ t: metin.slice(i), vurgu: false })
+  return p
+}
+export const aramaUyar = (metin: string, q: string) => vurguParcala(metin, q).some((x) => x.vurgu)
+/**
+ * Veritabanı araması için desen: %, _ ve \ kaçırılır. I/ı/İ/i harfleri tek karakter joker olur, çünkü veritabanı
+ * Türkçe büyük-küçük eşlemesini bilmez; kesin eşleşme sonra aramaUyar ile istemcide süzülür.
+ */
+export const aramaDeseni = (q: string) =>
+  `%${q
+    .trim()
+    .replace(/[\\%_]/g, (c) => `\\${c}`)
+    .replace(/[iıİI]/g, '_')}%`
 export const SAKLAMA_GUN = 30
 export const TEPKILER = ['👍', '❤️', '😂', '😮', '🙏', '👏'] as const
 

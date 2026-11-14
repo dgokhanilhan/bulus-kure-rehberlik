@@ -813,7 +813,24 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .oda-islem{display:flex;gap:2px;opacity:0;transition:opacity .15s;align-self:start}
 .oda-mesaj:hover .oda-islem,.oda-mesaj:focus-within .oda-islem{opacity:1}
 .oda-islem .btn{min-height:44px;min-width:44px;color:var(--ink-muted);font-size:18px}
-.oda-yazici{position:relative;display:flex;gap:10px;align-items:flex-end;padding:12px 18px;border-top:1px solid var(--line)}
+.oda-yazici{position:relative;display:flex;gap:10px;align-items:flex-end;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+.oda-yanit-cubuk{flex-basis:100%;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 10px;border-left:3px solid var(--primary);border-radius:0 8px 8px 0;background:var(--primary-soft);font-size:14px;min-width:0}
+.oda-yanit-cubuk>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.oda-alinti{display:flex;gap:6px;align-items:baseline;max-width:100%;margin:4px 0 2px;padding:4px 10px;border:0;border-left:3px solid var(--line-strong);border-radius:0 8px 8px 0;background:var(--surface-sunken);color:var(--ink-2);font-size:13px;text-align:left;cursor:pointer;min-height:32px}
+.oda-alinti span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.oda-alinti b{flex:none;color:var(--ink)}
+.oda-mesaj.vurgu{background:color-mix(in srgb,var(--highlight) 30%,transparent);transition:background .4s}
+.oda-ara-dugme{margin-left:auto;min-height:44px;min-width:44px}
+.oda-ara-kutu{flex-basis:100%}
+.oda-sabitler{list-style:none;margin:0;padding:6px 18px;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--highlight) 12%,transparent)}
+.oda-sabitler li{display:flex;gap:8px;align-items:center;min-width:0;font-size:14px}
+.oda-sabit-metin{flex:1;min-width:0;min-height:44px;border:0;background:transparent;color:var(--ink);text-align:left;font-size:14px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0}
+.oda-sabitler .btn{min-height:44px;flex:none}
+.oda-sonuclar{list-style:none;margin:0;padding:8px 12px;display:flex;flex-direction:column;gap:4px}
+.oda-sonuclar button{display:flex;flex-direction:column;gap:2px;width:100%;padding:8px 10px;border:0;border-radius:10px;background:transparent;color:var(--ink);text-align:left;cursor:pointer}
+.oda-sonuclar button:hover{background:var(--paper)}
+.oda-sonuclar mark{background:var(--highlight);color:var(--ink-fixed);border-radius:3px;padding:0 1px}
+.oda-okumayan{margin:6px 0 12px;padding-left:20px;columns:2;font-size:15px}
 .oda-yazici textarea{min-height:44px!important;max-height:160px;resize:none;padding-top:11px!important;line-height:1.4}
 .oda-yazici .btn{min-height:44px}
 .oda-oneri{position:absolute;left:18px;bottom:calc(100% - 4px);list-style:none;margin:0;padding:6px;min-width:260px;max-width:calc(100% - 36px);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(27,42,47,.14);z-index:5}
