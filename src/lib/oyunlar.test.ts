@@ -165,6 +165,11 @@ describe('oyunlar', () => {
       gunler: [],
     }
     expect(ROZETLER.filter((r) => r.kosul(i, 3)).map((r) => r.id)).toEqual(['ilk', 'seri3', 'sudoku5'])
+    // Kâşif: okulda açık oyun sayısı kadar farklı oyun (iki oyun açıksa ikisi yeter)
+    expect(ROZETLER.find((r) => r.id === 'kasif')!.kosul(i, 3, 2)).toBe(true)
+    expect(ROZETLER.find((r) => r.id === 'kasif')!.kosul(i, 3, 5)).toBe(false)
+    // Oyuna bağlı rozetler oyunuyla işaretli (kapalı oyunun rozeti gösterilmez)
+    expect(ROZETLER.filter((r) => r.oyun === 'yilan' || r.oyun === 'sprint').map((r) => r.id)).toEqual(['yilan30', 'sprint40'])
     expect(skorYaz('sudoku', 125)).toBe('2:05')
     expect(skorYaz('kelime', 7)).toBe('Bulamadı')
     expect(skorYaz('yilan', 12)).toBe('12 puan')

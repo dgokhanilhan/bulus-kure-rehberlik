@@ -745,7 +745,11 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .oda-takip{display:flex;flex-direction:column;gap:14px}
 .oda-cips{display:flex;flex-wrap:wrap;gap:8px}
 .oda-cip{min-height:44px;padding:0 16px;border-radius:99px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background .2s,border-color .2s}
-.oda-cip[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.oda-cip[aria-pressed="true"],.oda-cip.secili{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.oda-cip.ekle{border-style:dashed;background:transparent}
+.oda-sinifsec{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.oda-sinifsec .sec{margin:0}
+.oda-panel{display:flex;flex-direction:column;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .oda-arac{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .oda-ara{flex:1;min-width:180px;max-width:340px}
 .oda-sira{min-width:170px}

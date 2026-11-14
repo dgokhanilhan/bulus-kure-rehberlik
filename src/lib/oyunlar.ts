@@ -301,21 +301,30 @@ export function seri(gunler: readonly string[], bugun: string): number {
   }
   return n
 }
-export const ROZETLER: { id: string; ad: string; simge: string; aciklama: string; kosul: (i: Istatistik, seri: number) => boolean }[] = [
+/** `oyun`: rozet o oyuna aittir, oyun kapalıysa gösterilmez. `acik`: okulda açık oyun sayısı. */
+export const ROZETLER: {
+  id: string
+  ad: string
+  simge: string
+  aciklama: string
+  oyun?: OyunId
+  kosul: (i: Istatistik, seri: number, acik?: number) => boolean
+}[] = [
   { id: 'ilk', ad: 'İlk adım', simge: '🎈', aciklama: 'İlk oyununu bitir', kosul: (i) => i.toplam >= 1 },
-  { id: 'kasif', ad: 'Kâşif', simge: '🧭', aciklama: 'Altı oyunun hepsini dene', kosul: (i) => i.oyun_turu >= 6 },
+  { id: 'kasif', ad: 'Kâşif', simge: '🧭', aciklama: 'Açık oyunların hepsini dene', kosul: (i, _s, acik = 6) => i.oyun_turu >= Math.max(2, acik) },
   { id: 'seri3', ad: 'Üç gün üst üste', simge: '🔥', aciklama: '3 gün üst üste oyna', kosul: (_i, s) => s >= 3 },
   { id: 'seri7', ad: 'Haftanın müdavimi', simge: '📅', aciklama: '7 gün üst üste oyna', kosul: (_i, s) => s >= 7 },
   {
     id: 'sudoku5',
+    oyun: 'sudoku',
     ad: 'Sudoku ustası',
     simge: '🧩',
     aciklama: 'Günün Sudokusunu 5 dakikadan kısa sürede çöz',
     kosul: (i) => i.sudoku_en_iyi != null && i.sudoku_en_iyi < 300,
   },
-  { id: 'sudoku10', ad: 'Sabırlı', simge: '🐢', aciklama: '10 Günün Sudokusu çöz', kosul: (i) => i.sudoku >= 10 },
-  { id: 'kelime2', ad: 'Keskin göz', simge: '🎯', aciklama: 'Günün Kelimesini 2 denemede bul', kosul: (i) => i.kelime_ikide >= 1 },
-  { id: 'kelime10', ad: 'Söz ustası', simge: '📖', aciklama: '10 kez Günün Kelimesini bul', kosul: (i) => i.kelime_bulunan >= 10 },
-  { id: 'yilan30', ad: 'Uzun yılan', simge: '🐍', aciklama: 'Yılanda 30 puan', kosul: (i) => (i.yilan_en_iyi ?? 0) >= 30 },
-  { id: 'sprint40', ad: 'Hesap makinesi', simge: '⚡', aciklama: 'Hesap Sprintinde 20 doğru', kosul: (i) => (i.sprint_en_iyi ?? 0) >= 20 },
+  { id: 'sudoku10', oyun: 'sudoku', ad: 'Sabırlı', simge: '🐢', aciklama: '10 Günün Sudokusu çöz', kosul: (i) => i.sudoku >= 10 },
+  { id: 'kelime2', oyun: 'kelime', ad: 'Keskin göz', simge: '🎯', aciklama: 'Günün Kelimesini 2 denemede bul', kosul: (i) => i.kelime_ikide >= 1 },
+  { id: 'kelime10', oyun: 'kelime', ad: 'Söz ustası', simge: '📖', aciklama: '10 kez Günün Kelimesini bul', kosul: (i) => i.kelime_bulunan >= 10 },
+  { id: 'yilan30', oyun: 'yilan', ad: 'Uzun yılan', simge: '🐍', aciklama: 'Yılanda 30 puan', kosul: (i) => (i.yilan_en_iyi ?? 0) >= 30 },
+  { id: 'sprint40', oyun: 'sprint', ad: 'Hesap makinesi', simge: '⚡', aciklama: 'Hesap Sprintinde 20 doğru', kosul: (i) => (i.sprint_en_iyi ?? 0) >= 20 },
 ]
