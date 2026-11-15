@@ -14,6 +14,8 @@ import { isTeacherP } from '@/lib/roles'
 import { kanalAciklama, kanalAdi, kanalSirala, ozelKanal, type KanalAyar } from '@/lib/oda'
 import { maddeKodu, type MaddeTanim } from '@/lib/gunlukKontrol'
 import { OYUNLAR } from '@/lib/oyunlar'
+import { useOneriler, useOneriOkundu, useOneriSil } from '@/lib/panoData'
+import { trD } from '@/lib/format'
 import { Modal } from '@/components/Modal'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
@@ -144,8 +146,81 @@ export function OdaAyarlari() {
           )
         })}
       </section>
+      <section className="card a" style={{ ['--d' as string]: 3, padding: 8 }} aria-label="Pano seçenekleri">
+        <h2 className="sec" style={{ padding: '8px 8px 0' }}>
+          Pano seçenekleri
+        </h2>
+        <div style={{ padding: 8 }}>
+          <Check
+            on={ayar.bool('oda.degisim_onay')}
+            onClick={() =>
+              yaz({ 'oda.degisim_onay': !ayar.bool('oda.degisim_onay') }, `Değişimde idare onayı ${ayar.bool('oda.degisim_onay') ? 'kapatıldı' : 'açıldı'}`)
+            }
+            label="Ders/nöbet değişiminde idare onayı"
+            hint="Açıkken bir öğretmenin üstlendiği değişim, yönetici Pano'dan onaylayana kadar kesinleşmez"
+          />
+        </div>
+        <div style={{ padding: 8 }}>
+          <Check
+            on={ayar.bool('oda.oneri')}
+            onClick={() => yaz({ 'oda.oneri': !ayar.bool('oda.oneri') }, `Öneri kutusu ${ayar.bool('oda.oneri') ? 'kapatıldı' : 'açıldı'}`)}
+            label="Anonim öneri kutusu"
+            hint="Öğretmenler yönetime adsız öneri bırakır; kimin yazdığı kaydedilmez. Kapalıyken yeni öneri alınmaz, gelenler aşağıda kalır"
+          />
+        </div>
+      </section>
+      <Oneriler />
       <Kanallar />
     </>
+  )
+}
+
+function Oneriler() {
+  const q = useOneriler(true)
+  const okundu = useOneriOkundu()
+  const sil = useOneriSil()
+  const toast = useToast()
+  const hata = (e: unknown) => toast(hataMetni(e as { message?: string }) ?? 'Yapılamadı', 'warn')
+  const yeni = (q.data ?? []).filter((o) => o.durum === 'yeni').length
+  return (
+    <section className="card a" style={{ ['--d' as string]: 3, padding: 16 }} aria-label="Öneri kutusu">
+      <div className="kv">
+        <h2 className="sec">Öneri kutusu</h2>
+        {yeni > 0 && <span className="chip gold">{yeni} yeni</span>}
+      </div>
+      <p className="m" style={{ fontSize: 13 }}>
+        Öğretmenlerin adsız bıraktığı öneriler. Kimin yazdığı sistemde tutulmaz; burada yalnız metin ve gün görünür.
+      </p>
+      {q.isLoading ? (
+        <p className="m">Yükleniyor…</p>
+      ) : !q.data?.length ? (
+        <p className="m">Henüz öneri yok.</p>
+      ) : (
+        <ul className="ya-liste" data-testid="oneri-liste">
+          {q.data.map((o) => (
+            <li key={o.id} className={o.durum === 'okundu' ? 'kapali' : ''}>
+              <div className="ya-ad">
+                <span style={{ whiteSpace: 'pre-wrap' }}>{o.metin}</span>
+                <span className="m" style={{ fontSize: 12 }}>
+                  {trD(o.gun)}
+                  {o.durum === 'yeni' ? ' · yeni' : ' · okundu'}
+                </span>
+              </div>
+              <span className="ya-dugmeler">
+                {o.durum === 'yeni' && (
+                  <button type="button" className="btn sm" onClick={() => okundu.mutate(o.id, { onError: hata })}>
+                    Okundu
+                  </button>
+                )}
+                <button type="button" className="btn sm" aria-label="Öneriyi sil" onClick={() => sil.mutate(o.id, { onError: hata })}>
+                  <Icon name="trash" size={16} />
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 

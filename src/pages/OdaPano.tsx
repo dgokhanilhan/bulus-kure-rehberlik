@@ -1,13 +1,38 @@
 // Öğretmenler Odası → Pano: yapışkan notlar, ders/nöbet değişimi, hızlı anket, teşekkür kartları (0070). Yalnız öğretmenler.
+// 0075: "okudum" onayı isteyen notlar, etkinlik ve katılım listesi, değişimde idare onayı, anonim öneri kutusu.
 import { useMemo, useState } from 'react'
 import { useAuth } from '@/auth/AuthProvider'
 import { usePeople } from '@/lib/data'
 import { isTeacherP } from '@/lib/roles'
 import { addDays, ago, initials, todayISO, trDM, trDW } from '@/lib/format'
 import {
-  useAlkis, useAnketEkle, useAnketler, useAnketOyla, useAnketSil, useDegisimAl, useDegisimEkle, useDegisimIptal, useDegisimler,
-  usePanoEkle, usePanoNotlar, usePanoSil, useTesekkurEkle, useTesekkurler, useTesekkurSil, type NotRenk,
+  useAlkis,
+  useAnketEkle,
+  useAnketler,
+  useAnketOyla,
+  useAnketSil,
+  useDegisimAl,
+  useDegisimEkle,
+  useDegisimIptal,
+  useDegisimler,
+  useDegisimOnayla,
+  useEtkinlikEkle,
+  useEtkinlikKatil,
+  useEtkinlikler,
+  useEtkinlikSil,
+  useOneriGonder,
+  usePanoEkle,
+  usePanoNotlar,
+  usePanoOnayDurum,
+  usePanoOnayla,
+  usePanoOnaylarim,
+  usePanoSil,
+  useTesekkurEkle,
+  useTesekkurler,
+  useTesekkurSil,
+  type NotRenk,
 } from '@/lib/panoData'
+import { useAyar } from '@/lib/ayarlar'
 import { haftaninTesekkuru } from '@/lib/pano'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
@@ -20,15 +45,18 @@ const RENKLER: [NotRenk, string][] = [
 ]
 
 export default function OdaPano() {
+  const ayar = useAyar()
   return (
     <div className="pn-duzen">
       <div className="pn-sol">
         <PanoNotlari />
+        <Etkinlikler />
         <Tesekkurler />
       </div>
       <div className="pn-sag">
         <Degisimler />
         <Anketler />
+        {ayar.bool('oda.oneri') && <OneriKutusu />}
       </div>
     </div>
   )
@@ -49,7 +77,13 @@ function PanoNotlari() {
   const [metin, setMetin] = useState('')
   const [renk, setRenk] = useState<NotRenk>('sari')
   const [gun, setGun] = useState(7)
+  const [onayIste, setOnayIste] = useState(false)
+  const [acikDurum, setAcikDurum] = useState<string | null>(null)
   const staff = role === 'admin' || role === 'rehber'
+  const onaylarim = usePanoOnaylarim()
+  const onayla = usePanoOnayla()
+  const onayli = (q.data ?? []).filter((n) => n.onay_iste && (staff || n.yazan === profile?.id)).map((n) => n.id)
+  const durum = usePanoOnayDurum(onayli)
   return (
     <section className="card pn-kart" aria-label="Pano">
       <div className="kv">
@@ -65,14 +99,19 @@ function PanoNotlari() {
             e.preventDefault()
             if (!metin.trim()) return
             ekle.mutate(
-              { metin: metin.trim(), renk, bitis: addDays(todayISO(), gun) },
-              { onSuccess: () => (setMetin(''), setAcik(false)), onError: hata },
+              { metin: metin.trim(), renk, bitis: addDays(todayISO(), gun), onay_iste: staff && onayIste },
+              { onSuccess: () => (setMetin(''), setAcik(false), setOnayIste(false)), onError: hata },
             )
           }}
         >
           <label className="field">
             Not
-            <textarea maxLength={400} value={metin} onChange={(e) => setMetin(e.target.value)} placeholder="Ör. Fotokopi makinesi 2. katta, 3. ders sonrası bakımda." />
+            <textarea
+              maxLength={400}
+              value={metin}
+              onChange={(e) => setMetin(e.target.value)}
+              placeholder="Ör. Fotokopi makinesi 2. katta, 3. ders sonrası bakımda."
+            />
           </label>
           <div className="pn-form-alt">
             <div className="pn-renkler" role="radiogroup" aria-label="Renk">
@@ -93,6 +132,12 @@ function PanoNotlari() {
               Panoya as
             </button>
           </div>
+          {staff && (
+            <label className="pn-onay-sec">
+              <input type="checkbox" checked={onayIste} onChange={(e) => setOnayIste(e.target.checked)} />
+              <span>Herkes okusun: öğretmenlerden “Okudum” onayı iste</span>
+            </label>
+          )}
         </form>
       )}
       {q.isLoading ? (
@@ -102,8 +147,40 @@ function PanoNotlari() {
       ) : (
         <ul className="pn-notlar">
           {q.data.map((n) => (
-            <li key={n.id} className={`pn-not ${n.renk}`}>
+            <li key={n.id} className={`pn-not ${n.renk}${n.onay_iste ? ' onayli' : ''}`}>
+              {n.onay_iste && <span className="pn-onay-etiket">📣 Herkes okusun</span>}
               <p>{n.metin}</p>
+              {n.onay_iste && n.yazan !== profile?.id && (
+                <button
+                  type="button"
+                  className="btn sm pn-okudum"
+                  aria-pressed={!!onaylarim.data?.has(n.id)}
+                  disabled={!!onaylarim.data?.has(n.id) || onayla.isPending}
+                  onClick={() => onayla.mutate(n.id, { onError: hata })}
+                >
+                  {onaylarim.data?.has(n.id) ? '✓ Okudun' : 'Okudum'}
+                </button>
+              )}
+              {n.onay_iste && durum.data?.get(n.id) && (
+                <>
+                  <button
+                    type="button"
+                    className="btn ghost sm pn-durum"
+                    aria-expanded={acikDurum === n.id}
+                    onClick={() => setAcikDurum((x) => (x === n.id ? null : n.id))}
+                  >
+                    {durum.data.get(n.id)!.okuyan}/{durum.data.get(n.id)!.toplam} öğretmen okudu
+                  </button>
+                  {acikDurum === n.id &&
+                    (durum.data.get(n.id)!.okumayanlar.length ? (
+                      <p className="pn-okumayan">
+                        <b>Henüz onaylamayanlar:</b> {durum.data.get(n.id)!.okumayanlar.join(', ')}
+                      </p>
+                    ) : (
+                      <p className="pn-okumayan">Herkes onayladı.</p>
+                    ))}
+                </>
+              )}
               <span className="pn-not-alt">
                 <span>
                   {n.yazan_p?.full_name ?? 'Ayrılmış öğretmen'} · {trDM(n.bitis)}'e kadar
@@ -134,6 +211,7 @@ function Degisimler() {
   const [acik, setAcik] = useState(false)
   const [f, setF] = useState({ tur: 'ders' as 'ders' | 'nobet', tarih: addDays(bugun, 1), saat: '', sinif: '', aciklama: '' })
   const staff = role === 'admin' || role === 'rehber'
+  const onayla = useDegisimOnayla()
   return (
     <section className="card pn-kart" aria-label="Ders ve nöbet değişimi">
       <div className="kv">
@@ -208,12 +286,45 @@ function Degisimler() {
                 <div className="pn-satir-alt">
                   {d.durum === 'alindi' ? (
                     <span className="chip up">✓ {d.alan === profile?.id ? 'Sen giriyorsun' : `${d.alan_p?.full_name ?? 'Bir öğretmen'} giriyor`}</span>
+                  ) : d.durum === 'onay' ? (
+                    <>
+                      <span className="chip gold">⏳ İdare onayı bekliyor: {d.alan === profile?.id ? 'sen' : (d.alan_p?.full_name ?? 'bir öğretmen')}</span>
+                      {role === 'admin' && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn sm pri"
+                            disabled={onayla.isPending}
+                            onClick={() =>
+                              onayla.mutate({ id: d.id, onay: true }, { onSuccess: () => toast('Değişim onaylandı; iki öğretmene bildirildi.'), onError: hata })
+                            }
+                          >
+                            Onayla
+                          </button>
+                          <button
+                            type="button"
+                            className="btn sm"
+                            disabled={onayla.isPending}
+                            onClick={() =>
+                              onayla.mutate({ id: d.id, onay: false }, { onSuccess: () => toast('Onaylanmadı; talep yeniden açıldı.'), onError: hata })
+                            }
+                          >
+                            Reddet
+                          </button>
+                        </>
+                      )}
+                    </>
                   ) : benim ? (
                     <span className="m" style={{ fontSize: 13 }}>
                       Bekliyor
                     </span>
                   ) : (
-                    <button type="button" className="btn sm pri" disabled={al.isPending} onClick={() => al.mutate(d.id, { onSuccess: () => toast('Teşekkürler! Talep sahibine ve yönetime bildirildi.'), onError: hata })}>
+                    <button
+                      type="button"
+                      className="btn sm pri"
+                      disabled={al.isPending}
+                      onClick={() => al.mutate(d.id, { onSuccess: () => toast('Teşekkürler! Talep sahibine ve yönetime bildirildi.'), onError: hata })}
+                    >
                       Ben girerim
                     </button>
                   )}
@@ -228,6 +339,177 @@ function Degisimler() {
           })}
         </ul>
       )}
+    </section>
+  )
+}
+
+function Etkinlikler() {
+  const { profile, role } = useAuth()
+  const bugun = todayISO()
+  const q = useEtkinlikler(bugun)
+  const ekle = useEtkinlikEkle()
+  const sil = useEtkinlikSil()
+  const katil = useEtkinlikKatil()
+  const hata = useHata()
+  const toast = useToast()
+  const [acik, setAcik] = useState(false)
+  const [f, setF] = useState({ baslik: '', tarih: addDays(bugun, 1), saat: '', kontenjan: '', aciklama: '' })
+  const staff = role === 'admin' || role === 'rehber'
+  return (
+    <section className="card pn-kart" aria-label="Etkinlikler">
+      <div className="kv">
+        <h2 className="sec">🗓️ Etkinlikler</h2>
+        <button type="button" className="btn sm" aria-expanded={acik} onClick={() => setAcik((x) => !x)}>
+          <Icon name="plus" size={16} /> Etkinlik
+        </button>
+      </div>
+      {acik && (
+        <form
+          className="pn-form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (f.baslik.trim().length < 3) return
+            ekle.mutate(
+              {
+                baslik: f.baslik.trim(),
+                tarih: f.tarih,
+                saat: f.saat.trim() || null,
+                kontenjan: f.kontenjan ? Number(f.kontenjan) : null,
+                aciklama: f.aciklama.trim() || null,
+              },
+              {
+                onSuccess: () => (setAcik(false), setF((x) => ({ ...x, baslik: '', saat: '', kontenjan: '', aciklama: '' })), toast('Etkinlik panoya eklendi')),
+                onError: hata,
+              },
+            )
+          }}
+        >
+          <label className="field">
+            Etkinlik
+            <input maxLength={120} placeholder="Ör. Cuma kahvaltısı" value={f.baslik} onChange={(e) => setF({ ...f, baslik: e.target.value })} required />
+          </label>
+          <div className="pn-izgara">
+            <label className="field">
+              Tarih
+              <input type="date" min={bugun} max={addDays(bugun, 365)} value={f.tarih} onChange={(e) => setF({ ...f, tarih: e.target.value })} required />
+            </label>
+            <label className="field">
+              Saat (isteğe bağlı)
+              <input maxLength={20} placeholder="Ör. 08.00" value={f.saat} onChange={(e) => setF({ ...f, saat: e.target.value })} />
+            </label>
+            <label className="field">
+              Kontenjan (isteğe bağlı)
+              <input type="number" min={1} max={500} placeholder="Sınırsız" value={f.kontenjan} onChange={(e) => setF({ ...f, kontenjan: e.target.value })} />
+            </label>
+          </div>
+          <label className="field">
+            Not (isteğe bağlı)
+            <input maxLength={300} placeholder="Ör. Herkes bir şey getirsin" value={f.aciklama} onChange={(e) => setF({ ...f, aciklama: e.target.value })} />
+          </label>
+          <button type="submit" className="btn pri" disabled={f.baslik.trim().length < 3 || ekle.isPending}>
+            Etkinliği as
+          </button>
+        </form>
+      )}
+      {q.isLoading ? (
+        <p className="m">Yükleniyor…</p>
+      ) : !q.data?.length ? (
+        <p className="m">Yaklaşan etkinlik yok. Kahvaltı, gezi ya da gönüllü aradığın bir iş için etkinlik aç.</p>
+      ) : (
+        <ul className="pn-liste">
+          {q.data.map((e) => {
+            const n = e.oda_etkinlik_katilim.length
+            const katiliyorum = e.oda_etkinlik_katilim.some((k) => k.user_id === profile?.id)
+            const dolu = e.kontenjan != null && n >= e.kontenjan
+            return (
+              <li key={e.id}>
+                <div className="pn-satir-bas">
+                  <b>{e.baslik}</b>
+                  <span className="chip n">
+                    {trDW(e.tarih)}
+                    {e.saat ? ` · ${e.saat}` : ''}
+                  </span>
+                </div>
+                <span className="m" style={{ fontSize: 13 }}>
+                  {e.acan_p?.full_name ?? 'Ayrılmış öğretmen'}
+                  {e.aciklama ? ` — ${e.aciklama}` : ''}
+                </span>
+                <span style={{ fontSize: 14 }}>
+                  <b className="mono">{e.kontenjan != null ? `${n}/${e.kontenjan}` : n}</b> katılıyor
+                  {n > 0 && <span className="m">: {e.oda_etkinlik_katilim.map((k) => k.p?.full_name ?? 'Bir öğretmen').join(', ')}</span>}
+                </span>
+                <div className="pn-satir-alt">
+                  {katiliyorum ? (
+                    <>
+                      <span className="chip up">✓ Katılıyorsun</span>
+                      <button
+                        type="button"
+                        className="btn ghost sm"
+                        disabled={katil.isPending}
+                        onClick={() => katil.mutate({ id: e.id, katil: false }, { onError: hata })}
+                      >
+                        Vazgeç
+                      </button>
+                    </>
+                  ) : dolu ? (
+                    <span className="chip n">Kontenjan doldu</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn sm pri"
+                      disabled={katil.isPending}
+                      onClick={() => katil.mutate({ id: e.id, katil: true }, { onError: hata })}
+                    >
+                      Katılıyorum
+                    </button>
+                  )}
+                  {(e.acan === profile?.id || staff) && (
+                    <button type="button" className="btn ghost sm" onClick={() => sil.mutate(e.id, { onError: hata })}>
+                      Etkinliği kaldır
+                    </button>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function OneriKutusu() {
+  const gonder = useOneriGonder()
+  const hata = useHata()
+  const toast = useToast()
+  const [metin, setMetin] = useState('')
+  return (
+    <section className="card pn-kart" aria-label="Öneri kutusu">
+      <h2 className="sec">📮 Öneri kutusu</h2>
+      <p className="m" style={{ fontSize: 13, margin: 0 }}>
+        Yönetime adsız öneri bırak. Adın kaydedilmez; yönetim yalnız metni ve günü görür.
+      </p>
+      <form
+        className="pn-form"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (metin.trim().length < 5) return
+          gonder.mutate(metin.trim(), { onSuccess: () => (setMetin(''), toast('Önerin adsız olarak yönetime iletildi')), onError: hata })
+        }}
+      >
+        <label className="field">
+          Önerin
+          <textarea
+            maxLength={1000}
+            value={metin}
+            onChange={(e) => setMetin(e.target.value)}
+            placeholder="Ör. Öğretmenler odasına ikinci bir yazıcı çok işe yarar."
+          />
+        </label>
+        <button type="submit" className="btn pri" disabled={metin.trim().length < 5 || gonder.isPending}>
+          Adsız gönder
+        </button>
+      </form>
     </section>
   )
 }
@@ -273,7 +555,12 @@ function Anketler() {
           {secenekler.map((s, i) => (
             <label key={i} className="field">
               <span className="sr-only">{i + 1}. seçenek</span>
-              <input maxLength={80} placeholder={`${i + 1}. seçenek`} value={s} onChange={(e) => setSecenekler(secenekler.map((x, j) => (j === i ? e.target.value : x)))} />
+              <input
+                maxLength={80}
+                placeholder={`${i + 1}. seçenek`}
+                value={s}
+                onChange={(e) => setSecenekler(secenekler.map((x, j) => (j === i ? e.target.value : x)))}
+              />
             </label>
           ))}
           <div className="pn-form-alt">
@@ -383,7 +670,10 @@ function Tesekkurler() {
           onSubmit={(e) => {
             e.preventDefault()
             if (!alan || metin.trim().length < 3) return
-            ekle.mutate({ alan, metin: metin.trim() }, { onSuccess: () => (setAcik(false), setAlan(''), setMetin(''), toast('Teşekkür kartın gönderildi')), onError: hata })
+            ekle.mutate(
+              { alan, metin: metin.trim() },
+              { onSuccess: () => (setAcik(false), setAlan(''), setMetin(''), toast('Teşekkür kartın gönderildi')), onError: hata },
+            )
           }}
         >
           <label className="field">
@@ -436,7 +726,13 @@ function Tesekkurler() {
                   </span>
                   <p>{t.metin}</p>
                   <div className="pn-satir-alt">
-                    <button type="button" className="oda-tepki" aria-pressed={benim} aria-label={`Alkışla, ${t.oda_tesekkur_alkis.length}`} onClick={() => alkis.mutate({ id: t.id, var: benim }, { onError: hata })}>
+                    <button
+                      type="button"
+                      className="oda-tepki"
+                      aria-pressed={benim}
+                      aria-label={`Alkışla, ${t.oda_tesekkur_alkis.length}`}
+                      onClick={() => alkis.mutate({ id: t.id, var: benim }, { onError: hata })}
+                    >
                       👏 <span className="mono">{t.oda_tesekkur_alkis.length}</span>
                     </button>
                     {(t.gonderen === profile?.id || staff) && (
