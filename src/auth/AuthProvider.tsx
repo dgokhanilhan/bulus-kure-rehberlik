@@ -244,6 +244,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     signOut: async () => {
       clearRoleChoice()
+      // Bağlantısız kayıt kuyruğu bu cihazda kalmasın (KVKK); şeritte çıkış yapmadan önce gönderilmesi istenir
+      if (uid) {
+        try {
+          window.localStorage.removeItem(`bk.kuyruk.${uid}`)
+        } catch {
+          /* yok */
+        }
+      }
       await supabase.auth.signOut()
     },
   }

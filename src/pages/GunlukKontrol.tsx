@@ -8,23 +8,13 @@ import { useAuth } from '@/auth/AuthProvider'
 import { useClasses, usePeople, useStudents } from '@/lib/data'
 import { isFullAccess } from '@/lib/roles'
 import { todayISO, trDM, trDW } from '@/lib/format'
-import {
-  DETAY_EN_COK,
-  ayBasi,
-  aySonu,
-  donemBasi,
-  farkBul,
-  kacinci,
-  taslakKur,
-  uyariGider,
-  type Kayit,
-  type Madde,
-  type Taslak,
-} from '@/lib/gunlukKontrol'
+import { DETAY_EN_COK, ayBasi, aySonu, donemBasi, farkBul, kacinci, taslakKur, uyariGider, type Kayit, type Madde, type Taslak } from '@/lib/gunlukKontrol'
 import { useGunlukKontrol, useGunlukMaddeler } from '@/lib/gunlukKontrolData'
 import { Icon } from '@/components/Icon'
 import { Seg } from '@/components/Indicator'
 import { useToast } from '@/components/Toast'
+import { siraya } from '@/components/CevrimdisiKuyruk'
+import { agHatasiMi } from '@/lib/cevrimdisi'
 
 type Gorunum = 'isaretle' | 'kayitlar'
 
@@ -41,7 +31,8 @@ export default function GunlukKontrol({ cls, onBack }: { cls: string; onBack: ()
           </button>
           <h1 className="hd">{tek ? `${cls} · Günlük kontrol` : 'Günlük kontrol'}</h1>
           <p className="m" style={{ fontSize: 14, margin: '4px 0 0' }}>
-            Gerektiğinde gir, yalnız eksik olanı işaretle. Yoklamayla bağlantısı yoktur.{gm.aralik > 0 ? ` Aynı eksik ay içinde ${gm.aralik}. kez olursa veliye uyarı bildirimi gider.` : ''}
+            Gerektiğinde gir, yalnız eksik olanı işaretle. Yoklamayla bağlantısı yoktur.
+            {gm.aralik > 0 ? ` Aynı eksik ay içinde ${gm.aralik}. kez olursa veliye uyarı bildirimi gider.` : ''}
           </p>
         </div>
         {tek && (
@@ -103,11 +94,13 @@ function Isaretle({ cls }: { cls: string }) {
     if (!degisiklik) return
     setBusy(true)
     let uyari = 0
+    let yazildi = false
     try {
       if (fark.ekle.length) {
         const r = await supabase.from('gunluk_kontrol').insert(fark.ekle).select('veli_uyarildi')
         if (r.error) throw r.error
         uyari = (r.data ?? []).filter((x) => x.veli_uyarildi).length
+        yazildi = true
       }
       if (fark.sil.length) {
         const r = await supabase.from('gunluk_kontrol').delete().in('id', fark.sil)
@@ -118,7 +111,16 @@ function Isaretle({ cls }: { cls: string }) {
         if (r.error) throw r.error
       }
       toast(uyari ? `Kaydedildi. ${uyari} öğrencinin velisine uyarı bildirimi gitti.` : 'Kaydedildi.')
-    } catch {
+    } catch (e) {
+      // Bağlantı yoksa ve henüz hiçbir parça yazılmadıysa: bu cihazda sıraya al, bağlantı gelince gönderilir
+      if (
+        !yazildi &&
+        agHatasiMi(e) &&
+        siraya(uid, { tur: 'gunluk', etiket: `${cls} günlük kontrol ${tarih}`, ekle: fark.ekle, sil: fark.sil, guncelle: fark.guncelle })
+      ) {
+        toast('Bağlantı yok: işaretler bu cihazda bekliyor, bağlantı gelince gönderilecek.', 'warn')
+        return void setBusy(false)
+      }
       toast('Kaydedilemedi. Tekrar dene.', 'warn')
     } finally {
       setBusy(false)
@@ -149,63 +151,69 @@ function Isaretle({ cls }: { cls: string }) {
               <span className="gk-ad">{s.full_name}</span>
               <div className="gk-maddeler">
                 <div role="group" aria-label={`${s.full_name} eksikleri`} style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {gm.liste.filter((x) => x.aktif || x.kod in sec).map(({ kod: m, ad: t }) => {
-                    const on = m in sec
+                  {gm.liste
+                    .filter((x) => x.aktif || x.kod in sec)
+                    .map(({ kod: m, ad: t }) => {
+                      const on = m in sec
+                      const k = gun.find((x) => x.student_id === s.id && x.madde === m)
+                      const kilitli = !!k && k.teacher_id !== uid && !yonetim
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          className={`gk-m ${on ? 'on' : ''}`}
+                          aria-pressed={on}
+                          aria-disabled={kilitli || undefined}
+                          title={k && k.teacher_id !== uid ? `İşaretleyen: ${ad(k.teacher_id)}` : undefined}
+                          onClick={() => degistir(s.id, m)}
+                        >
+                          {on && <Icon name="x" size={14} stroke={2.4} />}
+                          {t}
+                        </button>
+                      )
+                    })}
+                </div>
+                {gm.liste
+                  .filter(({ kod: m }) => m in sec)
+                  .map(({ kod: m, ad: t }) => {
                     const k = gun.find((x) => x.student_id === s.id && x.madde === m)
-                    const kilitli = !!k && k.teacher_id !== uid && !yonetim
+                    const benim = !k || k.teacher_id === uid
+                    const n = kacinci(ay.data ?? [], s.id, m, tarih)
                     return (
-                      <button
-                        key={m}
-                        type="button"
-                        className={`gk-m ${on ? 'on' : ''}`}
-                        aria-pressed={on}
-                        aria-disabled={kilitli || undefined}
-                        title={k && k.teacher_id !== uid ? `İşaretleyen: ${ad(k.teacher_id)}` : undefined}
-                        onClick={() => degistir(s.id, m)}
-                      >
-                        {on && <Icon name="x" size={14} stroke={2.4} />}
-                        {t}
-                      </button>
+                      <div key={m} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {benim ? (
+                          <label className="field" style={{ gap: 2 }}>
+                            <span className="label">{t} · detay (isteğe bağlı)</span>
+                            <input
+                              value={sec[m] ?? ''}
+                              maxLength={DETAY_EN_COK}
+                              placeholder="Matematik kitabı yanında değildi"
+                              onChange={(e) => detay(s.id, m, e.target.value)}
+                            />
+                          </label>
+                        ) : (
+                          <span className="m" style={{ fontSize: 13 }}>
+                            {t} · {ad(k!.teacher_id)} işaretledi{k!.detay ? `: ${k!.detay}` : ''}
+                          </span>
+                        )}
+                        {uyariGider(n, gm.aralik) && (
+                          <span className="chip down" style={{ alignSelf: 'flex-start', whiteSpace: 'normal' }} data-testid="gk-uyari-onizleme">
+                            <Icon name="warn" size={14} /> Bu ay {n}. kez ·{' '}
+                            {k
+                              ? k.veli_uyarildi
+                                ? 'veliye uyarı gönderildi'
+                                : 'velisi kayıtlı olmadığı için uyarı gitmedi'
+                              : 'kaydedince veliye uyarı bildirimi gidecek'}
+                          </span>
+                        )}
+                        {!uyariGider(n, gm.aralik) && n > 1 && (
+                          <span className="m" style={{ fontSize: 12 }}>
+                            Bu ay {n}. kez
+                          </span>
+                        )}
+                      </div>
                     )
                   })}
-                </div>
-                {gm.liste.filter(({ kod: m }) => m in sec).map(({ kod: m, ad: t }) => {
-                  const k = gun.find((x) => x.student_id === s.id && x.madde === m)
-                  const benim = !k || k.teacher_id === uid
-                  const n = kacinci(ay.data ?? [], s.id, m, tarih)
-                  return (
-                    <div key={m} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {benim ? (
-                        <label className="field" style={{ gap: 2 }}>
-                          <span className="label">
-                            {t} · detay (isteğe bağlı)
-                          </span>
-                          <input
-                            value={sec[m] ?? ''}
-                            maxLength={DETAY_EN_COK}
-                            placeholder="Matematik kitabı yanında değildi"
-                            onChange={(e) => detay(s.id, m, e.target.value)}
-                          />
-                        </label>
-                      ) : (
-                        <span className="m" style={{ fontSize: 13 }}>
-                          {t} · {ad(k!.teacher_id)} işaretledi{k!.detay ? `: ${k!.detay}` : ''}
-                        </span>
-                      )}
-                      {uyariGider(n, gm.aralik) && (
-                        <span className="chip down" style={{ alignSelf: 'flex-start', whiteSpace: 'normal' }} data-testid="gk-uyari-onizleme">
-                          <Icon name="warn" size={14} /> Bu ay {n}. kez ·{' '}
-                          {k ? (k.veli_uyarildi ? 'veliye uyarı gönderildi' : 'velisi kayıtlı olmadığı için uyarı gitmedi') : 'kaydedince veliye uyarı bildirimi gidecek'}
-                        </span>
-                      )}
-                      {!uyariGider(n, gm.aralik) && n > 1 && (
-                        <span className="m" style={{ fontSize: 12 }}>
-                          Bu ay {n}. kez
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
               </div>
             </div>
           )
@@ -237,10 +245,7 @@ function Kayitlar({ cls }: { cls: string }) {
   const gm = useGunlukMaddeler()
   const from = aralik === 'ay' ? ayBasi(bugun) : donemBasi(bugun)
   const sinif = cls !== 'all' ? cls : sinifSec
-  const ids = useMemo(
-    () => (sinif === 'all' ? null : (students.data ?? []).filter((s) => s.class_name === sinif).map((s) => s.id)),
-    [students.data, sinif],
-  )
+  const ids = useMemo(() => (sinif === 'all' ? null : (students.data ?? []).filter((s) => s.class_name === sinif).map((s) => s.id)), [students.data, sinif])
   const q = useGunlukKontrol(ids, from, bugun)
   const ogr = useMemo(() => new Map((students.data ?? []).map((s) => [s.id, s])), [students.data])
   const gorunen = new Set((students.data ?? []).map((s) => s.class_name))

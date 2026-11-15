@@ -17,6 +17,7 @@ import { ntype, useOpenNotification } from '@/lib/notifications'
 import { useIndicator } from './Indicator'
 import { useToast } from './Toast'
 import { TemaSecici } from './Tema'
+import { CevrimdisiKuyruk } from './CevrimdisiKuyruk'
 
 function Brand() {
   const info = useSchoolInfo()
@@ -413,6 +414,7 @@ export function AppShell() {
         </button>
       </nav>
       <main className="view enter" key={enterKey}>
+        <CevrimdisiKuyruk />
         <HataSiniri key={loc.pathname}>
           <Outlet />
         </HataSiniri>

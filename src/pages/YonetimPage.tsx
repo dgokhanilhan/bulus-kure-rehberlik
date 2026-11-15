@@ -3,6 +3,7 @@
 import YonetimHatalar from './YonetimHatalar'
 import YonetimHedefler from './YonetimHedefler'
 import { KullanimPanosu, KvkkBasvurulari } from '@/components/Kvkk'
+import { KurulumSihirbazi } from './YonetimKurulum'
 import { lazy, Suspense, useState } from 'react'
 const ListeOlustur = lazy(() => import('./ListeOlustur').then(m => ({ default: m.ListeOlustur })))
 import { Link, useSearchParams } from 'react-router-dom'
@@ -83,11 +84,13 @@ type Tab =
   | 'gunluk_kontrol'
   | 'kullanim'
   | 'kvkk'
+  | 'kurulum'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
   {
     title: 'Genel',
     items: [
+      ['kurulum', 'Kurulum sihirbazı'],
       ['tum_ayarlar', 'Tüm ayarlar'],
       ['genel', 'Genel ayarlar'],
       ['moduller', 'Modüller'],
@@ -329,6 +332,7 @@ export default function YonetimPage() {
               {tab === 'hedefler' && <YonetimHedefler />}
               {tab === 'hatalar' && <YonetimHatalar />}
               {tab === 'kullanim' && <KullanimPanosu />}
+              {tab === 'kurulum' && <KurulumSihirbazi<Tab> onGit={setTab} />}
               {tab === 'kvkk' && <KvkkBasvurulari />}
               {tab === 'guvenlik' && (
                 <>
