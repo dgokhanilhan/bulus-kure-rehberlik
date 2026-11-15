@@ -1121,3 +1121,19 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .kp-tablo th{text-align:left;font-size:12px;color:var(--ink-2);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
 .kp-tablo td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
 .kp-tablo tr.bos td{color:var(--ink-muted)}
+/* Kurulum sihirbazı */
+.ks-ust{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.ks-cubuk{height:10px;border-radius:99px;background:var(--surface-sunken);overflow:hidden}
+.ks-cubuk span{display:block;height:100%;background:var(--primary);border-radius:99px}
+.ks-liste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ks-adim{padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.ks-adim.siradaki{outline:2px solid var(--primary)}
+.ks-adim .m{font-size:13px}
+.ks-adim .btn{min-height:44px}
+.ks-no{flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;background:var(--surface-sunken)}
+.ks-adim.tamam .ks-no{background:var(--primary-soft);color:var(--primary)}
+/* Bağlantısız kayıt şeridi */
+.cd-serit{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.cd-satir{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;border-radius:12px;background:var(--primary-soft);border:1px solid var(--primary-line);font-size:14px}
+.cd-satir.hata{background:var(--signal-soft);border-color:var(--signal)}
+.cd-satir .btn{min-height:44px}

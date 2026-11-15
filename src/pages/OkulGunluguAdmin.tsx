@@ -12,6 +12,8 @@ import { Modal } from '@/components/Modal'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { ProgramImageImport } from '@/components/ProgramImageImport'
+import { siraya } from '@/components/CevrimdisiKuyruk'
+import { agHatasiMi } from '@/lib/cevrimdisi'
 
 interface Stu {
   id: string
@@ -77,6 +79,14 @@ export function YoklamaAdmin({ classes, students }: { classes: ClassRow[]; stude
     const r2 = del.length ? await supabase.from('attendance').delete().in('id', del) : { error: null }
     setBusy(false)
     const e = r1.error ?? r2.error
+    // Bağlantı yoksa (ve hiçbir parça yazılmadıysa) kayıt bu cihazda sıraya alınır, bağlantı gelince gönderilir
+    if (e && agHatasiMi(e) && !(up.length && !r1.error)) {
+      const cls_ = classes.find((c) => c.id === cls)?.name ?? ''
+      if (siraya(profile!.id, { tur: 'yoklama', etiket: `${cls_} yoklaması ${day}`, up, del })) {
+        setDraft({})
+        return toast('Bağlantı yok: yoklama bu cihazda bekliyor, bağlantı gelince gönderilecek.', 'warn')
+      }
+    }
     if (e) return toast(errText(e)!, 'warn')
     setDraft({})
     qc.invalidateQueries({ queryKey: ['attendance'] })
