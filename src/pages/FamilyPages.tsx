@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { fmt, gorevEtkisi, indexResults, studentExams, totalNet } from '@/lib/analiz'
+import { Cozemedim, YanlisDefteri } from '@/components/OgrenciDestek'
 import { SUBJECT_SHORT } from '@/components/Tasks'
 import {
   ATT_TR,
@@ -286,6 +287,13 @@ export function OzetPage() {
           )}
         </aside>
       </div>
+      {/* Öğrenci desteği (0076): yanlış defteri (LGS denemelerinden) ve fotoğraflı soru gönderme */}
+      {(lgs && dsq.data && ayar.bool('aile.yanlis_defteri')) || ayar.bool('aile.soru_sor') ? (
+        <div className="ds-duzen">
+          {lgs && dsq.data && ayar.bool('aile.yanlis_defteri') && <YanlisDefteri ds={dsq.data} sid={s.id} veli={veli} />}
+          {ayar.bool('aile.soru_sor') && <Cozemedim sid={s.id} veli={veli} />}
+        </div>
+      ) : null}
       {/* Hedefler (0060): öğretmenin seçtiği hedef okullar / bölümler — 8. sınıf LGS, 11–12. sınıf YKS */}
       {mods.lgs && [8, 11, 12].includes(s.grade ?? 0) && <AileHedefler sid={s.id} grade={s.grade} veli={veli} />}
       {cur >= 0 && dsq.data && (
