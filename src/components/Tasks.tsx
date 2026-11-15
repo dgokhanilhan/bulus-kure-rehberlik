@@ -196,6 +196,7 @@ export function TaskModal({
   preset,
   usedCodes,
   subjects = SUBJECTS,
+  onSaved,
   onClose,
 }: {
   usedCodes?: Set<string>
@@ -206,7 +207,9 @@ export function TaskModal({
   repeats: Repeat[]
   openTasks: Task[]
   edit?: Task
-  preset?: { subject: Subject; code?: string }
+  preset?: { subject: Subject; code?: string; konuOther?: string; note?: string }
+  /** Yeni görev kaydedilince (görüşme kararını göreve bağlamak için) */
+  onSaved?: (id: string) => void
   onClose: () => void
 }) {
   const toast = useToast()
@@ -235,7 +238,7 @@ export function TaskModal({
     const top = repeats[0]
     const subject = preset?.subject ?? top?.outcome.subject ?? (subjects.find((x) => x.code === 'MAT') ?? subjects[0])?.code ?? 'MAT'
     const konu = preset ? (preset.code ?? null) : (top?.outcome.code ?? null)
-    return { subject, konu, konuOther: '', adet: '20', due: nextDow(5), weekly: false, veli: true, note: '' }
+    return { subject, konu, konuOther: preset?.konuOther ?? '', adet: '20', due: nextDow(5), weekly: false, veli: true, note: preset?.note ?? '' }
   }
   const [m, setM] = useState<TaskForm>(init)
   const [err, setErr] = useState<string | null>(null)
@@ -278,11 +281,20 @@ export function TaskModal({
       note: m.note.trim() || null,
     }
     setBusy(true)
+    let yeniId: string | null = null
     const { error } = edit
       ? await supabase.from('tasks').update(row).eq('id', edit.id)
-      : await supabase.from('tasks').insert({ ...row, created_by: (await supabase.auth.getUser()).data.user!.id })
+      : onSaved
+        ? await supabase
+            .from('tasks')
+            .insert({ ...row, created_by: (await supabase.auth.getUser()).data.user!.id })
+            .select('id')
+            .single()
+            .then((r) => ((yeniId = (r.data as { id: string } | null)?.id ?? null), r))
+        : await supabase.from('tasks').insert({ ...row, created_by: (await supabase.auth.getUser()).data.user!.id })
     setBusy(false)
     if (error) return setErr(error.message || 'Kaydedilemedi.')
+    if (yeniId && onSaved) onSaved(yeniId)
     refresh('tasks')
     if (edit) {
       toast('Görev güncellendi')

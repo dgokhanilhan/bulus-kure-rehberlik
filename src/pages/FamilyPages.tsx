@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { fmt, gorevEtkisi, indexResults, studentExams, totalNet } from '@/lib/analiz'
 import { Cozemedim, YanlisDefteri } from '@/components/OgrenciDestek'
+import { VeliHaftalikOzet } from '@/components/GorusmeHazirlik'
 import { SUBJECT_SHORT } from '@/components/Tasks'
 import {
   ATT_TR,
@@ -125,6 +126,8 @@ export function OzetPage() {
         </div>
       </div>
       <ChildPicker list={list} s={s} choose={choose} />
+      {/* Veli haftalık özeti (0077): öğretmenin onaylayıp gönderdiği son özet; açılınca okundu yazılır */}
+      {veli && ayar.bool('aile.haftalik_ozet') && <VeliHaftalikOzet sid={s.id} />}
       <div className={`stats${!lgs ? ' family-task-summary' : ''}`}>
         {lgs && (
           <>
@@ -200,47 +203,54 @@ export function OzetPage() {
         {genel && <GenelDenemeler studentId={s.id} grade={s.grade} />}
         <aside className="stack" style={{ gap: 12 }}>
           {ayar.bool('aile.raporlar') && (
-          <Dropdown
-            title="Raporlar"
-            sub={rs.length ? `${rs.length} rapor` : 'Henüz rapor yok'}
-            icon={<Icon name="doc" size={22} />}
-            delay={4}
-            right={rs.length ? <span className="chip gold">{rs.length}</span> : undefined}
-          >
-            {rs.length ? (
-              rs.map((r) => (
-                <button key={r.id} className="btn sm" style={{ justifyContent: 'space-between' }} onClick={() => openReport({ id: r.id })}>
-                  <span>{reportExamNames.data?.[r.exam_id] ? `${reportExamNames.data[r.exam_id]} raporu` : 'Gelişim raporu'}</span>
-                  <span className="m">{r.sent_at ? ago(r.sent_at) : ''}</span>
-                </button>
-              ))
-            ) : (
-              <span className="m">Rapor gönderildiğinde burada görünür.</span>
-            )}
-          </Dropdown>)}
+            <Dropdown
+              title="Raporlar"
+              sub={rs.length ? `${rs.length} rapor` : 'Henüz rapor yok'}
+              icon={<Icon name="doc" size={22} />}
+              delay={4}
+              right={rs.length ? <span className="chip gold">{rs.length}</span> : undefined}
+            >
+              {rs.length ? (
+                rs.map((r) => (
+                  <button key={r.id} className="btn sm" style={{ justifyContent: 'space-between' }} onClick={() => openReport({ id: r.id })}>
+                    <span>{reportExamNames.data?.[r.exam_id] ? `${reportExamNames.data[r.exam_id]} raporu` : 'Gelişim raporu'}</span>
+                    <span className="m">{r.sent_at ? ago(r.sent_at) : ''}</span>
+                  </button>
+                ))
+              ) : (
+                <span className="m">Rapor gönderildiğinde burada görünür.</span>
+              )}
+            </Dropdown>
+          )}
           {ayar.bool('aile.gorusmeler') && (
+            <Dropdown
+              title="Görüşmeler"
+              sub={gs.length ? `${gs.length} yaklaşan görüşme` : 'Yaklaşan görüşme yok'}
+              icon={<Icon name="cal" size={22} />}
+              delay={5}
+            >
+              {gs.length ? (
+                gs.map((g) => (
+                  <div className="kv" key={g.id}>
+                    <b style={{ fontSize: 14 }}>
+                      {trDW(localDate(g.starts_at))} · {localHM(g.starts_at)}
+                    </b>
+                    <Link className="btn sm" to="/gorusmeler">
+                      Yanıtla
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <span className="m">Planlanan görüşme yok.</span>
+              )}
+            </Dropdown>
+          )}
           <Dropdown
-            title="Görüşmeler"
-            sub={gs.length ? `${gs.length} yaklaşan görüşme` : 'Yaklaşan görüşme yok'}
-            icon={<Icon name="cal" size={22} />}
-            delay={5}
+            title="Cumartesi etütleri"
+            sub={et.length + et2.length ? `${et.length + et2.length} etüt` : 'Etüt yok'}
+            icon={<Icon name="flag" size={22} />}
+            delay={6}
           >
-            {gs.length ? (
-              gs.map((g) => (
-                <div className="kv" key={g.id}>
-                  <b style={{ fontSize: 14 }}>
-                    {trDW(localDate(g.starts_at))} · {localHM(g.starts_at)}
-                  </b>
-                  <Link className="btn sm" to="/gorusmeler">
-                    Yanıtla
-                  </Link>
-                </div>
-              ))
-            ) : (
-              <span className="m">Planlanan görüşme yok.</span>
-            )}
-          </Dropdown>)}
-          <Dropdown title="Cumartesi etütleri" sub={et.length + et2.length ? `${et.length + et2.length} etüt` : 'Etüt yok'} icon={<Icon name="flag" size={22} />} delay={6}>
             {et2.map((x) => {
               const sa = x.etut_gunler!.saatler[x.ders - 1]
               return (

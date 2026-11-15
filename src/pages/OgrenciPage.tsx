@@ -6,7 +6,19 @@ import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { isFullAccess, ROLE_TR, roleOf } from '@/lib/roles'
 import { useAyar } from '@/lib/ayarlar'
-import { fmt, gorevEtkiOzeti, gorevEtkisi, indexResults, outcomeCode, outcomeSourceLabel, repeats, studentExams, subjectOf, totalNet, type Subject } from '@/lib/analiz'
+import {
+  fmt,
+  gorevEtkiOzeti,
+  gorevEtkisi,
+  indexResults,
+  outcomeCode,
+  outcomeSourceLabel,
+  repeats,
+  studentExams,
+  subjectOf,
+  totalNet,
+  type Subject,
+} from '@/lib/analiz'
 import {
   useMeetings,
   useNotes,
@@ -26,6 +38,9 @@ import { Seg, useIndicator } from '@/components/Indicator'
 import { LineChart } from '@/components/LineChart'
 import { TaskList, TaskModal } from '@/components/Tasks'
 import { MeetingList, MeetingModal } from '@/components/Meetings'
+import { GorusmeHazirlik, GorusmeKararlari, HaftalikOzetKart, type DenemeSatiri } from '@/components/GorusmeHazirlik'
+import { useKararGuncelle } from '@/lib/gorusmeData'
+import type { Karar } from '@/lib/haftalik'
 import { ExamModal } from '@/components/ExamModal'
 import { useToast } from '@/components/Toast'
 import { useOpenReport } from '@/components/Report'
@@ -53,7 +68,7 @@ const TABS = [
 type Tab = (typeof TABS)[number][0]
 
 type ModalState =
-  | { t: 'task'; edit?: Task; preset?: { subject: Subject; code?: string } }
+  | { t: 'task'; edit?: Task; preset?: { subject: Subject; code?: string; konuOther?: string; note?: string }; karar?: string }
   | { t: 'meeting'; edit?: Meeting }
   | { t: 'exam'; eid: string }
   | null
@@ -83,6 +98,7 @@ export default function OgrenciPage() {
   const navigate = useNavigate()
   const refreshAll = useRefresh()
   const toastTop = useToast()
+  const kararGuncelle = useKararGuncelle(sid)
 
   const s = students.data?.find((x) => x.id === sid)
   const ds = dsq.data
@@ -93,7 +109,8 @@ export default function OgrenciPage() {
     const used = new Set<string>()
     for (const qs of ds.questionsByExam.values()) for (const q of qs) if (q.outcome_code) used.add(q.outcome_code)
     for (const r of ds.results) for (const c of Object.keys(r.kazanim?.g ?? {})) used.add(c)
-    return { ex, rep: repeats(ds, s.id, undefined, idx), weaknesses: repeats(ds, s.id, undefined, idx, 1), used }
+    const denemeler: DenemeSatiri[] = ex.map((x) => ({ ad: x.exam.name, tarih: x.exam.exam_date, net: totalNet(x.result) }))
+    return { ex, rep: repeats(ds, s.id, undefined, idx), weaknesses: repeats(ds, s.id, undefined, idx, 1), used, denemeler }
   }, [ds, s])
 
   if (students.isLoading || dsq.isLoading || (!!students.data && !dsq.data && !dsq.isError))
@@ -110,7 +127,7 @@ export default function OgrenciPage() {
       </>
     )
 
-  const { ex, rep, weaknesses, used } = calc
+  const { ex, rep, weaknesses, used, denemeler } = calc
   const L = ex.at(-1)
   const P = ex.at(-2)
   const nets = ex.map((x) => totalNet(x.result))
@@ -251,7 +268,13 @@ export default function OgrenciPage() {
 
       <div className="tabs a" style={{ ['--d' as string]: 3 }} role="tablist" aria-label="Öğrenci dosyası" ref={tabs.ref}>
         {tabs.ind}
-        {TABS.filter(([id]) => (id !== 'devamsizlik' || mods.yoklama) && (id !== 'raporlar' || F || ayar.bool('ogretmen.rapor_gorme')) && (id !== 'hedef' || [8, 11, 12].includes(sGrade ?? 0)) && (id !== 'etut' || mods.etut)).map(([id, l]) => (
+        {TABS.filter(
+          ([id]) =>
+            (id !== 'devamsizlik' || mods.yoklama) &&
+            (id !== 'raporlar' || F || ayar.bool('ogretmen.rapor_gorme')) &&
+            (id !== 'hedef' || [8, 11, 12].includes(sGrade ?? 0)) &&
+            (id !== 'etut' || mods.etut),
+        ).map(([id, l]) => (
           <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
             {l}
           </button>
@@ -494,12 +517,32 @@ export default function OgrenciPage() {
               </p>
             ) : null
           })()}
-          <TaskList tasks={myTasks} mode={F ? 'staff' : 'view'} onEdit={(t) => setModal({ t: 'task', edit: t })} etki={ds ? (t) => gorevEtkisi(ds, sid, t) : undefined} />
+          <TaskList
+            tasks={myTasks}
+            mode={F ? 'staff' : 'view'}
+            onEdit={(t) => setModal({ t: 'task', edit: t })}
+            etki={ds ? (t) => gorevEtkisi(ds, sid, t) : undefined}
+          />
         </>
       )}
 
       {tab === 'gorusmeler' && (
-        <MeetingsTab sid={s.id} F={F} name={s.full_name} onPlan={() => setModal({ t: 'meeting' })} onChange={(g) => setModal({ t: 'meeting', edit: g })} />
+        <MeetingsTab
+          sid={s.id}
+          F={F}
+          name={s.full_name}
+          denemeler={denemeler}
+          tasks={myTasks}
+          onPlan={() => setModal({ t: 'meeting' })}
+          onChange={(g) => setModal({ t: 'meeting', edit: g })}
+          onGoreve={(k) =>
+            setModal({
+              t: 'task',
+              karar: k.id,
+              preset: { subject: (ds.subjects[0]?.code ?? 'MAT') as Subject, konuOther: k.metin.slice(0, 120), note: 'Görüşme kararı' },
+            })
+          }
+        />
       )}
       {tab === 'notlar' && <NotesTab sid={s.id} F={F} />}
       {tab === 'devamsizlik' && <DevamsizlikTab s={s} />}
@@ -515,7 +558,14 @@ export default function OgrenciPage() {
           konular={(calc?.weaknesses ?? []).map((r) => ({ code: r.outcome.code, title: r.outcome.title, wrongByExam: [] }))}
         />
       )}
-      {tab === 'raporlar' && <ReportsTab sid={s.id} examName={(eid) => ds.exams.find((e) => e.id === eid)?.name ?? ''} />}
+      {tab === 'raporlar' && (
+        <>
+          {F && ayar.bool('aile.haftalik_ozet') && (
+            <HaftalikOzetKart sid={s.id} denemeler={denemeler} tasks={myTasks} yoklama={mods.yoklama} hasParent={hasParent} />
+          )}
+          <ReportsTab sid={s.id} examName={(eid) => ds.exams.find((e) => e.id === eid)?.name ?? ''} />
+        </>
+      )}
 
       {modal?.t === 'task' && (
         <TaskModal
@@ -527,6 +577,11 @@ export default function OgrenciPage() {
           openTasks={openT}
           edit={modal.edit}
           preset={modal.preset}
+          onSaved={
+            modal.karar
+              ? (id) => kararGuncelle.mutate({ id: modal.karar!, task_id: id }, { onError: (e) => toastTop((e as Error).message, 'warn') })
+              : undefined
+          }
           onClose={() => setModal(null)}
         />
       )}
@@ -563,7 +618,25 @@ function BackLink() {
   )
 }
 
-function MeetingsTab({ sid, F, name, onPlan, onChange }: { sid: string; F: boolean; name: string; onPlan: () => void; onChange: (g: Meeting) => void }) {
+function MeetingsTab({
+  sid,
+  F,
+  name,
+  denemeler,
+  tasks,
+  onPlan,
+  onChange,
+  onGoreve,
+}: {
+  sid: string
+  F: boolean
+  name: string
+  denemeler: DenemeSatiri[]
+  tasks: Task[]
+  onPlan: () => void
+  onChange: (g: Meeting) => void
+  onGoreve: (k: Karar) => void
+}) {
   const q = useMeetings(sid)
   if (!F)
     return (
@@ -577,7 +650,9 @@ function MeetingsTab({ sid, F, name, onPlan, onChange }: { sid: string; F: boole
         <Icon name="plus" size={18} stroke={2} />
         Görüşme planla
       </button>
+      {q.data && <GorusmeHazirlik sid={sid} denemeler={denemeler} tasks={tasks} meetings={q.data} />}
       {q.data && <MeetingList meetings={q.data} studentName={() => name} canManage onChange={onChange} />}
+      {q.data && <GorusmeKararlari sid={sid} meetings={q.data} tasks={tasks} onGoreve={onGoreve} />}
     </>
   )
 }
@@ -622,25 +697,25 @@ function NotesTab({ sid, F }: { sid: string; F: boolean }) {
   return (
     <>
       {(F || ayar.bool('ogretmen.not_ekleme')) && (
-      <form className="card a" style={{ ['--d' as string]: 3, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }} onSubmit={submit}>
-        <label className="field" htmlFor="noteText">
-          Not ekle
-          <textarea id="noteText" placeholder="Gözlemin, ders içi durum…" value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} />
-        </label>
-        <div className="kv" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label className="field" htmlFor="noteVis" style={{ flex: 1, minWidth: 200 }}>
-            Kim görsün
-            <select id="noteVis" value={vis} onChange={(e) => setVis(e.target.value as typeof vis)}>
-              <option value="ogretmen">Öğretmenler</option>
-              {F && <option value="rehber">Yalnız rehberlik ve yönetim</option>}
-              {F && <option value="veli">Veli de görsün</option>}
-            </select>
+        <form className="card a" style={{ ['--d' as string]: 3, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }} onSubmit={submit}>
+          <label className="field" htmlFor="noteText">
+            Not ekle
+            <textarea id="noteText" placeholder="Gözlemin, ders içi durum…" value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} />
           </label>
-          <button className="btn pri" type="submit" disabled={busy}>
-            Kaydet
-          </button>
-        </div>
-      </form>
+          <div className="kv" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <label className="field" htmlFor="noteVis" style={{ flex: 1, minWidth: 200 }}>
+              Kim görsün
+              <select id="noteVis" value={vis} onChange={(e) => setVis(e.target.value as typeof vis)}>
+                <option value="ogretmen">Öğretmenler</option>
+                {F && <option value="rehber">Yalnız rehberlik ve yönetim</option>}
+                {F && <option value="veli">Veli de görsün</option>}
+              </select>
+            </label>
+            <button className="btn pri" type="submit" disabled={busy}>
+              Kaydet
+            </button>
+          </div>
+        </form>
       )}
       {notes.data?.length ? (
         notes.data.map((n, i) => {
