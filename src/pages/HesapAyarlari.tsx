@@ -7,6 +7,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import MfaPage from './MfaPage'
 import { Modal } from '@/components/Modal'
+import { KvkkBasvuruFormu } from '@/components/Kvkk'
 export default function HesapAyarlari() {
   const { session, roles, aal } = useAuth(),
     qc = useQueryClient()
@@ -201,6 +202,7 @@ export default function HesapAyarlari() {
           E-posta değişikliği için doğrulama gönder
         </button>
       </section>
+      <KvkkBasvuruFormu />
       {accountMessage && <p role="status">{accountMessage}</p>}
       {setup && (
         <Modal title="Authenticator kurulumu" onClose={() => setSetup(false)}>

@@ -2,6 +2,7 @@
 // Yazma yetkisi veritabanında (RLS + 0008 RPC'leri, aal2) zorlanır; bu ekran yalnız arayüzdür.
 import YonetimHatalar from './YonetimHatalar'
 import YonetimHedefler from './YonetimHedefler'
+import { KullanimPanosu, KvkkBasvurulari } from '@/components/Kvkk'
 import { lazy, Suspense, useState } from 'react'
 const ListeOlustur = lazy(() => import('./ListeOlustur').then(m => ({ default: m.ListeOlustur })))
 import { Link, useSearchParams } from 'react-router-dom'
@@ -80,6 +81,8 @@ type Tab =
   | 'hatalar'
   | 'oda'
   | 'gunluk_kontrol'
+  | 'kullanim'
+  | 'kvkk'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
   {
@@ -94,6 +97,8 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['anasayfa', 'Ana sayfa düzeni'],
       ['galeri', 'Galeri ayarları', 'galeri'],
       ['guvenlik', 'Güvenlik ve erişim'],
+      ['kullanim', 'Kullanım panosu'],
+      ['kvkk', 'KVKK başvuruları'],
       ['ayar_gecmisi', 'Ayar geçmişi'],
       ['hatalar', 'Hata kayıtları'],
     ],
@@ -323,6 +328,8 @@ export default function YonetimPage() {
               {tab === 'aktarim' && <TopluAktarim />}
               {tab === 'hedefler' && <YonetimHedefler />}
               {tab === 'hatalar' && <YonetimHatalar />}
+              {tab === 'kullanim' && <KullanimPanosu />}
+              {tab === 'kvkk' && <KvkkBasvurulari />}
               {tab === 'guvenlik' && (
                 <>
                   <GuvenlikOzeti />
