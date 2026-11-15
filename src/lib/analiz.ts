@@ -202,6 +202,51 @@ export function wrongOutcomes(ds: Dataset, r: Result) {
   return { wrong, unreadable }
 }
 
+// ---------- Görevin etkisi ("işe yaradı mı?") ----------
+export interface GorevEtki {
+  /** Görev verilmeden önce bu konunun yanlış çıktığı deneme sayısı */
+  once: number
+  /** Görevden sonraki denemelerde bu konunun durumu (yalnız güvenilir okunanlar: y/d/b), eskiden yeniye */
+  sonra: ('y' | 'd' | 'b')[]
+  /** bekliyor: görevden sonra bu konu henüz (güvenilir biçimde) sorulmadı */
+  durum: 'bekliyor' | 'duzeldi' | 'suruyor' | 'bos'
+  /** Sondan geriye art arda kaç denemede doğru */
+  dogruSeri: number
+}
+/**
+ * Kazanıma bağlı bir görevden sonra o kazanım denemelerde nasıl gitti. Yorum yok, yalnız olgu: görev tarihinden sonraki
+ * denemelerde konu doğru mu, yanlış mı, boş mu. Kazanım eşleşmesi güvenilir değilse o deneme sayılmaz (veri uydurma yok).
+ * Görev kazanıma bağlı değilse ya da kazanım veri setinde yoksa null.
+ */
+export function gorevEtkisi(
+  ds: Dataset,
+  sid: string,
+  t: { outcome_code: string | null; learning_outcome_id?: string | null; created_at: string },
+  idx = indexResults(ds.results),
+): GorevEtki | null {
+  const o = ds.outcomes.find((x) => (t.learning_outcome_id ? x.outcomeId === t.learning_outcome_id : !!t.outcome_code && x.code === t.outcome_code))
+  if (!o) return null
+  // Görevin verildiği gün (Türkiye saati); o günkü deneme "önce" sayılır
+  const gun = new Date(new Date(t.created_at).getTime() + 3 * 3600_000).toISOString().slice(0, 10)
+  let once = 0
+  const sonra: GorevEtki['sonra'] = []
+  for (const x of studentExams(ds, sid, idx)) {
+    const st = konuStatus(x.result, questionsFor(ds, x.result), o.subject, o.code)
+    if (x.exam.exam_date <= gun) {
+      if (st === 'y') once++
+    } else if (st === 'y' || st === 'd' || st === 'b') sonra.push(st)
+  }
+  const son = sonra[sonra.length - 1]
+  let dogruSeri = 0
+  for (let i = sonra.length - 1; i >= 0 && sonra[i] === 'd'; i--) dogruSeri++
+  return { once, sonra, durum: !son ? 'bekliyor' : son === 'd' ? 'duzeldi' : son === 'y' ? 'suruyor' : 'bos', dogruSeri }
+}
+/** Kazanıma bağlı görevlerin özeti: kaçında konu sonraki denemede doğruya döndü */
+export function gorevEtkiOzeti(l: readonly (GorevEtki | null)[]): { olculen: number; duzelen: number; bekleyen: number } {
+  const e = l.filter((x): x is GorevEtki => !!x)
+  return { olculen: e.filter((x) => x.durum !== 'bekliyor').length, duzelen: e.filter((x) => x.durum === 'duzeldi').length, bekleyen: e.filter((x) => x.durum === 'bekliyor').length }
+}
+
 // ---------- Bugün kuralları ----------
 export interface TodaySettings {
   netDrop: number // son iki deneme arası toplam net ≤ −netDrop

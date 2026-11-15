@@ -5,7 +5,8 @@ import { VeriDurumu } from '@/components/VeriDurumu'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
-import { fmt, indexResults, studentExams, totalNet } from '@/lib/analiz'
+import { fmt, gorevEtkisi, indexResults, studentExams, totalNet } from '@/lib/analiz'
+import { Cozemedim, YanlisDefteri } from '@/components/OgrenciDestek'
 import { SUBJECT_SHORT } from '@/components/Tasks'
 import {
   ATT_TR,
@@ -286,6 +287,13 @@ export function OzetPage() {
           )}
         </aside>
       </div>
+      {/* Öğrenci desteği (0076): yanlış defteri (LGS denemelerinden) ve fotoğraflı soru gönderme */}
+      {(lgs && dsq.data && ayar.bool('aile.yanlis_defteri')) || ayar.bool('aile.soru_sor') ? (
+        <div className="ds-duzen">
+          {lgs && dsq.data && ayar.bool('aile.yanlis_defteri') && <YanlisDefteri ds={dsq.data} sid={s.id} veli={veli} />}
+          {ayar.bool('aile.soru_sor') && <Cozemedim sid={s.id} veli={veli} />}
+        </div>
+      ) : null}
       {/* Hedefler (0060): öğretmenin seçtiği hedef okullar / bölümler — 8. sınıf LGS, 11–12. sınıf YKS */}
       {mods.lgs && [8, 11, 12].includes(s.grade ?? 0) && <AileHedefler sid={s.id} grade={s.grade} veli={veli} />}
       {cur >= 0 && dsq.data && (
@@ -305,6 +313,9 @@ export function OzetPage() {
 export function GorevlerPage() {
   const { s, list, loading, choose, veli, students } = useMyStudent()
   const tasks = useTasks(s?.id)
+  // Görevden sonraki denemelerde konunun gidişi (LGS denemeleri; veri yoksa satır görünmez)
+  const dsq = useDataset()
+  const ds = dsq.data
   if (!s) return <Wait loading={loading} sorgular={[students]} />
   const ts = (tasks.data ?? []).slice().sort((a, b) => Number(!!a.completed_at) - Number(!!b.completed_at) || a.due_date.localeCompare(b.due_date))
   return (
@@ -312,7 +323,7 @@ export function GorevlerPage() {
       <h1 className="hd a">{veli ? `${gen(s.full_name.split(' ')[0]!)} görevleri` : 'Görevlerim'}</h1>
       <ChildPicker list={list} s={s} choose={choose} />
       {!veli && <p className="m a">Çözdükçe işaretle; öğretmenin ilerlemeni görür.</p>}
-      {tasks.isLoading ? null : <TaskList tasks={ts} mode={veli ? 'view' : 'student'} />}
+      {tasks.isLoading ? null : <TaskList tasks={ts} mode={veli ? 'view' : 'student'} etki={ds ? (t) => gorevEtkisi(ds, s.id, t) : undefined} />}
     </>
   )
 }

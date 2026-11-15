@@ -3,7 +3,8 @@
 // açılıp kapatılır (oda.*; kapalı bölümün verisi veritabanında da kapanır, 0071); sohbet kanalları da oradan düzenlenir. Veli ve öğrenci bu sayfayı göremez (menü + RLS).
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useCalendar, useMeals, useModules } from '@/lib/data'
+import { useCalendar, useMeals, useModules, useStudents } from '@/lib/data'
+import { SoruTalepleri } from '@/components/OgrenciDestek'
 import { addDays, isoDow, todayISO, trDM, trDW } from '@/lib/format'
 import { kanalSirala, odaAdi } from '@/lib/oda'
 import { useBugunNobet, useOdaCanli, useOdaKanalAyar, useOdaKanallari, useOdaOkunmamis } from '@/lib/odaData'
@@ -114,6 +115,8 @@ function OdaGiris(p: { okunmamis: number; onTab: (t: Tab) => void; acik: (t: Tab
   const takvim = useCalendar(bugun, addDays(bugun, 7))
   const ogle = mods.yemek ? (yemek.data ?? []).find((m) => m.day === bugun) : undefined
   const olaylar = mods.takvim ? (takvim.data ?? []).slice(0, 6) : []
+  const ogrenciler = useStudents()
+  const ogrenciAdi = (sid: string) => ogrenciler.data?.find((x) => x.id === sid)?.full_name ?? 'Öğrenci'
 
   return (
     <div className="oda-giris">
@@ -246,6 +249,7 @@ function OdaGiris(p: { okunmamis: number; onTab: (t: Tab) => void; acik: (t: Tab
           {p.dogumGunu && <DogumGunleri bugun={bugun} />}
         </ul>
       </section>
+      <SoruTalepleri adOf={ogrenciAdi} />
     </div>
   )
 }

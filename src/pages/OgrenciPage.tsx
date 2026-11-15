@@ -6,7 +6,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { isFullAccess, ROLE_TR, roleOf } from '@/lib/roles'
 import { useAyar } from '@/lib/ayarlar'
-import { fmt, indexResults, outcomeCode, outcomeSourceLabel, repeats, studentExams, subjectOf, totalNet, type Subject } from '@/lib/analiz'
+import { fmt, gorevEtkiOzeti, gorevEtkisi, indexResults, outcomeCode, outcomeSourceLabel, repeats, studentExams, subjectOf, totalNet, type Subject } from '@/lib/analiz'
 import {
   useMeetings,
   useNotes,
@@ -485,7 +485,16 @@ export default function OgrenciPage() {
               Görev ata
             </button>
           )}
-          <TaskList tasks={myTasks} mode={F ? 'staff' : 'view'} onEdit={(t) => setModal({ t: 'task', edit: t })} />
+          {(() => {
+            const o = ds ? gorevEtkiOzeti(myTasks.map((t) => gorevEtkisi(ds, sid, t))) : null
+            return o && o.olculen > 0 ? (
+              <p className="m a" style={{ fontSize: 14, margin: 0 }} data-testid="gorev-etki-ozet">
+                Konuya bağlı görevlerden sonraki denemelerde: <b>{o.olculen}</b> görevin <b>{o.duzelen}</b>'inde konu doğruya döndü
+                {o.bekleyen > 0 ? `; ${o.bekleyen} görev için konu henüz yeniden sorulmadı` : ''}.
+              </p>
+            ) : null
+          })()}
+          <TaskList tasks={myTasks} mode={F ? 'staff' : 'view'} onEdit={(t) => setModal({ t: 'task', edit: t })} etki={ds ? (t) => gorevEtkisi(ds, sid, t) : undefined} />
         </>
       )}
 
