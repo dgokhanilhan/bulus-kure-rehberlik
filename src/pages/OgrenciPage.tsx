@@ -41,6 +41,8 @@ import { MeetingList, MeetingModal } from '@/components/Meetings'
 import { GorusmeHazirlik, GorusmeKararlari, HaftalikOzetKart, type DenemeSatiri } from '@/components/GorusmeHazirlik'
 import { useKararGuncelle } from '@/lib/gorusmeData'
 import type { Karar } from '@/lib/haftalik'
+import { KvkkDosyasi } from '@/components/Kvkk'
+import { ogrenciGoruntulendi } from '@/lib/kvkkData'
 import { ExamModal } from '@/components/ExamModal'
 import { useToast } from '@/components/Toast'
 import { useOpenReport } from '@/components/Report'
@@ -64,6 +66,7 @@ const TABS = [
   ['gunluk-kontrol', 'Günlük kontrol'],
   ['hedef', 'Hedef'],
   ['etut', 'Etüt'],
+  ['kvkk', 'KVKK'],
 ] as const
 type Tab = (typeof TABS)[number][0]
 
@@ -99,6 +102,10 @@ export default function OgrenciPage() {
   const refreshAll = useRefresh()
   const toastTop = useToast()
   const kararGuncelle = useKararGuncelle(sid)
+  // KVKK erişim kaydı: öğrenci sayfasını açan öğretmen (sunucu kişi/öğrenci/gün başına bir kez yazar)
+  useEffect(() => {
+    if (sid && role !== 'veli' && role !== 'ogrenci') ogrenciGoruntulendi(sid)
+  }, [sid, role])
 
   const s = students.data?.find((x) => x.id === sid)
   const ds = dsq.data
@@ -273,7 +280,8 @@ export default function OgrenciPage() {
             (id !== 'devamsizlik' || mods.yoklama) &&
             (id !== 'raporlar' || F || ayar.bool('ogretmen.rapor_gorme')) &&
             (id !== 'hedef' || [8, 11, 12].includes(sGrade ?? 0)) &&
-            (id !== 'etut' || mods.etut),
+            (id !== 'etut' || mods.etut) &&
+            (id !== 'kvkk' || role === 'admin'),
         ).map(([id, l]) => (
           <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
             {l}
@@ -558,6 +566,7 @@ export default function OgrenciPage() {
           konular={(calc?.weaknesses ?? []).map((r) => ({ code: r.outcome.code, title: r.outcome.title, wrongByExam: [] }))}
         />
       )}
+      {tab === 'kvkk' && role === 'admin' && <KvkkDosyasi sid={s.id} />}
       {tab === 'raporlar' && (
         <>
           {F && ayar.bool('aile.haftalik_ozet') && (

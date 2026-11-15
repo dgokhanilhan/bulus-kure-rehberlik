@@ -1111,3 +1111,13 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .ho-govde{display:flex;flex-direction:column;gap:14px}
 .ho-madde{margin:0;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:2px;font-size:14px}
 .ho-not{padding:10px 12px;border-left:3px solid var(--primary);border-radius:0 8px 8px 0;background:var(--primary-soft)}
+/* Kullanım panosu, KVKK */
+.kp-roller{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px}
+.kp-rol{padding:14px;display:flex;flex-direction:column;gap:4px}
+.kp-rol .m{font-size:13px}
+.kp-sayi{font-family:var(--font-display);font-size:26px}
+.kp-kart{padding:16px;display:flex;flex-direction:column;gap:12px;overflow-x:auto}
+.kp-tablo{width:100%;border-collapse:collapse;font-size:14px}
+.kp-tablo th{text-align:left;font-size:12px;color:var(--ink-2);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+.kp-tablo td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.kp-tablo tr.bos td{color:var(--ink-muted)}
