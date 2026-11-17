@@ -44,6 +44,7 @@ export interface SubjectResult {
   net: number
 }
 export interface Result {
+  mergedSessions?: boolean
   scores?: import('./examScores').ExamScores
   exam_id: string
   student_id: string

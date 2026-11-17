@@ -103,7 +103,7 @@ export function withCatalogItems(ds: Omit<Dataset, 'results'> & { results: (Resu
       )
       if (own.length) questionsByResult.set(`${r.exam_id}|${r.student_id}`, [...(ds.questionsByExam.get(r.exam_id) ?? []), ...own])
     }
-    return r
+    return (source as { merged_sessions?: boolean } | undefined)?.merged_sessions === true ? { ...r, mergedSessions: true } : r
   })
   return { ...ds, outcomes: [...outcomes.values()], results, ...(questionsByResult.size ? { questionsByResult } : {}) }
 }
