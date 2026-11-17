@@ -115,3 +115,14 @@ describe('sınıf analizi', () => {
     expect(A.ozet.sonOrtNet).toBeCloseTo((22 + 32 + 16) / 3)
   })
 })
+
+it('birleşik oturum varsa yalnız o sınavda herkes nete göre sıralanır', () => {
+ const merged = {...res('e2','a',null,20,15), mergedSessions:true as const}
+ const d=ds([res('e1','a',300,20,15),res('e1','b',450,10,15), merged,res('e2','b',450,10,15),res('e2','c',400,20,15)])
+ const a=sinifAnalizi(d,OGR,{bugun:'2026-11-17'})
+ expect(a.netRanking).toEqual(new Set(['e2']))
+ expect(a.satirlar.find(r=>r.student.id==='a')!.hucreler.map(h=>h.rank)).toEqual([2,1])
+ expect(a.satirlar.find(r=>r.student.id==='b')!.hucreler.map(h=>h.rank)).toEqual([1,3])
+ expect(a.satirlar.find(r=>r.student.id==='c')!.hucreler[1]!.rank).toBe(1)
+ expect(a.satirlar.find(r=>r.student.id==='a')!.hucreler[1]!.score).toBeNull()
+})
