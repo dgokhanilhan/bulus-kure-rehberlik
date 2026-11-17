@@ -648,7 +648,16 @@ function Kontrol({
           <b>{stu(g.id)?.full_name ?? 'Seçilen öğrenci'}</b>
           <p>{g.rows.map(r => `${r.read.name ?? 'İsimsiz'} (s. ${r.page})`).join(' + ')}</p>
           {g.merged ? <>
-            <p>Sözel ve sayısal oturumlar tek sonuç olur. Toplam net: {Object.values(g.merged.sections).reduce((n, v) => n + (v && 'net' in v ? v.net : 0), 0).toFixed(2).replace('.', ',')}. Kısmi puanlar kullanılmaz.</p>
+            <p>Tamamlayıcı sözel ve sayısal oturum bulundu. İkisinin de aynı öğrenciye ait olduğunu kontrol et.</p>
+            <div style={{ overflowX: 'auto' }}><table>
+              <thead><tr><th>Ders</th><th>Doğru</th><th>Yanlış</th><th>Boş</th><th>Net</th></tr></thead>
+              <tbody>{rv.template.sections.map(s => {
+                const v = g.merged!.sections[s.key]
+                return v && 'net' in v ? <tr key={s.key}><td>{s.label}</td><td>{v.d}</td><td>{v.y}</td><td>{v.b}</td><td>{v.net.toFixed(2).replace('.', ',')}</td></tr> : null
+              })}</tbody>
+            </table></div>
+            <p><b>Birleşik toplam: {Object.values(g.merged.sections).reduce((n, v) => n + (v && 'net' in v ? v.net : 0), 0).toFixed(2).replace('.', ',')} net.</b> Tek öğrenci sonucu kaydedilir; bu denemenin sınıf sıralaması toplam nete göre yapılır.</p>
+            <p className="m">Kısmi oturum puanları toplanamaz. Sınavın puan hesaplama verileri bulunmadığı için LGS puanı boş kalır; ders sonuçları ve netler korunur.</p>
             <label><input type="checkbox" checked={g.approved} onChange={e => setRv({ ...rv, approvedSessionPairs: e.target.checked ? [...(rv.approvedSessionPairs ?? []), g.key] : (rv.approvedSessionPairs ?? []).filter(k => k !== g.key) })} /> Bu iki oturumu birleştir</label>
           </> : <p>Bu satırlar birleştirilemez. Seçimleri düzelt veya mükerrer sayfayı atla.</p>}
         </article>

@@ -32,3 +32,44 @@ it('aynı türden iki oturum birleştirilemez',()=>{
  expect(genelPending(rv)).toBe(1)
  expect(()=>toImportPayload(rv,meta)).toThrow()
 })
+it('aynı isimli farklı okul kayıtlarını birleştirmez',()=>{
+ const rv=review(true)
+ rv.rows[1]!.choice={kind:'student',id:'other'}
+ expect(sessionGroups(rv)).toEqual([])
+ expect(toImportPayload(rv,meta).results).toHaveLength(2)
+})
+it('numarası ve ismi farklı iki form aynı öğrenciye seçilince önerilir',()=>{
+ const rv=review(true)
+ rv.rows[1]!.read={...rv.rows[1]!.read,name:'Örnek Ögrenci',number:'999'}
+ expect(sessionGroups(rv)[0]!.merged).toBeDefined()
+ expect(sessionGroups(rv)[0]!.approved).toBe(false)
+})
+it('çakışan ders cevabı varsa sayısal/sözel diye birleştirmez',()=>{
+ const rv=review(true)
+ rv.rows[0]!.record.items.push({label:'MAT',section:'MAT',booklet:'A',q:1,testQ:1,key:'A',answer:'A',mark:'+',rawCode:null,rawText:null})
+ expect(sessionGroups(rv)[0]!.merged).toBeUndefined()
+})
+it('üç kayıt, farklı sınav ve tekrarlanan kaynak sayfasını reddeder',()=>{
+ const three=review(true)
+ three.rows.push({...three.rows[1]!,key:'third'})
+ expect(sessionGroups(three)[0]!.merged).toBeUndefined()
+ const exam=review(true)
+ exam.rows[1]!.record.exam.title='Başka sınav'
+ expect(sessionGroups(exam)[0]!.merged).toBeUndefined()
+ const pages=review(true)
+ pages.rows[1]!.record.pages=[2]
+ expect(sessionGroups(pages)[0]!.merged).toBeUndefined()
+})
+it('başka öğrenciye geçildiğinde eski onay geçersizdir',()=>{
+ const rv=review(true)
+ rv.approvedSessionPairs=[sessionGroups(rv)[0]!.key]
+ for(const r of rv.rows) r.choice={kind:'student',id:'other'}
+ expect(sessionGroups(rv)[0]!.approved).toBe(false)
+ expect(()=>toImportPayload(rv,meta)).toThrow()
+})
+it('tek normal kayıt puanıyla aynen aktarılır',()=>{
+ const rv=review(true)
+ rv.rows=rv.rows.slice(0,1)
+ expect(toImportPayload(rv,meta).results[0]!.score).toBe(300)
+ expect(toImportPayload(rv,meta).results[0]!.source).not.toHaveProperty('merged_sessions')
+})

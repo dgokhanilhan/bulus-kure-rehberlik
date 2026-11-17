@@ -202,7 +202,12 @@ export function sessionGroups(rv: GenelReview) {
         }))
     }
     const kinds = eligible ? rows.map(side) : []
+    // Tek dosyada farklı sınavlar veya aynı sayfanın tekrarı varsa birleştirme önerme.
+    const titles = new Set(rows.map(r => r.record.exam.title?.trim()).filter(Boolean))
+    const dates = new Set(rows.map(r => r.record.exam.date).filter(Boolean))
+    const pages = rows.flatMap(r => r.record.pages)
     const compatible = rows.length === 2 && kinds.includes(0) && kinds.includes(1)
+      && titles.size <= 1 && dates.size <= 1 && new Set(pages).size === pages.length
     const key = JSON.stringify([id, ...rows.map(r => r.key)])
     const merged = compatible ? (() => {
       const first = rows[0]!
