@@ -84,6 +84,7 @@ export function reportData(ds: Dataset, sid: string, eid: string): ReportData | 
   const w = wrongOutcomes(ds, cur.result)
   const qs = questionsFor(ds, cur.result)
   const reliable =
+    !!cur.result.topics?.length ||
     (!!cur.result.kazanim && Object.keys(cur.result.kazanim.g).length > 0) ||
     (cur.result.outcomes_ok && qs.some((q) => q.outcome_code && ['code_exact', 'code_inferred', 'text_exact', 'text_match'].includes(q.match)))
   return {

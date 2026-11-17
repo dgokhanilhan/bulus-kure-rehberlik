@@ -3,6 +3,7 @@
 //  - Sonuç (D/Y/B/net) exam_results.subjects'ten okunur; kazanım okuması bunu değiştirmez.
 //  - Kazanım eşleşmesi güvenilir değilse (semantic/none) analize girmez.
 //  - Okunamayan cevap ('?') boş ('_') değildir; tahmin edilmez.
+import { pdfTopicKey, type PdfTopic } from './pdfTopics'
 
 /** Ders anahtarı. LGS'de 6 sabit ders; genel denemelerde şablon bölümü anahtarı (ör. TDE, FEL2, TAR1). */
 export type Subject = string
@@ -44,6 +45,7 @@ export interface SubjectResult {
   net: number
 }
 export interface Result {
+  topics?: PdfTopic[]
   mergedSessions?: boolean
   scores?: import('./examScores').ExamScores
   exam_id: string
@@ -66,6 +68,7 @@ export interface Question {
   match: MatchLevel
 }
 export interface Outcome {
+  isTopic?: boolean
   /** Veri seti içinde tekil anahtar. LGS: resmî kod; genel: bölüm + katalog kimliği (resmî kod tek başına tekil değildir). */
   code: string
   subject: Subject
@@ -78,8 +81,8 @@ export interface Outcome {
   source?: 'official' | 'pdf'
   outcomeType?: 'KAZANIM' | 'OGRENME_CIKTISI'
 }
-export const outcomeCode = (o: Outcome) => (o.outcomeId ? (o.display ?? '—') : o.code)
-export const outcomeSourceLabel = (o: Pick<Outcome, 'source'>) => (o.source === 'pdf' ? 'Okulun PDF’den eklediği hedef' : 'Resmî program hedefi')
+export const outcomeCode = (o: Outcome) => (o.isTopic ? '—' : o.outcomeId ? (o.display ?? '—') : o.code)
+export const outcomeSourceLabel = (o: Pick<Outcome, 'source' | 'isTopic'>) => (o.isTopic ? 'PDF konu analizi' : o.source === 'pdf' ? 'Okulun PDF’den eklediği hedef' : 'Resmî program hedefi')
 
 export const RELIABLE: MatchLevel[] = ['code_exact', 'code_inferred', 'text_exact', 'text_match']
 
@@ -95,6 +98,10 @@ export type KonuStatus = 'y' | 'd' | 'b' | 'o' | 'n' | 'x'
 
 export function konuStatus(result: Result | undefined, examQuestions: Question[], subject: Subject, code: string): KonuStatus {
   if (!result) return 'x'
+  if (code.startsWith('pdf-topic:')) {
+    const t = result.topics?.find(t=>t.section===subject && pdfTopicKey(t)===code)
+    return !t ? 'n' : t.y>0 ? 'y' : t.b>0 ? 'b' : 'd'
+  }
   // Gruplu kazanım (kazanım × D/Y/B): o dersin grupları güvenilirse oradan; tutarsız ders "okunamadı".
   const k = result.kazanim
   if (k && !code.includes(':')) {
@@ -351,6 +358,7 @@ export function classHeat(ds: Dataset, studentIds: string[], subject: Subject, e
         if (q.subject === subject && q.outcome_code && RELIABLE.includes(q.match)) codes.add(q.outcome_code)
   for (const e of exams)
     for (const sid of studentIds) {
+      for (const t of idx.get(`${e.id}|${sid}`)?.topics ?? []) if(t.section===subject) codes.add(pdfTopicKey(t))
       const k = idx.get(`${e.id}|${sid}`)?.kazanim
       if (k?.subjects.includes(subject)) for (const c of Object.keys(k.g)) codes.add(c)
     }
@@ -363,6 +371,11 @@ export function classHeat(ds: Dataset, studentIds: string[], subject: Subject, e
       const wrong: string[] = []
       for (const sid of studentIds) {
         const r = idx.get(`${e.id}|${sid}`)
+        if (o.isTopic) {
+          const t = r?.topics?.find(t=>pdfTopicKey(t)===o.code)
+          if(t) { total+=t.n;correct+=t.d;if(t.y>0)wrong.push(sid) }
+          continue
+        }
         // Gruplu kazanım verisi olan öğrenci: sayılar gruptan (yeni katalog hedefleri "ders:uuid" soru bazlı yoldan)
         if (r?.kazanim && !o.code.includes(':')) {
           const g = r.kazanim.subjects.includes(subject) ? r.kazanim.g[o.code] : undefined

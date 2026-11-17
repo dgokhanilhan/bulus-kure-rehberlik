@@ -1,12 +1,17 @@
 import { AnalysisDisclosure } from './AnalysisDisclosure'
 import { ScoreCards } from './ScoreCards'
-import { SUBJECTS, fmt, subjectOf, totalNet, wrongOutcomes, type Dataset, type Exam, type Result } from '@/lib/analiz'
+import { SUBJECTS, fmt, subjectOf, totalNet, wrongOutcomes, outcomeSourceLabel, type Dataset, type Exam, type Result } from '@/lib/analiz'
+import { pdfTopicKey } from '@/lib/pdfTopics'
 import { trD } from '@/lib/format'
 import { Modal } from './Modal'
 
 /** Bir denemenin ders sonuçları ve yanlış yapılan konular (prototipteki examDetail). */
 export function ExamModal({ ds, exam, result, prev, studentName, onClose, onReport }: { ds: Dataset; exam: Exam; result: Result; prev?: Result; studentName: string; onClose: () => void; onReport?: (t: 'veli' | 'ogretmen') => void }) {
   const { wrong, unreadable } = wrongOutcomes(ds, result)
+  const blankTopics = new Set(result.topics?.filter(t=>t.b>0 && t.y===0).map(pdfTopicKey))
+  const targets = [...wrong, ...ds.outcomes.filter(o=>blankTopics.has(o.code))]
+  const missing = unreadable || (!result.outcomes_ok && !result.topics?.length && !result.kazanim)
+  const missingTopicSubjects = result.topics?.length ? ds.subjects.filter(s=>result.subjects[s.code] && !result.topics!.some(t=>t.section===s.code)) : []
   const sub = [exam.publisher, trD(exam.exam_date), result.score != null ? `Puan ${fmt(result.score)}` : null, `Net ${fmt(totalNet(result), 2)}`].filter(Boolean).join(' · ')
   return (
     <Modal
@@ -66,23 +71,27 @@ export function ExamModal({ ds, exam, result, prev, studentName, onClose, onRepo
           </tbody>
         </table>
       </div>
-      <AnalysisDisclosure title="Yanlış yapılan konular" count={wrong.length}>
-        {wrong.length ? (
+      <AnalysisDisclosure title={result.topics?.length ? 'Yanlış ve boş yapılan konular' : 'Yanlış yapılan konular'} count={targets.length} countLabel={result.topics?.length ? 'konu' : 'hedef'}>
+        {targets.length ? (
           <div className="outcome-groups">
-            {[...new Set(wrong.map(o => o.subject))].map(subject => {
-              const targets = wrong.filter(o => o.subject === subject)
+            {[...new Set(targets.map(o => o.subject))].map(subject => {
+              const group = targets.filter(o => o.subject === subject)
               return <details className="outcome-group" key={subject}>
-                <summary><strong>{subjectOf(ds, subject).ad}</strong><span className="chip down">{targets.length} konu</span></summary>
-                <ul>{targets.map(o => <li key={o.code}><span>{o.title}</span><small className="m">{o.source === 'pdf' ? 'Okulun PDF’den eklediği hedef' : 'Resmî program hedefi'}</small></li>)}</ul>
+                <summary><strong>{subjectOf(ds, subject).ad}</strong><span className="chip down">{group.length} konu</span></summary>
+                <ul>{group.map(o => {
+                  const t=result.topics?.find(t=>pdfTopicKey(t)===o.code)
+                  return <li key={o.code}><span>{o.title}</span><small className="m">{outcomeSourceLabel(o)}{t && ` · ${t.n} soru · ${t.d} doğru · ${t.y} yanlış · ${t.b} boş`}</small></li>
+                })}</ul>
               </details>
             })}
           </div>
-        ) : <p className="m">Güvenilir konu verisinde yanlış yok.</p>}
-        {unreadable && (
+        ) : <p className="m">{missing ? 'Konu analizi henüz tamamlanmadı.' : result.topics?.length ? 'Okunan konu analizinde yanlış veya boş yok.' : 'Güvenilir konu verisinde yanlış yok.'}</p>}
+        {missing && (
           <span className="m" style={{ fontSize: 13 }}>
             Bu denemenin bazı konu bilgileri okunamadı ya da resmî listeyle eşleşmedi; bunlar tahmin edilmez.
           </span>
         )}
+        {!!missingTopicSubjects.length && <p className="m">{missingTopicSubjects.map(s=>s.ad).join(', ')}: konu tablosu okunamadı veya ders toplamlarıyla uyuşmadı. Bu derslerin konu analizi eklenmedi; ders sonuçları korundu.</p>}
       </AnalysisDisclosure>
     </Modal>
   )
