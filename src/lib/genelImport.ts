@@ -3,7 +3,7 @@
 // kurallarla (okul no önce, sonra ad); seçmeli bölümler çözülür; kural doğrulaması burada önizlenir, sunucuda tekrarlanır.
 import { matchStudent, type MatchResult, type RosterStudent } from './isim'
 import { kitapcikAyir } from './kitapcik'
-import { resolveOptional, secmeliElenen, totals, validateResult, type ExamTemplate, type ExamType, type SectionResults, type YksPart } from './denemeGenel'
+import { isScore, resolveOptional, secmeliElenen, totals, validateResult, type ExamTemplate, type ExamType, type SectionResults, type YksPart } from './denemeGenel'
 
 export interface GenelSection {
   label: string
@@ -99,6 +99,7 @@ export function mapSections(tpl: ExamTemplate, labels: string[]) {
 // ---------------------------------------------------------------- kontrol ekranı modeli
 export type Choice = { kind: 'student'; id: string } | { kind: 'new'; class_id: string } | { kind: 'skip' }
 export interface GenelRow {
+  mergedSessions?: true
   key: string
   page: number
   read: GenelRecord['student']
@@ -113,6 +114,7 @@ export interface GenelRow {
   record: GenelRecord
 }
 export interface GenelReview {
+  approvedSessionPairs?: string[]
   sha256: string
   filename: string
   detection: Detection
@@ -178,9 +180,64 @@ export function buildGenelReview(pack: GenelPack, tpl: ExamTemplate, roster: Ros
   }
 }
 
+const sessions = [['TUR', 'INK', 'DIN', 'ING'], ['MAT', 'FEN']]
+
+/** Yalnız iki tamamlayıcı LGS oturumu; isim benzerliği birleştirme kararı değildir. */
+export function sessionGroups(rv: GenelReview) {
+  const groups = new Map<string, GenelRow[]>()
+  for (const r of rv.rows) if (r.choice?.kind === 'student')
+    groups.set(r.choice.id, [...(groups.get(r.choice.id) ?? []), r])
+  return [...groups].filter(([, rows]) => rows.length > 1).map(([id, rows]) => {
+    const eligible = rv.detection.family === 'AKBIM' && rv.template.grade === 8 && rv.template.exam_types.includes('LGS')
+      && rv.template.sections.length === 6 && sessions.flat().every(k => rv.template.sections.some(s => s.key === k))
+    const side = (r: GenelRow) => {
+      if (r.errors.length || r.gradeMismatch) return -1
+      return sessions.findIndex((keys, i) =>
+        keys.every(k => isScore(r.sections[k] ?? null)) &&
+        keys.some(k => { const v = r.sections[k]; return v && isScore(v) && v.d + v.y > 0 }) &&
+        sessions[1 - i]!.every(k => {
+          const v = r.sections[k]
+          return (v == null || (isScore(v) && v.d === 0 && v.y === 0 && v.net === 0)) &&
+            !r.record.items.some(q => q.section && rv.sectionMap[q.section] === k && (q.answer || q.mark === '+' || q.mark === '-'))
+        }))
+    }
+    const kinds = eligible ? rows.map(side) : []
+    // Tek dosyada farklı sınavlar veya aynı sayfanın tekrarı varsa birleştirme önerme.
+    const titles = new Set(rows.map(r => r.record.exam.title?.trim()).filter(Boolean))
+    const dates = new Set(rows.map(r => r.record.exam.date).filter(Boolean))
+    const pages = rows.flatMap(r => r.record.pages)
+    const compatible = rows.length === 2 && kinds.includes(0) && kinds.includes(1)
+      && titles.size <= 1 && dates.size <= 1 && new Set(pages).size === pages.length
+    const key = JSON.stringify([id, ...rows.map(r => r.key)])
+    const merged = compatible ? (() => {
+      const first = rows[0]!
+      const sections: SectionResults = {}
+      const items: GenelItem[] = []
+      const badItemSections: string[] = []
+      rows.forEach((r, index) => {
+        const keys = sessions[kinds[index]!]!
+        for (const k of keys) sections[k] = r.sections[k]!
+        items.push(...r.record.items.filter(q => q.section && keys.includes(rv.sectionMap[q.section]!)))
+        badItemSections.push(...r.badItemSections.filter(k => keys.includes(k)))
+      })
+      return { ...first, sections, badItemSections, mergedSessions: true as const,
+        record: { ...first.record, pages: [...new Set(rows.flatMap(r => r.record.pages))], items, score: null, scores: undefined } }
+    })() : undefined
+    return { key, id, rows, merged, approved: !!merged && !!rv.approvedSessionPairs?.includes(key) }
+  })
+}
+
+export function resolvedSessionRows(rv: GenelReview) {
+  const plans = sessionGroups(rv)
+  const approved = plans.filter(p => p.approved)
+  const replaceRows = new Map(approved.map(p => [p.rows[0]!, p.merged!]))
+  const removed = new Set(approved.flatMap(p => p.rows.slice(1)))
+  return rv.rows.filter(r => !removed.has(r)).map(r => replaceRows.get(r) ?? r)
+}
+
 /** Karar bekleyen konu sayısı (0 olunca içe aktarma açılır). */
 export function genelPending(rv: GenelReview) {
-  let n = rv.mapErrors.length + rv.failedPages.filter((f) => !f.skip).length
+  let n = sessionGroups(rv).filter(p => !p.approved).length + rv.mapErrors.length + rv.failedPages.filter((f) => !f.skip).length
   for (const r of rv.rows) {
     if (!r.choice) n++
     else if (r.choice.kind !== 'skip' && r.errors.length) n++
@@ -267,6 +324,9 @@ const sourceKind = (rv: GenelReview) =>
       : ('pdf' as const)
 
 export function toImportPayload(rv: GenelReview, meta: ImportMeta) {
+  if (sessionGroups(rv).some(p => !p.approved)) throw new Error('Aynı öğrenciye seçilen PDF satırlarını kontrol et.')
+  const resolved = resolvedSessionRows(rv)
+  if (resolved.some(r => r.mergedSessions)) rv = { ...rv, rows: resolved }
   const rows = rv.rows.filter((r) => r.choice && r.choice.kind !== 'skip' && !r.errors.length)
   const plan = bookletPlan(rv)
   return {
@@ -306,6 +366,7 @@ export function toImportPayload(rv: GenelReview, meta: ImportMeta) {
         pages: r.record.pages,
         format: rv.detection.format,
         scores: r.record.scores ?? null,
+        ...(r.mergedSessions ? { merged_sessions: true } : {}),
       },
     })),
   }

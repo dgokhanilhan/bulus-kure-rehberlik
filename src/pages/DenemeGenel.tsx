@@ -11,7 +11,7 @@ import { Toggle } from '@/components/Tasks'
 import { useToast } from '@/components/Toast'
 import { EXAM_TYPE_TR, defaultExamType, isScore, totals, type ExamType, type YksPart } from '@/lib/denemeGenel'
 import { usePublishers, useExamTemplates, useTypeDefaults, type TemplateRow } from '@/lib/denemeData'
-import { buildGenelReview, genelPending, toImportPayload, type Choice, type GenelPack, type GenelReview } from '@/lib/genelImport'
+import { buildGenelReview, genelPending, sessionGroups, toImportPayload, type Choice, type GenelPack, type GenelReview } from '@/lib/genelImport'
 import { manualToPack, sha256Hex, tableTemplate, tableToPack, type ManualEntry } from '@/lib/genelTablo'
 import { parseCsv, toCsv } from '@/lib/aktarim'
 
@@ -609,7 +609,7 @@ function Kontrol({
   gradeClasses: { id: string; name: string }[]
   onBack: () => void
 }) {
-  const choose = (key: string, c: Choice) => setRv({ ...rv, rows: rv.rows.map((r) => (r.key === key ? { ...r, choice: c } : r)) })
+  const choose = (key: string, c: Choice) => setRv({ ...rv, approvedSessionPairs: [], rows: rv.rows.map((r) => (r.key === key ? { ...r, choice: c } : r)) })
   const stu = (id: string) => roster.find((s) => s.id === id)
   const left = genelPending(rv)
   const decide = rv.rows.filter((r) => r.match.kind === 'unknown' || r.errors.length)
@@ -643,6 +643,25 @@ function Kontrol({
           </span>
         </article>
       )}
+      {sessionGroups(rv).map(g => (
+        <article key={g.key} className="card issue a">
+          <b>{stu(g.id)?.full_name ?? 'Seçilen öğrenci'}</b>
+          <p>{g.rows.map(r => `${r.read.name ?? 'İsimsiz'} (s. ${r.page})`).join(' + ')}</p>
+          {g.merged ? <>
+            <p>Tamamlayıcı sözel ve sayısal oturum bulundu. İkisinin de aynı öğrenciye ait olduğunu kontrol et.</p>
+            <div style={{ overflowX: 'auto' }}><table>
+              <thead><tr><th>Ders</th><th>Doğru</th><th>Yanlış</th><th>Boş</th><th>Net</th></tr></thead>
+              <tbody>{rv.template.sections.map(s => {
+                const v = g.merged!.sections[s.key]
+                return v && 'net' in v ? <tr key={s.key}><td>{s.label}</td><td>{v.d}</td><td>{v.y}</td><td>{v.b}</td><td>{v.net.toFixed(2).replace('.', ',')}</td></tr> : null
+              })}</tbody>
+            </table></div>
+            <p><b>Birleşik toplam: {Object.values(g.merged.sections).reduce((n, v) => n + (v && 'net' in v ? v.net : 0), 0).toFixed(2).replace('.', ',')} net.</b> Tek öğrenci sonucu kaydedilir; bu denemenin sınıf sıralaması toplam nete göre yapılır.</p>
+            <p className="m">Kısmi oturum puanları toplanamaz. Sınavın puan hesaplama verileri bulunmadığı için LGS puanı boş kalır; ders sonuçları ve netler korunur.</p>
+            <label><input type="checkbox" checked={g.approved} onChange={e => setRv({ ...rv, approvedSessionPairs: e.target.checked ? [...(rv.approvedSessionPairs ?? []), g.key] : (rv.approvedSessionPairs ?? []).filter(k => k !== g.key) })} /> Bu iki oturumu birleştir</label>
+          </> : <p>Bu satırlar birleştirilemez. Seçimleri düzelt veya mükerrer sayfayı atla.</p>}
+        </article>
+      ))}
       {decide.map((r) => {
         const cands = r.match.kind === 'unknown' ? r.match.candidates : []
         const ok = r.errors.length ? r.choice?.kind === 'skip' : !!r.choice

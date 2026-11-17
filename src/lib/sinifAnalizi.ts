@@ -78,6 +78,7 @@ export interface Bulgu {
   metin: string
 }
 export interface SinifAnalizi {
+  netRanking: Set<string>
   denemeler: Exam[]
   satirlar: OgrenciSatiri[]
   ozet: {
@@ -115,11 +116,12 @@ export function sinifAnalizi(
   // Bu şubeden en az bir öğrencinin girdiği denemeler (tarih sırası)
   const denemeler = ds.exams.filter((e) => ogrenciler.some((s) => idx.has(`${e.id}|${s.id}`)))
   const sonuc = (e: Exam, sid: string): Result | undefined => idx.get(`${e.id}|${sid}`)
+  const netRanking = new Set(ds.results.filter(r => r.mergedSessions).map(r => r.exam_id))
   const siralar = denemeler.map((e) =>
     siralama(
       ogrenciler.flatMap((s) => {
         const r = sonuc(e, s.id)
-        return r ? [{ id: s.id, score: r.score, net: totalNet(r) }] : []
+        return r ? [{ id: s.id, score: netRanking.has(e.id) ? null : r.score, net: totalNet(r) }] : []
       }),
     ),
   )
@@ -239,7 +241,7 @@ export function sinifAnalizi(
       tur: 'down',
       metin: `Son denemede sınıfın yarısından fazlası (${k.yanlis.length}/${k.soruldu}) aynı konuda yanlış yaptı: ${k.outcome.display ?? k.outcome.code} ${k.outcome.title}.`,
     })
-  return { denemeler, satirlar, ozet, konular: konular.slice(0, 12), bulgular }
+  return { denemeler, netRanking, satirlar, ozet, konular: konular.slice(0, 12), bulgular }
 }
 
 const fmt1 = (n: number) => (n > 0 ? '+' : '') + (Math.round(n * 10) / 10).toFixed(1).replace('.', ',')

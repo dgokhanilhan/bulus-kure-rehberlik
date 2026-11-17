@@ -417,7 +417,7 @@ export default function SinifAnalizi({ cls, grade, onBack, brans }: { cls: strin
                               <>
                                 <b className="mono">{fmt(h.net!)} net</b>
                                 <div className="m" style={{ fontSize: 12 }}>
-                                  {h.rank}. sıra{h.score != null ? ` · ${fmt(h.score)} puan` : ''}
+                                  {h.rank}. sıra{A.netRanking.has(A.denemeler[i]!.id) ? ' (nete göre)' : ''}{h.score != null ? ` · ${fmt(h.score)} puan` : ''}
                                 </div>
                               </>
                             ) : (
