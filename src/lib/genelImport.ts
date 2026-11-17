@@ -3,6 +3,7 @@
 // kurallarla (okul no önce, sonra ad); seçmeli bölümler çözülür; kural doğrulaması burada önizlenir, sunucuda tekrarlanır.
 import { matchStudent, type MatchResult, type RosterStudent } from './isim'
 import { kitapcikAyir } from './kitapcik'
+import { validPdfTopics, type PdfTopic } from './pdfTopics'
 import { isScore, resolveOptional, secmeliElenen, totals, validateResult, type ExamTemplate, type ExamType, type SectionResults, type YksPart } from './denemeGenel'
 
 export interface GenelSection {
@@ -26,6 +27,7 @@ export interface GenelItem {
   rawText: string | null
 }
 export interface GenelRecord {
+  topics?: PdfTopic[]
   page: number
   pages: number[]
   student: { name: string | null; number: string | null; class: string | null; classGrade: number | null }
@@ -214,14 +216,16 @@ export function sessionGroups(rv: GenelReview) {
       const sections: SectionResults = {}
       const items: GenelItem[] = []
       const badItemSections: string[] = []
+      const topics: PdfTopic[] = []
       rows.forEach((r, index) => {
         const keys = sessions[kinds[index]!]!
         for (const k of keys) sections[k] = r.sections[k]!
         items.push(...r.record.items.filter(q => q.section && keys.includes(rv.sectionMap[q.section]!)))
         badItemSections.push(...r.badItemSections.filter(k => keys.includes(k)))
+        topics.push(...(r.record.topics ?? []).filter(t => keys.includes(rv.sectionMap[t.section]!)))
       })
       return { ...first, sections, badItemSections, mergedSessions: true as const,
-        record: { ...first.record, pages: [...new Set(rows.flatMap(r => r.record.pages))], items, score: null, scores: undefined } }
+        record: { ...first.record, pages: [...new Set(rows.flatMap(r => r.record.pages))], items, topics, score: null, scores: undefined } }
     })() : undefined
     return { key, id, rows, merged, approved: !!merged && !!rv.approvedSessionPairs?.includes(key) }
   })
@@ -366,6 +370,7 @@ export function toImportPayload(rv: GenelReview, meta: ImportMeta) {
         pages: r.record.pages,
         format: rv.detection.format,
         scores: r.record.scores ?? null,
+        ...(r.record.topics?.length ? { topics: validPdfTopics(r.record.topics.map(t=>({...t,section:rv.sectionMap[t.section]})), r.sections) } : {}),
         ...(r.mergedSessions ? { merged_sessions: true } : {}),
       },
     })),

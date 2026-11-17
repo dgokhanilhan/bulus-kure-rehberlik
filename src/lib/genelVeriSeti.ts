@@ -3,6 +3,7 @@ import { examFamily, examStage, isScore, type ExamType, type Profile, type Secti
 import type { Dataset, MatchLevel, Outcome, Question, Result, SubjectDef } from './analiz'
 import { examScores } from './examScores'
 import { outcomeTitle } from './outcomeTitle'
+import { validPdfTopics, pdfTopicKey } from './pdfTopics'
 
 /** Profilin deneme bağlamı: 8 → LGS (mevcut), 5–7 → okul denemeleri, 9–12 → YKS (TYT / AYT ayrı seri). */
 // Yapısal tipler (denemeData'nın satırlarıyla uyumlu; Supabase istemcisine bağımlılık yok)
@@ -96,6 +97,9 @@ export function withCatalogItems(ds: Omit<Dataset, 'results'> & { results: (Resu
   }
   const questionsByResult = new Map<string, Question[]>()
   const results: Result[] = ds.results.map(({ source, ...r }) => {
+    const topics = validPdfTopics((source as { topics?: unknown } | undefined)?.topics, r.subjects)
+    for (const t of topics) outcomes.set(pdfTopicKey(t), {code:pdfTopicKey(t),subject:t.section,title:t.title,source:'pdf',isTopic:true})
+    if (topics.length) r = {...r,topics}
     if (extra.size) {
       const booklets = (source as { booklets?: Record<string, string> } | undefined)?.booklets ?? {}
       const own = [...(extra.get(`${r.exam_id}|A`) ?? []), ...(extra.get(`${r.exam_id}|B`) ?? [])].filter(
@@ -195,6 +199,8 @@ export function genelDataset(input: {
           .map((q) => q.subject),
       )
       const qs = own.filter((q) => !bad.has(q.subject))
+      const topics = validPdfTopics((r.source as { topics?: unknown } | undefined)?.topics, subjects)
+      for (const t of topics) outcomes.set(pdfTopicKey(t), {code:pdfTopicKey(t),subject:t.section,title:t.title,source:'pdf',isTopic:true})
       questionsByResult.set(r.exam_id + '|' + r.student_id, qs)
       return {
         exam_id: r.exam_id,
@@ -204,6 +210,7 @@ export function genelDataset(input: {
         subjects,
         answers: r.answers ?? null,
         answer_format: 'status',
+        topics,
         outcomes_ok: qs.some((q) => q.outcome_code),
         kazanim: null,
       }

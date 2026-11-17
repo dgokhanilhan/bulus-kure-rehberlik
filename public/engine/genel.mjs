@@ -5,7 +5,7 @@
 import mupdf from './mupdf/mupdf.js'
 import { sha256 } from './hashes/sha2.js'
 
-export const ENGINE = 'genel-1.3.2'
+export const ENGINE = 'genel-1.3.3'
 const num = (s) => {
   const t = String(s ?? '')
     .trim()
@@ -304,6 +304,7 @@ export const FAMILIES = {
           score: sc ? num(sc.t) : null,
           sections: secs.map(({ raw, x, ...s }) => s),
           items: akbimItems(p, secs),
+          topics: akbimTopics(p, secs),
           warnings: [],
         })
       }
@@ -720,6 +721,38 @@ function akbimSections(p, grade) {
   }
   return { secs, english }
 }
+// Konu tablosu soru numarası içermez. Cevaplara yapay soru-konu eşlemesi yapılmaz.
+export function akbimTopics(p, secs) {
+  const heads = p.lines.filter(l => l.t === 'KONU ADI').sort((a,b) => a.x-b.x)
+  const topics = []
+  let section = null
+  for (const head of heads) {
+    const cols = ['SS','D','Y','%'].map(t => p.lines.find(l => l.t === t && Math.abs(l.y-head.y)<2 && l.x>head.x))
+    if (cols.some(c => !c)) continue
+    const left = head.x - (cols[0].x-head.x) + 20
+    const rows = p.lines.filter(l => l.y>head.y+3 && l.x>=left && l.x<cols[0].x-5).sort((a,b)=>a.y-b.y || a.x-b.x)
+    for (const line of rows) {
+      const sec = secs.find(s => nl(s.raw) === nl(line.t))
+      if (sec) { section = sec.label; continue }
+      if (!section) continue
+      const values = cols.slice(0,3).map((col,i) => {
+        const cell = p.lines.filter(l => Math.abs(l.y-line.y)<2 && l.x>=col.x-3 && l.x<cols[i+1].x-3)
+        return cell.length === 1 && /^\d+$/.test(cell[0].t) ? +cell[0].t : null
+      })
+      if (values.some(v => v === null)) continue
+      const [n,d,y] = values
+      if (n<=0 || d+y>n) continue
+      topics.push({section, title:clean(line.t), n,d,y,b:n-d-y})
+    }
+  }
+  // Eksik/yanlış sütun okuması o dersin tamamını dışarıda bırakır; netlere dokunmaz.
+  return topics.filter(t => {
+    const sec=secs.find(s=>s.label===t.section), group=topics.filter(x=>x.section===t.section)
+    return new Set(group.map(x=>x.title)).size===group.length &&
+      ['n','d','y','b'].every(k=>group.reduce((sum,x)=>sum+x[k],0)===sec?.[k])
+  })
+}
+
 function akbimItems(p, secs) {
   const items = []
   const ys = p.lines.filter((l) => /CEV\.?$|CEV\. ANAH\.$|ANAH\.$/.test(l.t) || /CEV\. ANAH\./.test(l.t))

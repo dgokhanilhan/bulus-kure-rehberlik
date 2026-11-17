@@ -4,6 +4,7 @@
 import { RULES, fillStudent, fixHint, validatePayload, validateReport } from '../_shared/rapor-ai.ts'
 import { chat, guard, json, logUsage } from '../_shared/ai.ts'
 import { outcomeTitle } from '../_shared/outcome-title.ts'
+import { validPdfTopics } from '../_shared/pdf-topics.ts'
 
 Deno.serve(async (req) => {
   const g = await guard(req, 'ai-veli-raporu')
@@ -17,15 +18,17 @@ Deno.serve(async (req) => {
   if (!st) return json({ error: 'forbidden' }, 403)
   // Yalnız RLS ile görülebilen katalog metinleri. İstemcinin serbest metni onaylanmış sayılmaz.
   const requested = ['guvenilirTekrarEdenHatalar','buDenemedeYanlisKonular'].flatMap(key => Array.isArray(body.payload?.[key]) ? body.payload[key].slice(0,80).map((r: {konu?: unknown})=>r?.konu).filter((t: unknown)=>typeof t==='string') : [])
-  const [legacy,catalog,sections,subtests,subjects] = await Promise.all([
+  const [legacy,catalog,sections,subtests,subjects,topicResults] = await Promise.all([
     g.user.from('outcomes').select('title').in('title',requested),
     g.user.from('learning_outcomes').select('title').in('title',requested),
     g.user.from('exam_template_sections').select('label').limit(1000),
     g.user.from('exam_subtests').select('display_name').limit(1000),
     g.user.from('subjects').select('name').limit(100),
+    g.user.from('exam_results').select('source,subjects').eq('student_id',sid).order('exam_id').limit(1000),
   ])
-  if([legacy,catalog,sections,subtests,subjects].some(r=>r.error)) return json({error:'catalog_unavailable'},503)
+  if([legacy,catalog,sections,subtests,subjects,topicResults].some(r=>r.error)) return json({error:'catalog_unavailable'},503)
   const knownTopics = new Set([...legacy.data??[],...catalog.data??[]].map((o: {title:string})=>o.title))
+  for (const r of topicResults.data??[]) for (const t of validPdfTopics(r.source?.topics,r.subjects)) knownTopics.add(t.title)
   const knownSubjects = new Set(['Türkçe','Matematik','Fen Bilimleri','T.C. İnkılap Tarihi','Din Kültürü','İngilizce',...sections.data!.map((s:{label:string})=>s.label),...subtests.data!.map((s:{display_name:string})=>s.display_name),...subjects.data!.map((s:{name:string})=>s.name)])
   const err = validatePayload(body.payload, knownTopics, knownSubjects)
   if (err) return json({ error: `payload: ${err}` }, 400)

@@ -73,3 +73,15 @@ it('tek normal kayıt puanıyla aynen aktarılır',()=>{
  expect(toImportPayload(rv,meta).results[0]!.score).toBe(300)
  expect(toImportPayload(rv,meta).results[0]!.source).not.toHaveProperty('merged_sessions')
 })
+it('iki oturumun konu özetlerini korur; katılmadığı oturumun boşlarını taşımaz',()=>{
+ const rv=review(true)
+ for(const r of rv.rows) r.record.topics=keys.map(section=>{
+  const s=r.sections[section] as {d:number;y:number;b:number}
+  return {section,title:'Konu '+section,n:10,d:s.d,y:s.y,b:s.b}
+ })
+ rv.approvedSessionPairs=[sessionGroups(rv)[0]!.key]
+ const p=toImportPayload(rv,meta)
+ expect(p.results).toHaveLength(1)
+ expect(p.results[0]!.source.topics).toHaveLength(6)
+ expect(p.results[0]!.source.topics!.every(t=>t.d===8 && t.b===2)).toBe(true)
+})

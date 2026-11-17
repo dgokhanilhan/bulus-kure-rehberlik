@@ -142,7 +142,7 @@ export function GenelSihirbaz({ source, onCancel }: { source: GenelSource; onCan
     refresh('dataset', 'exams-list', 'exams-admin', 'students', 'exam_imports', 'unresolved_outcomes')
   }
 
-  async function repairPdf() {
+  async function repairPdf(topicsOnly = false) {
     if (!rv || !done || source.kind !== 'pdf' || !tpl || !meta.grade || !examType) return
     setBusy(true)
     const p = toImportPayload(rv, {
@@ -159,10 +159,10 @@ export function GenelSihirbaz({ source, onCancel }: { source: GenelSource; onCan
       notify: false,
       allow_grade_mismatch: false,
     })
-    const { data, error } = await supabase.rpc('repair_exam_pdf', { p_exam: done.exam_id, p })
+    const { data, error } = await supabase.rpc(topicsOnly ? 'repair_exam_topics' : 'repair_exam_pdf', { p_exam: done.exam_id, p })
     setBusy(false)
     if (error) return toast(error.message, 'warn')
-    toast(`${data.items} soru bilgisi tamamlandı; mevcut sayısal sonuçlar korundu.`)
+    toast(topicsOnly ? `${data.topics} konu bilgisi tamamlandı; puan, net ve cevaplar korundu.` : `${data.items} soru bilgisi tamamlandı; mevcut sayısal sonuçlar korundu.`)
     refresh('dataset', 'genel-dataset', 'exam_items', 'exams-list', 'exams-admin', 'unresolved_outcomes')
     onCancel()
   }
@@ -184,9 +184,10 @@ export function GenelSihirbaz({ source, onCancel }: { source: GenelSource; onCan
         {done.duplicate && source.kind === 'pdf' && roles.includes('admin') && (
           <div className="stack">
             <p>Bu PDF'yi yeniden okuyarak mevcut denemenin eksik soru ve kazanım bilgilerini tamamlayabilirsin. D/Y/B/net ve mevcut puanlar değişmez.</p>
-            <button className="btn pri" disabled={busy} onClick={repairPdf}>
+            <button className="btn pri" disabled={busy} onClick={() => repairPdf()}>
               PDF ayrıntılarını tamamla
             </button>
+            {rv?.rows.some(r=>r.record.topics?.length) && <button className="btn pri" disabled={busy} onClick={() => repairPdf(true)}>PDF konu analizini tamamla</button>}
           </div>
         )}
         {!done.duplicate && (
