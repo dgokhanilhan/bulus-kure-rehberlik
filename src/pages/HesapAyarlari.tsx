@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import MfaPage from './MfaPage'
 import { Modal } from '@/components/Modal'
 import { KvkkBasvuruFormu } from '@/components/Kvkk'
+import { TahtaPinKarti } from '@/components/AkilliTahta'
 export default function HesapAyarlari() {
   const { session, roles, aal } = useAuth(),
     qc = useQueryClient()
@@ -165,6 +166,7 @@ export default function HesapAyarlari() {
           </p>
         )}
       </section>
+      {(roles.includes('ogretmen') || admin) && <TahtaPinKarti />}
       <section className="card stack" style={{ padding: 20 }}>
         <h2>Şifre değiştir</h2>
         <label className="field">

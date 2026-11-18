@@ -16,6 +16,7 @@ import { useToast } from '@/components/Toast'
 import { SchoolLogo } from '@/components/Icon'
 import { YearTransition, YearArchives } from './YeniDonem'
 import { useSchoolInfo } from '@/lib/files'
+import { AkilliTahtalar } from '@/components/AkilliTahta'
 
 const errText = (e: { code?: string; message?: string } | null, dup = 'Bu kayıt zaten var.') =>
   !e ? null : e.code === '23505' ? dup : /row-level security|42501/i.test(`${e.code} ${e.message}`) ? 'Bu işlem için yönetici yetkisi gerekir.' : (e.message ?? 'Kaydedilemedi.')
@@ -1264,6 +1265,7 @@ export function YoklamaAyarlari() {
         </label>
         <Check on={veli} onClick={() => put({ 'yoklama.veli_uyari': !veli }, `Veli uyarısı ${veli ? 'kapatıldı' : 'açıldı'}`)} label="Turuncu ve kırmızı eşikte veliye bildirim" hint="Öğrenci, velisi ve sınıf öğretmeni her eşikte bir kez bilgilendirilir." />
       </section>
+      <AkilliTahtalar />
     </>
   )
 }

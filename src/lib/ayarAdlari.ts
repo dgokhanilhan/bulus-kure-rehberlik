@@ -133,6 +133,7 @@ export const AYARLAR: AyarTanim[] = [
   { key: "galeri.max_foto_mb", grup: "Galeri", ad: "En büyük fotoğraf (MB)", aciklama: "", ekranlar: "Galeri", tur: "int", varsayilan: 15 },
   { key: "galeri.max_video_mb", grup: "Galeri", ad: "En büyük video (MB)", aciklama: "", ekranlar: "Galeri", tur: "int", varsayilan: 50 },
   { key: "galeri.onay", grup: "Galeri", ad: "Öğretmen albümü onaylı yayın", aciklama: "Öğretmen albümleri yönetici onayından sonra görünür.", ekranlar: "Galeri", tur: "bool", varsayilan: true },
+  { key: "yoklama.bildirim_saati", grup: "Yoklama", ad: "Veli yoklama bildirimi saati (tahta pilotu)", aciklama: "Tahtası bağlı sınıflarda gelmedi / geç geldi bildirimi bu saate kadar bekler, o anki son duruma göre gider. \"anlik\" = beklemeden. Diğer sınıflarda bildirim her zaman anında gider.", ekranlar: "Akıllı tahtalar, yoklama, bildirimler", tur: "enum", varsayilan: "10:00" },
   { key: "yoklama.gec_sayim", grup: "Yoklama", ad: "Geç kalma sayımı", aciklama: "Geç kalma devamsızlığa sayılmaz / yarım / tam gün sayılır.", ekranlar: "Yoklama, devamsızlık", tur: "enum", varsayilan: "yok" },
   { key: "yoklama.limit_donem1", grup: "Yoklama", ad: "1. dönem sınırı (gün)", aciklama: "", ekranlar: "Devamsızlık", tur: "int", varsayilan: 10 },
   { key: "yoklama.limit_donem2", grup: "Yoklama", ad: "2. dönem sınırı (gün)", aciklama: "", ekranlar: "Devamsızlık", tur: "int", varsayilan: 10 },
