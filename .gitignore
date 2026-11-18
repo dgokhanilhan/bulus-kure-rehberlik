@@ -42,3 +42,10 @@ dist-mobil
 
 # Yerel PDF inceleme ve onarım ara dosyaları (öğrenci verisi içerir)
 /tmp/
+
+# BK Akıllı Yoklama (tahta/) derleme çıktıları
+tahta/dist/
+tahta/src-tauri/target/
+tahta/src-tauri/gen/
+
+tahta/src-tauri/icons/

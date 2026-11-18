@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Ana pencere: yalnız kendi komutlarımız ve temel olaylar.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

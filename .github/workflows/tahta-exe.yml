@@ -1,0 +1,52 @@
+# BK Akıllı Yoklama Windows kurulum dosyasını (.exe) derler; Actions sayfasından "BK-Yoklama-kurulum" olarak indirilir.
+# Sunucu adresi depo değişkenlerinden gelir (Settings → Secrets and variables → Actions → Variables):
+#   TAHTA_SUPABASE_URL      → production Supabase Project URL
+#   TAHTA_SUPABASE_ANON_KEY → production anon (publishable) key — tarayıcıya giden açık anahtar, gizli değil
+# Tanımlı değilse program yerel adresle derlenir (yalnız deneme; okulda bağlanamaz) ve uyarı yazılır.
+name: Tahta programı (.exe)
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['tahta/**', '.github/workflows/tahta-exe.yml']
+  push:
+    branches: [main]
+    paths: ['tahta/**', '.github/workflows/tahta-exe.yml']
+concurrency:
+  group: tahta-exe-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: 'tahta/src-tauri -> target' }
+      - name: Sunucu adresi
+        shell: bash
+        env:
+          URL: ${{ vars.TAHTA_SUPABASE_URL }}
+          KEY: ${{ vars.TAHTA_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "::warning::TAHTA_SUPABASE_URL / TAHTA_SUPABASE_ANON_KEY tanımlı değil. Program yerel adresle derlendi; okulda bağlanamaz."
+            URL=http://127.0.0.1:54321; KEY=yerel-deneme
+          fi
+          echo "VITE_SUPABASE_URL=$URL" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_ANON_KEY=$KEY" >> "$GITHUB_ENV"
+      - name: Simgeler
+        working-directory: tahta
+        run: npx --yes @tauri-apps/cli@^2 icon app-icon.png
+      - name: Derle
+        working-directory: tahta
+        run: npx --yes @tauri-apps/cli@^2 build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BK-Yoklama-kurulum
+          path: tahta/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 30
