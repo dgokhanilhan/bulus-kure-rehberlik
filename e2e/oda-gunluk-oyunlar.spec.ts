@@ -13,8 +13,18 @@ const temizle = async () => {
   await svc.from('oda_oyun').delete().in('user_id', ids).in('oyun', OYUNLAR)
   await svc.from('school_settings').delete().like('key', 'oda.oyun.%')
 }
-test.beforeAll(temizle)
-test.afterAll(temizle)
+// Bu dosya eski (0073) kuralları sınar: 6 ipuçlu şehir (0085) ve büyük bulmaca (0086) yürürlüğünü test süresince ileri at
+const SURUMLER = ['sehir6', 'bulmaca2']
+let surumler: { ad: string; baslangic: string }[] = []
+test.beforeAll(async () => {
+  await temizle()
+  surumler = (await svc.from('oda_icerik_surum').select('ad, baslangic').in('ad', SURUMLER)).data ?? []
+  await svc.from('oda_icerik_surum').update({ baslangic: '2099-01-01' }).in('ad', SURUMLER)
+})
+test.afterAll(async () => {
+  for (const s of surumler) await svc.from('oda_icerik_surum').update({ baslangic: s.baslangic }).eq('ad', s.ad)
+  await temizle()
+})
 test.describe.configure({ mode: 'serial' })
 
 const oturum = async (kim: readonly [string, string]) => {

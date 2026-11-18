@@ -212,6 +212,10 @@ export interface BulmacaDurum {
   basladi: string
   bitti: string | null
   puan: number | null
+  /** 0086: kafes boyu (5, 6, 7) ve kelime taşıyan satır/sütunlar (0 tabanlı); eski yanıtta yok → 5×5 */
+  boyut?: number
+  satirlar?: number[]
+  sutunlar?: number[]
   yatay: string[]
   dusey: string[]
   cozum: string[] | null
