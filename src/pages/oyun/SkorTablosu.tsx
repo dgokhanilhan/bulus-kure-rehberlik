@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Seg } from '@/components/Indicator'
-import { OYUNLAR, skorYaz, type OyunId } from '@/lib/oyunlar'
+import { ipucuCezaYaz, OYUNLAR, skorYaz, type OyunId } from '@/lib/oyunlar'
 import { useSkorTablosu } from '@/lib/oyunData'
 import { initials } from '@/lib/format'
 
@@ -11,7 +11,17 @@ export function SkorTablosu({ oyun }: { oyun: OyunId }) {
     <section className="card oy-tablo" aria-label="Skor tablosu">
       <div className="kv">
         <h2 className="sec">Skor tablosu</h2>
-        <Seg label="Dönem" value={donem} onChange={setDonem} options={[['gun', 'Bugün'], ['hafta', 'Bu hafta']] as const} />
+        <Seg
+          label="Dönem"
+          value={donem}
+          onChange={setDonem}
+          options={
+            [
+              ['gun', 'Bugün'],
+              ['hafta', 'Bu hafta'],
+            ] as const
+          }
+        />
       </div>
       {q.isLoading ? (
         <p className="m">Yükleniyor…</p>
@@ -31,7 +41,15 @@ export function SkorTablosu({ oyun }: { oyun: OyunId }) {
                 {r.ad}
                 {r.ben && <span className="m"> (sen)</span>}
               </span>
-              <b className="mono">{skorYaz(oyun, r.puan)}</b>
+              <b className="mono">
+                {skorYaz(oyun, r.puan)}
+                {r.ipucu ? (
+                  <span className="sd-ceza" title="İpucu cezası süreye dahil">
+                    {' '}
+                    ({ipucuCezaYaz(r.ipucu)})
+                  </span>
+                ) : null}
+              </b>
             </li>
           ))}
         </ol>

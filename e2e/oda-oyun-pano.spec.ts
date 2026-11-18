@@ -55,6 +55,9 @@ test('oyunlar: sudoku ve kelime sunucuda doğrulanır; skor sınırları; lig; v
   expect(s.cozum).toBeNull()
   expect(((await mat.rpc('oda_sudoku_bitir', { p: s.ipucu.map((x) => x || 1) })).data as { dogru: boolean }).dogru).toBe(false)
   const { data: dogru } = await svc.rpc('oda_sudoku_uret', { g: (await svc.rpc('tr_today')).data })
+  // 0084: 4 dakikadan kısa çözüm lige girmez; bulmaca 10 dakika önce açılmış gibi
+  const matId = (await svc.from('profiles').select('id').eq('email', DEMO.matematik[0]).single()).data!.id
+  await svc.from('oda_oyun').update({ basladi: new Date(Date.now() - 600_000).toISOString() }).eq('user_id', matId).eq('oyun', 'sudoku')
   const r = (await mat.rpc('oda_sudoku_bitir', { p: (dogru as { cozum: number[] }).cozum })).data as { dogru: boolean; puan: number }
   expect(r.dogru).toBe(true)
   expect(r.puan).toBeGreaterThanOrEqual(1)
