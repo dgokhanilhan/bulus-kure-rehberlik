@@ -51,9 +51,9 @@ export default function Sehir() {
             </li>
           ))}
         </ol>
-        {!bitti && d.ipuclari.length < 3 && (
+        {!bitti && d.ipuclari.length < (d.ipucu_toplam ?? 3) && (
           <p className="m" style={{ fontSize: 13, margin: 0 }}>
-            Her iki tahminde yeni bir ipucu açılır.
+            {(d.ipucu_toplam ?? 3) > 3 ? 'Her yanlış tahminde yeni bir ipucu açılır; ipuçları giderek kolaylaşır.' : 'Her iki tahminde yeni bir ipucu açılır.'}
           </p>
         )}
       </section>
@@ -92,7 +92,7 @@ export default function Sehir() {
               list="shIller"
               value={secim}
               onChange={(e) => setSecim(e.target.value)}
-              placeholder="İl adını yaz (ör. Bartın)"
+              placeholder="İl adını yaz"
               autoComplete="off"
               autoCapitalize="words"
               spellCheck={false}

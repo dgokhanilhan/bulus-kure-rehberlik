@@ -163,6 +163,8 @@ export interface SehirDurum {
   puan: number | null
   tahminler: { plaka: number; ad: string; km: number; yon: string | null }[]
   ipuclari: string[]
+  /** 0085: o günün toplam ipucu sayısı (eski günler 3, yeni günler 6) */
+  ipucu_toplam?: number
   cevap: string | null
   iller: { plaka: number; ad: string }[]
 }
