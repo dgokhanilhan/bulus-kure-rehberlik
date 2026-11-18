@@ -993,6 +993,11 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .bm-duzen{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;align-items:flex-start;width:100%}
 .bm-kafes{display:grid;gap:4px;width:min(100%,300px)}
 .bm-satir{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.bm-kafes.bm-6{width:min(100%,330px)}
+.bm-kafes.bm-7{width:min(100%,364px);gap:3px}
+.bm-kafes.bm-7 .bm-satir{gap:3px}
+.bm-kafes.bm-6 .bm-h,.bm-kafes.bm-7 .bm-h{font-size:clamp(17px,5vw,22px);border-radius:7px}
+.bm-kafes.bm-7 .bm-no{font-size:10px;left:3px}
 .bm-h{position:relative;aspect-ratio:1;border:2px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font-size:clamp(20px,6vw,26px);font-weight:700;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
 .bm-h:disabled{cursor:default;color:var(--ink)}
 .bm-h.kara{background:var(--ink);border-color:var(--ink);opacity:.85}

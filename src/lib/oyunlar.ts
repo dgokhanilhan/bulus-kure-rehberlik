@@ -134,37 +134,62 @@ export const yonOku = (yon: string | null) => (yon ? (YON_OK[yon] ?? '') : '')
 /** "kuzeydoğu" → "kuzeydoğuda": hedef, tahmin edilen ilin o yönündedir */
 export const yonYaz = (yon: string | null) => (!yon ? '' : /[eiöü][^aeıioöuü]*$/.test(yon) ? `${yon}de` : `${yon}da`)
 
-// ---------- Mini Bulmaca (5×5 kafes) ----------
-// Yatay kelimeler 1., 3., 5. satırda; düşey kelimeler 1., 3., 5. sütunda. Tek satır + tek sütundaki dört kare karadır.
+// ---------- Mini Bulmaca (5×5, 6×6, 7×7 kafes) ----------
+// Yatay kelimeler `lr` satırlarında, düşey kelimeler `lc` sütunlarında, kafes boyunca uzanır. Satırı da sütunu da
+// kelime taşımayan kare karadır. 5×5'te lr = lc = [0, 2, 4]; 6×6 ve 7×7'de sunucu (0086) bildirir.
 export type BulmacaYon = 'y' | 'd'
-export const bulmacaKara = (i: number) => Math.floor(i / 5) % 2 === 1 && (i % 5) % 2 === 1
-/** Kelime başlangıç numaraları (soldan sağa, yukarıdan aşağıya) */
-export const BULMACA_NO: Record<number, number> = { 0: 1, 2: 2, 4: 3, 10: 4, 20: 5 }
-export const bulmacaBos = (): string[] => Array.from({ length: 25 }, () => '')
-/** Karede geçerli yön: tek satırda yalnız düşey, tek sütunda yalnız yatay; kesişimde istenen */
-export function bulmacaYonSec(i: number, istenen: BulmacaYon): BulmacaYon {
-  const yatay = Math.floor(i / 5) % 2 === 0
-  const dusey = (i % 5) % 2 === 0
+export interface Kafes {
+  n: number
+  lr: readonly number[]
+  lc: readonly number[]
+}
+export const K5: Kafes = { n: 5, lr: [0, 2, 4], lc: [0, 2, 4] }
+export const kafesKara = (k: Kafes, i: number) => !k.lr.includes(Math.floor(i / k.n)) && !k.lc.includes(i % k.n)
+/** Kelime başlangıç numaraları (soldan sağa, yukarıdan aşağıya): karenin sırası → numara */
+export function kafesNumara(k: Kafes): Record<number, number> {
+  const no: Record<number, number> = {}
+  let s = 0
+  for (let i = 0; i < k.n * k.n; i++) {
+    const r = Math.floor(i / k.n)
+    const c = i % k.n
+    if ((c === 0 && k.lr.includes(r)) || (r === 0 && k.lc.includes(c))) no[i] = ++s
+  }
+  return no
+}
+export const kafesBos = (k: Kafes): string[] => Array.from({ length: k.n * k.n }, () => '')
+/** Karede geçerli yön: yalnız düşey kelimedeyse düşey, yalnız yataydaysa yatay; kesişimde istenen */
+export function kafesYonSec(k: Kafes, i: number, istenen: BulmacaYon): BulmacaYon {
+  const yatay = k.lr.includes(Math.floor(i / k.n))
+  const dusey = k.lc.includes(i % k.n)
   return yatay && dusey ? istenen : yatay ? 'y' : 'd'
 }
-/** Karenin o yöndeki kelimesinin beş karesi (yön o karede geçersizse boş) */
-export function bulmacaKelime(i: number, yon: BulmacaYon): number[] {
-  if (bulmacaKara(i) || bulmacaYonSec(i, yon) !== yon) return []
-  const r = Math.floor(i / 5)
-  const c = i % 5
-  return Array.from({ length: 5 }, (_, k) => (yon === 'y' ? r * 5 + k : k * 5 + c))
+/** Karenin o yöndeki kelimesinin kareleri (yön o karede geçersizse boş) */
+export function kafesKelime(k: Kafes, i: number, yon: BulmacaYon): number[] {
+  if (kafesKara(k, i) || kafesYonSec(k, i, yon) !== yon) return []
+  const r = Math.floor(i / k.n)
+  const c = i % k.n
+  return Array.from({ length: k.n }, (_, j) => (yon === 'y' ? r * k.n + j : j * k.n + c))
 }
 /** Yazarken sıradaki kare: kelimenin içinde ilerler, uçta durur */
-export function bulmacaSonraki(i: number, yon: BulmacaYon, adim: 1 | -1): number {
-  const k = bulmacaKelime(i, bulmacaYonSec(i, yon))
-  const n = k.indexOf(i) + adim
-  return n < 0 || n >= k.length ? i : k[n]!
+export function kafesSonraki(k: Kafes, i: number, yon: BulmacaYon, adim: 1 | -1): number {
+  const w = kafesKelime(k, i, kafesYonSec(k, i, yon))
+  const n = w.indexOf(i) + adim
+  return n < 0 || n >= w.length ? i : w[n]!
 }
-export const bulmacaDolu = (a: readonly string[]) => a.every((h, i) => bulmacaKara(i) || !!h)
-/** Sunucuya giden beş satır; kara kareler nokta */
-export function bulmacaSatirlar(a: readonly string[]): string[] {
-  return Array.from({ length: 5 }, (_, r) => Array.from({ length: 5 }, (_, c) => (bulmacaKara(r * 5 + c) ? '.' : a[r * 5 + c] || ' ')).join(''))
+export const kafesDolu = (k: Kafes, a: readonly string[]) => a.length === k.n * k.n && a.every((h, i) => kafesKara(k, i) || !!h)
+/** Sunucuya giden satırlar; kara kareler nokta */
+export function kafesSatirlar(k: Kafes, a: readonly string[]): string[] {
+  return Array.from({ length: k.n }, (_, r) => Array.from({ length: k.n }, (_, c) => (kafesKara(k, r * k.n + c) ? '.' : a[r * k.n + c] || ' ')).join(''))
 }
+// 5×5 kısayolları (eski kullanım)
+export const bulmacaKara = (i: number) => kafesKara(K5, i)
+export const BULMACA_NO: Record<number, number> = kafesNumara(K5)
+export const bulmacaBos = (): string[] => kafesBos(K5)
+export const bulmacaYonSec = (i: number, istenen: BulmacaYon) => kafesYonSec(K5, i, istenen)
+export const bulmacaKelime = (i: number, yon: BulmacaYon) => kafesKelime(K5, i, yon)
+export const bulmacaSonraki = (i: number, yon: BulmacaYon, adim: 1 | -1) => kafesSonraki(K5, i, yon, adim)
+export const bulmacaDolu = (a: readonly string[]) => kafesDolu(K5, a)
+export const bulmacaSatirlar = (a: readonly string[]) => kafesSatirlar(K5, a)
 
 // ---------- Hesap Sprinti ----------
 export interface Islem {

@@ -217,6 +217,25 @@ describe('günlük oyunlar (0073)', () => {
     expect(o.bulmacaSatirlar(dolu)).toEqual(['aaaaa', 'a.a.a', 'aaaaa', 'a.a.a', 'aaaaa'])
     expect(o.bulmacaSatirlar(a)[1]).toBe(' . . ')
     expect(Object.keys(o.BULMACA_NO).map(Number)).toEqual([0, 2, 4, 10, 20])
+    expect(Object.values(o.BULMACA_NO)).toEqual([1, 2, 3, 4, 5])
+  })
+  it('büyük kafes (0086): 6×6 ve 7×7 kara kareler, numaralar, kelimeler, satırlar', async () => {
+    const o = await import('./oyunlar')
+    const k6 = { n: 6, lr: [0, 3, 5], lc: [0, 3, 5] }
+    const k7 = { n: 7, lr: [0, 3, 6], lc: [0, 3, 6] }
+    // 7×7: satırı da sütunu da 0/3/6 olmayan kareler kara
+    expect(Array.from({ length: 49 }, (_, i) => i).filter((i) => o.kafesKara(k7, i))).toHaveLength(49 - 33)
+    expect(o.kafesNumara(k7)).toEqual({ 0: 1, 3: 2, 6: 3, 21: 4, 42: 5 })
+    expect(o.kafesNumara(k6)).toEqual({ 0: 1, 3: 2, 5: 3, 18: 4, 30: 5 })
+    expect(o.kafesKelime(k7, 24, 'y')).toEqual([21, 22, 23, 24, 25, 26, 27])
+    expect(o.kafesKelime(k7, 24, 'd')).toEqual([3, 10, 17, 24, 31, 38, 45])
+    expect(o.kafesYonSec(k7, 7, 'y')).toBe('d') // 2. satır yalnız düşey
+    expect(o.kafesSonraki(k6, 5, 'd', 1)).toBe(11)
+    expect(o.kafesSonraki(k6, 35, 'y', 1)).toBe(35)
+    const dolu = o.kafesBos(k6).map((_, i) => (o.kafesKara(k6, i) ? '' : 'a'))
+    expect(o.kafesDolu(k6, dolu)).toBe(true)
+    expect(o.kafesDolu(k6, o.kafesBos(o.K5))).toBe(false) // boyut tutmayan kayıt dolu sayılmaz
+    expect(o.kafesSatirlar(k6, dolu)).toEqual(['aaaaaa', 'a..a.a', 'a..a.a', 'aaaaaa', 'a..a.a', 'aaaaaa'])
   })
   it('skor yazımı ve yeni rozetler', async () => {
     const o = await import('./oyunlar')

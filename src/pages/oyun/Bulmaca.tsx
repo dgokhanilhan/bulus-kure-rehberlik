@@ -1,27 +1,29 @@
-// Mini Bulmaca: 5×5 kafes; üç yatay, üç düşey kelime. İpuçları ve doğrulama sunucuda (0073), süre sunucuda ölçülür.
-// Girilen harfler cihazda saklanır (sayfa yenilenince kaybolmaz).
-import { useEffect, useState } from 'react'
+// Mini Bulmaca: 5×5 (çoğu gün), 6×6 ya da 7×7 kafes; üç yatay, üç düşey kelime. İpuçları ve doğrulama sunucuda (0073, 0086),
+// süre sunucuda ölçülür. Girilen harfler cihazda saklanır (sayfa yenilenince kaybolmaz).
+import { useEffect, useMemo, useState } from 'react'
 import {
-  BULMACA_NO,
-  bulmacaBos,
-  bulmacaDolu,
-  bulmacaKara,
-  bulmacaKelime,
-  bulmacaSatirlar,
-  bulmacaSonraki,
-  bulmacaYonSec,
+  K5,
+  kafesBos,
+  kafesDolu,
+  kafesKara,
+  kafesKelime,
+  kafesNumara,
+  kafesSatirlar,
+  kafesSonraki,
+  kafesYonSec,
   kelimeTemizle,
   KLAVYE,
   sureYaz,
   type BulmacaYon,
+  type Kafes,
 } from '@/lib/oyunlar'
 import { useBulmaca, useBulmacaBitir } from '@/lib/oyunData'
 import { useToast } from '@/components/Toast'
 
-function oku(k: string): string[] | null {
+function oku(k: string, adet: number): string[] | null {
   try {
     const v = JSON.parse(localStorage.getItem(k) ?? 'null') as unknown
-    return Array.isArray(v) && v.length === 25 ? (v as string[]) : null
+    return Array.isArray(v) && v.length === adet ? (v as string[]) : null
   } catch {
     return null
   }
@@ -32,6 +34,11 @@ export default function Bulmaca() {
   const bitir = useBulmacaBitir()
   const toast = useToast()
   const d = q.data
+  const kafes: Kafes = useMemo(
+    () => (d?.boyut && d.satirlar && d.sutunlar ? { n: d.boyut, lr: d.satirlar, lc: d.sutunlar } : K5),
+    [d?.boyut, d?.satirlar, d?.sutunlar],
+  )
+  const numara = useMemo(() => kafesNumara(kafes), [kafes])
   const anahtar = d ? `oda.bulmaca.${d.gun}` : ''
   const [giris, setGiris] = useState<string[] | null>(null)
   const [sec, setSec] = useState(0)
@@ -39,15 +46,15 @@ export default function Bulmaca() {
   const [simdi, setSimdi] = useState(Date.now())
 
   useEffect(() => {
-    if (d && !giris) setGiris(d.cozum ? d.cozum.flatMap((s) => [...s].map((h) => (h === '.' ? '' : h))) : (oku(anahtar) ?? bulmacaBos()))
-  }, [d, giris, anahtar])
+    if (d && !giris) setGiris(d.cozum ? d.cozum.flatMap((s) => [...s].map((h) => (h === '.' ? '' : h))) : (oku(anahtar, kafes.n * kafes.n) ?? kafesBos(kafes)))
+  }, [d, giris, anahtar, kafes])
   useEffect(() => {
     if (!d || d.bitti) return
     const t = setInterval(() => setSimdi(Date.now()), 1000)
     return () => clearInterval(t)
   }, [d])
 
-  const a = giris ?? bulmacaBos()
+  const a = giris ?? kafesBos(kafes)
   const bitti = !!d?.bitti
   const kaydet = (yeni: string[]) => {
     setGiris(yeni)
@@ -58,8 +65,8 @@ export default function Bulmaca() {
     }
   }
   const hucreSec = (i: number) => {
-    if (bulmacaKara(i)) return
-    setYon((y) => bulmacaYonSec(i, i === sec ? (y === 'y' ? 'd' : 'y') : y))
+    if (kafesKara(kafes, i)) return
+    setYon((y) => kafesYonSec(kafes, i, i === sec ? (y === 'y' ? 'd' : 'y') : y))
     setSec(i)
   }
   const bas = (k: string) => {
@@ -68,7 +75,7 @@ export default function Bulmaca() {
       const yeni = [...a]
       if (yeni[sec]) yeni[sec] = ''
       else {
-        const o = bulmacaSonraki(sec, yon, -1)
+        const o = kafesSonraki(kafes, sec, yon, -1)
         yeni[o] = ''
         setSec(o)
       }
@@ -79,7 +86,7 @@ export default function Bulmaca() {
     const yeni = [...a]
     yeni[sec] = h
     kaydet(yeni)
-    setSec(bulmacaSonraki(sec, yon, 1))
+    setSec(kafesSonraki(kafes, sec, yon, 1))
   }
   useEffect(() => {
     const f = (e: KeyboardEvent) => {
@@ -89,8 +96,8 @@ export default function Bulmaca() {
       if (ok[e.key]) {
         e.preventDefault()
         const [y, adim] = ok[e.key]!
-        const gecerli = bulmacaYonSec(sec, y)
-        if (gecerli === y) setSec(bulmacaSonraki(sec, y, adim))
+        const gecerli = kafesYonSec(kafes, sec, y)
+        if (gecerli === y) setSec(kafesSonraki(kafes, sec, y, adim))
         setYon(gecerli)
       } else if (e.key === 'Backspace') {
         e.preventDefault()
@@ -104,18 +111,19 @@ export default function Bulmaca() {
   if (q.isLoading) return <p className="m">Bulmaca hazırlanıyor…</p>
   if (q.isError || !d) return <div className="empty">Bulmaca açılamadı. Sayfayı yenile.</div>
 
+  const n = kafes.n
   const gecen = bitti ? (d.puan ?? 0) : Math.max(0, Math.floor((simdi - new Date(d.basladi).getTime()) / 1000))
-  const etkin = bitti ? [] : bulmacaKelime(sec, yon)
+  const etkin = bitti ? [] : kafesKelime(kafes, sec, yon)
   const kontrol = () => {
     if (bitir.isPending) return
-    if (!bulmacaDolu(a)) return toast('Önce bütün kutuları doldur', 'warn')
-    bitir.mutate(bulmacaSatirlar(a), {
+    if (!kafesDolu(kafes, a)) return toast('Önce bütün kutuları doldur', 'warn')
+    bitir.mutate(kafesSatirlar(kafes, a), {
       onSuccess: (r) => (r.dogru ? toast(`Tebrikler! ${sureYaz(r.puan ?? 0)}`) : toast(`Henüz değil: ${r.yanlis} kutu yanlış`, 'warn')),
       onError: (e) => toast((e as Error).message, 'warn'),
     })
   }
   const ipucu = (y: BulmacaYon, sira: number, metin: string) => {
-    const bas_ = y === 'y' ? sira * 10 : sira * 2
+    const bas_ = y === 'y' ? kafes.lr[sira]! * n : kafes.lc[sira]!
     const secili = !bitti && yon === y && etkin.includes(bas_)
     return (
       <li key={sira}>
@@ -127,7 +135,7 @@ export default function Bulmaca() {
             setSec(bas_)
           }}
         >
-          <b className="mono">{BULMACA_NO[bas_]}</b> {metin}
+          <b className="mono">{numara[bas_]}</b> {metin}
         </button>
       </li>
     )
@@ -139,6 +147,7 @@ export default function Bulmaca() {
         <span className="chip n mono" aria-live="off">
           ⏱ {sureYaz(gecen)}
         </span>
+        {n > 5 && <span className="chip gold">{`${n}×${n} büyük bulmaca`}</span>}
         {bitti ? (
           <span className="chip up">✓ Çözüldü</span>
         ) : (
@@ -148,12 +157,12 @@ export default function Bulmaca() {
         )}
       </div>
       <div className="bm-duzen">
-        <div className="bm-kafes" role="grid" aria-label="Bulmaca">
-          {Array.from({ length: 5 }, (_, r) => (
-            <div role="row" key={r} className="bm-satir">
-              {Array.from({ length: 5 }, (_, c) => {
-                const i = r * 5 + c
-                if (bulmacaKara(i)) return <span role="gridcell" key={c} className="bm-h kara" aria-label="kara kare" />
+        <div className={`bm-kafes bm-${n}`} role="grid" aria-label={`Bulmaca, ${n}×${n}`}>
+          {Array.from({ length: n }, (_, r) => (
+            <div role="row" key={r} className="bm-satir" style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}>
+              {Array.from({ length: n }, (_, c) => {
+                const i = r * n + c
+                if (kafesKara(kafes, i)) return <span role="gridcell" key={c} className="bm-h kara" aria-label="kara kare" />
                 return (
                   <button
                     key={c}
@@ -165,9 +174,9 @@ export default function Bulmaca() {
                     disabled={bitti}
                     onClick={() => hucreSec(i)}
                   >
-                    {BULMACA_NO[i] && (
+                    {numara[i] && (
                       <i className="bm-no" aria-hidden="true">
-                        {BULMACA_NO[i]}
+                        {numara[i]}
                       </i>
                     )}
                     {(a[i] ?? '').toLocaleUpperCase('tr')}
