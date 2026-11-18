@@ -17,6 +17,19 @@ export interface SudokuDurum {
   bitti: string | null
   puan: number | null
   cozum: number[] | null
+  /** Alınan ipuçları (0084): hücre ve doğru rakam */
+  ipuclari?: { i: number; v: number }[]
+  ipucu_hak?: number
+  lig_disi?: boolean
+  neden?: 'sure' | 'ritim' | null
+}
+export interface SudokuSonuc {
+  dogru: boolean
+  puan?: number
+  ham?: number
+  ipucu?: number
+  lig_disi?: boolean
+  neden?: 'sure' | 'ritim' | null
 }
 /** Bugünkü sudokuyu açar (ilk açılışta süre başlar) */
 export function useSudoku(acik: boolean) {
@@ -31,10 +44,23 @@ export function useSudoku(acik: boolean) {
 export function useSudokuBitir() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (p: number[]) => rpc<{ dogru: boolean; puan?: number }>('oda_sudoku_bitir', { p }),
+    mutationFn: (a: { p: number[]; hamle: number[]; sekme: number }) => rpc<SudokuSonuc>('oda_sudoku_tamamla', { p: a.p, p_hamle: a.hamle, p_sekme: a.sekme }),
     onSuccess: (r) => {
       if (r.dogru) void qc.invalidateQueries({ queryKey: ['oyun'] })
     },
+  })
+}
+/** İpucu al (günde 3; her biri bitiş süresine +30 sn). Çözüm tarayıcıya gitmez: sunucu tek hücre döner. */
+export function useSudokuIpucu() {
+  const qc = useQueryClient()
+  const { profile } = useAuth()
+  return useMutation({
+    mutationFn: (a: { hucre: number | null; giris: number[] }) =>
+      rpc<{ hucre: number; deger: number; ipucu_hak: number }>('oda_sudoku_ipucu', { p_hucre: a.hucre, p_giris: a.giris }),
+    onSuccess: (r) =>
+      qc.setQueryData<SudokuDurum>(['oyun', 'sudoku', profile?.id], (d) =>
+        d ? { ...d, ipuclari: [...(d.ipuclari ?? []), { i: r.hucre, v: r.deger }], ipucu_hak: r.ipucu_hak } : d,
+      ),
   })
 }
 
@@ -80,6 +106,8 @@ export interface SkorSatiri {
   ad: string
   puan: number
   ben: boolean
+  /** Sudoku: en iyi çözümde alınan ipucu sayısı (her biri +30 sn, puana dahil) */
+  ipucu?: number
 }
 export function useSkorTablosu(oyun: OyunId, donem: 'gun' | 'hafta') {
   return useQuery({

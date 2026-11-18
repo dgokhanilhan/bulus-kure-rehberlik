@@ -112,6 +112,20 @@ test('sudoku: kalem notu, geri al, kalan rakam sayısı', async ({ page }) => {
   await expect(page.getByRole('button', { name: /^7, / })).toHaveAttribute('aria-label', kalan > 1 ? `7, ${kalan - 1} tane kaldı` : '7, hepsi yerleşti')
   await page.getByRole('button', { name: /Geri al/ }).click()
   await expect(tahta.getByRole('gridcell', { name: `${bosAd}, notlar 3 5` })).toBeVisible()
+
+  // İpucu (0084): seçili boş hücreye doğru rakam gelir; hak 3 → 2; sayaç cezasız akar
+  const dogru = ((await svc.rpc('oda_sudoku_uret', { g: (await svc.rpc('tr_today')).data })).data as { cozum: number[] }).cozum
+  const no = Number(
+    bosAd
+      .match(/Satır (\d+), sütun (\d+)/)!
+      .slice(1)
+      .reduce((s, x, k) => s + (Number(x) - 1) * (k === 0 ? 9 : 1), 0),
+  )
+  await tahta.getByRole('gridcell', { name: `${bosAd}, notlar 3 5` }).click()
+  await page.getByRole('button', { name: /İpucu al, 3 hakkın var/ }).click()
+  await expect(tahta.getByRole('gridcell', { name: new RegExp(`^${esc(bosAd.replace(/boş$/, String(dogru[no])))} \\(alınan ipucu\\)`) })).toBeVisible()
+  await expect(page.getByRole('button', { name: /İpucu al, 2 hakkın var/ })).toBeVisible()
+  await expect(page.getByText(/Bitişte \+30 sn eklenecek · 2 hakkın kaldı/)).toBeVisible()
   const axe = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa']).analyze()
   expect(axe.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([])
   await shot(page, 'sudoku-pro')

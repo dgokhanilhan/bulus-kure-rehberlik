@@ -36,6 +36,10 @@ export function sureYaz(sn: number): string {
 }
 
 // ---------- Sudoku ----------
+export const SUDOKU_IPUCU_HAK = 3
+export const SUDOKU_IPUCU_CEZA = 30
+/** İpucu cezasının yazısı: 1 → "+0:30", 3 → "+1:30" (puanın içindedir; sayaçta gösterilmez) */
+export const ipucuCezaYaz = (ipucu: number | null | undefined) => (ipucu ? `+${sureYaz(ipucu * SUDOKU_IPUCU_CEZA)}` : '')
 /** Aynı satır, sütun ya da kutuda tekrar eden hücreler (0 boş) */
 export function sudokuCakisma(a: readonly number[]): Set<number> {
   const out = new Set<number>()

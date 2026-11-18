@@ -1,9 +1,12 @@
-// Günün Sudokusu: bulmaca, doğrulama ve süre sunucuda (puanlama değişmedi). Girilen rakamlar ve kalem notları cihazda
-// saklanır (sayfa yenilenince kaybolmaz). Profesyonel oyun özellikleri: kalem notu, geri al, kalan rakam sayısı, aynı
-// rakamı / satır-sütun-kutuyu vurgulama, çakışma uyarısı, rakam girince ilgili hücrelerdeki notların silinmesi, klavye.
+// Günün Sudokusu: bulmaca, doğrulama ve süre sunucuda. Girilen rakamlar ve kalem notları cihazda saklanır (sayfa
+// yenilenince kaybolmaz). Profesyonel oyun özellikleri: kalem notu, geri al, kalan rakam sayısı, aynı rakamı /
+// satır-sütun-kutuyu vurgulama, çakışma uyarısı, rakam girince ilgili hücrelerdeki notların silinmesi, klavye.
+// İpucu (0084): günde 3; sunucudan tek hücre gelir; her biri bitişte +30 sn (sayaca eklenmez, sonuçta parantezle görünür).
+// Hile önlemleri (0084): her rakamın girildiği an ve sekmeden ayrılma sayısı bitişte sunucuya gider; alt süre ya da
+// hamle ritmi tutmazsa çözüm kaydedilir ama yalnız o günün Sudoku sonucu lige girmez.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { sudokuCakisma, sudokuDolu, sureYaz } from '@/lib/oyunlar'
-import { useSudoku, useSudokuBitir } from '@/lib/oyunData'
+import { ipucuCezaYaz, SUDOKU_IPUCU_CEZA, SUDOKU_IPUCU_HAK, sudokuCakisma, sudokuDolu, sureYaz } from '@/lib/oyunlar'
+import { useSudoku, useSudokuBitir, useSudokuIpucu, type SudokuSonuc } from '@/lib/oyunData'
 import { useToast } from '@/components/Toast'
 
 function oku(k: string): number[] | null {
@@ -23,6 +26,14 @@ function notOku(k: string): number[][] {
   }
   return Array.from({ length: 81 }, () => [])
 }
+function sayiOku(k: string): number {
+  try {
+    const v = Number(localStorage.getItem(k) ?? 0)
+    return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0
+  } catch {
+    return 0
+  }
+}
 function sakla(k: string, v: unknown) {
   try {
     localStorage.setItem(k, JSON.stringify(v))
@@ -34,37 +45,65 @@ const satirOf = (i: number) => Math.floor(i / 9)
 const sutunOf = (i: number) => i % 9
 const kutuOf = (i: number) => Math.floor(i / 27) * 3 + Math.floor((i % 9) / 3)
 const akraba = (a: number, b: number) => satirOf(a) === satirOf(b) || sutunOf(a) === sutunOf(b) || kutuOf(a) === kutuOf(b)
+const bosZaman = () => Array(81).fill(0) as number[]
 
-type Adim = { giris: number[]; notlar: number[][] }
+type Adim = { giris: number[]; notlar: number[][]; zaman: number[] }
+
+export function ligDisiMetni(neden: SudokuSonuc['neden']) {
+  return neden === 'ritim'
+    ? 'Rakamların çoğu son dakikada girildiği için bu çözüm bugünkü skor tablosuna ve lige eklenmedi. Diğer oyunların puanları aynen sayılır.'
+    : 'Çözüm süresi lig sınırının altında kaldığı için bu çözüm bugünkü skor tablosuna ve lige eklenmedi. Diğer oyunların puanları aynen sayılır.'
+}
 
 export default function Sudoku() {
   const q = useSudoku(true)
   const bitir = useSudokuBitir()
+  const ipucuAl = useSudokuIpucu()
   const toast = useToast()
   const d = q.data
   const anahtar = d ? `oda.sudoku.${d.gun}` : ''
   const notAnahtar = d ? `oda.sudoku.${d.gun}.not` : ''
+  const zamanAnahtar = d ? `oda.sudoku.${d.gun}.zaman` : ''
+  const sekmeAnahtar = d ? `oda.sudoku.${d.gun}.sekme` : ''
   const [giris, setGiris] = useState<number[] | null>(null)
   const [notlar, setNotlar] = useState<number[][]>(() => Array.from({ length: 81 }, () => []))
+  const [zaman, setZaman] = useState<number[]>(bosZaman)
   const [kalem, setKalem] = useState(false)
   const [gecmis, setGecmis] = useState<Adim[]>([])
   const [sec, setSec] = useState<number | null>(null)
   const [simdi, setSimdi] = useState(Date.now())
+  const [sonuc, setSonuc] = useState<SudokuSonuc | null>(null)
   const denendi = useRef('')
 
   useEffect(() => {
     if (d && !giris) {
       setGiris(d.cozum ?? oku(anahtar) ?? d.ipucu)
       setNotlar(notOku(notAnahtar))
+      setZaman(oku(zamanAnahtar) ?? bosZaman())
     }
-  }, [d, giris, anahtar, notAnahtar])
+  }, [d, giris, anahtar, notAnahtar, zamanAnahtar])
   useEffect(() => {
     if (!d || d.bitti) return
     const t = setInterval(() => setSimdi(Date.now()), 1000)
     return () => clearInterval(t)
   }, [d])
+  // Sekmeden ayrılma sayısı (yalnız bilgi; tek başına ceza değildir)
+  useEffect(() => {
+    if (!d || d.bitti || !sekmeAnahtar) return
+    const f = () => {
+      if (document.visibilityState === 'hidden') sakla(sekmeAnahtar, sayiOku(sekmeAnahtar) + 1)
+    }
+    document.addEventListener('visibilitychange', f)
+    return () => document.removeEventListener('visibilitychange', f)
+  }, [d, sekmeAnahtar])
 
-  const a = giris ?? d?.ipucu ?? []
+  // Alınan ipuçları tahtada sabit
+  const alinan = useMemo(() => new Map((d?.ipuclari ?? []).map((x) => [x.i, x.v])), [d?.ipuclari])
+  const a = useMemo(() => {
+    const b = [...(giris ?? d?.ipucu ?? [])]
+    for (const [i, v] of alinan) b[i] = v
+    return b
+  }, [giris, d?.ipucu, alinan])
   const cakisma = useMemo(() => sudokuCakisma(a), [a])
   const sayac = useMemo(() => {
     const s = Array(10).fill(0) as number[]
@@ -72,37 +111,71 @@ export default function Sudoku() {
     return s
   }, [a])
   const bitti = !!d?.bitti
+  const kilit = (i: number) => !d || d.ipucu[i]! > 0 || alinan.has(i)
 
-  const kaydet = (yeniGiris: number[], yeniNot: number[][]) => {
-    setGecmis((g) => [...g.slice(-99), { giris: a, notlar }])
+  const kaydet = (yeniGiris: number[], yeniNot: number[][], yeniZaman: number[]) => {
+    setGecmis((g) => [...g.slice(-99), { giris: a, notlar, zaman }])
     setGiris(yeniGiris)
     setNotlar(yeniNot)
+    setZaman(yeniZaman)
     sakla(anahtar, yeniGiris)
     sakla(notAnahtar, yeniNot)
+    sakla(zamanAnahtar, yeniZaman)
   }
   const yaz = (i: number, v: number) => {
-    if (!d || bitti || d.ipucu[i]) return
+    if (!d || bitti || kilit(i)) return
     if (kalem && v) {
       if (a[i]) return toast('Önce hücredeki rakamı sil', 'warn')
       const n = notlar.map((x) => [...x])
       n[i] = n[i]!.includes(v) ? n[i]!.filter((x) => x !== v) : [...n[i]!, v].sort()
-      return kaydet(a, n)
+      return kaydet(a, n, zaman)
     }
     if (a[i] === v && v) v = 0 // aynı rakama tekrar basmak siler
     const yeni = [...a]
     yeni[i] = v
     const n = notlar.map((x, k) => (k === i && v ? [] : v && akraba(k, i) ? x.filter((y) => y !== v) : x))
     if (!v && !a[i] && notlar[i]!.length) n[i] = [] // boş hücrede Sil: notları temizler
-    kaydet(yeni, n)
+    const z = [...zaman]
+    z[i] = v ? Math.max(1, Date.now() - new Date(d.basladi).getTime()) : 0
+    kaydet(yeni, n, z)
   }
   const geriAl = () => {
+    // İpucuyla gelen hücre geri alınmaz (sunucuda kayıtlı)
     const son = gecmis.at(-1)
     if (!son || bitti) return
     setGecmis((g) => g.slice(0, -1))
     setGiris(son.giris)
     setNotlar(son.notlar)
+    setZaman(son.zaman)
     sakla(anahtar, son.giris)
     sakla(notAnahtar, son.notlar)
+    sakla(zamanAnahtar, son.zaman)
+  }
+  const hak = d?.ipucu_hak ?? SUDOKU_IPUCU_HAK
+  const ipucuIste = () => {
+    if (!d || bitti || hak <= 0 || ipucuAl.isPending) return
+    ipucuAl.mutate(
+      { hucre: sec != null && !kilit(sec) ? sec : null, giris: a },
+      {
+        onSuccess: (r) => {
+          const yeni = [...a]
+          yeni[r.hucre] = r.deger
+          const n = notlar.map((x, k) => (k === r.hucre ? [] : akraba(k, r.hucre) ? x.filter((y) => y !== r.deger) : x))
+          const z = [...zaman]
+          z[r.hucre] = 0
+          setGiris(yeni)
+          setNotlar(n)
+          setZaman(z)
+          sakla(anahtar, yeni)
+          sakla(notAnahtar, n)
+          sakla(zamanAnahtar, z)
+          setGecmis([]) // ipucundan önceki adımlara dönülmez
+          setSec(r.hucre)
+          toast(`İpucu: ${r.deger}. Bitişte +${SUDOKU_IPUCU_CEZA} sn eklenecek · ${r.ipucu_hak} hakkın kaldı`)
+        },
+        onError: (e) => toast((e as Error).message, 'warn'),
+      },
+    )
   }
 
   // Tahta dolu ve çakışma yoksa sunucuya gönder (aynı tahtayı iki kez gönderme)
@@ -111,16 +184,27 @@ export default function Sudoku() {
     const imza = a.join('')
     if (denendi.current === imza) return
     denendi.current = imza
-    bitir.mutate(a, {
-      onSuccess: (r) => (r.dogru ? toast(`Tebrikler! ${sureYaz(r.puan ?? 0)}`) : toast('Henüz değil: ipuçlarıyla uyuşmayan bir yer var', 'warn')),
-      onError: (e) => toast((e as Error).message, 'warn'),
-    })
-  }, [a, cakisma, d, bitti, bitir, toast])
+    bitir.mutate(
+      { p: a, hamle: zaman, sekme: sayiOku(sekmeAnahtar) },
+      {
+        onSuccess: (r) => {
+          if (!r.dogru) return toast('Henüz değil: ipuçlarıyla uyuşmayan bir yer var', 'warn')
+          setSonuc(r)
+          if (r.lig_disi) toast(ligDisiMetni(r.neden), 'warn')
+          else toast(`Tebrikler! ${sureYaz(r.ham ?? r.puan ?? 0)}${r.ipucu ? ` (${ipucuCezaYaz(r.ipucu)} ipucu)` : ''}`)
+        },
+        onError: (e) => toast((e as Error).message, 'warn'),
+      },
+    )
+  }, [a, cakisma, d, bitti, bitir, toast, zaman, sekmeAnahtar])
 
   if (q.isLoading) return <p className="m">Bulmaca hazırlanıyor…</p>
   if (q.isError || !d) return <div className="empty">Bulmaca açılamadı. Sayfayı yenile.</div>
 
-  const gecen = bitti ? (d.puan ?? 0) : Math.max(0, Math.floor((simdi - new Date(d.basladi).getTime()) / 1000))
+  const alinanSayi = d.ipuclari?.length ?? 0
+  // Sayaç cezasız akar; bitince çözüm süresi + parantezde ipucu cezası
+  const ham = bitti ? Math.max(0, (d.puan ?? 0) - alinanSayi * SUDOKU_IPUCU_CEZA) : Math.max(0, Math.floor((simdi - new Date(d.basladi).getTime()) / 1000))
+  const ligDisi = bitti && (d.lig_disi || sonuc?.lig_disi)
   const bos = a.filter((v) => !v).length
   const tus = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') return (e.preventDefault(), geriAl())
@@ -139,13 +223,14 @@ export default function Sudoku() {
     }
   }
   const secDeger = sec != null ? a[sec] : 0
-  const kilitli = sec == null || d.ipucu[sec]! > 0
+  const kilitli = sec == null || kilit(sec)
 
   return (
     <div className="oy-sudoku" onKeyDown={tus}>
       <div className="sd-ust">
-        <span className="chip n mono" aria-live="off">
-          ⏱ {sureYaz(gecen)}
+        <span className="chip n mono" aria-live="off" data-testid="sd-sure">
+          ⏱ {sureYaz(ham)}
+          {bitti && alinanSayi > 0 && <span className="sd-ceza"> ({ipucuCezaYaz(alinanSayi)} ipucu)</span>}
         </span>
         {bitti ? (
           <span className="chip up">✓ Çözüldü</span>
@@ -155,12 +240,18 @@ export default function Sudoku() {
           </span>
         )}
       </div>
+      {ligDisi && (
+        <p className="sd-uyari" role="status" data-testid="sd-lig-disi">
+          {ligDisiMetni(sonuc?.neden ?? d.neden ?? null)}
+        </p>
+      )}
       <div className={`sd-tahta${bitti ? ' cozuldu' : ''}`} role="grid" aria-label="Sudoku tahtası">
         {Array.from({ length: 9 }, (_, r) => (
           <div role="row" key={r} className="sd-satir">
             {Array.from({ length: 9 }, (_, c) => {
               const i = r * 9 + c
               const sabit = d.ipucu[i]! > 0
+              const verilen = alinan.has(i)
               const v = a[i] ?? 0
               const ilgili = sec != null && sec !== i && akraba(sec, i)
               const not = v ? [] : (notlar[i] ?? [])
@@ -170,8 +261,8 @@ export default function Sudoku() {
                   id={`sd-${i}`}
                   role="gridcell"
                   type="button"
-                  className={`sd-h${sabit ? ' sabit' : ''}${sec === i ? ' sec' : ilgili ? ' ilgili' : ''}${v && v === secDeger && sec !== i ? ' esit' : ''}${cakisma.has(i) && !sabit ? ' cakis' : ''}`}
-                  aria-label={`Satır ${r + 1}, sütun ${c + 1}: ${v || 'boş'}${sabit ? ' (ipucu)' : ''}${cakisma.has(i) ? ', çakışıyor' : ''}${not.length ? `, notlar ${not.join(' ')}` : ''}`}
+                  className={`sd-h${sabit ? ' sabit' : ''}${verilen ? ' verilen' : ''}${sec === i ? ' sec' : ilgili ? ' ilgili' : ''}${v && v === secDeger && sec !== i ? ' esit' : ''}${cakisma.has(i) && !sabit && !verilen ? ' cakis' : ''}`}
+                  aria-label={`Satır ${r + 1}, sütun ${c + 1}: ${v || 'boş'}${sabit ? ' (ipucu)' : ''}${verilen ? ' (alınan ipucu)' : ''}${cakisma.has(i) ? ', çakışıyor' : ''}${not.length ? `, notlar ${not.join(' ')}` : ''}`}
                   aria-selected={sec === i}
                   onClick={() => setSec(i)}
                 >
@@ -215,6 +306,17 @@ export default function Sudoku() {
               <span aria-hidden="true">✎</span>
               Not {kalem ? 'açık' : 'kapalı'}
             </button>
+            <button
+              type="button"
+              className="sd-arac"
+              onClick={ipucuIste}
+              disabled={hak <= 0 || ipucuAl.isPending}
+              aria-label={hak > 0 ? `İpucu al, ${hak} hakkın var; her ipucu bitişte ${SUDOKU_IPUCU_CEZA} saniye ekler` : 'İpucu hakkın bitti'}
+              title={`Seçili boş hücrenin doğru rakamı (seçili değilse en kolay hücre). Bitişte +${SUDOKU_IPUCU_CEZA} sn.`}
+            >
+              <span aria-hidden="true">💡</span>
+              {hak > 0 ? `İpucu (${hak})` : 'Hak bitti'}
+            </button>
           </div>
           <div className="sd-tuslar" role="group" aria-label={kalem ? 'Not ekle' : 'Rakam gir'}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => {
@@ -237,7 +339,7 @@ export default function Sudoku() {
             })}
           </div>
           <p className="m" style={{ fontSize: 12, margin: 0, textAlign: 'center' }}>
-            Klavye: 1–9 rakam · Sil · oklar · N not · Ctrl+Z geri al. Süre bulmacayı ilk açtığında başladı.
+            Klavye: 1–9 rakam · Sil · oklar · N not · Ctrl+Z geri al. Süre bulmacayı ilk açtığında başladı. İpucu başına bitişte +{SUDOKU_IPUCU_CEZA} sn.
           </p>
         </>
       )}
