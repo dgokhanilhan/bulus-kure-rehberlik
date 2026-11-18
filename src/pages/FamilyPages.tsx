@@ -7,7 +7,6 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { fmt, gorevEtkisi, indexResults, studentExams, totalNet } from '@/lib/analiz'
 import { Cozemedim, YanlisDefteri } from '@/components/OgrenciDestek'
-import { VeliHaftalikOzet } from '@/components/GorusmeHazirlik'
 import { SUBJECT_SHORT } from '@/components/Tasks'
 import {
   ATT_TR,
@@ -126,8 +125,6 @@ export function OzetPage() {
         </div>
       </div>
       <ChildPicker list={list} s={s} choose={choose} />
-      {/* Veli haftalık özeti (0077): öğretmenin onaylayıp gönderdiği son özet; açılınca okundu yazılır */}
-      {veli && ayar.bool('aile.haftalik_ozet') && <VeliHaftalikOzet sid={s.id} />}
       <div className={`stats${!lgs ? ' family-task-summary' : ''}`}>
         {lgs && (
           <>

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import { pages } from './sayfali'
 import { outcomeTitle } from './outcomeTitle'
+import { gizliKonuSil } from './pdfTopics'
 import type { ExamTemplate, ExamType, Profile, SectionResults, Subtest, TemplateSection, YksPart } from './denemeGenel'
 
 export interface TemplateRow extends ExamTemplate {
@@ -273,7 +274,7 @@ export function useGenelDataset(enabled = true) {
         pages<GenelResult & { exams?: unknown }>((a, b) =>
           supabase
             .from('exam_results')
-            .select('exam_id, student_id, score, subjects, answers, total_net, success_pct, source, exams!inner(exam_type, status)')
+            .select('exam_id, student_id, score, subjects, answers, total_net, success_pct, source, exams!inner(exam_type, status, topics_hidden)')
             .neq('exams.exam_type', 'LGS')
             .eq('exams.status', 'yayinda')
             .order('exam_id')
@@ -282,8 +283,8 @@ export function useGenelDataset(enabled = true) {
         ),
       ])
       if (e.error) throw e.error
-      const results = r.map(({ exams: _e, ...x }) => ({
-        ...x,
+      const results = r.map(({ exams: ex, ...x }) => ({
+        ...gizliKonuSil(x, ex),
         total_net: x.total_net === null ? null : Number(x.total_net),
         success_pct: x.success_pct === null ? null : Number(x.success_pct),
       }))

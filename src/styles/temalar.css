@@ -106,6 +106,10 @@
 .tema-ornek span { position:absolute; left:0; right:0; bottom:0; height:42% }
 .tema-ad { font-size:12px; line-height:1.2; text-align:center }
 .tema-k[aria-checked="true"] .tema-ornek { outline:3px solid var(--ink); outline-offset:2px }
+.av-simge { line-height:1; color:inherit }
+.avatar-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; justify-items:center }
+.avatar-k { width:44px; height:44px; padding:0; border:0; border-radius:50%; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center }
+.avatar-k[aria-checked="true"] { outline:3px solid var(--ink); outline-offset:1px }
 .tema-k[aria-checked="true"] .tema-ad { font-weight:700 }
 .tema-k:focus-visible { outline:none } .tema-k:focus-visible .tema-ornek { outline:3px solid var(--primary); outline-offset:2px }
 

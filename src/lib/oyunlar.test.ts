@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   hafizaDeste,
+  ilAnahtar,
+  ilBul,
   harfDurumlari,
   hizliEsik,
   islemUret,
@@ -235,5 +237,29 @@ describe('günlük oyunlar (0073)', () => {
       bulmaca: 9,
     }
     expect(o.ROZETLER.filter((r) => ['sehir', 'soru', 'bulmaca'].includes(r.oyun ?? '') && r.kosul(i, 0)).map((r) => r.id)).toEqual(['sehir2', 'soru5'])
+  })
+})
+
+describe('Günün Şehri: yazarak tahmin', () => {
+  const iller = [
+    { plaka: 74, ad: 'Bartın' },
+    { plaka: 34, ad: 'İstanbul' },
+    { plaka: 63, ad: 'Şanlıurfa' },
+    { plaka: 3, ad: 'Afyonkarahisar' },
+    { plaka: 46, ad: 'Kahramanmaraş' },
+  ]
+  it('büyük/küçük harf ve Türkçe karakter farkı gözetmez', () => {
+    for (const y of ['Bartın', 'bartın', 'BARTIN', 'bartin', ' Bartin ', 'BARTİN']) expect(ilBul(y, iller)?.plaka).toBe(74)
+    for (const y of ['istanbul', 'İSTANBUL', 'Istanbul', 'ıstanbul']) expect(ilBul(y, iller)?.plaka).toBe(34)
+    expect(ilBul('sanliurfa', iller)?.plaka).toBe(63)
+    expect(ilAnahtar('Kahramanmaraş')).toBe('kahramanmaras')
+  })
+  it('bilinen kısa adları tanır; tanımadığını uydurmaz', () => {
+    expect(ilBul('Urfa', iller)?.plaka).toBe(63)
+    expect(ilBul('afyon', iller)?.plaka).toBe(3)
+    expect(ilBul('Maraş', iller)?.plaka).toBe(46)
+    expect(ilBul('Bart', iller)).toBeNull()
+    expect(ilBul('', iller)).toBeNull()
+    expect(ilBul('Ankara', iller)).toBeNull()
   })
 })

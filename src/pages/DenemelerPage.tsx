@@ -29,6 +29,7 @@ interface ExamRow {
   exam_type: string | null
   yks_part: string | null
   status: 'taslak' | 'yayinda' | 'arsiv'
+  topics_hidden?: boolean
 }
 const STATUS_TR = { taslak: 'Taslak', yayinda: 'Yayında', arsiv: 'Arşivde' }
 
@@ -44,7 +45,7 @@ export default function DenemelerPage() {
     queryKey: ['exams-list'],
     queryFn: async () => {
       const [e, r] = await Promise.all([
-        supabase.from('exams').select('id, name, publisher, exam_date, published_at, grade, exam_type, yks_part, status').order('exam_date', { ascending: false }),
+        supabase.from('exams').select('id, name, publisher, exam_date, published_at, grade, exam_type, yks_part, status, topics_hidden').order('exam_date', { ascending: false }),
         supabase.from('exam_results').select('exam_id'),
       ])
       if (e.error) throw e.error
@@ -178,6 +179,13 @@ export default function DenemelerPage() {
     refresh('dataset', 'exams-list', 'exams-admin', 'reports')
   }
 
+  async function setTopicsHidden(e: ExamRow, hidden: boolean) {
+    const { error } = await supabase.rpc('set_exam_topics_hidden', { p_exam: e.id, p_hidden: hidden })
+    if (error) return toast(error.message || 'Değiştirilemedi.', 'warn')
+    toast(hidden ? `${e.name}: konular gizlendi; puan ve netler aynen duruyor` : `${e.name}: konular yeniden gösteriliyor`)
+    refresh('dataset', 'genel-dataset', 'exams-list', 'reports')
+  }
+
   const idx = ['drop', 'read', 'review', 'done'].indexOf(step)
   return (
     <>
@@ -294,6 +302,11 @@ export default function DenemelerPage() {
                           <span className={`chip ${e.status === 'yayinda' ? 'up' : e.status === 'taslak' ? 'gold' : 'n'}`} data-testid="exam-status">
                             {STATUS_TR[e.status]}
                           </span>
+                          {e.topics_hidden && (
+                            <span className="chip n" style={{ marginLeft: 6 }} data-testid="exam-konu-gizli">
+                              Konular gizli
+                            </span>
+                          )}
                         </td>
                         <td>{e.publisher ?? '—'}</td>
                         <td className="m">{trD(e.exam_date)}</td>
@@ -309,6 +322,15 @@ export default function DenemelerPage() {
                               Arşivle
                             </button>
                           )}
+                          <button
+                            className="btn sm ghost"
+                            onClick={() => setTopicsHidden(e, !e.topics_hidden)}
+                            aria-pressed={!!e.topics_hidden}
+                            aria-label={`${e.name} denemesinin konularını ${e.topics_hidden ? 'göster' : 'gizle'}`}
+                            title="Konu analizi Konular, sınıf analizi, raporlar ve etüt önerilerinde kullanılmaz; puan ve netler değişmez."
+                          >
+                            {e.topics_hidden ? 'Konuları göster' : 'Konuları gizle'}
+                          </button>
                           <button className="btn sm ghost" style={{ color: 'var(--signal-ink)' }} onClick={() => setDel(e)} aria-label={`${e.name} denemesini sil`}>
                             <Icon name="trash" size={14} />
                             Sil
@@ -321,7 +343,8 @@ export default function DenemelerPage() {
               </table>
             </div>
             <span className="m" style={{ fontSize: 12 }}>
-              Yanlış yüklenen deneme silinebilir; öğrencilerin bu denemedeki sonuçları ve raporları da silinir.
+              Yanlış yüklenen deneme silinebilir; öğrencilerin bu denemedeki sonuçları ve raporları da silinir. Konuları yalnız ünite adı olarak
+              gelen bir denemede "Konuları gizle" ile konu analizini kapatabilirsin; puan ve netler aynen kalır, istediğinde geri açılır.
             </span>
           </Dropdown>
         </div>

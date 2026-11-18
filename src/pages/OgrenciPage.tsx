@@ -38,7 +38,7 @@ import { Seg, useIndicator } from '@/components/Indicator'
 import { LineChart } from '@/components/LineChart'
 import { TaskList, TaskModal } from '@/components/Tasks'
 import { MeetingList, MeetingModal } from '@/components/Meetings'
-import { GorusmeHazirlik, GorusmeKararlari, HaftalikOzetKart, type DenemeSatiri } from '@/components/GorusmeHazirlik'
+import { GorusmeHazirlik, GorusmeKararlari, type DenemeSatiri } from '@/components/GorusmeHazirlik'
 import { useKararGuncelle } from '@/lib/gorusmeData'
 import type { Karar } from '@/lib/haftalik'
 import { KvkkDosyasi } from '@/components/Kvkk'
@@ -567,14 +567,7 @@ export default function OgrenciPage() {
         />
       )}
       {tab === 'kvkk' && role === 'admin' && <KvkkDosyasi sid={s.id} />}
-      {tab === 'raporlar' && (
-        <>
-          {F && ayar.bool('aile.haftalik_ozet') && (
-            <HaftalikOzetKart sid={s.id} denemeler={denemeler} tasks={myTasks} yoklama={mods.yoklama} hasParent={hasParent} />
-          )}
-          <ReportsTab sid={s.id} examName={(eid) => ds.exams.find((e) => e.id === eid)?.name ?? ''} />
-        </>
-      )}
+      {tab === 'raporlar' && <ReportsTab sid={s.id} examName={(eid) => ds.exams.find((e) => e.id === eid)?.name ?? ''} />}
 
       {modal?.t === 'task' && (
         <TaskModal

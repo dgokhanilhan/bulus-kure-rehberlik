@@ -167,7 +167,8 @@ test('arayüz: üç oyun oynanır', async ({ page }) => {
   // Günün Şehri
   await page.getByRole('button', { name: /Günün Şehri/ }).click()
   await expect(page.getByText('İpucu 1')).toBeVisible()
-  await page.getByLabel(/Tahminin/).selectOption({ label: yanlis })
+  // Yazarak tahmin: büyük harf, Türkçe karakter farkı gözetilmez
+  await page.getByLabel(/Tahminin/).fill(yanlis.toLocaleUpperCase('tr'))
   await page.getByRole('button', { name: 'Tahmin et' }).click()
   const tahminler = page.getByRole('list', { name: 'Tahminler' })
   await expect(tahminler.getByRole('listitem').first()).toContainText(/\d+ km (kuzey|güney|doğu|batı)/)
@@ -175,7 +176,12 @@ test('arayüz: üç oyun oynanır', async ({ page }) => {
   const axe1 = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa']).analyze()
   expect(axe1.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([])
   await shot(page, 'oda-sehir')
-  await page.getByLabel(/Tahminin/).selectOption({ label: hedefAd })
+  await page.getByLabel(/Tahminin/).fill('Olmayan il')
+  await page.getByRole('button', { name: 'Tahmin et' }).click()
+  await expect(page.getByText('"Olmayan il" adında bir il bulamadım. Yazımı kontrol et.')).toBeVisible()
+  await expect(page.getByLabel(/Tahminin \(5 hak kaldı\)/)).toBeVisible()
+  const sade = hedefAd.toLocaleLowerCase('tr').replace(/[çğıöşü]/g, (h) => ({ ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u' })[h] ?? h)
+  await page.getByLabel(/Tahminin/).fill(sade)
   await page.getByRole('button', { name: 'Tahmin et' }).click()
   await expect(page.getByText(`Günün şehri: ${hedefAd}`)).toBeVisible()
   await expect(page.getByText('Bildin: 2. tahminde.')).toBeVisible()
