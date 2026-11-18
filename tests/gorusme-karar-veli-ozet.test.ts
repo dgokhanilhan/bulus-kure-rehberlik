@@ -1,7 +1,7 @@
-// 0077: görüşme kararları (yalnız rehberlik/yönetim) ve veli haftalık özeti (onaylanan anlık kopya, okundu bilgisi).
+// 0077: görüşme kararları (yalnız rehberlik/yönetim). Veli haftalık özeti 0081 ile kaldırıldı.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { service, signIn, snap, ELIF, notesOf, inDays, REHBER_ID } from './helpers'
+import { service, signIn, ELIF, inDays, REHBER_ID } from './helpers'
 
 let rehber: SupabaseClient, mat: SupabaseClient, veli: SupabaseClient, elif: SupabaseClient
 beforeAll(async () => {
@@ -59,49 +59,14 @@ describe('Görüşme kararları', () => {
   })
 })
 
-describe('Veli haftalık özeti', () => {
-  it('yalnız rehber/yönetim gönderir; veliye bildirim gider, veli okur, öğrenci okuyamaz', async () => {
-    const m = await mat.rpc('veli_ozet_gonder', { p_student: ELIF, p_icerik: icerik, p_not: null })
-    expect(m.error).not.toBeNull()
-    const v = await veli.rpc('veli_ozet_gonder', { p_student: ELIF, p_icerik: icerik, p_not: null })
-    expect(v.error).not.toBeNull()
-
-    const t0 = await snap()
-    const r = await rehber.rpc('veli_ozet_gonder', { p_student: ELIF, p_icerik: icerik, p_not: 'Emek verdi.' })
-    expect(r.error).toBeNull()
-    expect(await notesOf(veli, t0)).toContain('Haftalık özet hazır: Elif Yıldız')
-
-    const vo = await veli.from('veli_ozet').select('id, icerik, notu, okundu_at').eq('student_id', ELIF)
-    expect(vo.data).toHaveLength(1)
-    expect(vo.data![0]!.notu).toBe('Emek verdi.')
-    expect(vo.data![0]!.okundu_at).toBeNull()
-    expect((await elif.from('veli_ozet').select('id').eq('student_id', ELIF)).data ?? []).toHaveLength(0)
-
-    // Veli doğrudan yazamaz; okundu yalnız işlevle
-    const yaz = await veli.from('veli_ozet').update({ notu: 'x' }).eq('id', vo.data![0]!.id).select('id')
-    expect(yaz.data ?? []).toHaveLength(0)
-    await rehber.rpc('veli_ozet_okundu', { p_id: vo.data![0]!.id }) // rehber açınca okundu olmaz
-    expect((await rehber.from('veli_ozet').select('okundu_at').eq('id', vo.data![0]!.id).single()).data!.okundu_at).toBeNull()
-    await veli.rpc('veli_ozet_okundu', { p_id: vo.data![0]!.id })
-    expect((await rehber.from('veli_ozet').select('okundu_at').eq('id', vo.data![0]!.id).single()).data!.okundu_at).not.toBeNull()
-
-    // Aynı hafta yeniden gönderilince güncellenir, okundu sıfırlanır
-    const t1 = await snap()
-    await rehber.rpc('veli_ozet_gonder', { p_student: ELIF, p_icerik: icerik, p_not: null })
-    const son = await rehber.from('veli_ozet').select('notu, okundu_at').eq('student_id', ELIF)
-    expect(son.data).toEqual([{ notu: null, okundu_at: null }])
-    expect(await notesOf(veli, t1)).toContain('Haftalık özet güncellendi: Elif Yıldız')
-  })
-
-  it('ayar kapalıyken gönderilemez ve veli göremez', async () => {
-    const { data: s } = await service().from('students').select('school_id').eq('id', ELIF).single()
-    await service().from('school_settings').upsert({ school_id: s!.school_id, key: 'aile.haftalik_ozet', value: false })
-    try {
-      const r = await rehber.rpc('veli_ozet_gonder', { p_student: ELIF, p_icerik: icerik, p_not: null })
-      expect(r.error?.message).toBe('Haftalık özet okulda kapalı.')
-      expect((await veli.from('veli_ozet').select('id').eq('student_id', ELIF)).data ?? []).toHaveLength(0)
-    } finally {
-      await service().from('school_settings').delete().match({ school_id: s!.school_id, key: 'aile.haftalik_ozet' })
+describe('Veli haftalık özeti (0081 ile kaldırıldı)', () => {
+  it('kimse yeni özet gönderemez; ayar listede yok', async () => {
+    for (const c of [rehber, mat, veli]) {
+      const r = await c.rpc('veli_ozet_gonder', { p_student: ELIF, p_icerik: icerik, p_not: null })
+      expect(r.error).not.toBeNull()
     }
+    expect((await service().from('veli_ozet').select('id').eq('student_id', ELIF)).data ?? []).toHaveLength(0)
+    const { data: spec } = await rehber.rpc('setting_spec_public')
+    expect(Object.keys(spec as object)).not.toContain('aile.haftalik_ozet')
   })
 })

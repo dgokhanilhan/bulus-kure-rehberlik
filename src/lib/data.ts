@@ -9,6 +9,7 @@ import { examTrack, MODULE_DEFAULTS, type Modules } from './roles'
 import { useAuth } from '@/auth/AuthProvider'
 import { withCatalogItems, type ItemRow } from './genelVeriSeti'
 import { calendarInScope } from './calendarScope'
+import { gizliKonuSil } from './pdfTopics'
 import { tazele } from './tazele'
 
 async function all<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
@@ -550,13 +551,13 @@ export function useDataset(enabled = true) {
         pages<Result & { exams?: unknown; source?: unknown }>((a, b) =>
           supabase
             .from('exam_results')
-            .select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim, source, exams!inner(exam_type, status)')
+            .select('exam_id, student_id, score, subjects, answers, outcomes_ok, kazanim, source, exams!inner(exam_type, status, topics_hidden)')
             .eq('exams.exam_type', 'LGS')
             .eq('exams.status', 'yayinda')
             .order('exam_id')
             .order('student_id')
             .range(a, b),
-        ).then((rows) => rows.map(({ exams: _e, ...r }) => r as Result & { source?: unknown })),
+        ).then((rows) => rows.map(({ exams: ex, ...r }) => gizliKonuSil(r as Result & { source?: unknown }, ex))),
         pages<ItemRow>((a, b) =>
           supabase
             .from('exam_items')

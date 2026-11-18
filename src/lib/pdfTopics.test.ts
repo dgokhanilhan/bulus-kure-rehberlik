@@ -1,5 +1,5 @@
 import {it,expect} from 'vitest'
-import {validPdfTopics,pdfTopicKey} from './pdfTopics'
+import {validPdfTopics,pdfTopicKey,gizliKonuSil} from './pdfTopics'
 import {withCatalogItems} from './genelVeriSeti'
 import {konuStatus,wrongOutcomes,SUBJECTS} from './analiz'
 import {reportData} from './rapor'
@@ -37,4 +37,15 @@ it('Akbim konu sütunlarını okur, tutarsız bir dersi aktarmaz',async()=>{
  expect(akbimTopics(p,sections)).toEqual([{section:'MATEMATİK',title:'ÜSLÜ İFADELER',n:20,d:12,y:2,b:6}])
  expect(akbimTopics(p,[{...sections[0],y:3}])).toEqual([])
 })
-
+it('konuları gizlenen denemede PDF konusu okunmaz; puan ve netler aynen kalır',()=>{
+ const r={exam_id:'e',student_id:'s',score:400,subjects,answers:null,outcomes_ok:false,kazanim:null,source:{topics,booklets:{MAT:'A'}}}
+ const g=gizliKonuSil(r,{topics_hidden:true})
+ expect(g.source).toEqual({topics:[],booklets:{MAT:'A'}})
+ expect(g.score).toBe(400)
+ expect(g.subjects).toBe(subjects)
+ expect(gizliKonuSil(r,{topics_hidden:false})).toBe(r)
+ expect(gizliKonuSil(r,null)).toBe(r)
+ const ds=withCatalogItems({subjects:SUBJECTS,exams:[{id:'e',name:'Test',exam_date:'2026-11-17',publisher:null}],outcomes:[],questionsByExam:new Map(),results:[g as never]},[])
+ expect(ds.outcomes.some(o=>o.isTopic)).toBe(false)
+ expect(ds.results[0]!.topics ?? []).toEqual([])
+})

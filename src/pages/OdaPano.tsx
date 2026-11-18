@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useAuth } from '@/auth/AuthProvider'
 import { usePeople } from '@/lib/data'
 import { isTeacherP } from '@/lib/roles'
-import { addDays, ago, initials, todayISO, trDM, trDW } from '@/lib/format'
+import { addDays, ago, todayISO, trDM, trDW } from '@/lib/format'
 import {
   useAlkis,
   useAnketEkle,
@@ -20,6 +20,7 @@ import {
   useEtkinlikKatil,
   useEtkinlikler,
   useEtkinlikSil,
+  useLigKursu,
   useOneriGonder,
   usePanoEkle,
   usePanoNotlar,
@@ -35,6 +36,7 @@ import {
 import { useAyar } from '@/lib/ayarlar'
 import { haftaninTesekkuru } from '@/lib/pano'
 import { Icon } from '@/components/Icon'
+import { KisiSimge } from '@/components/Avatar'
 import { useToast } from '@/components/Toast'
 
 const RENKLER: [NotRenk, string][] = [
@@ -638,6 +640,60 @@ function Anketler() {
   )
 }
 
+/** Haftalık lig kürsüsü: 1. ortada ve en yüksek, 2. solda, 3. sağda (olimpiyat kürsüsü). Hafta bitince otomatik. */
+function LigKursusu() {
+  const q = useLigKursu()
+  const satirlar = q.data ?? []
+  if (!satirlar.length) return null
+  const hafta = satirlar[0]!.hafta
+  // İki haftadan eski kürsü gösterilmez (o hafta kimse oynamadıysa eski kazananlar kalmasın)
+  if (addDays(hafta, 14) < todayISO()) return null
+  const basamak = (s: number) => satirlar.filter((x) => x.sira === s)
+  const BASAMAK = [
+    { s: 2, madalya: '🥈', ad: 'Haftanın ikincisi' },
+    { s: 1, madalya: '🥇', ad: 'Haftanın birincisi' },
+    { s: 3, madalya: '🥉', ad: 'Haftanın üçüncüsü' },
+  ]
+  return (
+    <div className="pn-kursu" data-testid="lig-kursu">
+      <span className="chip gold">
+        🏆 Haftalık lig · {trDM(hafta)} – {trDM(addDays(hafta, 6))}
+      </span>
+      <ol className="pn-kursu-basamaklar" aria-label="Haftalık lig kürsüsü">
+        {BASAMAK.map((b) => {
+          const kisiler = basamak(b.s)
+          return (
+            <li key={b.s} className={`pn-basamak b${b.s}`} aria-label={`${b.ad}: ${kisiler.map((k) => k.ad).join(', ') || 'yok'}`}>
+              <div className="pn-kursu-kisi">
+                <span className="pn-madalya" aria-hidden="true">
+                  {b.madalya}
+                </span>
+                {kisiler.length ? (
+                  kisiler.map((k) => (
+                    <b key={k.user_id} className="pn-kursu-ad">
+                      {k.ad}
+                    </b>
+                  ))
+                ) : (
+                  <span className="m">—</span>
+                )}
+                {kisiler[0] && (
+                  <span className="m mono" style={{ fontSize: 12 }}>
+                    {kisiler[0].puan} puan
+                  </span>
+                )}
+              </div>
+              <div className="pn-kursu-blok" aria-hidden="true">
+                {b.s}
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
+}
+
 function Tesekkurler() {
   const { profile, role } = useAuth()
   const q = useTesekkurler()
@@ -697,6 +753,7 @@ function Tesekkurler() {
           </button>
         </form>
       )}
+      <LigKursusu />
       {haftanin && (
         <div className="pn-haftanin">
           <span className="chip gold">⭐ Haftanın teşekkürü</span>
@@ -716,9 +773,7 @@ function Tesekkurler() {
             const benim = t.oda_tesekkur_alkis.some((a) => a.user_id === profile?.id)
             return (
               <li key={t.id}>
-                <span className="av" aria-hidden="true">
-                  {initials(t.alan_p?.full_name ?? '?')}
-                </span>
+                <KisiSimge ad={t.alan_p?.full_name ?? '?'} avatar={t.alan_p?.avatar} />
                 <div style={{ minWidth: 0 }}>
                   <span style={{ fontSize: 13 }}>
                     <b>{t.gonderen_p?.full_name ?? 'Bir öğretmen'}</b> → <b>{t.alan_p?.full_name ?? 'Ayrılmış öğretmen'}</b>

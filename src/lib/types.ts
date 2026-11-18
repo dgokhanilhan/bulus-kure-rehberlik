@@ -28,6 +28,8 @@ export interface Profile {
   phone?: string | null
   /** Görünüm teması (0065); boş = Buluş Küre. */
   tema?: string | null
+  /** Hazır avatar kimliği (0083); boş = baş harfler. */
+  avatar?: string | null
   /** Uygulama rolleri (profile_roles, 0020); yoksa yalnız ana rol. */
   roles?: DbRole[]
 }

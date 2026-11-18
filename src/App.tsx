@@ -1,4 +1,5 @@
 import { SchoolAppearance } from '@/pages/OkulKontrolleri'
+import { SekmeSimgesi } from '@/components/SekmeSimgesi'
 import { Suspense, lazy, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { gateOf, useAuth } from '@/auth/AuthProvider'
@@ -125,6 +126,7 @@ export default function App() {
   return (
     <>
       <SchoolAppearance />
+      <SekmeSimgesi />
       <TopBar />
       {gate === 'loading' && (
         <main className="view" aria-busy="true" style={{ alignItems: 'center', paddingTop: 80 }}>

@@ -1,4 +1,4 @@
-// Görüşme hazırlık kartı + kararlar (karar → görev, "yapıldı mı?") ve veli haftalık özeti (onay → veli okur → okundu).
+// Görüşme hazırlık kartı + kararlar (karar → görev, "yapıldı mı?"). Veli haftalık özeti 0081 ile kaldırıldı.
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { DEMO, ELIF, login, service, shot } from './helpers'
@@ -13,7 +13,7 @@ const temizle = async () => {
 test.beforeAll(temizle)
 test.afterAll(temizle)
 
-test('rehber: karar yazar, göreve çevirir, yapıldı işaretler; haftalık özeti gönderir, veli okuyunca okundu görünür', async ({ page, browser }) => {
+test('rehber: karar yazar, göreve çevirir, yapıldı işaretler; haftalık özet kartı yok', async ({ page }) => {
   await login(page, ...DEMO.rehber)
   await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
   await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -48,35 +48,10 @@ test('rehber: karar yazar, göreve çevirir, yapıldı işaretler; haftalık öz
   await expect(hazirlik.getByTestId('hazirlik-karar')).toHaveCount(0)
   await expect(satir).toContainText('Yapıldı')
 
-  // Haftalık özet: önizle, not ekle, onayla
+  // Veli haftalık özeti kaldırıldı (0081): Raporlar sekmesinde kart yok
   await page.goto(`/ogrenciler/${ELIF}?sekme=raporlar`)
-  const ozet = page.getByTestId('haftalik-ozet')
-  await expect(ozet).toBeVisible()
-  await expect(ozet).toContainText('Görevler')
-  await ozet.getByLabel('Veliye kısa not (isteğe bağlı)').fill('Bu hafta paragrafta çok emek verdi.')
-  await ozet.getByRole('button', { name: 'Onayla ve veliye gönder' }).click()
-  await expect(ozet.getByTestId('ozet-durum')).toContainText('henüz okunmadı')
-  await expect(ozet.getByRole('button', { name: 'Güncelle ve yeniden gönder' })).toBeVisible()
-  const axe2 = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa']).analyze()
-  expect(axe2.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([])
-
-  // Veli: özet görünür (not dahil), teknik terim ve sıralama yok; açınca okundu
-  const veli = await (await browser.newContext()).newPage()
-  await veli.emulateMedia({ reducedMotion: 'reduce' })
-  await login(veli, ...DEMO.veli)
-  await expect(veli.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
-  await veli.goto('/ozet') // bildirim de buraya götürür
-  const vo = veli.getByTestId('veli-haftalik-ozet')
-  await expect(vo).toBeVisible()
-  await expect(vo).toContainText('Bu hafta paragrafta çok emek verdi.')
-  await expect(vo).not.toContainText(/sıra|başarısız|yetersiz/i)
-  await shot(veli, 'veli-haftalik-ozet')
-  await expect
-    .poll(async () => (await svc.from('veli_ozet').select('okundu_at').eq('student_id', ELIF).single()).data?.okundu_at ?? null)
-    .not.toBeNull()
-
-  await page.reload()
-  await expect(page.getByTestId('ozet-durum')).toContainText('Veli okudu')
+  await expect(page.getByRole('tab', { name: 'Raporlar' })).toBeVisible()
+  await expect(page.getByTestId('haftalik-ozet')).toHaveCount(0)
 })
 
 test('branş öğretmeni görüşme kararlarını ve haftalık özet kartını görmez', async ({ page }) => {

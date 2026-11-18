@@ -123,7 +123,7 @@ export interface Tesekkur {
   metin: string
   created_at: string
   gonderen_p: { full_name: string } | null
-  alan_p: { full_name: string; branch: string | null } | null
+  alan_p: { full_name: string; branch: string | null; avatar?: string | null } | null
   oda_tesekkur_alkis: { user_id: string }[]
 }
 export const useTesekkurler = () =>
@@ -134,7 +134,7 @@ export const useTesekkurler = () =>
         supabase
           .from('oda_tesekkur')
           .select(
-            'id, gonderen, alan, metin, created_at, gonderen_p:profiles!oda_tesekkur_gonderen_fkey(full_name), alan_p:profiles!oda_tesekkur_alan_fkey(full_name, branch), oda_tesekkur_alkis(user_id)',
+            'id, gonderen, alan, metin, created_at, gonderen_p:profiles!oda_tesekkur_gonderen_fkey(full_name), alan_p:profiles!oda_tesekkur_alan_fkey(full_name, branch, avatar), oda_tesekkur_alkis(user_id)',
           )
           .order('created_at', { ascending: false })
           .limit(40),
@@ -275,3 +275,23 @@ export function useDogumKaydet() {
     'dogum',
   )
 }
+
+// ---------------------------------------------------------------- haftalık lig kürsüsü (0082)
+export interface KursuSatir {
+  hafta: string
+  user_id: string
+  sira: number
+  ad: string
+  puan: number
+}
+/** Son biten haftanın ilk üçü (eşitlikte aynı basamakta birden çok öğretmen olabilir). */
+export const useLigKursu = () =>
+  useQuery({
+    queryKey: ['oda', 'kursu'],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const r = await rows<KursuSatir>(supabase.from('oda_lig_kursu').select('hafta, user_id, sira, ad, puan').order('hafta', { ascending: false }).limit(12))
+      const son = r[0]?.hafta
+      return son ? r.filter((x) => x.hafta === son) : []
+    },
+  })

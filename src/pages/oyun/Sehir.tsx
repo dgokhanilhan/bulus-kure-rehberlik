@@ -1,7 +1,7 @@
 // Günün Şehri: bir il tahmin edilir. Her yanlış tahminde hedefin uzaklığı ve yönü gelir; tahminler ilerledikçe yöresel
 // ipuçları açılır. Hedef il, uzaklıklar ve ipuçları sunucudan gelir (0073); cevap oyun bitmeden tarayıcıya gitmez.
 import { useMemo, useState } from 'react'
-import { SEHIR_HAK, yonOku, yonYaz } from '@/lib/oyunlar'
+import { ilBul, SEHIR_HAK, yonOku, yonYaz } from '@/lib/oyunlar'
 import { useSehir, useSehirTahmin } from '@/lib/oyunData'
 import { useToast } from '@/components/Toast'
 
@@ -23,8 +23,11 @@ export default function Sehir() {
   const gonder = (e: React.FormEvent) => {
     e.preventDefault()
     if (bitti || tahmin.isPending) return
-    if (!secim) return toast('Listeden bir il seç', 'warn')
-    tahmin.mutate(Number(secim), {
+    if (!secim.trim()) return toast('Bir il adı yaz', 'warn')
+    const il = ilBul(secim, iller)
+    if (!il) return toast(`"${secim.trim()}" adında bir il bulamadım. Yazımı kontrol et.`, 'warn')
+    if (denenen.has(il.plaka)) return toast(`${il.ad} ilini zaten denedin`, 'warn')
+    tahmin.mutate(il.plaka, {
       onSuccess: (r) => {
         setSecim('')
         if (r.bitti)
@@ -84,14 +87,23 @@ export default function Sehir() {
         <form className="sh-form" onSubmit={gonder}>
           <label className="field" htmlFor="shIl">
             Tahminin ({kalan} hak kaldı)
-            <select id="shIl" value={secim} onChange={(e) => setSecim(e.target.value)}>
-              <option value="">İl seç…</option>
-              {iller.map((il) => (
-                <option key={il.plaka} value={il.plaka} disabled={denenen.has(il.plaka)}>
-                  {il.ad}
-                </option>
-              ))}
-            </select>
+            <input
+              id="shIl"
+              list="shIller"
+              value={secim}
+              onChange={(e) => setSecim(e.target.value)}
+              placeholder="İl adını yaz (ör. Bartın)"
+              autoComplete="off"
+              autoCapitalize="words"
+              spellCheck={false}
+            />
+            <datalist id="shIller">
+              {iller
+                .filter((il) => !denenen.has(il.plaka))
+                .map((il) => (
+                  <option key={il.plaka} value={il.ad} />
+                ))}
+            </datalist>
           </label>
           <button type="submit" className="btn pri" disabled={tahmin.isPending}>
             Tahmin et

@@ -892,8 +892,28 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .sd-h.esit{background:var(--primary-soft)}
 .sd-h.sec{background:color-mix(in srgb,var(--highlight) 45%,transparent);outline:2px solid var(--primary);outline-offset:-2px}
 .sd-h.cakis{color:var(--signal);text-decoration:underline wavy var(--signal)}
-.sd-tuslar{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(100%,432px)}
-.sd-tuslar .btn{min-height:48px;font-size:18px;font-family:var(--font-mono)}
+.sd-ust{display:flex;gap:10px;align-items:center;justify-content:space-between;width:min(100%,432px)}
+.sd-tahta{box-shadow:0 6px 24px rgba(27,42,47,.12)}
+.sd-tahta.cozuldu{border-color:var(--primary)}
+.sd-h{position:relative;transition:background .12s}
+.sd-h:not(.sabit){font-weight:500}
+.sd-h:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.sd-not{position:absolute;inset:2px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);font-size:clamp(8px,2.2vw,11px);line-height:1;color:var(--ink-muted);font-weight:500}
+.sd-not span{display:flex;align-items:center;justify-content:center}
+.sd-not span.esit{color:var(--primary);font-weight:800}
+.sd-araclar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(100%,432px)}
+.sd-arac{min-height:52px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:600;cursor:pointer}
+.sd-arac span{font-size:20px;line-height:1}
+.sd-arac.acik{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}
+.sd-arac[disabled]{opacity:.45;cursor:not-allowed}
+.sd-tuslar{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;width:min(100%,432px)}
+.sd-rakam{min-height:58px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--primary);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:0;min-width:0}
+.sd-rakam-n{font:600 clamp(18px,5vw,24px) var(--font-mono)}
+.sd-rakam-k{font-size:10px;color:var(--ink-muted)}
+.sd-rakam.kalem .sd-rakam-n{font-size:clamp(13px,3.6vw,16px);color:var(--ink-muted)}
+.sd-rakam.tamam{opacity:.4}
+.sd-rakam[disabled]{cursor:not-allowed;opacity:.5}
+.sd-rakam:not([disabled]):hover,.sd-arac:not([disabled]):hover{background:var(--paper)}
 /* Kelime */
 .oy-kelime{display:flex;flex-direction:column;gap:12px;align-items:center;width:100%}
 .kl-izgara{display:grid;gap:6px}
@@ -1049,6 +1069,17 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .pn-secenek-ad,.pn-secenek .mono{position:relative}
 .pn-haftanin{padding:14px;border-radius:12px;background:color-mix(in srgb,var(--highlight) 18%,transparent);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .pn-haftanin p{margin:0;font-size:15px;font-style:italic}
+.pn-kursu{padding:14px;border-radius:12px;background:color-mix(in srgb,var(--highlight) 12%,transparent);display:flex;flex-direction:column;gap:10px;align-items:center}
+.pn-kursu-basamaklar{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:6px;width:100%;max-width:420px}
+.pn-basamak{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.pn-kursu-kisi{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;min-width:0;max-width:100%}
+.pn-kursu-ad{font-size:13px;line-height:1.25;overflow-wrap:anywhere}
+.pn-madalya{font-size:26px;line-height:1}
+.pn-basamak.b1 .pn-madalya{font-size:34px}
+.pn-kursu-blok{width:100%;border-radius:10px 10px 4px 4px;display:flex;align-items:flex-start;justify-content:center;padding-top:6px;font:700 22px var(--font-mono,monospace);color:var(--ink);background:color-mix(in srgb,var(--primary) 22%,var(--surface))}
+.pn-basamak.b1 .pn-kursu-blok{height:96px;background:color-mix(in srgb,var(--highlight) 55%,var(--surface))}
+.pn-basamak.b2 .pn-kursu-blok{height:68px}
+.pn-basamak.b3 .pn-kursu-blok{height:46px;background:color-mix(in srgb,var(--signal) 20%,var(--surface))}
 .pn-tesekkurler{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
 .pn-tesekkurler>li{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px}
 .pn-tesekkurler p{margin:4px 0;font-size:14px;line-height:1.5;overflow-wrap:anywhere}

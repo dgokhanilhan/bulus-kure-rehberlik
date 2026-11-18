@@ -378,3 +378,31 @@ export const ROZETLER: {
   { id: 'yilan30', oyun: 'yilan', ad: 'Uzun yılan', simge: '🐍', aciklama: 'Yılanda 30 puan', kosul: (i) => (i.yilan_en_iyi ?? 0) >= 30 },
   { id: 'sprint40', oyun: 'sprint', ad: 'Hesap makinesi', simge: '⚡', aciklama: 'Hesap Sprintinde 20 doğru', kosul: (i) => (i.sprint_en_iyi ?? 0) >= 20 },
 ]
+
+// ---------------------------------------------------------------- Günün Şehri: yazarak tahmin
+/** Büyük/küçük harf, Türkçe karakter, boşluk ve noktalama farkı gözetmez: "Bartın" = "bartin" = "BARTIN". */
+export function ilAnahtar(s: string): string {
+  return s
+    .toLocaleLowerCase('tr')
+    .replace(/[çğıöşüâîû]/g, (h) => ({ ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u' })[h] ?? h)
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z]/g, '')
+}
+/** Halk arasında kullanılan kısa adlar */
+const IL_TAKMA: Record<string, string> = {
+  afyon: 'afyonkarahisar',
+  maras: 'kahramanmaras',
+  antep: 'gaziantep',
+  urfa: 'sanliurfa',
+  izmit: 'kocaeli',
+  adapazari: 'sakarya',
+  antakya: 'hatay',
+}
+/** Yazılan adı listedeki ile çevirir; tanınmazsa null. */
+export function ilBul<T extends { ad: string }>(yazi: string, iller: readonly T[]): T | null {
+  const k = ilAnahtar(yazi)
+  if (!k) return null
+  const hedef = IL_TAKMA[k] ?? k
+  return iller.find((il) => ilAnahtar(il.ad) === hedef) ?? null
+}

@@ -10,13 +10,14 @@ import { menuAyarla, useAyar } from '@/lib/ayarlar'
 import { useOdaOkunmamis } from '@/lib/odaData'
 import { useConversations, useFamilyTracks, useModules, useSettings } from '@/lib/data'
 import type { Notification } from '@/lib/types'
-import { ago, initials } from '@/lib/format'
+import { ago } from '@/lib/format'
 import { Icon, SchoolLogo } from './Icon'
 import { useSchoolInfo } from '@/lib/files'
 import { ntype, useOpenNotification } from '@/lib/notifications'
 import { useIndicator } from './Indicator'
 import { useToast } from './Toast'
 import { TemaSecici } from './Tema'
+import { AvatarSecici, KisiSimge } from './Avatar'
 import { CevrimdisiKuyruk } from './CevrimdisiKuyruk'
 
 function Brand() {
@@ -91,9 +92,7 @@ function ProfileMenu() {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button className="who press" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Profil: ${profile.full_name}`}>
-        <span className="av" style={{ width: 34, height: 34, fontSize: 13 }}>
-          {initials(profile.full_name)}
-        </span>
+        <KisiSimge ad={profile.full_name} avatar={profile.avatar} boyut={34} />
         <div>
           <b>{profile.full_name}</b>
           <small>{roleText}</small>
@@ -123,6 +122,7 @@ function ProfileMenu() {
             Hesap ayarları
           </Link>
           <TemaSecici />
+          <AvatarSecici />
           {role === 'admin' && (
             <Link
               className="pitem"
