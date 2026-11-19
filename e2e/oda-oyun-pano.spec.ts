@@ -3,7 +3,7 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { createClient } from '@supabase/supabase-js'
-import { DEMO, login, service, shot } from './helpers'
+import { DEMO, login, service, shot, surumErtele } from './helpers'
 
 const IZ = 'e2e-pano'
 const temizle = async () => {
@@ -26,11 +26,15 @@ const oyunAyar = async (key: string, value: boolean) => {
   const { error } = await svc.from('school_settings').upsert({ school_id: okul!.school_id, key, value }, { onConflict: 'school_id,key' })
   expect(error).toBeNull()
 }
+// Bu dosya ayrılma sınırı ve kurallar penceresi (0088) olmadan oynar
+let surumGeri: () => Promise<void> = async () => {}
 test.beforeAll(async () => {
   await temizle()
   for (const k of OYUN_AYAR) await oyunAyar(k, true)
+  surumGeri = await surumErtele(['sudoku_sekme'])
 })
 test.afterAll(async () => {
+  await surumGeri()
   await temizle()
   await service().from('school_settings').delete().in('key', OYUN_AYAR)
 })
@@ -57,7 +61,11 @@ test('oyunlar: sudoku ve kelime sunucuda doğrulanır; skor sınırları; lig; v
   const { data: dogru } = await svc.rpc('oda_sudoku_uret', { g: (await svc.rpc('tr_today')).data })
   // 0084: 4 dakikadan kısa çözüm lige girmez; bulmaca 10 dakika önce açılmış gibi
   const matId = (await svc.from('profiles').select('id').eq('email', DEMO.matematik[0]).single()).data!.id
-  await svc.from('oda_oyun').update({ basladi: new Date(Date.now() - 600_000).toISOString() }).eq('user_id', matId).eq('oyun', 'sudoku')
+  await svc
+    .from('oda_oyun')
+    .update({ basladi: new Date(Date.now() - 600_000).toISOString() })
+    .eq('user_id', matId)
+    .eq('oyun', 'sudoku')
   const r = (await mat.rpc('oda_sudoku_bitir', { p: (dogru as { cozum: number[] }).cozum })).data as { dogru: boolean; puan: number }
   expect(r.dogru).toBe(true)
   expect(r.puan).toBeGreaterThanOrEqual(1)

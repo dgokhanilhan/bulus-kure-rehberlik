@@ -16,6 +16,16 @@ export const service = () =>
     auth: { persistSession: false, autoRefreshToken: false },
   })
 
+/** Günlük oyun içerik sürümlerinin (oda_icerik_surum) yürürlüğünü test süresince ileri atar; dönen fonksiyon geri yükler. */
+export async function surumErtele(adlar: string[]): Promise<() => Promise<void>> {
+  const svc = service()
+  const eski = (await svc.from('oda_icerik_surum').select('ad, baslangic').in('ad', adlar)).data ?? []
+  await svc.from('oda_icerik_surum').update({ baslangic: '2099-01-01' }).in('ad', adlar)
+  return async () => {
+    for (const s of eski) await svc.from('oda_icerik_surum').update({ baslangic: s.baslangic }).eq('ad', s.ad)
+  }
+}
+
 export const shot = (page: Page, name: string, fullPage = true) => page.screenshot({ path: `e2e-artifacts/${name}.png`, fullPage, animations: 'disabled' })
 
 export async function login(page: Page, email: string, password: string) {

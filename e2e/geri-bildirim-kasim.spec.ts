@@ -2,7 +2,7 @@
 // profesyonel Sudoku (kalem notu, geri al, kalan rakam). Sudoku "fen" hesabıyla oynanır: diğer oyun testleriyle karışmaz.
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { DEMO, login, service, shot } from './helpers'
+import { DEMO, login, service, shot, surumErtele } from './helpers'
 
 const svc = service()
 const FEN = ['fen@buluskure.k12.tr', 'Fen12345!'] as const
@@ -19,8 +19,16 @@ const temizle = async () => {
   const fen = (await svc.from('profiles').select('id').eq('email', FEN[0]).single()).data!.id
   await svc.from('oda_oyun').delete().eq('user_id', fen)
 }
-test.beforeAll(temizle)
-test.afterAll(temizle)
+// Bu dosya Sudoku'yu ayrılma sınırı ve kurallar penceresi (0088) olmadan oynar
+let surumGeri: () => Promise<void> = async () => {}
+test.beforeAll(async () => {
+  await temizle()
+  surumGeri = await surumErtele(['sudoku_sekme'])
+})
+test.afterAll(async () => {
+  await surumGeri()
+  await temizle()
+})
 test.describe.configure({ mode: 'serial' })
 
 test('denemeler: konuları gizle / göster; puanlar değişmez', async ({ page }) => {
