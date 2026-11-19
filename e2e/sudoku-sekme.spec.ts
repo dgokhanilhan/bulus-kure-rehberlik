@@ -50,6 +50,8 @@ test('Sudoku: kurallar bir kez çıkar, süre Tamam ile başlar; sayaç işler; 
   await expect(pencere.getByText(/4 dakikadan kısa çözümler/)).toBeVisible()
   await expect(page.getByRole('grid', { name: 'Sudoku tahtası' })).toHaveCount(0)
   expect(await kayit()).toBeNull()
+  // Açılış animasyonu bitmeden taranırsa geçiş renkleri yanlış kontrast verir
+  await page.waitForFunction(() => (document.querySelector('.mwrap')?.getAnimations({ subtree: true }) ?? []).every((a) => a.playState !== 'running'))
   const axe = await new AxeBuilder({ page }).include('.modal').withTags(['wcag2a', 'wcag2aa']).analyze()
   expect(axe.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([])
   await shot(page, 'sudoku-kurallar', false)
