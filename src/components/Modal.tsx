@@ -8,6 +8,7 @@ export function Modal({
   title,
   sub,
   avatar,
+  simge,
   width = 560,
   onClose,
   children,
@@ -16,6 +17,8 @@ export function Modal({
   title: string
   sub?: string
   avatar?: string
+  /** Başlıktaki kişi simgesi (seçilmiş avatar); verilirse `avatar`ın yerine geçer */
+  simge?: ReactNode
   width?: number
   onClose: () => void
   children: ReactNode
@@ -43,7 +46,7 @@ export function Modal({
     <div className="mwrap" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={title} style={{ ['--mw' as string]: `${width}px` }} ref={ref}>
         <div className="modal-h">
-          {avatar && <span className="av">{initials(avatar)}</span>}
+          {simge ?? (avatar && <span className="av">{initials(avatar)}</span>)}
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2>{title}</h2>
             {sub && (
@@ -56,7 +59,9 @@ export function Modal({
             <Icon name="x" size={18} stroke={2.4} />
           </button>
         </div>
-        <div className="modal-b" tabIndex={0}>{children}</div>
+        <div className="modal-b" tabIndex={0}>
+          {children}
+        </div>
         {footer && <div className="modal-f">{footer}</div>}
       </div>
     </div>,

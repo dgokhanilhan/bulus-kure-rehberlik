@@ -184,6 +184,30 @@ export function useLig() {
     queryFn: () => rpc<LigSatiri[]>('oda_lig'),
   })
 }
+/** Ligde isme tıklanınca açılan profil kartı (0090); gizli ya da başka okuldaki kişi için null */
+export interface OdaProfil {
+  user_id: string
+  ad: string
+  avatar: string | null
+  rol: string
+  brans: string | null
+  ben: boolean
+  hafta: string
+  bugun_gun: string
+  lig: { sira: number; puan: number; bugun: number } | null
+  gunler: { gun: string; puan: number }[]
+  tavan: number
+  bugun: { oyun: OyunId; puan: number }[]
+  kursu: { sayi: number; en_iyi: number | null }
+  ist: Istatistik
+}
+export function useOdaProfil(userId: string | null) {
+  return useQuery({
+    queryKey: ['oyun', 'tablo', 'profil', userId],
+    enabled: !!userId,
+    queryFn: () => rpc<OdaProfil | null>('oda_profil', { p_user: userId }),
+  })
+}
 export function useOyunIstatistik() {
   return useQuery({
     queryKey: ['oyun', 'tablo', 'istatistik'],
