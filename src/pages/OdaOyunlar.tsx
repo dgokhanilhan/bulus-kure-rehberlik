@@ -1,6 +1,6 @@
 // Öğretmenler Odası → Oyunlar: haftalık lig, oyunlar, skor tabloları ve rozetler (0069). Yalnız öğretmenler.
 // Hangi oyunların açık olduğu okul ayarıdır (oda.oyun.*, 0072); kapalı oyun listede ve rozetlerde görünmez.
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { OYUNLAR, ROZETLER, seri, skorYaz, type OyunId } from '@/lib/oyunlar'
 import { useLig, useOyunGizli, useOyunIstatistik, useSkorTablosu } from '@/lib/oyunData'
@@ -8,6 +8,7 @@ import { initials, todayISO } from '@/lib/format'
 import { Icon } from '@/components/Icon'
 import { useAyar } from '@/lib/ayarlar'
 import { SkorTablosu } from './oyun/SkorTablosu'
+import { ProfilKarti } from './oyun/ProfilKarti'
 
 const OYUN: Record<OyunId, React.LazyExoticComponent<() => JSX.Element>> = {
   sudoku: lazy(() => import('./oyun/Sudoku')),
@@ -75,6 +76,7 @@ function OyunMerkezi({ onAc, acik }: { onAc: (o: OyunId) => void; acik: OyunId[]
   const gizli = useOyunGizli()
   const s = ist.data ? seri(ist.data.gunler, todayISO()) : 0
   const ben = lig.data?.find((r) => r.ben)
+  const [profil, setProfil] = useState<{ id: string; ad: string } | null>(null)
 
   return (
     <div className="oy-merkez">
@@ -108,22 +110,24 @@ function OyunMerkezi({ onAc, acik }: { onAc: (o: OyunId) => void; acik: OyunId[]
               <ol className="oy-sira lig">
                 {lig.data.slice(0, 10).map((r) => (
                   <li key={r.user_id} className={r.ben ? 'ben' : ''}>
-                    <span className={`oy-no${r.sira <= 3 ? ` s${r.sira}` : ''}`}>{r.sira <= 3 ? ['🥇', '🥈', '🥉'][r.sira - 1] : r.sira}</span>
-                    <span className="av s" aria-hidden="true">
-                      {initials(r.ad)}
-                    </span>
-                    <span className="oy-ad">
-                      {r.ad}
-                      {r.ben && <span className="sr-only"> (sen)</span>}
-                    </span>
-                    <span className={`mono${r.bugun ? '' : ' m'}`} data-testid="lig-bugun">
-                      <span className="sr-only">Bugün </span>
-                      {r.bugun || '–'}
-                    </span>
-                    <b className="mono" data-testid="lig-hafta">
-                      <span className="sr-only">Hafta </span>
-                      {r.puan}
-                    </b>
+                    <button type="button" className="oy-satir" onClick={() => setProfil({ id: r.user_id, ad: r.ad })} aria-haspopup="dialog">
+                      <span className={`oy-no${r.sira <= 3 ? ` s${r.sira}` : ''}`}>{r.sira <= 3 ? ['🥇', '🥈', '🥉'][r.sira - 1] : r.sira}</span>
+                      <span className="av s" aria-hidden="true">
+                        {initials(r.ad)}
+                      </span>
+                      <span className="oy-ad">
+                        {r.ad}
+                        {r.ben && <span className="sr-only"> (sen)</span>}
+                      </span>
+                      <span className={`mono${r.bugun ? '' : ' m'}`} data-testid="lig-bugun">
+                        <span className="sr-only">Bugün </span>
+                        {r.bugun || '–'}
+                      </span>
+                      <b className="mono" data-testid="lig-hafta">
+                        <span className="sr-only">Hafta </span>
+                        {r.puan}
+                      </b>
+                    </button>
                   </li>
                 ))}
               </ol>
@@ -161,6 +165,7 @@ function OyunMerkezi({ onAc, acik }: { onAc: (o: OyunId) => void; acik: OyunId[]
           })}
         </ul>
       </section>
+      {profil && <ProfilKarti userId={profil.id} ad={profil.ad} acik={acik} onClose={() => setProfil(null)} />}
     </div>
   )
 }

@@ -169,6 +169,18 @@ test('arayüz: oyunlar ve pano sekmeleri, sudoku ve kelime oynanır', async ({ p
   await expect(benSatir.getByTestId('lig-bugun')).toHaveText('Bugün 10')
   await expect(benSatir.getByTestId('lig-hafta')).toHaveText('Hafta 10')
   await shot(page, 'oda-oyunlar')
+  // 0090: isme tıklanınca profil kartı açılır (adını gizleyen kişi kendi kartını görür)
+  await benSatir.getByRole('button').click()
+  const kart = page.getByRole('dialog')
+  await expect(kart.getByTestId('pk-hafta')).toContainText('Bu hafta 2.') // Matematik 18 puanla önde
+  await expect(kart.getByRole('region', { name: 'Bugünkü sonuçlar' })).toContainText('Günün Sudokusu')
+  await expect(kart.getByRole('region', { name: 'Rozetler' })).toContainText('İlk adım')
+  await page.waitForFunction(() => (document.querySelector('.mwrap')?.getAnimations({ subtree: true }) ?? []).every((a) => a.playState !== 'running'))
+  const axeP = await new AxeBuilder({ page }).include('.modal').withTags(['wcag2a', 'wcag2aa']).analyze()
+  expect(axeP.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([])
+  await shot(page, 'oda-profil-karti', false)
+  await page.keyboard.press('Escape')
+  await expect(kart).toHaveCount(0)
   // Kapalı oyun listede yok; adresle de açılmaz
   await oyunAyar('oda.oyun.mayin', false)
   await page.reload()
