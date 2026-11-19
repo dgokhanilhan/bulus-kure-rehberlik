@@ -43,23 +43,17 @@ describe('büyük bulmaca verisi', () => {
 })
 
 describe('takvim', () => {
-  it('yürürlükten önce hep 5×5; sonra çarşamba 6×6, ayın son cuması 7×7, diğer günler 5×5', async () => {
+  it('yürürlükten önce hep 5×5; sonra çarşamba 6×6, diğer günler (ayın son cuması dahil) 5×5; 7×7 hiç çıkmaz (0087)', async () => {
     await yururluk(inDays(1))
     for (let i = -30; i <= 0; i++) expect(await boyut(inDays(i))).toBe(5)
     let alti = 0
-    let yedi = 0
     for (let i = 1; i <= 70; i++) {
       const g = inDays(i)
-      const son = new Date(`${g}T12:00:00Z`)
-      son.setUTCDate(son.getUTCDate() + 7)
-      const beklenen = gunAdi(g) === 5 && son.getUTCMonth() !== new Date(`${g}T12:00:00Z`).getUTCMonth() ? 7 : gunAdi(g) === 3 ? 6 : 5
       const b = await boyut(g)
-      expect(b, g).toBe(beklenen)
+      expect(b, g).toBe(gunAdi(g) === 3 ? 6 : 5)
       if (b === 6) alti++
-      if (b === 7) yedi++
     }
     expect(alti).toBeGreaterThanOrEqual(9)
-    expect(yedi).toBeGreaterThanOrEqual(2)
   })
 })
 

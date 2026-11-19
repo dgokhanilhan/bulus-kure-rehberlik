@@ -14,7 +14,7 @@ const temizle = async () => {
   await svc.from('school_settings').delete().like('key', 'oda.oyun.%')
 }
 // Bu dosya eski (0073) kuralları sınar: 6 ipuçlu şehir (0085) ve büyük bulmaca (0086) yürürlüğünü test süresince ileri at
-const SURUMLER = ['sehir6', 'bulmaca2']
+const SURUMLER = ['sehir6', 'bulmaca2', 'soru_sure']
 let surumler: { ad: string; baslangic: string }[] = []
 test.beforeAll(async () => {
   await temizle()

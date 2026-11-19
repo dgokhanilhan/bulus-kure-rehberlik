@@ -188,12 +188,40 @@ export interface SoruDurum {
   gun: string
   bitti: string | null
   puan: number | null
-  /** cevap: verdiğim cevap (1–4); dogru: yalnız cevaplanan soruda dolu */
+  /** cevap: verdiğim cevap (1–4); dogru: cevaplanan soruda, oyun bitince hepsinde dolu */
   sorular: { soru: string; secenekler: string[]; cevap: number | null; dogru: number | null }[]
+  /** Süreli günlerde (0087): toplam süre ve kalan saniye (sunucu ölçer) */
+  sure?: number
+  kalan?: number | null
+  /** Süreli günde henüz "Başla"ya basılmadı (sorular boş) */
+  baslamadi?: boolean
+  /** Cevap süre dolduktan sonra geldi; kaydedilmedi */
+  sure_doldu?: boolean
+}
+// Süreli günlerde oyunu başlatmadan bakar; süresiz günde (ya da 0087 yoksa) eskisi gibi doğrudan açar
+async function soruYukle(): Promise<SoruDurum> {
+  let d: SoruDurum
+  try {
+    d = await rpc<SoruDurum>('oda_soru_bak')
+  } catch (e) {
+    // Yalnız fonksiyon yoksa (0087 geri alınmışsa) eski yola dön; ağ hatasında süreyi kendiliğinden başlatma
+    if (/could not find the function/i.test((e as Error).message)) return rpc<SoruDurum>('oda_soru_ac')
+    throw e
+  }
+  if (d.baslamadi && !d.sure) return rpc<SoruDurum>('oda_soru_ac')
+  return { ...d, sorular: d.sorular ?? [] }
 }
 export function useSoru(acik: boolean) {
   const { profile } = useAuth()
-  return useQuery({ queryKey: ['oyun', 'soru', profile?.id], enabled: acik && !!profile, staleTime: Infinity, queryFn: () => rpc<SoruDurum>('oda_soru_ac') })
+  return useQuery({ queryKey: ['oyun', 'soru', profile?.id], enabled: acik && !!profile, staleTime: Infinity, queryFn: soruYukle })
+}
+export function useSoruBasla() {
+  const qc = useQueryClient()
+  const { profile } = useAuth()
+  return useMutation({
+    mutationFn: () => rpc<SoruDurum>('oda_soru_ac'),
+    onSuccess: (d) => qc.setQueryData(['oyun', 'soru', profile?.id], d),
+  })
 }
 export function useSoruCevap() {
   const qc = useQueryClient()
