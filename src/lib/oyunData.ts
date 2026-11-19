@@ -174,6 +174,8 @@ export function useSkorTablosu(oyun: OyunId, donem: 'gun' | 'hafta') {
 }
 export interface LigSatiri extends SkorSatiri {
   oyun_sayisi: number
+  /** Bugünkü günlük puan (0089); eski sunucu göndermezse yok */
+  bugun?: number
 }
 export function useLig() {
   return useQuery({

@@ -870,6 +870,11 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .oy-no{font-family:var(--font-mono);text-align:center;color:var(--ink-muted);font-size:13px}
 .oy-no.s1,.oy-no.s2,.oy-no.s3{font-size:18px}
 .oy-ad{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.oy-sira.lig li{grid-template-columns:32px 30px minmax(0,1fr) 38px 38px}
+.oy-sira.lig li>.mono{text-align:right}
+.oy-sira.lig .oy-ad{white-space:normal;overflow-wrap:anywhere;line-height:1.25}
+.oy-lig-baslik{display:flex;justify-content:flex-end;gap:8px;padding:0 6px;margin-bottom:-6px;font-size:12px}
+.oy-lig-baslik span{width:38px;text-align:right}
 .oy-gizli{display:flex;gap:8px;align-items:center;font-size:13px;min-height:44px;cursor:pointer}
 .oy-gizli input{width:20px;height:20px}
 .oy-rozetler{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}

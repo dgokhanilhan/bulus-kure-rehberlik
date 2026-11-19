@@ -164,6 +164,10 @@ test('arayüz: oyunlar ve pano sekmeleri, sudoku ve kelime oynanır', async ({ p
   await page.goto('/ogretmenler-odasi?sekme=oyunlar')
   await expect(page.getByRole('heading', { name: /Haftalık lig/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Rozetlerim' })).toBeVisible()
+  // 0089: Bugün / Hafta sütunları; rehber bugün Yılan'da 1. (ilk test)
+  const benSatir = page.locator('.oy-sira.lig li.ben')
+  await expect(benSatir.getByTestId('lig-bugun')).toHaveText('Bugün 10')
+  await expect(benSatir.getByTestId('lig-hafta')).toHaveText('Hafta 10')
   await shot(page, 'oda-oyunlar')
   // Kapalı oyun listede yok; adresle de açılmaz
   await oyunAyar('oda.oyun.mayin', false)

@@ -20,7 +20,17 @@ const OYUN: Record<OyunId, React.LazyExoticComponent<() => JSX.Element>> = {
   mayin: lazy(() => import('./oyun/Mayin')),
   hafiza: lazy(() => import('./oyun/Hafiza')),
 }
-const SIMGE: Record<OyunId, string> = { sudoku: '🧩', kelime: '🔤', sehir: '🗺️', soru: '❓', bulmaca: '✏️', yilan: '🐍', sprint: '⚡', mayin: '💣', hafiza: '🃏' }
+const SIMGE: Record<OyunId, string> = {
+  sudoku: '🧩',
+  kelime: '🔤',
+  sehir: '🗺️',
+  soru: '❓',
+  bulmaca: '✏️',
+  yilan: '🐍',
+  sprint: '⚡',
+  mayin: '💣',
+  hafiza: '🃏',
+}
 
 export default function OdaOyunlar() {
   const [sp, setSp] = useSearchParams()
@@ -83,32 +93,45 @@ function OyunMerkezi({ onAc, acik }: { onAc: (o: OyunId) => void; acik: OyunId[]
             </span>
           </div>
           <p className="m" style={{ fontSize: 13, margin: 0 }}>
-            Her oyunun haftalık sıralamasında 1. 10, 2. 8, 3. 6, 4. 5, 5. 4 puan; oynayan herkes 2 puan alır.
+            Her gün her oyunda 1. 10, 2. 8, 3. 6, 4. 5, 5. 4 puan; oynayan herkes 2 puan alır. Günlük puanlar haftaya eklenir.
           </p>
           {lig.isLoading ? (
             <p className="m">Yükleniyor…</p>
           ) : !lig.data?.length ? (
             <p className="m">Bu hafta henüz kimse oynamadı.</p>
           ) : (
-            <ol className="oy-sira">
-              {lig.data.slice(0, 10).map((r) => (
-                <li key={r.user_id} className={r.ben ? 'ben' : ''}>
-                  <span className={`oy-no${r.sira <= 3 ? ` s${r.sira}` : ''}`}>{r.sira <= 3 ? ['🥇', '🥈', '🥉'][r.sira - 1] : r.sira}</span>
-                  <span className="av s" aria-hidden="true">
-                    {initials(r.ad)}
-                  </span>
-                  <span className="oy-ad">
-                    {r.ad}
-                    {r.ben && <span className="m"> (sen)</span>}
-                  </span>
-                  <b className="mono">{r.puan}</b>
-                </li>
-              ))}
-            </ol>
+            <>
+              <div className="oy-lig-baslik m" aria-hidden="true">
+                <span>Bugün</span>
+                <span>Hafta</span>
+              </div>
+              <ol className="oy-sira lig">
+                {lig.data.slice(0, 10).map((r) => (
+                  <li key={r.user_id} className={r.ben ? 'ben' : ''}>
+                    <span className={`oy-no${r.sira <= 3 ? ` s${r.sira}` : ''}`}>{r.sira <= 3 ? ['🥇', '🥈', '🥉'][r.sira - 1] : r.sira}</span>
+                    <span className="av s" aria-hidden="true">
+                      {initials(r.ad)}
+                    </span>
+                    <span className="oy-ad">
+                      {r.ad}
+                      {r.ben && <span className="sr-only"> (sen)</span>}
+                    </span>
+                    <span className={`mono${r.bugun ? '' : ' m'}`} data-testid="lig-bugun">
+                      <span className="sr-only">Bugün </span>
+                      {r.bugun || '–'}
+                    </span>
+                    <b className="mono" data-testid="lig-hafta">
+                      <span className="sr-only">Hafta </span>
+                      {r.puan}
+                    </b>
+                  </li>
+                ))}
+              </ol>
+            </>
           )}
           {ben && ben.sira > 10 && (
             <p style={{ margin: 0, fontSize: 14 }}>
-              Sen: <b>{ben.sira}.</b> sıradasın ({ben.puan} puan)
+              Sen: <b>{ben.sira}.</b> sıradasın (bugün {ben.bugun ?? 0}, hafta {ben.puan} puan)
             </p>
           )}
           <label className="oy-gizli">
