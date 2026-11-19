@@ -4,10 +4,46 @@
 // İpucu (0084): günde 3; sunucudan tek hücre gelir; her biri bitişte +30 sn (sayaca eklenmez, sonuçta parantezle görünür).
 // Hile önlemleri (0084): her rakamın girildiği an ve sekmeden ayrılma sayısı bitişte sunucuya gider; alt süre ya da
 // hamle ritmi tutmazsa çözüm kaydedilir ama yalnız o günün Sudoku sonucu lige girmez.
+// Ayrılma sınırı (0088): sayfadan en fazla 5 kez ayrılınabilir; 6.'da o günün Sudokusu sona erer (sunucu kapatır).
+// Kurallar penceresi ilk açılışta bir kez, oyun açılmadan çıkar; süre "Tamam"dan sonra başlar.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ipucuCezaYaz, SUDOKU_IPUCU_CEZA, SUDOKU_IPUCU_HAK, sudokuCakisma, sudokuDolu, sureYaz } from '@/lib/oyunlar'
-import { useSudoku, useSudokuBitir, useSudokuIpucu, type SudokuSonuc } from '@/lib/oyunData'
+import {
+  useSudoku,
+  useSudokuBitir,
+  useSudokuIpucu,
+  useSudokuKural,
+  useSudokuKuralOnayla,
+  useSudokuSekme,
+  type SudokuKural,
+  type SudokuSonuc,
+} from '@/lib/oyunData'
 import { useToast } from '@/components/Toast'
+import { Modal } from '@/components/Modal'
+
+const sureMetni = (sn: number) => (sn % 60 === 0 ? `${sn / 60} dakikadan` : `${sn} saniyeden`)
+function KuralListesi({ k }: { k: SudokuKural }) {
+  const kisa = k.alt_sure > 0 ? `${sureMetni(k.alt_sure)} kısa çözümler` : ''
+  const ritim = k.ritim < 100 ? 'rakamların çoğu son dakikada girilen çözümler' : ''
+  return (
+    <ul className="sd-kural-liste">
+      <li>Bütün okul aynı bulmacayı çözer. Süre bulmacayı ilk açtığında başlar ve sunucuda ölçülür.</li>
+      <li>
+        Günde {SUDOKU_IPUCU_HAK} ipucu hakkın var; her ipucu bitiş süresine {SUDOKU_IPUCU_CEZA} sn ekler.
+      </li>
+      {(kisa || ritim) && (
+        <li>{`${[kisa, ritim].filter(Boolean).join(' ve ')} skor tablosuna ve lige girmez.`.replace(/^./, (c) => c.toLocaleUpperCase('tr'))}</li>
+      )}
+      {k.sinir != null && (
+        <li>
+          <b>Sayfadan en fazla {k.sinir} kez ayrılabilirsin</b> (başka sekmeye ya da uygulamaya geçmek, ekranı kilitlemek). {k.sinir + 1}. ayrılışta bugünkü
+          Sudoku sona erer ve skor tablosuna girmez.
+        </li>
+      )}
+      <li>Bu kurallar yalnız Sudoku içindir; diğer oyunlardaki puanların etkilenmez.</li>
+    </ul>
+  )
+}
 
 function oku(k: string): number[] | null {
   try {
@@ -50,15 +86,22 @@ const bosZaman = () => Array(81).fill(0) as number[]
 type Adim = { giris: number[]; notlar: number[][]; zaman: number[] }
 
 export function ligDisiMetni(neden: SudokuSonuc['neden']) {
+  if (neden === 'sekme')
+    return 'Bugünkü Sudoku sona erdi. Sayfadan izin verilenden fazla ayrıldığın için bu oyun kabul edilmedi; skor tablosuna ve lige girmez. Diğer oyunlardaki puanların aynen duruyor. Yarın yeni bulmaca seni bekliyor.'
   return neden === 'ritim'
     ? 'Rakamların çoğu son dakikada girildiği için bu çözüm bugünkü skor tablosuna ve lige eklenmedi. Diğer oyunların puanları aynen sayılır.'
     : 'Çözüm süresi lig sınırının altında kaldığı için bu çözüm bugünkü skor tablosuna ve lige eklenmedi. Diğer oyunların puanları aynen sayılır.'
 }
 
 export default function Sudoku() {
-  const q = useSudoku(true)
+  const kural = useSudokuKural()
+  const onayla = useSudokuKuralOnayla()
+  // Kurallar onaylanmadan oyun açılmaz (süre başlamaz); kural bilgisi alınamazsa oyun eskisi gibi açılır
+  const onayGerek = !!kural.data && kural.data.sinir != null && !kural.data.onay
+  const q = useSudoku(kural.isError || (!!kural.data && !onayGerek))
   const bitir = useSudokuBitir()
   const ipucuAl = useSudokuIpucu()
+  const sekmeBildir = useSudokuSekme()
   const toast = useToast()
   const d = q.data
   const anahtar = d ? `oda.sudoku.${d.gun}` : ''
@@ -83,19 +126,31 @@ export default function Sudoku() {
     }
   }, [d, giris, anahtar, notAnahtar, zamanAnahtar])
   useEffect(() => {
-    if (!d || d.bitti) return
+    if (!d || d.bitti || d.sona_erdi) return
     const t = setInterval(() => setSimdi(Date.now()), 1000)
     return () => clearInterval(t)
   }, [d])
-  // Sekmeden ayrılma sayısı (yalnız bilgi; tek başına ceza değildir)
+  // Sayfadan ayrılma sayısı: cihazda sayılır; sınırlı günlerde her ayrılışta ve dönüşte sunucuya bildirilir
+  // (sayfa gizlenirken istek gitmeyebilir, dönüşte yeniden gönderilir). Sunucu en yüksek değeri tutar.
+  const [ayrilma, setAyrilma] = useState(0)
+  const sinirli = !!d && d.sinir != null && !d.bitti && !d.sona_erdi
+  const bildir = sekmeBildir.mutate
   useEffect(() => {
-    if (!d || d.bitti || !sekmeAnahtar) return
+    if (sekmeAnahtar) setAyrilma(sayiOku(sekmeAnahtar))
+  }, [sekmeAnahtar])
+  useEffect(() => {
+    if (!d || d.bitti || d.sona_erdi || !sekmeAnahtar) return
     const f = () => {
-      if (document.visibilityState === 'hidden') sakla(sekmeAnahtar, sayiOku(sekmeAnahtar) + 1)
+      if (document.visibilityState === 'hidden') {
+        const n = sayiOku(sekmeAnahtar) + 1
+        sakla(sekmeAnahtar, n)
+        setAyrilma(n)
+        if (sinirli) bildir(n)
+      } else if (sinirli) bildir(sayiOku(sekmeAnahtar))
     }
     document.addEventListener('visibilitychange', f)
     return () => document.removeEventListener('visibilitychange', f)
-  }, [d, sekmeAnahtar])
+  }, [d, sekmeAnahtar, sinirli, bildir])
 
   // Alınan ipuçları tahtada sabit
   const alinan = useMemo(() => new Map((d?.ipuclari ?? []).map((x) => [x.i, x.v])), [d?.ipuclari])
@@ -110,7 +165,8 @@ export default function Sudoku() {
     for (const v of a) if (v) s[v]!++
     return s
   }, [a])
-  const bitti = !!d?.bitti
+  // Sona eren oyun (0088) bitmiş gibi kilitlenir ama çözüm gösterilmez
+  const bitti = !!d?.bitti || !!d?.sona_erdi
   const kilit = (i: number) => !d || d.ipucu[i]! > 0 || alinan.has(i)
 
   const kaydet = (yeniGiris: number[], yeniNot: number[][], yeniZaman: number[]) => {
@@ -188,6 +244,7 @@ export default function Sudoku() {
       { p: a, hamle: zaman, sekme: sayiOku(sekmeAnahtar) },
       {
         onSuccess: (r) => {
+          if (r.sona_erdi) return void q.refetch()
           if (!r.dogru) return toast('Henüz değil: ipuçlarıyla uyuşmayan bir yer var', 'warn')
           setSonuc(r)
           if (r.lig_disi) toast(ligDisiMetni(r.neden), 'warn')
@@ -198,9 +255,36 @@ export default function Sudoku() {
     )
   }, [a, cakisma, d, bitti, bitir, toast, zaman, sekmeAnahtar])
 
-  if (q.isLoading) return <p className="m">Bulmaca hazırlanıyor…</p>
+  const tamam = () => {
+    if (!onayla.isPending) onayla.mutate(undefined, { onError: (e) => toast((e as Error).message, 'warn') })
+  }
+  if (onayGerek && kural.data) {
+    return (
+      <>
+        <p className="m">Kuralları okuyup “Tamam”a bastığında bulmaca açılır ve süre başlar.</p>
+        <Modal
+          title="🧩 Sudoku kuralları"
+          width={440}
+          onClose={tamam}
+          footer={
+            <button type="button" className="btn pri sd-tamam" onClick={tamam} disabled={onayla.isPending}>
+              Tamam
+            </button>
+          }
+        >
+          <KuralListesi k={kural.data} />
+          <p className="m" style={{ margin: 0, fontSize: 13 }}>
+            Kuralları istediğin zaman sayfanın en altında da bulabilirsin.
+          </p>
+        </Modal>
+      </>
+    )
+  }
+  if (kural.isLoading || q.isLoading || (!d && q.isFetching)) return <p className="m">Bulmaca hazırlanıyor…</p>
   if (q.isError || !d) return <div className="empty">Bulmaca açılamadı. Sayfayı yenile.</div>
 
+  const sonaErdi = !!d.sona_erdi
+  const ayrilan = Math.max(ayrilma, d.sekme ?? 0)
   const alinanSayi = d.ipuclari?.length ?? 0
   // Sayaç cezasız akar; bitince çözüm süresi + parantezde ipucu cezası
   const ham = bitti ? Math.max(0, (d.puan ?? 0) - alinanSayi * SUDOKU_IPUCU_CEZA) : Math.max(0, Math.floor((simdi - new Date(d.basladi).getTime()) / 1000))
@@ -228,24 +312,35 @@ export default function Sudoku() {
   return (
     <div className="oy-sudoku" onKeyDown={tus}>
       <div className="sd-ust">
-        <span className="chip n mono" aria-live="off" data-testid="sd-sure">
-          ⏱ {sureYaz(ham)}
-          {bitti && alinanSayi > 0 && <span className="sd-ceza"> ({ipucuCezaYaz(alinanSayi)} ipucu)</span>}
-        </span>
-        {bitti ? (
+        {!sonaErdi && (
+          <span className="chip n mono" aria-live="off" data-testid="sd-sure">
+            ⏱ {sureYaz(ham)}
+            {bitti && alinanSayi > 0 && <span className="sd-ceza"> ({ipucuCezaYaz(alinanSayi)} ipucu)</span>}
+          </span>
+        )}
+        {d.sinir != null && !d.bitti && (
+          <span
+            className={`chip mono ${sonaErdi ? 'down' : 'n'}`}
+            data-testid="sd-ayrilma"
+            aria-label={sonaErdi ? 'Sayfadan ayrılma sınırı aşıldı, oyun sona erdi' : `Sayfadan ayrılma: ${ayrilan} / ${d.sinir}`}
+          >
+            ↗ {sonaErdi ? `${ayrilan}/${d.sinir} · Sona erdi` : `Ayrılma ${ayrilan}/${d.sinir}`}
+          </span>
+        )}
+        {d.bitti ? (
           <span className="chip up">✓ Çözüldü</span>
-        ) : (
-          <span className="m" style={{ fontSize: 13 }}>
+        ) : sonaErdi ? null : (
+          <span className="m" style={{ fontSize: 13, whiteSpace: 'nowrap' }}>
             {bos} boş hücre
           </span>
         )}
       </div>
-      {ligDisi && (
+      {(ligDisi || sonaErdi) && (
         <p className="sd-uyari" role="status" data-testid="sd-lig-disi">
-          {ligDisiMetni(sonuc?.neden ?? d.neden ?? null)}
+          {ligDisiMetni(sonaErdi ? 'sekme' : (sonuc?.neden ?? d.neden ?? null))}
         </p>
       )}
-      <div className={`sd-tahta${bitti ? ' cozuldu' : ''}`} role="grid" aria-label="Sudoku tahtası">
+      <div className={`sd-tahta${d.bitti ? ' cozuldu' : sonaErdi ? ' sona-erdi' : ''}`} role="grid" aria-label="Sudoku tahtası">
         {Array.from({ length: 9 }, (_, r) => (
           <div role="row" key={r} className="sd-satir">
             {Array.from({ length: 9 }, (_, c) => {
@@ -344,6 +439,12 @@ export default function Sudoku() {
         </>
       )}
       {bitir.isPending && <p className="m">Kontrol ediliyor…</p>}
+      {kural.data && (
+        <section className="sd-kurallar" aria-labelledby="sd-kurallar-b">
+          <h3 id="sd-kurallar-b">Sudoku kuralları</h3>
+          <KuralListesi k={kural.data} />
+        </section>
+      )}
     </div>
   )
 }

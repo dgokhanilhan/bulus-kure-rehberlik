@@ -21,7 +21,11 @@ export interface SudokuDurum {
   ipuclari?: { i: number; v: number }[]
   ipucu_hak?: number
   lig_disi?: boolean
-  neden?: 'sure' | 'ritim' | null
+  neden?: 'sure' | 'ritim' | 'sekme' | null
+  /** Ayrılma sınırı (0088): sunucunun bildiği ayrılma sayısı, günün sınırı (yoksa null), sınır aşılıp oyunun sona ermesi */
+  sekme?: number
+  sinir?: number | null
+  sona_erdi?: boolean
 }
 export interface SudokuSonuc {
   dogru: boolean
@@ -29,7 +33,8 @@ export interface SudokuSonuc {
   ham?: number
   ipucu?: number
   lig_disi?: boolean
-  neden?: 'sure' | 'ritim' | null
+  neden?: 'sure' | 'ritim' | 'sekme' | null
+  sona_erdi?: boolean
 }
 /** Bugünkü sudokuyu açar (ilk açılışta süre başlar) */
 export function useSudoku(acik: boolean) {
@@ -39,6 +44,57 @@ export function useSudoku(acik: boolean) {
     enabled: acik && !!profile,
     staleTime: Infinity,
     queryFn: () => rpc<SudokuDurum>('oda_sudoku_ac'),
+  })
+}
+export interface SudokuKural {
+  onay: boolean
+  sinir: number | null
+  alt_sure: number
+  ritim: number
+}
+const KURAL_YOK: SudokuKural = { onay: true, sinir: null, alt_sure: 240, ritim: 50 }
+const fonksiyonYok = (e: unknown) => /could not find the function/i.test((e as Error).message)
+/** Kurallar penceresi (0088): oyunu başlatmadan onay ve günün sınırı. Fonksiyon yoksa (geri alınmışsa) pencere çıkmaz. */
+export function useSudokuKural() {
+  const { profile } = useAuth()
+  return useQuery({
+    queryKey: ['oyun', 'sudoku-kural', profile?.id],
+    enabled: !!profile,
+    staleTime: Infinity,
+    queryFn: async () => {
+      try {
+        return (await rpc<SudokuKural | null>('oda_sudoku_kural')) ?? KURAL_YOK
+      } catch (e) {
+        if (fonksiyonYok(e)) return KURAL_YOK
+        throw e
+      }
+    },
+  })
+}
+export function useSudokuKuralOnayla() {
+  const qc = useQueryClient()
+  const { profile } = useAuth()
+  return useMutation({
+    mutationFn: async () => {
+      try {
+        await rpc<null>('oda_sudoku_kural_onayla')
+      } catch (e) {
+        if (!fonksiyonYok(e)) throw e
+      }
+    },
+    onSuccess: () => qc.setQueryData<SudokuKural>(['oyun', 'sudoku-kural', profile?.id], (k) => (k ? { ...k, onay: true } : k)),
+  })
+}
+/** Sayfadan ayrılma sayısını bildirir; sunucu en yüksek değeri tutar, sınır aşılırsa oyun sona erer */
+export function useSudokuSekme() {
+  const qc = useQueryClient()
+  const { profile } = useAuth()
+  return useMutation({
+    mutationFn: (sayi: number) => rpc<{ sekme: number; sinir: number | null; sona_erdi: boolean }>('oda_sudoku_sekme', { p_sayi: sayi }),
+    onSuccess: (r) =>
+      qc.setQueryData<SudokuDurum>(['oyun', 'sudoku', profile?.id], (d) =>
+        d ? { ...d, sekme: Math.max(d.sekme ?? 0, r.sekme), sona_erdi: d.sona_erdi || r.sona_erdi } : d,
+      ),
   })
 }
 export function useSudokuBitir() {
