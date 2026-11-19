@@ -66,7 +66,7 @@ describe('oyun', () => {
     expect(d.yatay).toHaveLength(3)
     expect((await fen.rpc('oda_bulmaca_bitir', { p: ['aaaaaa'] })).error?.message).toBe('Bulmaca eksik')
   })
-  it('haftalık tablo büyük bulmaca süresini saymaz, günlük tablo sayar', async () => {
+  it('haftalık tablo büyük bulmaca süresini saymaz, günlük tablo sayar; lig günlük sıraladığı için sayar (0089)', async () => {
     const bugun = (await svc.rpc('tr_today')).data as string
     await temizle()
     await svc.from('oda_oyun').insert({ school_id: OKUL, user_id: FEN, oyun: 'bulmaca', gun: bugun, puan: 3, bitti: new Date().toISOString(), boyut: 6 })
@@ -75,6 +75,6 @@ describe('oyun', () => {
     const hafta = (await fen.rpc('oda_skor_tablosu', { p_oyun: 'bulmaca', p_donem: 'hafta' })).data as { ben: boolean }[]
     expect(hafta.some((x) => x.ben)).toBe(false)
     const lig = (await fen.rpc('oda_lig')).data as { user_id: string }[]
-    expect(lig.some((x) => x.user_id === FEN)).toBe(false)
+    expect(lig.some((x) => x.user_id === FEN)).toBe(true)
   })
 })
