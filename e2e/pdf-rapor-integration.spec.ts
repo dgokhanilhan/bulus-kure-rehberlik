@@ -101,7 +101,7 @@ test('yönetici PDF hedefini panelden düzenler ve takvimde tüm 8. sınıfları
  await page.goto('/takvim');await page.getByRole('button',{name:'Etkinlik ekle',exact:true}).click()
  const event=page.getByRole('dialog',{name:'Etkinlik ekle',exact:true})
  await event.getByLabel('Kimin için').selectOption('sinif')
- await event.getByRole('button',{name:'8. sınıfları seç',exact:true}).click()
+ await event.getByRole('button',{name:/^8. sınıflar/}).click()
  await expect(event.getByRole('checkbox',{name:'8/A',exact:true})).toBeChecked()
  await expect(event.getByRole('checkbox',{name:'8/B',exact:true})).toBeChecked()
  await expect(event.getByRole('checkbox',{name:'6/A',exact:true})).not.toBeChecked()

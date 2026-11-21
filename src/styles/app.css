@@ -441,6 +441,37 @@ h2.sec{font-size:17px;font-weight:600}
   background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--ink);border-left:3px solid var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .calchip:hover{background:color-mix(in srgb,var(--c) 24%,transparent)}
 @media (max-width:1180px){.calcols{grid-template-columns:1fr}}
+/* Takvim: hafta satırları, çok günlü bantlar, sınıf etiketi, sınıf seçici */
+.calweek{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));row-gap:3px}
+.calweek .calday{grid-row:1/-1;border-left:1px solid var(--line)}
+.calweek .calday:first-child{border-left:0}
+.calcell{display:flex;flex-direction:column;gap:3px;padding:0 6px 6px;min-width:0;position:relative}
+.calband{position:relative;margin:0 6px;display:flex;align-items:center;gap:4px;min-width:0;font-size:11.5px;font-weight:600;line-height:1.3;padding:2px 6px;border:0;border-radius:6px;cursor:pointer;color:var(--ink);
+  background:color-mix(in srgb,var(--c) 26%,transparent);border-left:4px solid var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.calband:hover{background:color-mix(in srgb,var(--c) 36%,transparent)}
+.calband.onceden{border-left:0;margin-left:0;border-top-left-radius:0;border-bottom-left-radius:0}
+.calband.surer{margin-right:0;border-top-right-radius:0;border-bottom-right-radius:0}
+.calband span.bt{overflow:hidden;text-overflow:ellipsis}
+.ctag{display:inline-block;min-width:16px;padding:0 4px;margin-right:4px;border-radius:4px;background:var(--c);color:#fff;font-size:10.5px;font-weight:700;text-align:center;line-height:15px;vertical-align:1px}
+.tgl{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:99px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink);font-weight:600;font-size:14px;cursor:pointer}
+.tgl small{font-weight:500;color:var(--ink-muted)}
+.tgl.yarim{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+.tgl.on{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.tgl.on small{color:inherit;opacity:.85}
+.sinifsec{display:flex;flex-direction:column;gap:8px}
+.sinifsec .sinifkutu label.check{display:inline-flex;width:auto;flex:none;align-items:center;gap:6px;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:8px}
+.sinifsec .sinifkutu label.check input{width:20px;height:20px;min-height:0;margin:0}
+.segm{display:inline-flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden}
+.segm button{min-height:44px;padding:0 14px;background:transparent;border:0;color:var(--ink);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.segm button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
+.ctbl{width:100%;border-collapse:collapse;font-size:14px}
+.ctbl th{text-align:left;font-size:12px;color:var(--ink-muted);font-weight:600;padding:8px;border-bottom:1px solid var(--line-strong)}
+.ctbl td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.ctbl tr.tik{cursor:pointer}
+.ctbl tr.tik:hover td{background:var(--surface-sunken)}
+.ctur{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.ctur i{width:10px;height:10px;border-radius:3px;background:var(--c);flex:none}
+.cakisma{border:1px solid var(--line-strong);border-left:4px solid var(--signal);border-radius:10px;padding:10px 12px;font-size:14px;display:flex;flex-direction:column;gap:4px}
 @media (max-width:600px){.calday{min-height:64px;padding:3px}.calchip{font-size:0;height:6px;padding:0;border-left-width:0;background:var(--c)}}
 .moresheet .badge{margin-left:auto;font-size:12px;background:var(--highlight);color:var(--ink-fixed);border-radius:99px;padding:1px 8px;font-weight:700}
 
@@ -1212,3 +1243,4 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .cd-satir{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;border-radius:12px;background:var(--primary-soft);border:1px solid var(--primary-line);font-size:14px}
 .cd-satir.hata{background:var(--signal-soft);border-color:var(--signal)}
 .cd-satir .btn{min-height:44px}
+@media (max-width:600px){.calband{font-size:0;height:6px;padding:0;margin:0 2px;border-left-width:0;background:var(--c)}.calband.onceden,.calband.surer{margin:0}.calcell{padding:0 3px 3px}.calchip .ctag,.calband *{display:none}}
