@@ -2,6 +2,8 @@
 // Yazma yetkisi veritabanında (RLS + 0008 RPC'leri, aal2) zorlanır; bu ekran yalnız arayüzdür.
 import YonetimHatalar from './YonetimHatalar'
 import YonetimHedefler from './YonetimHedefler'
+import { VeriSagligi } from './YonetimVeriSagligi'
+import { ayniAdliOgrenci } from '@/lib/veriSagligi'
 import { KullanimPanosu, KvkkBasvurulari } from '@/components/Kvkk'
 import { KurulumSihirbazi } from './YonetimKurulum'
 import { lazy, Suspense, useState } from 'react'
@@ -85,6 +87,7 @@ type Tab =
   | 'kullanim'
   | 'kvkk'
   | 'kurulum'
+  | 'veri_sagligi'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
   {
@@ -142,6 +145,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['veliler', 'Veliler'],
       ['kapali', 'Kapalı hesaplar'],
       ['aktarim', 'Toplu aktarım'],
+      ['veri_sagligi', 'Veri sağlığı'],
     ],
   },
   { title: 'Kayıt', items: [['bursluluk', 'Bursluluk', 'bursluluk']] },
@@ -178,6 +182,7 @@ const KEYWORDS: Partial<Record<Tab, string>> = {
   ogretmenler: 'öğretmen branş hesap rol atama',
   veliler: 'veli bağla çocuk davet',
   kapali: 'kapalı hesap aç',
+  veri_sagligi: 'tekrar eden kayıt aynı ad birleştir ad yazımı büyük harf okul no eksik veli bağlı değil sınıf öğretmeni atanmamış temizlik',
   aktarim: 'excel csv toplu içe aktar',
   hatalar: 'hata kayıt sorun çöktü yüklenemedi zaman aşımı',
   oda: 'öğretmenler odası sohbet kanal zümre kademe özel kanal pano anket teşekkür değişim oyun sudoku lig doğum günü öğrenci takip saklama süre',
@@ -325,6 +330,7 @@ export default function YonetimPage() {
               {tab === 'yoklama_ayar' && <YoklamaAyarlari />}
               {tab === 'odev' && <OdevAyarlari />}
               {tab === 'kapali' && <Kapali {...data.data!} />}
+              {tab === 'veri_sagligi' && <VeriSagligi classes={classes.data!} {...data.data!} />}
               {tab === 'bursluluk' && <BurslulukAdmin />}
               {tab === 'galeri' && <GaleriAyarlari />}
               {tab === 'anasayfa' && <AnaSayfaDuzeni />}
@@ -724,6 +730,7 @@ function Ogrenciler({ classes, profiles, students, links }: { classes: ClassRow[
           s={edit === 'new' ? null : edit}
           account={edit === 'new' ? undefined : account(edit.id)}
           classes={classes}
+          students={students}
           defaultClass={cls === 'all' ? classes.find((c) => c.active !== false)?.id : cls}
           onClose={() => setEdit(null)}
         />
@@ -805,12 +812,14 @@ function StudentModal({
   s,
   account,
   classes,
+  students = [],
   defaultClass,
   onClose,
 }: {
   s: Stu | null
   account?: Profile
   classes: ClassRow[]
+  students?: Stu[]
   defaultClass?: string
   onClose: () => void
 }) {
@@ -822,10 +831,16 @@ function StudentModal({
   const [no, setNo] = useState(s?.school_no ?? '')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [ayniOnay, setAyniOnay] = useState('')
+  const ayni = cls ? ayniAdliOgrenci(students, name, cls, s?.id) : undefined
   async function save() {
     const n = name.trim().replace(/\s+/g, ' ')
     if (n.length < 3) return setErr('Ad soyad en az 3 harf olmalı.')
     if (!cls) return setErr('Sınıf seç.')
+    if (ayni && ayniOnay !== ayni.id + cls) {
+      setAyniOnay(ayni.id + cls)
+      return setErr(`Bu sınıfta aynı adla bir öğrenci var: ${ayni.full_name}${ayni.school_no ? ` (no ${ayni.school_no})` : ''}. Farklı bir kişiyse yeniden Kaydet'e bas.`)
+    }
     const nr = no.replace(/\D/g, '').slice(0, 10) || null
     setBusy(true)
     const row = { full_name: n, class_id: cls, school_no: nr }
