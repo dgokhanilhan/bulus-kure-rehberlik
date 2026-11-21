@@ -4,6 +4,16 @@ import AxeBuilder from '@axe-core/playwright'
 import { DEMO, login, service, shot } from './helpers'
 
 const AD = 'E2E Yaklaşan'
+/** Pencere açılış animasyonu bitmeden kontrast ölçülürse yarı saydam renkler yanlış hata verir. */
+const animasyonBitti = (page: import('@playwright/test').Page) =>
+  page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished.catch(() => null)),
+    ),
+  )
 const tarih = new Date(Date.now() + 3 * 3600_000 + 4 * 86400_000).toISOString().slice(0, 10)
 let ev = ''
 const temizle = async () => {
@@ -52,6 +62,7 @@ test('rehberlik yaklaşan denemeyi ve konularını görür', async ({ page }) =>
   await expect(satir).toContainText('Takvimde')
   await satir.getByRole('button', { name: `${AD} konularını gör` }).click()
   await expect(page.locator('.modal')).toContainText('Konuların tamamı')
+  await animasyonBitti(page)
   const axe = await new AxeBuilder({ page }).include('.modal').withTags(['wcag2a', 'wcag2aa']).analyze()
   expect(axe.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([])
 })
@@ -72,6 +83,7 @@ test('veli takvimdeki denemeden konuları açar; teknik terim görünmez', async
   await expect(m).toContainText('Üslü İfadeler')
   await expect(m).not.toContainText(/M\.8\.|code_exact|kazanım kodu/i)
   await shot(page, 'yaklasan-veli-konular')
+  await animasyonBitti(page)
   const axe = await new AxeBuilder({ page }).include('.modal').withTags(['wcag2a', 'wcag2aa']).analyze()
   expect(axe.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([])
   await m.getByRole('button', { name: 'Etkinliğe dön' }).click()
