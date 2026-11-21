@@ -12,6 +12,7 @@ import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { calendarInScope } from '@/lib/calendarScope'
+import { TakvimKonuKutusu, TakvimKonuPenceresi } from './Yaklasan'
 
 const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
 const TYPES = Object.keys(EVENT_TR) as EventType[]
@@ -173,7 +174,10 @@ function EventDetail({ e, onClose, onEdit }: { e: CalEvent; onClose: () => void;
   const qc = useQueryClient()
   const toast = useToast()
   const [del, setDel] = useState(false)
+  // Deneme etkinliğine bağlı kazanım listesi varsa "Konuları gör" (0091)
+  const [konuAcik, setKonuAcik] = useState(false)
   const mine = role === 'admin' || ((role === 'rehber' || role === 'brans') && e.created_by === profile?.id)
+  if (konuAcik) return <TakvimKonuPenceresi eventId={e.id} onBack={() => setKonuAcik(false)} onClose={onClose} />
   const cls = (id: string | null) => classes.data?.find((c) => c.id === id)?.name ?? 'Sınıf'
   const stu = (id: string | null) => students.data?.find((s) => s.id === id)?.full_name ?? 'Öğrenci'
   const per = (id: string | null) => people.data?.find((p) => p.id === id)?.full_name ?? 'Öğretmen'
@@ -226,6 +230,7 @@ function EventDetail({ e, onClose, onEdit }: { e: CalEvent; onClose: () => void;
         )}
         {e.description && <p style={{ whiteSpace: 'pre-line', margin: 0 }}>{e.description}</p>}
       </div>
+      {e.type === 'deneme' && <TakvimKonuKutusu eventId={e.id} onAc={() => setKonuAcik(true)} />}
       {del && (
         <ConfirmDelete
           title="Etkinliği sil"

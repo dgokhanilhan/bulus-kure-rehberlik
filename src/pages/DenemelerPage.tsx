@@ -17,6 +17,8 @@ import { Dropdown } from '@/components/Indicator'
 import { Toggle } from '@/components/Tasks'
 import { useToast } from '@/components/Toast'
 import { ConfirmDelete } from '@/components/ConfirmDelete'
+import { adBenzerligi, yaklasanOner, type Plan } from '@/lib/yaklasan'
+import { useYaklasanlar, useYaklasanPlan, YaklasanListesi, type YaklasanRow } from './Yaklasan'
 
 type Step = 'drop' | 'read' | 'review' | 'done' | 'genel'
 interface ExamRow {
@@ -70,6 +72,16 @@ export default function DenemelerPage() {
   const [over, setOver] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [genel, setGenel] = useState<GenelSource | null>(null)
+  // Yaklaşan deneme (0091): seçilirse kazanım listesi PDF'te okunamayan konuları tamamlar; sonuçlar değişmez.
+  const yaklasanlar = useYaklasanlar()
+  const [yk, setYk] = useState<string | null>(null)
+  const [ykKarar, setYkKarar] = useState(false)
+  const plan = useYaklasanPlan(yk)
+  const ykSec = (y: YaklasanRow | null) => {
+    setYk(y?.id ?? null)
+    setYkKarar(true)
+    if (y && date === todayISO()) setDate(y.exam_date)
+  }
 
   const nextName = `TG-${(exams.data?.exams.filter((e) => e.name.startsWith('TG-')).length ?? 0) + 1}`
   const examName = name ?? nextName
@@ -123,6 +135,12 @@ export default function DenemelerPage() {
       const total = review.rows.filter((r) => r.match.kind === 'fixed').length
       setLines([...base, [total ? `${total} isim yazım hatası düzeltildi (${src.toLocaleLowerCase('tr')})` : fixes ? 'İsimler eşleştirildi' : 'Bütün isimler listede', true]])
       setRv(review)
+      // Kazanım listesi seçilmediyse yalnız adı açıkça benzeyen yaklaşan deneme ön seçilir; diğerleri listede seçilebilir.
+      if (!ykKarar) {
+        const ad = review.examName ?? name
+        const ilk = yaklasanOner(yaklasanlar.data ?? [], { ad, bugun: todayISO(), tarih: date })[0]
+        if (ilk && ad && adBenzerligi(ad, ilk.name) >= 0.5) setYk(ilk.id)
+      }
       setTimeout(() => setStep('review'), 700)
     } catch (e) {
       setErr((e as Error).message)
@@ -133,7 +151,7 @@ export default function DenemelerPage() {
   async function publish() {
     if (!rv) return
     setBusy(true)
-    const { unresolved, ...p } = buildPayload(rv, { name: examName, publisher: publisher.trim() || null, exam_date: date, notify })
+    const { unresolved, plan_ozet: _ozet, ...p } = buildPayload(rv, { name: examName, publisher: publisher.trim() || null, exam_date: date, notify }, yk ? plan.data : null)
     const { data: examId, error } = await supabase.rpc('publish_exam', { p })
     if (error) {
       setBusy(false)
@@ -145,12 +163,16 @@ export default function DenemelerPage() {
       const r = await supabase.rpc('add_lgs_unresolved_items', { p_exam: examId, p_items: unresolved })
       queued = !r.error
     }
+    // Yaklaşan deneme yayınlanan denemeye bağlanır (öneri listesinden düşer). Bağlanamazsa yayın yine geçerlidir.
+    let linked = true
+    if (yk && typeof examId === 'string') linked = !(await supabase.rpc('yaklasan_deneme_bagla', { p_id: yk, p_exam: examId })).error
     setBusy(false)
     setDone({ name: examName, count: p.results.length })
     setStep('done')
     toast(`${examName} yayınlandı`)
     if (!queued) toast('Eşleşmeyen kazanımlar Eşleşmeyen hedefler listesine eklenemedi; sonuçlar etkilenmedi.', 'warn')
-    refresh('dataset', 'exams-list', 'students', 'unresolved_outcomes')
+    if (!linked) toast('Deneme yayınlandı ama kazanım listesine bağlanamadı; sonuçlar etkilenmedi.', 'warn')
+    refresh('dataset', 'exams-list', 'students', 'unresolved_outcomes', 'yaklasan')
   }
 
   const [del, setDel] = useState<ExamRow | null>(null)
@@ -170,6 +192,8 @@ export default function DenemelerPage() {
     setDone(null)
     setErr(null)
     setGenel(null)
+    setYk(null)
+    setYkKarar(false)
   }
 
   async function setStatus(e: ExamRow, status: 'yayinda' | 'arsiv') {
@@ -285,6 +309,26 @@ export default function DenemelerPage() {
               Örnek dosyayla dene
             </button>
           )}
+          {yk && ykKarar && (
+            <div className="card" style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }} data-testid="yk-secili">
+              <Icon name="check" size={16} stroke={2.6} />
+              <span style={{ flex: 1, fontSize: 14 }}>
+                Konular <b>{yaklasanlar.data?.find((y) => y.id === yk)?.name}</b> kazanım listesinden tamamlanacak.
+              </span>
+              <button className="btn sm ghost" onClick={() => (setYk(null), setYkKarar(false))}>
+                Vazgeç
+              </button>
+            </div>
+          )}
+          <YaklasanListesi
+            onSonucYukle={(y) => {
+              setYk(y.id)
+              setYkKarar(true)
+              setName(y.name)
+              setDate(y.exam_date)
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          />
           <Dropdown title="Yüklenen denemeler" sub={`${exams.data?.exams.length ?? 0} deneme`} icon={<Icon name="doc" size={22} />} delay={3}>
             <div className="tbl">
               <table>
@@ -392,7 +436,8 @@ export default function DenemelerPage() {
           fixSrc={fixSrc}
           notify={notify}
           setNotify={setNotify}
-          busy={busy}
+          busy={busy || (!!yk && !plan.data)}
+          yaklasan={{ list: yaklasanOner(yaklasanlar.data ?? [], { ad: rv.examName ?? examName, bugun: today, tarih: date }), all: yaklasanlar.data ?? [], secili: yk, sec: ykSec, plan: yk ? (plan.data ?? null) : null }}
           onPublish={publish}
           onCancel={reset}
         />
@@ -435,6 +480,7 @@ function ReviewStep(props: {
   notify: boolean
   setNotify: (b: boolean) => void
   busy: boolean
+  yaklasan: YaklasanSecimProps
   onPublish: () => void
   onCancel: () => void
 }) {
@@ -617,6 +663,7 @@ function ReviewStep(props: {
             <span>{props.fixSrc}</span>
           </div>
         </Dropdown>
+        <YaklasanSecimi rv={rv} {...props.yaklasan} examName={props.examName} />
         <div className="card a" style={{ ['--d' as string]: 3, padding: '6px 16px' }}>
           <Toggle on={props.notify} onClick={() => props.setNotify(!props.notify)} title="Veli ve öğrencilere haber ver" sub="Onaylı hesaplara bildirim gider" />
         </div>
@@ -627,6 +674,54 @@ function ReviewStep(props: {
           Vazgeç
         </button>
       </aside>
+    </div>
+  )
+}
+
+interface YaklasanSecimProps {
+  list: YaklasanRow[]
+  all: YaklasanRow[]
+  secili: string | null
+  sec: (y: YaklasanRow | null) => void
+  plan: Plan | null
+}
+
+/** Kontrol adımında: bu sonucun kazanım listesi (yaklaşan deneme). Öneri ön seçimdir; değiştirilebilir ya da "Hiçbiri". */
+function YaklasanSecimi(p: YaklasanSecimProps & { rv: Review; examName: string }) {
+  const secenek = [...p.list, ...p.all.filter((y) => y.id === p.secili && !p.list.includes(y))]
+  const ozet = useMemo(() => (p.plan ? buildPayload(p.rv, { name: p.examName, publisher: null, exam_date: '2000-01-01', notify: false }, p.plan).plan_ozet : undefined), [p.rv, p.plan, p.examName])
+  if (!secenek.length) return null
+  const y = p.all.find((x) => x.id === p.secili)
+  return (
+    <div className="card a" style={{ ['--d' as string]: 3, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }} data-testid="yk-secim">
+      <label className="field" htmlFor="ykSec">
+        Kazanım listesi (yaklaşan deneme)
+        <select id="ykSec" value={p.secili ?? ''} onChange={(e) => p.sec(p.all.find((x) => x.id === e.target.value) ?? null)}>
+          <option value="">Hiçbiri, listesiz yükle</option>
+          {secenek.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name} · {trD(x.exam_date)}
+            </option>
+          ))}
+        </select>
+      </label>
+      {y && ozet && (
+        <span className="m" style={{ fontSize: 13 }} data-testid="yk-ozet">
+          {ozet.doldurulan ? `${ozet.doldurulan} sorunun konusu listeden tamamlanacak.` : "PDF'teki konular okundu; listeden tamamlanacak soru yok."}
+          {ozet.ayni ? ` ${ozet.ayni} soruda PDF ile liste aynı.` : ''}
+        </span>
+      )}
+      {y && ozet && ozet.farkli > 0 && (
+        <span className="m" style={{ fontSize: 13, color: 'var(--signal-ink)' }} role="alert" data-testid="yk-uyari">
+          {ozet.farkli} soruda PDF'teki konu listedekinden farklı; bu sorularda PDF esas alınır.
+          {ozet.farkli > ozet.ayni ? ' Liste bu denemeye ait olmayabilir; emin değilsen "Hiçbiri" seç.' : ''}
+        </span>
+      )}
+      {!y && (
+        <span className="m" style={{ fontSize: 13 }}>
+          Bu sonuç bir yaklaşan denemeye aitse seç; PDF'te okunamayan konular listeden tamamlanır, puan ve netler değişmez.
+        </span>
+      )}
     </div>
   )
 }
