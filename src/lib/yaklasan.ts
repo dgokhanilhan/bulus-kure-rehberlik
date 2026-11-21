@@ -1,9 +1,15 @@
 // Yaklaşan deneme: yayınevinin önceden gönderdiği kazanım listesi (xlsx) → soru × kazanım planı.
 // Kurallar: eşleşme yalnız kodla ve deneme motoruyla aynı kuralla yapılır (tam kod ya da üst kod; İngilizce'de yalnız tam kod;
 // kod ile metin çelişirse eşleşme yok). Plan yalnız kazanım alanlarını tamamlar; D/Y/B/net/puan'a dokunmaz (CLAUDE.md §1–§2).
-import { konuStatus, questionsFor, studentExams, type Dataset, type LgsSubject as Subject, type MatchLevel } from './analiz'
+import { SUBJECT, konuStatus, questionsFor, studentExams, type Dataset, type LgsSubject, type MatchLevel } from './analiz'
 import { outcomeText } from './outcomeMatching'
-import { QCOUNT, SUBJECT_ORDER } from './deneme'
+
+/** LGS dersleri + 4-7. sınıf Sosyal Bilgiler (8. sınıfta yerini T.C. İnkılap Tarihi alır). */
+export type Subject = LgsSubject | 'SOS'
+const DERS_SIRA: Subject[] = ['TUR', 'MAT', 'FEN', 'SOS', 'INK', 'DIN', 'ING']
+// deneme.ts bu dosyayı içe aktardığı için QCOUNT buraya kopyalandı (döngüsel içe aktarmada modül başında tanımsız olabilir).
+const SORU_SAYISI: Record<Subject, number> = { TUR: 20, MAT: 20, FEN: 20, SOS: 10, INK: 10, DIN: 10, ING: 10 }
+export const dersAdi = (d: Subject) => (d === 'SOS' ? 'Sosyal Bilgiler' : SUBJECT[d].ad)
 
 export const KITAPCIKLAR = ['A', 'B', 'C', 'D'] as const
 export type Kitapcik = (typeof KITAPCIKLAR)[number]
@@ -32,6 +38,7 @@ const DERS: [RegExp, Subject][] = [
   [/T[ÜU]RK[ÇC]E/, 'TUR'],
   [/MATEMAT/, 'MAT'],
   [/FEN/, 'FEN'],
+  [/SOSYAL/, 'SOS'],
   [/[İI]NKILAP|TAR[İI]H/, 'INK'],
   [/D[İI]N/, 'DIN'],
   [/[İI]NG[İI]L[İI]ZCE|YABANCI/, 'ING'],
@@ -87,7 +94,7 @@ export function kazanimTablosuOku(rows: string[][]): KazanimDosyasi {
     const b = blok
     const no = sayi(cell(r, b.a)) ?? sayi(cell(r, 0))
     if (no === null) return
-    if (no > QCOUNT[b.subject] || sorular.some((s) => s.subject === b.subject && s.q_no === no)) {
+    if (no > SORU_SAYISI[b.subject] || sorular.some((s) => s.subject === b.subject && s.q_no === no)) {
       uyarilar.push(`${ri + 1}. satır atlandı (soru numarası ${no})`)
       return
     }
@@ -105,7 +112,7 @@ export function kazanimTablosuOku(rows: string[][]): KazanimDosyasi {
       match: 'none',
     })
   })
-  sorular.sort((x, y) => SUBJECT_ORDER.indexOf(x.subject) - SUBJECT_ORDER.indexOf(y.subject) || x.q_no - y.q_no)
+  sorular.sort((x, y) => DERS_SIRA.indexOf(x.subject) - DERS_SIRA.indexOf(y.subject) || x.q_no - y.q_no)
   return { ad, sinif, sorular, uyarilar }
 }
 
@@ -218,7 +225,7 @@ export interface KonuGrubu {
   konular: { konu: string; sayi: number }[]
 }
 export function konuGruplari(sorular: KonuSorusu[], baslik: (kod: string) => string | undefined): KonuGrubu[] {
-  return SUBJECT_ORDER.flatMap((ders) => {
+  return DERS_SIRA.flatMap((ders) => {
     const qs = sorular.filter((s) => s.ders === ders)
     if (!qs.length) return []
     const m = new Map<string, number>()

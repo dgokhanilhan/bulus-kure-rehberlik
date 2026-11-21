@@ -33,7 +33,7 @@ const ANA = '#1f5f5b'
 const ALTIN = '#e7c57a'
 const MUREKKEP = '#1b2a2f'
 
-const BANT = 13
+const BANT = 17
 const UST = 17
 
 /** Afişte tatil, gri yerine pano için canlı pembe (diğer türlerin renklerinden ayrışır). */
@@ -42,6 +42,11 @@ const TATIL = '#d6336c'
 export function TakvimAfisBelgesi({ g: girdi }: { g: AfisGirdi }) {
   const g = { ...girdi, ogeler: girdi.ogeler.map((x) => (x.type === 'tatil' ? { ...x, renk: TATIL } : x)) }
   const tatilGunu = (d: string) => g.ogeler.some((x) => x.type === 'tatil' && x.starts_on <= d && x.ends_on >= d)
+  const ayGun = (d: string) => {
+    const a = AYLAR[Number(d.slice(5, 7)) - 1]!
+    return `${Number(d.slice(8))} ${a[0]}${a.slice(1).toLocaleLowerCase('tr-TR')}`
+  }
+  const aralikYazi = (a: string, b: string) => (a.slice(5, 7) === b.slice(5, 7) ? `${Number(a.slice(8))}–${ayGun(b)}` : `${ayGun(a)} – ${ayGun(b)}`)
   const haftalar = ayHaftalari(g.yil, g.ay)
   const ayKodu = `${g.yil}-${String(g.ay).padStart(2, '0')}`
   const tekGun = g.ogeler.filter((x) => x.starts_on === x.ends_on)
@@ -104,7 +109,14 @@ export function TakvimAfisBelgesi({ g: girdi }: { g: AfisGirdi }) {
         {/* Haftalar */}
         {haftalar.map((w) => {
           const { bantlar, serit } = haftaBantlari(w, cokGun)
-          const pay = UST + serit * BANT
+          // Haftada tek çok günlü etkinlik varsa ve kapladığı günlerde başka etkinlik yoksa (ör. tatil haftası),
+          // ince şerit yerine günlerin ortasına büyük yazılır.
+          const buyuk =
+            bantlar.length === 1 &&
+            tekGun.every((x) => x.starts_on < w[bantlar[0]!.bas]! || x.starts_on > w[bantlar[0]!.son]! || x.starts_on.slice(0, 7) !== ayKodu)
+              ? bantlar[0]!
+              : null
+          const pay = buyuk ? UST : UST + serit * BANT
           const sigar = Math.max(0, Math.floor((haftaH - pay - 6) / 15))
           return (
             <View key={w[0]} style={{ height: haftaH, flexDirection: 'row', marginTop: 3, position: 'relative' }}>
@@ -120,7 +132,15 @@ export function TakvimAfisBelgesi({ g: girdi }: { g: AfisGirdi }) {
                       flex: 1,
                       marginHorizontal: 1.5,
                       borderRadius: 6,
-                      backgroundColor: dis ? '#f1f0eb' : tatilGunu(d) ? acik(TATIL, 0.88) : hs ? '#fdf6e6' : '#ffffff',
+                      backgroundColor: dis
+                        ? '#f1f0eb'
+                        : buyuk && i >= buyuk.bas && i <= buyuk.son
+                          ? acik(buyuk.item.renk, 0.88)
+                          : tatilGunu(d)
+                            ? acik(TATIL, 0.88)
+                            : hs
+                              ? '#fdf6e6'
+                              : '#ffffff',
                       borderWidth: 0.8,
                       borderColor: '#dfe5e3',
                       paddingTop: pay,
@@ -173,28 +193,97 @@ export function TakvimAfisBelgesi({ g: girdi }: { g: AfisGirdi }) {
                   </View>
                 )
               })}
-              {bantlar.map((b) => (
+              {buyuk && (
                 <View
-                  key={b.item.key}
                   style={{
                     position: 'absolute',
-                    top: UST + b.serit * BANT,
-                    left: `${(b.bas / 7) * 100}%`,
-                    width: `${((b.son - b.bas + 1) / 7) * 100}%`,
-                    height: BANT - 2,
-                    paddingHorizontal: 4,
+                    top: UST + 2,
+                    bottom: 6,
+                    left: `${(buyuk.bas / 7) * 100}%`,
+                    width: `${((buyuk.son - buyuk.bas + 1) / 7) * 100}%`,
+                    paddingHorizontal: 8,
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
-                  <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 3, backgroundColor: b.item.renk, paddingHorizontal: 4 }}>
-                    <Text style={{ fontSize: 7, fontWeight: 700, color: '#ffffff', maxLines: 1 }}>
-                      {b.oncedenGelir ? '← ' : ''}
-                      {b.item.etiket ? `[${b.item.etiket}] ` : ''}
-                      {b.item.title}
-                      {b.sonraSurer ? ' →' : ''}
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {buyuk.item.etiket && (
+                      <Text
+                        style={{
+                          fontSize: 8,
+                          fontWeight: 700,
+                          color: '#ffffff',
+                          backgroundColor: buyuk.item.renk,
+                          borderRadius: 3,
+                          paddingHorizontal: 4,
+                          paddingVertical: 1,
+                          marginRight: 6,
+                        }}
+                      >
+                        {buyuk.item.etiket}
+                      </Text>
+                    )}
+                    <Text style={{ fontSize: buyuk.son - buyuk.bas >= 2 ? 17 : 12, fontWeight: 700, color: buyuk.item.renk, letterSpacing: 1, maxLines: 1 }}>
+                      {buyuk.oncedenGelir ? '← ' : ''}
+                      {buyuk.item.title.toLocaleUpperCase('tr-TR')}
+                      {buyuk.sonraSurer ? ' →' : ''}
                     </Text>
                   </View>
+                  <Text style={{ fontSize: 8.5, fontWeight: 600, color: MUREKKEP, marginTop: 3 }}>
+                    {buyuk.item.turAdi} · {aralikYazi(buyuk.item.starts_on, buyuk.item.ends_on)}
+                  </Text>
                 </View>
-              ))}
+              )}
+              {bantlar
+                .filter((b) => b !== buyuk)
+                .map((b) => (
+                  <View
+                    key={b.item.key}
+                    style={{
+                      position: 'absolute',
+                      top: UST + b.serit * BANT,
+                      left: `${(b.bas / 7) * 100}%`,
+                      width: `${((b.son - b.bas + 1) / 7) * 100}%`,
+                      height: BANT - 2,
+                      paddingHorizontal: 4,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flex: 1,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        borderRadius: 4,
+                        backgroundColor: acik(b.item.renk, 0.78),
+                        borderLeftWidth: b.oncedenGelir ? 0 : 3,
+                        borderLeftColor: b.item.renk,
+                        paddingHorizontal: 4,
+                      }}
+                    >
+                      {b.item.etiket && (
+                        <Text
+                          style={{
+                            fontSize: 6.5,
+                            fontWeight: 700,
+                            color: '#ffffff',
+                            backgroundColor: b.item.renk,
+                            borderRadius: 2,
+                            paddingHorizontal: 2.5,
+                            marginRight: 3,
+                          }}
+                        >
+                          {b.item.etiket}
+                        </Text>
+                      )}
+                      <Text style={{ fontSize: 8, fontWeight: 700, color: MUREKKEP, maxLines: 1, flex: 1 }}>
+                        {b.oncedenGelir ? '← ' : ''}
+                        {b.item.title}
+                        {b.son - b.bas >= 2 ? `  ·  ${aralikYazi(b.item.starts_on, b.item.ends_on)}` : ''}
+                        {b.sonraSurer ? ' →' : ''}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
             </View>
           )
         })}
