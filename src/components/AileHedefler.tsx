@@ -8,6 +8,8 @@ import { examScores } from '@/lib/examScores'
 import { fmt } from '@/lib/analiz'
 import { DURUM_TR, durum, referansPuan, type PuanTuru } from '@/lib/hedef'
 import { useDenemePuanlari } from './HedefTab'
+import { sonLgsNetleri } from '@/lib/hedefSim'
+import { HedefSimulator } from './HedefSimulator'
 
 const TUR_TR: Record<PuanTuru, string> = { SAY: 'Sayısal', EA: 'Eşit ağırlık', SOZ: 'Sözel', DIL: 'Dil' }
 interface Hedef {
@@ -54,10 +56,12 @@ export function AileHedefler({ sid, grade, veli }: { sid: string; grade: number 
 
   const list = (hedefler.data ?? []).filter((h) => h.sinav === sinav)
   const lgsRef = ref('LGS')
+  const netler = useMemo(() => sonLgsNetleri(puanlar.data ?? []), [puanlar.data])
   const ad = (h: Hedef) => (h.sinav === 'YKS' ? `${h.program ?? ''} · ${h.kurum}` : `${h.kurum}${h.program ? ` · ${h.program}` : ''}`)
   const alt = (h: Hedef) => [h.il, h.ilce, h.birim, h.sinav === 'YKS' && h.puan_turu ? TUR_TR[h.puan_turu] : null].filter(Boolean).join(' · ')
 
-  return (
+  const simHedefler = list.filter((h) => h.taban_puan !== null).map((h) => ({ ad: ad(h), taban: h.taban_puan! }))
+  const kart = (
     <section className="card a" style={{ ['--d' as string]: 4, padding: 20, display: 'grid', gap: 8 }} aria-label="Hedefler" data-testid="aile-hedefler">
       <h2 className="sec">{veli ? 'Hedefler' : 'Hedeflerin'}</h2>
       {hedefler.isLoading || puanlar.isLoading ? (
@@ -119,5 +123,12 @@ export function AileHedefler({ sid, grade, veli }: { sid: string; grade: number 
         </>
       )}
     </section>
+  )
+  if (sinav !== 'LGS' || lgsRef.puan === null || !simHedefler.length) return kart
+  return (
+    <>
+      {kart}
+      <HedefSimulator key={lgsRef.puan} kim={veli ? 'veli' : 'ogrenci'} puan={lgsRef.puan} netler={netler} hedefler={simHedefler} />
+    </>
   )
 }

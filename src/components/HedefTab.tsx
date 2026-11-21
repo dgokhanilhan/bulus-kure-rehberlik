@@ -9,6 +9,8 @@ import { useAuth } from '@/auth/AuthProvider'
 import { useAyar } from '@/lib/ayarlar'
 import { examScores } from '@/lib/examScores'
 import { fmt } from '@/lib/analiz'
+import { HedefSimulator } from './HedefSimulator'
+import { sonLgsNetleri } from '@/lib/hedefSim'
 import { DURUM_TR, durum, oneriler, referansPuan, type Durum, type HedefProgram, type PuanTuru, type Sinav } from '@/lib/hedef'
 import { useToast } from './Toast'
 
@@ -22,11 +24,11 @@ export function useDenemePuanlari(sid: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('exam_results')
-        .select('score, source, exams!inner(name, exam_date, exam_type, status)')
+        .select('score, source, subjects, exams!inner(name, exam_date, exam_type, status)')
         .eq('student_id', sid)
         .eq('exams.status', 'yayinda')
       if (error) throw new Error(error.message)
-      type R = { score: number | null; source: unknown; exams: { name: string; exam_date: string; exam_type: string | null } }
+      type R = { score: number | null; source: unknown; subjects: unknown; exams: { name: string; exam_date: string; exam_type: string | null } }
       return ((data ?? []) as unknown as R[]).sort((a, b) => a.exams.exam_date.localeCompare(b.exams.exam_date))
     },
   })
@@ -61,6 +63,7 @@ export default function HedefTab({ sid, grade }: { sid: string; grade: number | 
   const ref = referansPuan(dizi.map((x) => x.v))
   const elleSayi = Number(elle.replace(',', '.'))
   const puan = elle.trim() && Number.isFinite(elleSayi) && elleSayi > 0 ? elleSayi : ref
+  const netler = useMemo(() => sonLgsNetleri(puanlar.data ?? []), [puanlar.data])
 
   const progs = useQuery({
     queryKey: ['hedef-programlar', sinav, tur, iller.join(',')],
@@ -207,6 +210,16 @@ export default function HedefTab({ sid, grade }: { sid: string; grade: number | 
           </p>
         )}
       </section>
+
+      {sinav === 'LGS' && puan !== null && (
+        <HedefSimulator
+          key={puan}
+          kim="ogretmen"
+          puan={puan}
+          netler={netler}
+          hedefler={(hedefler.data ?? []).filter((h) => h.p.taban_puan !== null).map((h) => ({ ad: ad(h.p), taban: h.p.taban_puan! }))}
+        />
+      )}
 
       <section className="card a" style={{ padding: '16px 20px', display: 'grid', gap: 10 }} aria-label="Öneriler">
         <div className="btns" style={{ alignItems: 'flex-end' }}>
