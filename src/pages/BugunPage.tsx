@@ -1,18 +1,27 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { VeriDurumu } from '@/components/VeriDurumu'
 import { Link, useNavigate } from 'react-router-dom'
-import { DEFAULT_TODAY, attention, fmt, indexResults, isOverdue, totalNet, type AttentionKind } from '@/lib/analiz'
+import { DEFAULT_TODAY, attention, fmt, indexResults, isOverdue, totalNet, type Attention } from '@/lib/analiz'
 import { useDataset, useMeetings, useSchoolSettings, useStudents, useTasks, type Meeting } from '@/lib/data'
 import { initials, localDate, localHM, todayISO, todayLong, trD, trDayShort } from '@/lib/format'
 import { Icon } from '@/components/Icon'
-import { Dropdown, Seg } from '@/components/Indicator'
+import { Dropdown } from '@/components/Indicator'
+import { BuHafta, GununAkisi, Yapilacaklar } from '@/components/BugunKartlar'
 import { MeetingModal, WITH_SHORT } from '@/components/Meetings'
 import { LEVEL_COLOR, LEVEL_INK, gun, useAttendanceWatchlist } from '@/components/Devamsizlik'
 import { useModules } from '@/lib/data'
 import { useAuth } from '@/auth/AuthProvider'
 import { usePanelLayout } from './PanelPage'
 
-type Filter = 'all' | AttentionKind
+// Bugün 2.0: öğrenciler nedenine göre gruplanır; her grupta ilk 3 satır, "Tümünü gör" ile hepsi.
+const GRUPLAR: { tag: Attention['tag']; ad: string; kind: Attention['kind'] }[] = [
+  { tag: 'Düşüş', ad: '↓ Sınıfa göre belirgin düşüş', kind: 'down' },
+  { tag: 'Tekrar eden hata', ad: 'Tekrar eden hata', kind: 'down' },
+  { tag: 'Gecikme', ad: 'Gecikmiş görev', kind: 'n' },
+  { tag: 'Eksik', ad: 'Denemeye girmedi', kind: 'n' },
+  { tag: 'Gelişim', ad: '↑ Gelişim', kind: 'up' },
+]
+const ILK = 3
 
 export default function BugunPage() {
   const students = useStudents()
@@ -21,7 +30,7 @@ export default function BugunPage() {
   const meetings = useMeetings()
   const settings = useSchoolSettings()
   const nav = useNavigate()
-  const [filter, setFilter] = useState<Filter>('all')
+  const [acik, setAcik] = useState<Partial<Record<Attention['tag'], boolean>>>({})
   const [change, setChange] = useState<Meeting | null>(null)
   const mods = useModules()
   const { profile } = useAuth()
@@ -36,7 +45,8 @@ export default function BugunPage() {
     const st = { ...DEFAULT_TODAY, ...((settings.data?.bugun as object) ?? {}) }
     // Bu veri kümesi yalnız LGS sınavlarını içerir. Görev gecikmeleri tüm sınıflarda izlenir.
     const lgsStudents = students.data.filter((s) => s.grade === 8)
-    const all = attention(ds, lgsStudents, tasks.data, today, st)
+    // Düşüş "sınıfa göre": öğrencinin değişimi − 8. sınıfların ortalama değişimi (zor denemede herkes düşmüş görünmez)
+    const all = attention(ds, lgsStudents, tasks.data, today, st, { goreli: true })
     const idx = indexResults(ds.results)
     const L = ds.exams.at(-1)
     const P = ds.exams.at(-2)
@@ -44,7 +54,8 @@ export default function BugunPage() {
       dn = 0,
       eq = 0,
       sum = 0,
-      c = 0
+      c = 0,
+      ham = 0
     if (L && P)
       for (const s of lgsStudents) {
         const a = idx.get(`${L.id}|${s.id}`)
@@ -53,24 +64,25 @@ export default function BugunPage() {
           const d = totalNet(a) - totalNet(b)
           sum += d
           c++
+          if (d <= -st.netDrop) ham++
           if (d > 1) up++
           else if (d < -1) dn++
           else eq++
         }
       }
-    return { all, L, up, dn, eq, sum, c }
+    return { all, L, up, dn, eq, sum, c, ham }
   }, [dsq.data, students.data, tasks.data, settings.data, today])
 
   if (!data) return <VeriDurumu sorgular={[students, dsq, tasks]} />
 
   const name = (sid: string) => students.data?.find((s) => s.id === sid)
-  const list = data.all.filter((o) => filter === 'all' || o.kind === filter)
   const meet = (meetings.data ?? []).filter((g) => localDate(g.starts_at) >= today).sort((a, b) => a.starts_at.localeCompare(b.starts_at))
   const ts = tasks.data ?? []
   const over = ts.filter((t) => isOverdue(t, today))
   const open = ts.filter((t) => !t.completed_at && !isOverdue(t, today))
   const done = ts.filter((t) => t.completed_at)
-  const { L, up, dn, eq, sum, c } = data
+  const { L, up, dn, eq, sum, c, ham } = data
+  const dususSay = data.all.filter((o) => o.tag === 'Düşüş').length
   const changing = change && name(change.student_id)
 
   // Yan kartlar: yöneticide sıra ve görünürlük Yönetim Merkezi → Ana sayfa düzeni → Yönetim (Bugün)'den (0024); rehberlikte sabit.
@@ -119,6 +131,13 @@ export default function BugunPage() {
               <span>{eq} sabit</span>
               <span>↓ {dn} düştü</span>
             </div>
+            {c >= 2 && Math.abs(sum / c) >= 1 && (
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--on-nav-muted)', lineHeight: 1.45 }} data-testid="deneme-zorluk">
+                Bu denemede ortalama net bir öncekine göre {sum / c < 0 ? `${fmt(-sum / c)} düştü; deneme daha zordu` : `${fmt(sum / c)} arttı`}. Düşüş listesi sınıfa
+                göre değişime bakar
+                {ham !== dususSay ? `; ham düşüşe bakılsaydı ${ham} öğrenci listelenecekti (şimdi ${dususSay}).` : '.'}
+              </p>
+            )}
           </section>
         )}
       </>
@@ -228,54 +247,64 @@ export default function BugunPage() {
           Deneme yükle
         </Link>
       </div>
+      <GununAkisi />
       <div className="cols">
         <section className="stack">
-          <Seg
-            className="a"
-            style={{ ['--d' as string]: 1, alignSelf: 'flex-start' }}
-            label="Filtre"
-            value={filter}
-            onChange={setFilter}
-            options={[
-              ['all', 'Tümü'],
-              ['down', 'Risk'],
-              ['n', 'Takip'],
-              ['up', 'Gelişim'],
-            ]}
-          />
-          <div className="card a" style={{ ['--d' as string]: 2, overflow: 'hidden' }}>
-            {list.length ? (
-              list.map((o, i) => {
-                const s = name(o.sid)
-                if (!s) return null
+          <Yapilacaklar />
+          <section className="card a" style={{ ['--d' as string]: 2, overflow: 'hidden' }} aria-labelledby="bg-ogr-b">
+            <div className="kv" style={{ padding: '14px 16px 4px' }}>
+              <h2 id="bg-ogr-b" style={{ fontSize: 16, margin: 0 }}>
+                Bugün bakman gereken öğrenciler
+              </h2>
+              <span className="m" style={{ fontSize: 12 }}>
+                nedenine göre
+              </span>
+            </div>
+            {data.all.length ? (
+              GRUPLAR.map((g) => {
+                const l = data.all.filter((o) => o.tag === g.tag && name(o.sid))
+                if (!l.length) return null
+                const hepsi = !!acik[g.tag]
                 return (
-                  <button key={`${o.sid}-${o.tag}-${i}`} className="srow" onClick={() => nav(`/ogrenciler/${s.id}`)} data-testid="attention-row">
-                    <span className="av s">{initials(s.full_name)}</span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <b>{s.full_name}</b>
-                        <span className="m" style={{ fontSize: 13 }}>
-                          {s.class_name}
-                        </span>
-                        <span className={`chip ${o.kind}`}>
-                          {o.kind === 'down' ? '↓ ' : o.kind === 'up' ? '↑ ' : ''}
-                          {o.tag}
-                        </span>
-                      </span>
-                      <span style={{ display: 'block', fontSize: 14, color: 'var(--ink-2)' }}>{o.short}</span>
-                    </span>
-                    <span className="m">
-                      <Icon name="right" size={18} stroke={2} />
-                    </span>
-                  </button>
+                  <div key={g.tag} data-testid="bugun-grup" data-grup={g.tag}>
+                    <h3 className="bg-gb">
+                      <span className={`chip ${g.kind}`}>{g.ad}</span> {l.length} öğrenci
+                    </h3>
+                    {(hepsi ? l : l.slice(0, ILK)).map((o, i) => {
+                      const s = name(o.sid)!
+                      return (
+                        <button key={`${o.sid}-${i}`} className="srow" onClick={() => nav(`/ogrenciler/${s.id}`)} data-testid="attention-row">
+                          <span className="av s">{initials(s.full_name)}</span>
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                              <b>{s.full_name}</b>
+                              <span className="m" style={{ fontSize: 13 }}>
+                                {s.class_name}
+                              </span>
+                            </span>
+                            <span style={{ display: 'block', fontSize: 14, color: 'var(--ink-2)' }}>{o.short}</span>
+                          </span>
+                          <span className="m">
+                            <Icon name="right" size={18} stroke={2} />
+                          </span>
+                        </button>
+                      )
+                    })}
+                    {l.length > ILK && (
+                      <button type="button" className="btn sm ghost bg-tumu" aria-expanded={hepsi} onClick={() => setAcik((a) => ({ ...a, [g.tag]: !hepsi }))}>
+                        {hepsi ? 'Daha az göster' : `Tümünü gör (${l.length})`}
+                      </button>
+                    )}
+                  </div>
                 )
               })
             ) : (
-              <div className="empty">Bu filtrede öğrenci yok.</div>
+              <div className="empty">Bugün öne çıkan öğrenci yok.</div>
             )}
-          </div>
+          </section>
         </section>
         <aside className="stack" style={{ gap: 14 }}>
+          <BuHafta />
           {order.map((k) => (
             <Fragment key={k}>{side[k]}</Fragment>
           ))}

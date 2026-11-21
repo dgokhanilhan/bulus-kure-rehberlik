@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { attention, fmt, konuStatus, repeats, totalNet, wrongOutcomes, type Dataset, type Question, type Result } from './analiz'
+import { attention, DEFAULT_TODAY, fmt, konuStatus, repeats, totalNet, wrongOutcomes, type Dataset, type Question, type Result } from './analiz'
 import { SUBJECTS } from './analiz'
 
 const q = (exam_id: string, q_no: number, code: string | null, match: Question['match'] = 'code_exact', correct = 'A'): Question => ({
@@ -94,6 +94,22 @@ describe('attention (Bugün)', () => {
     expect(by('c')).toEqual(['Eksik: Son 2 denemeye (TG-2, TG-3) girmedi'])
     expect(by('d')).toEqual(['Eksik: Son 2 denemeye (TG-2, TG-3) girmedi'])
     expect(list[0]!.tag).toBe('Düşüş')
+  })
+  it('sınıfa göre (Bugün): düşüş öğrencinin değişimi − ortalama değişim; herkes düştüyse ayrışmayan listelenmez', () => {
+    const d = ds()
+    const by = (l: ReturnType<typeof attention>, sid: string) => l.filter((x) => x.sid === sid).map((x) => `${x.tag}: ${x.short}`)
+    // a: −3, b: +6 → ortalama +1,5; a sınıfa göre −4,5
+    const ab = attention(d, [{ id: 'a' }, { id: 'b' }], [], '2026-09-10', DEFAULT_TODAY, { goreli: true })
+    expect(by(ab, 'a')).toEqual(['Düşüş: Matematik 14 → 12 → 9 · sınıfa göre −4,5 net'])
+    expect(by(ab, 'b')).toEqual(['Gelişim: Toplam net 14 → 20'])
+    // a: −3, e: −6 → ortalama −4,5; ikisi de sınıfa göre belirgin düşmedi (a'nın kalıcı hatası yine görünür)
+    d.results.push(res('e2', 'e', 'AA', 10), res('e3', 'e', 'AA', 4))
+    const ae = attention(d, [{ id: 'a' }, { id: 'e' }], [], '2026-09-10', DEFAULT_TODAY, { goreli: true })
+    expect(by(ae, 'a')).toEqual(['Tekrar eden hata: Üslü ifadeler: 3 denemede yanlış'])
+    expect(by(ae, 'e')).toEqual([])
+    expect(attention(d, [{ id: 'a' }, { id: 'e' }], [], '2026-09-10').filter((x) => x.tag === 'Düşüş')).toHaveLength(2)
+    // tek öğrenci: ham değişim
+    expect(by(attention(d, [{ id: 'a' }], [], '2026-09-10', DEFAULT_TODAY, { goreli: true }), 'a')).toEqual(['Düşüş: Matematik 14 → 12 → 9'])
   })
 })
 

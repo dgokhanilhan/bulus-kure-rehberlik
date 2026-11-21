@@ -285,11 +285,31 @@ export interface Attention {
 const f0 = (n: number) => fmt(n, 0)
 
 /** Bugün ilgilenilmesi gereken öğrenciler (prototipteki attention()). */
-export function attention(ds: Dataset, students: { id: string }[], tasks: TaskLite[], today: string, st: TodaySettings = DEFAULT_TODAY): Attention[] {
+/**
+ * opts.goreli (Bugün ekranı): düşüş, öğrencinin değişimi − listedeki öğrencilerin ortalama değişimi ile ölçülür ("sınıfa göre").
+ * Zor bir denemede herkes düştüğünde yalnız gerçekten ayrışanlar kalır. En az 2 öğrencinin iki denemesi yoksa ham değişim kullanılır.
+ */
+export function attention(
+  ds: Dataset,
+  students: { id: string }[],
+  tasks: TaskLite[],
+  today: string,
+  st: TodaySettings = DEFAULT_TODAY,
+  opts: { goreli?: boolean } = {},
+): Attention[] {
   const idx = indexResults(ds.results)
   const L = ds.exams[ds.exams.length - 1]
   const P = ds.exams[ds.exams.length - 2]
   const out: Attention[] = []
+  let ort: number | null = null
+  if (opts.goreli && L && P) {
+    const fl = students.flatMap((s) => {
+      const a = idx.get(`${L.id}|${s.id}`)
+      const b = idx.get(`${P.id}|${s.id}`)
+      return a && b ? [totalNet(a) - totalNet(b)] : []
+    })
+    if (fl.length >= 2) ort = fl.reduce((t, x) => t + x, 0) / fl.length
+  }
   for (const s of students) {
     if (!L) break
     const a = idx.get(`${L.id}|${s.id}`)
@@ -303,7 +323,8 @@ export function attention(ds: Dataset, students: { id: string }[], tasks: TaskLi
       continue
     }
     const d = b ? totalNet(a) - totalNet(b) : 0
-    if (b && d <= -st.netDrop) {
+    const dd = ort === null ? d : d - ort
+    if (b && dd <= -st.netDrop) {
       let worst = ds.subjects[0]!
       let wd = Infinity
       for (const sub of ds.subjects) {
@@ -316,7 +337,8 @@ export function attention(ds: Dataset, students: { id: string }[], tasks: TaskLi
       const tri = studentExams(ds, s.id, idx)
         .slice(-3)
         .map((x) => f0(subjectNet(x.result, worst.code) ?? 0))
-      out.push({ sid: s.id, kind: 'down', tag: 'Düşüş', short: `${worst.short} ${tri.join(' → ')}`, pr: 1 })
+      const ek = ort === null ? '' : ` · sınıfa göre −${fmt(-dd)} net`
+      out.push({ sid: s.id, kind: 'down', tag: 'Düşüş', short: `${worst.short} ${tri.join(' → ')}${ek}`, pr: 1 })
       continue
     }
     const rep = repeats(ds, s.id, undefined, idx).filter((r) => r.count >= st.repeatMin && r.lastWrong)
