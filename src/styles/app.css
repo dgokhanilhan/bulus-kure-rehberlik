@@ -1244,3 +1244,8 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .cd-satir.hata{background:var(--signal-soft);border-color:var(--signal)}
 .cd-satir .btn{min-height:44px}
 @media (max-width:600px){.calband{font-size:0;height:6px;padding:0;margin:0 2px;border-left-width:0;background:var(--c)}.calband.onceden,.calband.surer{margin:0}.calcell{padding:0 3px 3px}.calchip .ctag,.calband *{display:none}}
+/* 0092 taslak etkinlik: kesik çerçeve + "Taslak" yazısı (renk tek başına anlam taşımaz) */
+.calchip.taslak,.calband.taslak{background:transparent;border:1.5px dashed var(--c);border-left-width:3px}
+.calchip.taslak::before,.calband.taslak::before{content:"Taslak · ";font-weight:600;color:var(--ink-muted)}
+.tbadge{display:inline-block;font-size:11px;font-weight:700;border:1px dashed var(--line-strong);border-radius:6px;padding:0 6px;margin-right:6px;color:var(--ink-muted)}
+.aktar-tbl td.hata{color:var(--signal-ink,var(--signal))}

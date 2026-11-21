@@ -1,5 +1,5 @@
 // Takvim (Faz D · 0015): sınav ve etkinlikler + ödev teslim günleri. Kim neyi görür / ekler veritabanında zorlanır.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -15,6 +15,7 @@ import { calendarInScope } from '@/lib/calendarScope'
 import { useAyar } from '@/lib/ayarlar'
 import { TakvimKonuKutusu, TakvimKonuPenceresi } from './Yaklasan'
 import type { ClassRow } from '@/lib/types'
+import { SABLON_BASLIK, takvimTablosuOku, type OkunanSatir } from '@/lib/takvimExcel'
 import { cakisanlar, egitimYili, haftaBantlari, seviyeDegistir, seviyeyeUyar, sinifEtiketi } from '@/lib/takvim'
 
 const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
@@ -23,7 +24,7 @@ const AUD = { veli: 'Veliler', ogrenci: 'Öğrenciler', ogretmen: 'Öğretmenler
 const errText = (e: { message?: string } | null) => (e ? (/row-level security/i.test(e.message ?? '') ? 'Bu hedefe etkinlik ekleme yetkin yok.' : (e.message ?? 'Kaydedilemedi.')) : null)
 
 /** Takvimde gösterilen öğe: gerçek etkinlik ya da ödev teslim günü (salt okunur). */
-type Item = { key: string; title: string; type: EventType; starts_on: string; ends_on: string; time: string | null; ev?: CalEvent; homework?: string; classId?: string | null }
+type Item = { key: string; title: string; type: EventType; starts_on: string; ends_on: string; time: string | null; ev?: CalEvent; homework?: string; classId?: string | null; taslak?: boolean }
 
 const monthStart = (iso: string) => `${iso.slice(0, 7)}-01`
 const monthEnd = (iso: string) => {
@@ -43,6 +44,7 @@ export default function TakvimPage() {
   const [aralik, setAralik] = useState<'ay' | 'yil'>('yil')
   const [edit, setEdit] = useState<CalEvent | 'new' | null>(null)
   const [kopya, setKopya] = useState<CalEvent | null>(null)
+  const [aktar, setAktar] = useState(false)
   const settings = useSettings()
   const classes = useClasses()
   const from = addDays(month, 1 - isoDow(month))
@@ -71,7 +73,7 @@ export default function TakvimPage() {
   const seviyeler = [...new Set(clsList.filter((c) => c.active !== false).map((c) => c.grade))].sort((a, b) => a - b)
 
   const items = useMemo<Item[]>(() => {
-    const evs: Item[] = (cal.data ?? []).map((e) => ({ key: e.id, title: e.title, type: e.type, starts_on: e.starts_on, ends_on: e.ends_on, time: e.starts_at?.slice(0, 5) ?? null, ev: e }))
+    const evs: Item[] = (cal.data ?? []).map((e) => ({ key: e.id, title: e.title, type: e.type, starts_on: e.starts_on, ends_on: e.ends_on, time: e.starts_at?.slice(0, 5) ?? null, ev: e, taslak: !!e.taslak }))
     // Ödev teslim günleri: aile kendi çocuğunun sınıfınınkini, öğretmen verdiklerini görür
     const mineCls = new Set(stuList.map((s) => s.class_id))
     const hws: Item[] = (hw.data ?? [])
@@ -124,11 +126,19 @@ export default function TakvimPage() {
       <div className="head a">
         <h1 className="hd">Takvim</h1>
         {canAdd && (
-          <button className="btn pri" onClick={() => setEdit('new')}>
-            <Icon name="plus" size={18} stroke={2} /> Etkinlik ekle
-          </button>
+          <div className="btns">
+            {(role === 'admin' || role === 'rehber') && (
+              <button className="btn" onClick={() => setAktar(true)}>
+                <Icon name="grid" size={16} /> Excel'den yükle
+              </button>
+            )}
+            <button className="btn pri" onClick={() => setEdit('new')}>
+              <Icon name="plus" size={18} stroke={2} /> Etkinlik ekle
+            </button>
+          </div>
         )}
       </div>
+      {canAdd && <TaslakCubugu />}
       <div className="kv a" style={{ ['--d' as string]: 1, flexWrap: 'wrap', gap: 10 }}>
         <div className="btns" style={{ flexWrap: 'wrap' }}>
           <div className="segm" role="group" aria-label="Görünüm">
@@ -217,11 +227,11 @@ export default function TakvimPage() {
                     return (
                       <button
                         key={x.key}
-                        className={`calband${b.oncedenGelir ? ' onceden' : ''}${b.sonraSurer ? ' surer' : ''}`}
+                        className={`calband${b.oncedenGelir ? ' onceden' : ''}${b.sonraSurer ? ' surer' : ''}${x.taslak ? ' taslak' : ''}`}
                         style={{ gridColumn: `${b.bas + 1} / ${b.son + 2}`, gridRow: b.serit + 2, ['--c' as string]: EVENT_COLOR[x.type] }}
                         onClick={() => openItem(x)}
                         title={`${EVENT_TR[x.type]}: ${x.title} (${trD(x.starts_on)} – ${trD(x.ends_on)})`}
-                        aria-label={`${trD(x.starts_on)} – ${trD(x.ends_on)} · ${EVENT_TR[x.type]}: ${x.title}`}
+                        aria-label={`${trD(x.starts_on)} – ${trD(x.ends_on)} · ${x.taslak ? 'Taslak · ' : ''}${EVENT_TR[x.type]}: ${x.title}`}
                       >
                         {b.oncedenGelir && <span aria-hidden="true">←</span>}
                         {t && <span className="ctag">{t}</span>}
@@ -239,7 +249,7 @@ export default function TakvimPage() {
                         {list.slice(0, 3).map((x) => {
                           const t = etiket(x)
                           return (
-                            <button key={x.key} className="calchip" style={{ ['--c' as string]: EVENT_COLOR[x.type] }} onClick={() => openItem(x)} title={`${EVENT_TR[x.type]}: ${x.title}${t ? ` · ${t}` : ''}`} aria-label={`${trD(d)} · ${EVENT_TR[x.type]}: ${x.title}`}>
+                            <button key={x.key} className={`calchip${x.taslak ? ' taslak' : ''}`} style={{ ['--c' as string]: EVENT_COLOR[x.type] }} onClick={() => openItem(x)} title={`${x.taslak ? 'Taslak · ' : ''}${EVENT_TR[x.type]}: ${x.title}${t ? ` · ${t}` : ''}`} aria-label={`${trD(d)} · ${x.taslak ? 'Taslak · ' : ''}${EVENT_TR[x.type]}: ${x.title}`}>
                               {t && <span className="ctag">{t}</span>}
                               {x.time ? `${x.time} ` : ''}
                               {x.title}
@@ -267,6 +277,7 @@ export default function TakvimPage() {
                       {x.time ? ` · ${x.time}` : ''}
                       {x.ends_on !== x.starts_on ? ` → ${trD(x.ends_on)}` : ''}
                       {etiket(x) ? ` · ${etiket(x)}` : ''}
+                      {x.taslak ? ' · Taslak' : ''}
                     </span>
                   </span>
                 </button>
@@ -280,6 +291,7 @@ export default function TakvimPage() {
       {detail && <EventDetail e={detail} onClose={kapatDetay} onEdit={() => setEdit(detail)} onCopy={canAdd ? () => { setKopya(detail); kapatDetay() } : undefined} />}
       {edit && <EventModal e={edit === 'new' ? null : edit} onClose={() => setEdit(null)} />}
       {kopya && <EventModal e={kopya} kopya onClose={() => setKopya(null)} />}
+      {aktar && <ExcelAktar onClose={() => setAktar(false)} />}
     </>
   )
 }
@@ -316,6 +328,22 @@ function EventDetail({ e, onClose, onEdit, onCopy }: { e: CalEvent; onClose: () 
             <button className="btn" onClick={() => setDel(true)} style={{ marginRight: 'auto' }}>
               <Icon name="trash" size={15} /> Sil
             </button>
+            {e.taslak && (
+              <button
+                className="btn"
+                onClick={async () => {
+                  const { error } = await supabase.rpc('takvim_yayinla', { p_ids: [e.id] })
+                  if (error) return toast(errText(error) ?? 'Yayınlanamadı')
+                  qc.invalidateQueries({ queryKey: ['calendar'] })
+                  qc.invalidateQueries({ queryKey: ['calendar-one'] })
+                  qc.invalidateQueries({ queryKey: ['takvim-taslak'] })
+                  toast('Etkinlik yayınlandı; ilgililere bildirim gitti')
+                  onClose()
+                }}
+              >
+                <Icon name="mega" size={15} /> Yayınla
+              </button>
+            )}
             {onCopy && (
               <button className="btn" onClick={onCopy}>
                 <Icon name="repeat" size={15} /> Kopyala
@@ -358,6 +386,12 @@ function EventDetail({ e, onClose, onEdit, onCopy }: { e: CalEvent; onClose: () 
         )}
         {e.description && <p style={{ whiteSpace: 'pre-line', margin: 0 }}>{e.description}</p>}
       </div>
+      {e.taslak && (
+        <div className="cakisma" role="status" style={{ marginTop: 12 }}>
+          <b>Taslak</b>
+          <span>Yalnız ekleyen ve yönetim görüyor. Henüz kimseye bildirim gitmedi.</span>
+        </div>
+      )}
       {e.type === 'deneme' && <TakvimKonuKutusu eventId={e.id} onAc={() => setKonuAcik(true)} />}
       {del && (
         <ConfirmDelete
@@ -368,6 +402,7 @@ function EventDetail({ e, onClose, onEdit, onCopy }: { e: CalEvent; onClose: () 
             const { error } = await supabase.from('calendar_events').delete().eq('id', e.id)
             if (error) return errText(error)
             qc.invalidateQueries({ queryKey: ['calendar'] })
+            qc.invalidateQueries({ queryKey: ['takvim-taslak'] })
             toast('Etkinlik silindi')
             onClose()
             return null
@@ -423,6 +458,7 @@ function EventModal({ e: kaynak, kopya = false, onClose }: { e: CalEvent | null;
     teacher_id: k?.teacher_id ?? (staff ? '' : (profile?.id ?? '')),
     course_id: k?.course_id ?? '',
     audience: k?.audience ?? (['veli', 'ogrenci', 'ogretmen'] as CalEvent['audience']),
+    taslak: kopya ? false : (k?.taslak ?? false),
   })
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -472,6 +508,7 @@ function EventModal({ e: kaynak, kopya = false, onClose }: { e: CalEvent | null;
       teacher_id: f.target === 'ogretmen' ? tch : null,
       course_id: f.course_id || null,
       audience: f.audience,
+      ...(e && !e.taslak ? {} : { taslak: f.taslak }),
     }
     setBusy(true)
     const { error } = e ? await supabase.from('calendar_events').update(row).eq('id', e.id) : await supabase.from('calendar_events').insert({ ...row, school_id: profile!.school_id, created_by: profile!.id })
@@ -479,7 +516,19 @@ function EventModal({ e: kaynak, kopya = false, onClose }: { e: CalEvent | null;
     if (error) return setErr(errText(error))
     qc.invalidateQueries({ queryKey: ['calendar'] })
     qc.invalidateQueries({ queryKey: ['calendar-one'] })
-    toast(e ? 'Etkinlik güncellendi' : 'Etkinlik eklendi; ilgililere bildirim gitti')
+    qc.invalidateQueries({ queryKey: ['takvim-taslak'] })
+    const tarihDegisti = !!e && !e.taslak && (e.starts_on !== f.starts_on || e.ends_on !== f.ends_on)
+    toast(
+      f.taslak
+        ? 'Taslak kaydedildi; kimseye bildirim gitmedi'
+        : e?.taslak
+          ? 'Etkinlik yayınlandı; ilgililere bildirim gitti'
+          : e
+            ? tarihDegisti
+              ? 'Etkinlik güncellendi; tarih değişikliği ilgililere bildirildi'
+              : 'Etkinlik güncellendi'
+            : 'Etkinlik eklendi; ilgililere bildirim gitti',
+    )
     onClose()
   }
 
@@ -629,6 +678,19 @@ function EventModal({ e: kaynak, kopya = false, onClose }: { e: CalEvent | null;
         Açıklama (isteğe bağlı)
         <textarea id="eDesc" rows={3} value={f.description} onChange={set('description')} maxLength={2000} />
       </label>
+      {(!e || e.taslak) && (
+        <button type="button" className="check" role="checkbox" aria-checked={f.taslak} onClick={() => setF((x) => ({ ...x, taslak: !x.taslak }))}>
+          <span className={`box ${f.taslak ? 'on' : ''}`}>{f.taslak && <Icon name="check" size={13} stroke={3} />}</span>
+          <span style={{ fontSize: 14 }}>
+            Taslak olarak kaydet <span className="m">· yalnız sen ve yönetim görür, bildirim gitmez</span>
+          </span>
+        </button>
+      )}
+      {e && !e.taslak && (e.starts_on !== f.starts_on || e.ends_on !== f.ends_on) && (
+        <span className="m" role="status">
+          Tarih değişikliği kaydedilince ilgililere bildirilir.
+        </span>
+      )}
       {(cakisma.tatil.length > 0 || cakisma.ayniSinif.length > 0) && (
         <div className="cakisma" role="status" data-testid="cakisma">
           <b style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -880,6 +942,7 @@ function TakvimListesi({ items, aralikAdi, filtreAdi, openItem, loading }: { ite
                         }}
                         style={{ background: 'none', border: 0, padding: 0, minHeight: 0, color: 'inherit', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}
                       >
+                        {x.taslak && <span className="tbadge">Taslak</span>}
                         {etk(x)}
                       </button>
                     </td>
@@ -898,5 +961,229 @@ function TakvimListesi({ items, aralikAdi, filtreAdi, openItem, loading }: { ite
         </div>
       ))}
     </section>
+  )
+}
+
+/** Yayında olmayan taslaklar (ekleyenin kendi taslakları; yönetici hepsini) + "Tümünü yayınla". */
+function TaslakCubugu() {
+  const { profile, role } = useAuth()
+  const qc = useQueryClient()
+  const toast = useToast()
+  const [onay, setOnay] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const q = useQuery({
+    queryKey: ['takvim-taslak', profile?.id],
+    enabled: !!profile,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('calendar_events').select('id, title, starts_on, created_by').eq('taslak', true).order('starts_on')
+      if (error) throw error
+      return (data ?? []) as { id: string; title: string; starts_on: string; created_by: string | null }[]
+    },
+  })
+  const benim = (q.data ?? []).filter((x) => role === 'admin' || x.created_by === profile?.id)
+  if (!benim.length) return null
+  const ilk = benim[0]!.starts_on
+  const son = benim[benim.length - 1]!.starts_on
+  async function yayinla() {
+    setBusy(true)
+    const { data, error } = await supabase.rpc('takvim_yayinla', { p_ids: benim.map((x) => x.id) })
+    setBusy(false)
+    if (error) return toast(errText(error) ?? 'Yayınlanamadı')
+    qc.invalidateQueries({ queryKey: ['calendar'] })
+    qc.invalidateQueries({ queryKey: ['takvim-taslak'] })
+    setOnay(false)
+    toast(`${data ?? benim.length} etkinlik yayınlandı; her kişiye tek bildirim gitti`)
+  }
+  return (
+    <div className="card a cakisma" style={{ marginBottom: 12, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 }} data-testid="taslak-cubugu">
+      <span style={{ flex: 1, minWidth: 220 }}>
+        <b>{benim.length} taslak etkinlik</b> yayında değil ({trD(ilk)}
+        {son !== ilk ? ` – ${trD(son)}` : ''}). Veliler ve öğrenciler henüz görmüyor.
+      </span>
+      <button className="btn pri" onClick={() => setOnay(true)}>
+        <Icon name="mega" size={16} /> Tümünü yayınla
+      </button>
+      {onay && (
+        <Modal
+          title="Taslakları yayınla"
+          onClose={() => setOnay(false)}
+          footer={
+            <>
+              <button className="btn" onClick={() => setOnay(false)}>
+                Vazgeç
+              </button>
+              <button className="btn pri" onClick={yayinla} disabled={busy}>
+                {busy && <span className="spinner" aria-hidden="true" />} {benim.length} etkinliği yayınla
+              </button>
+            </>
+          }
+        >
+          <p style={{ marginTop: 0 }}>
+            {benim.length} etkinlik takvimde herkese görünür olacak. İlgili velilere, öğrencilere ve öğretmenlere <b>kişi başı tek bildirim</b> gider.
+          </p>
+          <ul className="m" style={{ maxHeight: 220, overflow: 'auto', paddingLeft: 18, margin: 0 }}>
+            {benim.slice(0, 40).map((x) => (
+              <li key={x.id}>
+                {trD(x.starts_on)} · {x.title}
+              </li>
+            ))}
+            {benim.length > 40 && <li>ve {benim.length - 40} etkinlik daha</li>}
+          </ul>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+/** Excel'den toplu etkinlik: şablon indir → dosya seç → önizle → taslak olarak ekle. */
+function ExcelAktar({ onClose }: { onClose: () => void }) {
+  const { profile } = useAuth()
+  const classes = useClasses()
+  const qc = useQueryClient()
+  const toast = useToast()
+  const [ad, setAd] = useState('')
+  const [satirlar, setSatirlar] = useState<OkunanSatir[] | null>(null)
+  const [hata, setHata] = useState<string | null>(null)
+  const [mevcut, setMevcut] = useState<Set<string>>(new Set())
+  const [busy, setBusy] = useState(false)
+  const dosya = useRef<HTMLInputElement>(null)
+  const turler = Object.fromEntries(TYPES.filter((t) => t !== 'odev_teslim').map((t) => [t, EVENT_TR[t]]))
+  const anahtar = (x: { starts_on: string; title: string }) => `${x.starts_on}|${x.title.toLocaleLowerCase('tr-TR').trim()}`
+  async function sablon() {
+    const ExcelJS = (await import('exceljs')).default
+    const book = new ExcelJS.Workbook()
+    const sh = book.addWorksheet('Takvim')
+    sh.columns = SABLON_BASLIK.map((h, i) => ({ header: h, width: [14, 14, 34, 18, 22, 8, 18, 30][i] }))
+    sh.getRow(1).font = { bold: true }
+    sh.addRow(['12.01.2027', '', 'LGS Deneme 4', 'Deneme', '8', '09:30', 'Spor salonu', ''])
+    sh.addRow(['13.01.2027', '', 'Matematik yazılı', 'Yazılı', '5-7', '', '', ''])
+    sh.addRow(['14.01.2027', '', 'Fen yazılı', 'Yazılı', '8/A, 8/B', '', '', ''])
+    sh.addRow(['25.01.2027', '05.02.2027', 'Yarıyıl tatili', 'Tatil', 'Tümü', '', '', ''])
+    const not = book.addWorksheet('Açıklama')
+    not.columns = [{ width: 100 }]
+    ;[
+      'Başlangıç ve Bitiş: gg.aa.yyyy (Bitiş boşsa tek gün).',
+      `Tür: ${Object.values(turler).join(', ')}.`,
+      'Sınıflar: Tümü · Ortaokul · 8 (bütün 8. sınıflar) · 5-7 (5, 6, 7. sınıflar) · 8/A, 8/B (virgülle).',
+      'Saat isteğe bağlı (09:30). Yer ve Açıklama isteğe bağlı.',
+      'Yüklenen etkinlikler önce taslak olur; kontrol edip "Tümünü yayınla" deyince bildirim gider.',
+    ].forEach((t) => not.addRow([t]))
+    const b = await book.xlsx.writeBuffer()
+    dosyaIndir(new Blob([new Uint8Array(b)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Takvim-sablonu.xlsx')
+  }
+  async function oku(file: File) {
+    setHata(null)
+    setSatirlar(null)
+    setAd(file.name)
+    try {
+      const readXlsx = (await import('read-excel-file')).default
+      const rows = (await readXlsx(file)) as unknown[][]
+      const r = takvimTablosuOku(rows, classes.data ?? [], turler)
+      if (r.hata) return setHata(r.hata)
+      if (!r.satirlar.length) return setHata('Dosyada etkinlik satırı bulunamadı.')
+      const tarihler = r.satirlar.flatMap((x) => (x.event ? [x.event.starts_on] : []))
+      if (tarihler.length) {
+        const { data } = await supabase
+          .from('calendar_events')
+          .select('title, starts_on')
+          .gte('starts_on', tarihler.reduce((a, b) => (a < b ? a : b)))
+          .lte('starts_on', tarihler.reduce((a, b) => (a > b ? a : b)))
+        setMevcut(new Set((data ?? []).map(anahtar)))
+      }
+      setSatirlar(r.satirlar)
+    } catch {
+      setHata('Dosya okunamadı. Excel (.xlsx) dosyası seç.')
+    }
+  }
+  const eklenecek = (satirlar ?? []).filter((x) => x.event && !mevcut.has(anahtar(x.event)))
+  const tekrar = (satirlar ?? []).filter((x) => x.event && mevcut.has(anahtar(x.event))).length
+  const hatali = (satirlar ?? []).filter((x) => x.hata).length
+  async function kaydet() {
+    if (!eklenecek.length || !profile) return
+    setBusy(true)
+    const { error } = await supabase
+      .from('calendar_events')
+      .insert(eklenecek.map((x) => ({ ...x.event!, taslak: true, ends_at: null, audience: ['veli', 'ogrenci', 'ogretmen'], school_id: profile.school_id, created_by: profile.id })))
+    setBusy(false)
+    if (error) return setHata(errText(error))
+    qc.invalidateQueries({ queryKey: ['calendar'] })
+    qc.invalidateQueries({ queryKey: ['takvim-taslak'] })
+    toast(`${eklenecek.length} etkinlik taslak olarak eklendi; kimseye bildirim gitmedi`)
+    onClose()
+  }
+  return (
+    <Modal
+      title="Excel'den etkinlik yükle"
+      width={860}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            Vazgeç
+          </button>
+          <button className="btn pri" onClick={kaydet} disabled={busy || !eklenecek.length}>
+            {busy && <span className="spinner" aria-hidden="true" />} {eklenecek.length} etkinliği taslak olarak ekle
+          </button>
+        </>
+      }
+    >
+      <p style={{ marginTop: 0 }}>
+        Sütunlar: <b>{SABLON_BASLIK.join(', ')}</b>. Eklenen etkinlikler önce <b>taslak</b> olur; takvimde kontrol edip "Tümünü yayınla" deyince bildirim gider.
+      </p>
+      <div className="btns" style={{ flexWrap: 'wrap' }}>
+        <button className="btn" onClick={sablon}>
+          <Icon name="down" size={16} /> Şablonu indir
+        </button>
+        <button className="btn pri" onClick={() => dosya.current?.click()}>
+          <Icon name="up" size={16} /> Dosya seç
+        </button>
+        <input ref={dosya} type="file" accept=".xlsx" hidden onChange={(ev) => ev.target.files?.[0] && void oku(ev.target.files[0])} aria-label="Excel dosyası" />
+        {ad && <span className="m">{ad}</span>}
+      </div>
+      {hata && (
+        <div className="err" role="alert">
+          {hata}
+        </div>
+      )}
+      {satirlar && (
+        <>
+          <p className="m" role="status" style={{ margin: '12px 0 6px' }}>
+            <b>{eklenecek.length}</b> etkinlik eklenecek
+            {tekrar ? ` · ${tekrar} satır takvimde zaten var (atlanır)` : ''}
+            {hatali ? ` · ${hatali} satır okunamadı (atlanır)` : ''}
+          </p>
+          <div style={{ maxHeight: 360, overflow: 'auto' }}>
+            <table className="ctbl aktar-tbl">
+              <thead>
+                <tr>
+                  <th>Satır</th>
+                  <th>Tarih</th>
+                  <th>Etkinlik</th>
+                  <th>Tür</th>
+                  <th>Sınıflar</th>
+                  <th>Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                {satirlar.map((x) => {
+                  const ev = x.event
+                  const var_ = ev && mevcut.has(anahtar(ev))
+                  return (
+                    <tr key={x.no}>
+                      <td>{x.no}</td>
+                      <td>{ev ? (ev.ends_on !== ev.starts_on ? `${trD(ev.starts_on)} – ${trD(ev.ends_on)}` : trD(ev.starts_on)) : x.ham[0] || '—'}</td>
+                      <td>{ev ? `${ev.title}${ev.starts_at ? ` · ${ev.starts_at}` : ''}` : x.ham[2] || '—'}</td>
+                      <td>{ev ? EVENT_TR[ev.type as EventType] : x.ham[3] || '—'}</td>
+                      <td>{ev ? x.sinifYazi : x.ham[4] || '—'}</td>
+                      <td className={x.hata ? 'hata' : ''}>{x.hata ? `Okunamadı: ${x.hata}` : var_ ? 'Zaten var, atlanır' : 'Eklenecek'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </Modal>
   )
 }

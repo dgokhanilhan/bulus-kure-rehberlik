@@ -118,6 +118,8 @@ export interface CalEvent {
   course_id: string | null
   audience: ('veli' | 'ogrenci' | 'ogretmen')[]
   created_by: string | null
+  /** 0092: taslak etkinliği yalnız ekleyen ve yönetim görür; bildirim gitmez. */
+  taslak?: boolean
 }
 export function useCalendar(from: string, to: string) {
   const { profile } = useAuth()
@@ -130,7 +132,7 @@ export function useCalendar(from: string, to: string) {
         supabase
           .from('calendar_events')
           .select(
-            'id, title, description, type, starts_on, ends_on, starts_at, ends_at, location, target, level, class_id, class_ids, student_id, teacher_id, course_id, audience, created_by',
+            'id, title, description, type, starts_on, ends_on, starts_at, ends_at, location, target, level, class_id, class_ids, student_id, teacher_id, course_id, audience, created_by, taslak',
           )
           .lte('starts_on', to)
           .gte('ends_on', from)
