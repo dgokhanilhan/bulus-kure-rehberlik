@@ -4,7 +4,7 @@ import logo from '@/assets/okul-logo.jpg?url'
 import regular from '@ibm/plex-sans/fonts/complete/woff/IBMPlexSans-Regular.woff?url'
 import semi from '@ibm/plex-sans/fonts/complete/woff/IBMPlexSans-SemiBold.woff?url'
 import bold from '@ibm/plex-sans/fonts/complete/woff/IBMPlexSans-Bold.woff?url'
-import { acik, ayHaftalari, haftaBantlari } from './takvim'
+import { acik, ayHaftalari } from './takvim'
 
 export { acik, ayHaftalari }
 
@@ -33,7 +33,6 @@ const ANA = '#1f5f5b'
 const ALTIN = '#e7c57a'
 const MUREKKEP = '#1b2a2f'
 
-const BANT = 13
 const UST = 17
 
 /** Afişte tatil, gri yerine pano için canlı pembe (diğer türlerin renklerinden ayrışır). */
@@ -44,8 +43,6 @@ export function TakvimAfisBelgesi({ g: girdi }: { g: AfisGirdi }) {
   const tatilGunu = (d: string) => g.ogeler.some((x) => x.type === 'tatil' && x.starts_on <= d && x.ends_on >= d)
   const haftalar = ayHaftalari(g.yil, g.ay)
   const ayKodu = `${g.yil}-${String(g.ay).padStart(2, '0')}`
-  const tekGun = g.ogeler.filter((x) => x.starts_on === x.ends_on)
-  const cokGun = g.ogeler.filter((x) => x.ends_on > x.starts_on)
   const turler = [...new Map(g.ogeler.map((x) => [x.type, x])).values()]
   const ayinOgeleri = g.ogeler.filter((x) => x.starts_on <= iso(g.yil, g.ay + 1, 0) && x.ends_on >= iso(g.yil, g.ay, 1))
   const gridH = 595 - 24 * 2 - 74 - 22 - 34
@@ -103,15 +100,17 @@ export function TakvimAfisBelgesi({ g: girdi }: { g: AfisGirdi }) {
 
         {/* Haftalar */}
         {haftalar.map((w) => {
-          const { bantlar, serit } = haftaBantlari(w, cokGun)
-          const pay = UST + serit * BANT
+          // Çok günlü etkinlikler birleştirilmez: kapladığı her günün kutusuna ayrı ayrı yazılır.
+          const pay = UST
           const sigar = Math.max(0, Math.floor((haftaH - pay - 6) / 15))
           return (
             <View key={w[0]} style={{ height: haftaH, flexDirection: 'row', marginTop: 3, position: 'relative' }}>
               {w.map((d, i) => {
                 const dis = d.slice(0, 7) !== ayKodu
                 const hs = i >= 5
-                const liste = tekGun.filter((x) => x.starts_on === d)
+                const liste = g.ogeler
+                  .filter((x) => x.starts_on <= d && x.ends_on >= d)
+                  .sort((a, b) => a.starts_on.localeCompare(b.starts_on) || (a.time ?? '').localeCompare(b.time ?? ''))
                 const goster = liste.length > sigar ? liste.slice(0, Math.max(0, sigar - 1)) : liste
                 return (
                   <View
@@ -173,28 +172,6 @@ export function TakvimAfisBelgesi({ g: girdi }: { g: AfisGirdi }) {
                   </View>
                 )
               })}
-              {bantlar.map((b) => (
-                <View
-                  key={b.item.key}
-                  style={{
-                    position: 'absolute',
-                    top: UST + b.serit * BANT,
-                    left: `${(b.bas / 7) * 100}%`,
-                    width: `${((b.son - b.bas + 1) / 7) * 100}%`,
-                    height: BANT - 2,
-                    paddingHorizontal: 4,
-                  }}
-                >
-                  <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 3, backgroundColor: b.item.renk, paddingHorizontal: 4 }}>
-                    <Text style={{ fontSize: 7, fontWeight: 700, color: '#ffffff', maxLines: 1 }}>
-                      {b.oncedenGelir ? '← ' : ''}
-                      {b.item.etiket ? `[${b.item.etiket}] ` : ''}
-                      {b.item.title}
-                      {b.sonraSurer ? ' →' : ''}
-                    </Text>
-                  </View>
-                </View>
-              ))}
             </View>
           )
         })}

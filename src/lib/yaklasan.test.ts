@@ -3,6 +3,8 @@ import { buildPayload, buildReview, type DkPack, type DkQuestion, type DkRecord 
 import { SUBJECTS, type Dataset } from './analiz'
 import {
   adBenzerligi,
+  dersAdi,
+  dersSayilari,
   kazanimEsle,
   kazanimTablosuOku,
   konuGruplari,
@@ -40,12 +42,42 @@ const KATALOG: KatalogKazanim[] = [
 
 describe('kazanım tablosu', () => {
   it('ders bloklarını, kitapçık numaralarını ve sınav adını okur; tanınmayan dersi bildirir', () => {
-    const d = kazanimTablosuOku(TABLO)
+    const d = kazanimTablosuOku([...TABLO, blok('BEDEN EĞİTİMİ'), satir(1, 1, 'BE.7.1', 'Oyun', 'x')])
     expect(d.ad).toBe('8.SINIF TG GELİŞİM-2')
     expect(d.sinif).toBe(8)
-    expect(d.sorular.map((s) => `${s.subject}${s.q_no}/${s.q_b}`)).toEqual(['MAT1/2', 'MAT2/1', 'DIN1/1', 'ING1/1'])
+    expect(d.sorular.map((s) => `${s.subject}${s.q_no}/${s.q_b}`)).toEqual(['MAT1/2', 'MAT2/1', 'SOS1/1', 'DIN1/1', 'ING1/1'])
     expect(d.sorular[0]).toMatchObject({ raw_code: 'M.8.1.1.1.', konu: 'Çarpanlar ve Katlar', outcome_code: null, match: 'none' })
-    expect(d.uyarilar.join(' ')).toMatch(/SOSYAL BİLGİLER/)
+    expect(d.uyarilar.join(' ')).toMatch(/BEDEN EĞİTİMİ/)
+  })
+
+  it('7. sınıf listesi: Sosyal Bilgiler dahil 90 soru (kod sütunu olmayan Fernus tablosu)', () => {
+    const dersler: [string, number][] = [
+      ['TÜRKÇE', 20],
+      ['SOSYAL BİLGİLER', 10],
+      ['DİN KÜLTÜRÜ', 10],
+      ['İNGİLİZCE', 10],
+      ['MATEMATİK', 20],
+      ['FEN BİLİMLERİ', 20],
+    ]
+    const rows: string[][] = [
+      ['Sınav Adı', 'Sınav Adı'],
+      ['7.SINIF TG GELİŞİM VE DEĞERLENDİRME-2', '7.SINIF TG GELİŞİM VE DEĞERLENDİRME-2'],
+    ]
+    for (const [ders, n] of dersler) {
+      rows.push([ders, 'A KiTAPÇIĞI', 'B', 'C', 'D', 'ALT DERSİ'])
+      for (let i = 1; i <= n; i++) rows.push([String(i), '', String(((i + 3) % n) + 1), '', '', ders])
+    }
+    const d = kazanimTablosuOku(rows)
+    expect(d.uyarilar).toEqual([])
+    expect(d.sorular).toHaveLength(90)
+    expect(dersSayilari(d.sorular)).toEqual({ TUR: 20, MAT: 20, FEN: 20, SOS: 10, DIN: 10, ING: 10 })
+    expect(dersAdi('SOS')).toBe('Sosyal Bilgiler')
+    expect(
+      konuGruplari(
+        d.sorular.map((s) => ({ ders: s.subject, no: s.q_no, konu: s.konu, kod: null })),
+        () => undefined,
+      ).map((g) => g.ders),
+    ).toEqual(['TUR', 'MAT', 'FEN', 'SOS', 'DIN', 'ING'])
   })
 
   it('eşleşme deneme motorunun kuralıyla: tam kod, üst kod, Din ön eki; İngilizce üst koda gitmez; metin çelişirse eşleşmez', () => {

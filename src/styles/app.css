@@ -1249,3 +1249,49 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .calchip.taslak::before,.calband.taslak::before{content:"Taslak · ";font-weight:600;color:var(--ink-muted)}
 .tbadge{display:inline-block;font-size:11px;font-weight:700;border:1px dashed var(--line-strong);border-radius:6px;padding:0 6px;margin-right:6px;color:var(--ink-muted)}
 .aktar-tbl td.hata{color:var(--signal-ink,var(--signal))}
+
+/* Takvim araç çubuğu (2026-11): geniş ekranda tek satır; telefonda ay gezinmesi, görünüm ve süzgeçler ayrı, tam genişlik satırlar */
+.caltool{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+.calnav{display:flex;align-items:center;gap:8px}
+.calnav b{min-width:130px;text-align:center}
+.calaralik{min-width:200px}
+.calfilt{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-left:auto}
+.calfilt .field{min-width:170px}
+/* Telefon takvimi: dokunulabilir günler, çok günlü etkinlik günlerin arkasında yumuşak aralık, tek günlükler nokta */
+.mcal{padding:8px 6px 10px}
+.mcal-wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.mcal-hd{font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-muted);text-align:center;padding:4px 0 6px}
+.mcal-gun{position:relative;min-height:52px;padding:4px 0 6px;border:0;background:transparent;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;font:inherit;border-radius:12px}
+.mcal-gun.out{color:var(--ink-muted)}
+.mcal-gun.out .mcal-no{font-weight:400}
+.mcal-aralik{position:absolute;top:3px;height:32px;left:0;right:0;background:color-mix(in srgb,var(--c) 24%,transparent)}
+.mcal-aralik.bas{left:3px;border-top-left-radius:16px;border-bottom-left-radius:16px}
+.mcal-aralik.son{right:3px;border-top-right-radius:16px;border-bottom-right-radius:16px}
+.mcal-no{position:relative;width:32px;height:32px;display:grid;place-items:center;border-radius:99px;font-size:15px;font-weight:600}
+.mcal-gun.today .mcal-no{background:var(--primary);color:var(--on-primary)}
+.mcal-gun[aria-pressed="true"] .mcal-no{box-shadow:0 0 0 2px var(--ink)}
+.mcal-gun:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.mcal-nokta{display:flex;gap:3px;height:7px;align-items:center}
+.mcal-nokta i{width:7px;height:7px;border-radius:99px}
+.mcal-nokta b{font-size:10px;line-height:7px;color:var(--ink-muted)}
+.mgun{padding:14px 0 4px;display:flex;flex-direction:column}
+.mgun h2{font-size:17px;padding:0 16px 8px}
+.mgun>.m{padding:4px 16px 14px}
+.mgun .srow{min-height:56px}
+@media (max-width:640px){
+  .takvim-head>.btns{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px}
+  .takvim-head>.btns .btn{width:100%}
+  .caltool{display:grid;grid-template-columns:1fr;gap:10px}
+  .calnav{order:-1;display:grid;grid-template-columns:44px 1fr 44px auto;gap:8px}
+  .calnav b{min-width:0;font-size:17px}
+  .calnav .btn{min-height:44px;justify-content:center}
+  .calgor{display:grid;grid-template-columns:1fr 1fr}
+  .calgor button{justify-content:center}
+  .calaralik{min-width:0}
+  .calfilt{display:grid;grid-template-columns:1fr 1fr;margin-left:0}
+  .calfilt .field{min-width:0}
+  .calfilt .btn{grid-column:1/-1;justify-content:center;min-height:44px}
+  .calfilt .field:only-of-type{grid-column:1/-1}
+}
+/* iOS Safari tarih alanı içeriğe göre genişleyip pencereden taşmasın */
+.field input[type="date"],.field input[type="time"]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;display:block}

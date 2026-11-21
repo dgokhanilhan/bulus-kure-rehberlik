@@ -88,3 +88,31 @@ test('veli ekranında sınıf filtresi ve afiş düğmesi yok', async ({ page })
   await expect(page.getByLabel('Sınıf', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Afiş indir (PDF)' })).toHaveCount(0)
 })
+
+test('telefonda gün seçilince etkinlikler adıyla listelenir; düğmeler ekrana sığar', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await login(page, ...DEMO.rehber)
+  await expect(page).toHaveURL(/\/bugun$/)
+  await page.goto('/takvim')
+  if (tarih.slice(0, 7) !== gun(0).slice(0, 7)) await page.getByRole('button', { name: 'Sonraki ay' }).click()
+  const g = page.locator(`[data-testid=mcal-gun][data-date="${tarih}"]`)
+  await g.click()
+  await expect(g).toHaveAttribute('aria-pressed', 'true')
+  const liste = page.getByRole('region', { name: 'Seçili gün' })
+  await expect(liste.getByTestId('mgun-oge').filter({ hasText: `${AD} 8 yazılı` })).toBeVisible()
+  await expect(liste.getByTestId('mgun-oge').filter({ hasText: `${AD} 6 gezi` })).toContainText('Gezi')
+  expect((await g.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await expect(page.getByRole('button', { name: 'Afiş indir (PDF)' })).toBeVisible()
+  // Kart açılış animasyonu bitmeden ölçülen kontrast yanlış hata verir (sonsuz animasyonlar beklenmez).
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished.catch(() => null)),
+    ),
+  )
+  const axe = await new AxeBuilder({ page }).include('.mcal').include('.mgun').include('.caltool').withTags(['wcag2a', 'wcag2aa']).analyze()
+  expect(axe.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([])
+})

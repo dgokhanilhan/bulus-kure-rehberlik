@@ -5,10 +5,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { useClasses, useDataset, useStudents } from '@/lib/data'
-import { SUBJECT, studentExams, type LgsSubject } from '@/lib/analiz'
+import { studentExams } from '@/lib/analiz'
 import { addDays, todayISO, trD } from '@/lib/format'
 import { LEVEL_TR } from '@/lib/roles'
 import {
+  dersAdi,
   dersSayilari,
   kazanimlariEsle,
   kazanimTablosuOku,
@@ -19,6 +20,7 @@ import {
   type KazanimDosyasi,
   type KonuSorusu,
   type Plan,
+  type Subject as YDers,
   type TekrarKonusu,
   type YaklasanSoru,
 } from '@/lib/yaklasan'
@@ -226,11 +228,11 @@ export function YaklasanEkle({ onClose, bagliEtkinlikler }: { onClose: () => voi
               <b style={{ fontSize: 14 }}>
                 {dosya.dosyaAdi} · {dosya.sorular.length} soru{dosya.sinif ? ` · ${dosya.sinif}. sınıf` : ''}
               </b>
-              {(Object.keys(sayilar) as LgsSubject[]).map((d) => {
+              {(Object.keys(sayilar) as YDers[]).map((d) => {
                 const es = dosya.sorular.filter((s) => s.subject === d && s.match !== 'none').length
                 return (
                   <div className="kv" key={d} style={{ fontSize: 14 }}>
-                    <span>{SUBJECT[d].ad}</span>
+                    <span>{dersAdi(d)}</span>
                     <span className="m">
                       {sayilar[d]} soru ·{' '}
                       {es === sayilar[d] ? 'hepsi resmî listeyle eşleşti' : es ? `${es} tanesi resmî listeyle eşleşti` : 'yalnız konu adları alınacak'}
@@ -488,7 +490,7 @@ export function KonuIcerik({
                   </span>
                 </div>
                 <span className="m" style={{ fontSize: 13 }}>
-                  {SUBJECT[t.ders].ad} · Bu konudan soru gelen {t.girdigi} denemeden {t.yanlis} tanesinde {veli ? 'yanlış vardı' : 'yanlışın vardı'}.
+                  {dersAdi(t.ders)} · Bu konudan soru gelen {t.girdigi} denemeden {t.yanlis} tanesinde {veli ? 'yanlış vardı' : 'yanlışın vardı'}.
                 </span>
               </li>
             ))}
@@ -514,7 +516,7 @@ export function KonuIcerik({
             >
               <Icon name={acik === g.ders ? 'down' : 'right'} size={14} stroke={2.4} />
               <span style={{ flex: 1 }}>
-                {SUBJECT[g.ders].ad} · {g.toplam} soru
+                {dersAdi(g.ders)} · {g.toplam} soru
               </span>
             </button>
             {acik === g.ders && (

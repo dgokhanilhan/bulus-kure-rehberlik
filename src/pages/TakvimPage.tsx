@@ -45,6 +45,7 @@ export default function TakvimPage() {
   const [edit, setEdit] = useState<CalEvent | 'new' | null>(null)
   const [kopya, setKopya] = useState<CalEvent | null>(null)
   const [aktar, setAktar] = useState(false)
+  const dar = useDar()
   const settings = useSettings()
   const classes = useClasses()
   const from = addDays(month, 1 - isoDow(month))
@@ -123,7 +124,7 @@ export default function TakvimPage() {
 
   return (
     <>
-      <div className="head a">
+      <div className="head a takvim-head">
         <h1 className="hd">Takvim</h1>
         {canAdd && (
           <div className="btns">
@@ -139,43 +140,41 @@ export default function TakvimPage() {
         )}
       </div>
       {canAdd && <TaslakCubugu />}
-      <div className="kv a" style={{ ['--d' as string]: 1, flexWrap: 'wrap', gap: 10 }}>
-        <div className="btns" style={{ flexWrap: 'wrap' }}>
-          <div className="segm" role="group" aria-label="Görünüm">
-            <button type="button" aria-pressed={!liste} onClick={() => gorunum(false)}>
-              <Icon name="cal" size={16} /> Takvim
+      <div className="caltool a" style={{ ['--d' as string]: 1 }}>
+        <div className="segm calgor" role="group" aria-label="Görünüm">
+          <button type="button" aria-pressed={!liste} onClick={() => gorunum(false)}>
+            <Icon name="cal" size={16} /> Takvim
+          </button>
+          <button type="button" aria-pressed={liste} onClick={() => gorunum(true)}>
+            <Icon name="doc" size={16} /> Liste
+          </button>
+        </div>
+        {(!liste || aralik === 'ay') && (
+          <div className="calnav">
+            <button className="btn sm" onClick={() => shift(-1)} aria-label="Önceki ay">
+              <Icon name="back" size={16} />
             </button>
-            <button type="button" aria-pressed={liste} onClick={() => gorunum(true)}>
-              <Icon name="doc" size={16} /> Liste
+            <b aria-live="polite">
+              {AYLAR[m - 1]} {y}
+            </b>
+            <button className="btn sm" onClick={() => shift(1)} aria-label="Sonraki ay">
+              <Icon name="right" size={16} />
+            </button>
+            <button className="btn sm" onClick={() => setMonth(monthStart(today))}>
+              Bugün
             </button>
           </div>
-          {(!liste || aralik === 'ay') && (
-            <>
-              <button className="btn sm" onClick={() => shift(-1)} aria-label="Önceki ay">
-                <Icon name="back" size={16} />
-              </button>
-              <b style={{ minWidth: 130, textAlign: 'center' }} aria-live="polite">
-                {AYLAR[m - 1]} {y}
-              </b>
-              <button className="btn sm" onClick={() => shift(1)} aria-label="Sonraki ay">
-                <Icon name="right" size={16} />
-              </button>
-              <button className="btn sm" onClick={() => setMonth(monthStart(today))}>
-                Bugün
-              </button>
-            </>
-          )}
-          {liste && (
-            <label className="field" style={{ minWidth: 200 }}>
-              <select aria-label="Liste aralığı" value={aralik} onChange={(e) => setAralik(e.target.value as 'ay' | 'yil')}>
-                <option value="yil">{yil.ad}</option>
-                <option value="ay">Tek ay</option>
-              </select>
-            </label>
-          )}
-        </div>
-        <div className="btns" style={{ flexWrap: 'wrap' }}>
-          <label className="field" style={{ minWidth: 170 }}>
+        )}
+        {liste && (
+          <label className="field calaralik">
+            <select aria-label="Liste aralığı" value={aralik} onChange={(e) => setAralik(e.target.value as 'ay' | 'yil')}>
+              <option value="yil">{yil.ad}</option>
+              <option value="ay">Tek ay</option>
+            </select>
+          </label>
+        )}
+        <div className="calfilt">
+          <label className="field">
             <select aria-label="Tür" value={filter} onChange={(e) => setFilter(e.target.value as 'all' | EventType)}>
               <option value="all">Bütün türler</option>
               {TYPES.map((t) => (
@@ -186,7 +185,7 @@ export default function TakvimPage() {
             </select>
           </label>
           {etiketli && seviyeler.length > 1 && (
-            <label className="field" style={{ minWidth: 160 }}>
+            <label className="field">
               <select aria-label="Sınıf" value={String(seviye)} onChange={(e) => setSeviye(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
                 <option value="all">Bütün sınıflar</option>
                 {seviyeler.map((g) => (
@@ -205,6 +204,9 @@ export default function TakvimPage() {
         <TakvimListesi items={[...items].sort(sirala)} aralikAdi={listeAralik.ad} filtreAdi={filtreAdi} openItem={openItem} loading={loading} />
       ) : (
         <div className="calcols" aria-busy={loading}>
+          {dar ? (
+            <TelefonTakvimi month={month} today={today} weeks={weeks} items={items} etiket={etiket} openItem={openItem} sirala={sirala} />
+          ) : (
           <section className="card a calgrid" style={{ ['--d' as string]: 2 }} aria-label={`${AYLAR[m - 1]} ${y} takvimi`}>
             {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((d, i) => (
               <div key={d} className="calhd" title={GUN[i + 1]}>
@@ -264,6 +266,7 @@ export default function TakvimPage() {
               )
             })}
           </section>
+          )}
           <aside className="card a" style={{ ['--d' as string]: 3, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, alignSelf: 'flex-start' }} aria-label="Yaklaşanlar">
             <h2 style={{ fontSize: 17 }}>Yaklaşanlar</h2>
             {loading ? <span className="m">Etkinlikler yükleniyor…</span> : failed ? <span className="m">Etkinlikler şu anda gösterilemiyor.</span> : upcoming.length ? (
@@ -800,6 +803,122 @@ function dosyaIndir(blob: Blob, ad: string) {
 }
 
 /** Aylık takvim afişi: logolu, renkli, A4 yatay PDF (pano için). */
+/** Telefon genişliği (≤600px): ayın ızgarası yerine dokunulabilir gün ızgarası + seçili günün yazılı listesi. */
+function useDar() {
+  const q = '(max-width: 600px)'
+  const [dar, setDar] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(q).matches)
+  useEffect(() => {
+    const mq = window.matchMedia?.(q)
+    if (!mq) return
+    const f = () => setDar(mq.matches)
+    f()
+    mq.addEventListener('change', f)
+    return () => mq.removeEventListener('change', f)
+  }, [])
+  return dar
+}
+
+/**
+ * Telefonda takvim: her gün 44px'ten büyük bir düğme. Tek günlük etkinlikler renkli nokta, çok günlükler (tatil gibi)
+ * günlerin arkasında yumuşak renkli bir aralık olarak görünür. Renk tek başına anlam taşımaz: seçili günün etkinlikleri
+ * ızgaranın altında adıyla, türüyle ve tarihiyle yazılır.
+ */
+function TelefonTakvimi({
+  month,
+  today,
+  weeks,
+  items,
+  etiket,
+  openItem,
+  sirala,
+}: {
+  month: string
+  today: string
+  weeks: string[][]
+  items: Item[]
+  etiket: (x: Item) => string | null
+  openItem: (x: Item) => void
+  sirala: (a: Item, b: Item) => number
+}) {
+  const ilk = today.slice(0, 7) === month.slice(0, 7) ? today : month
+  const [secili, setSecili] = useState(ilk)
+  useEffect(() => setSecili(ilk), [ilk])
+  const gunun = (d: string) => items.filter((x) => x.starts_on <= d && x.ends_on >= d)
+  const liste = gunun(secili).sort((a, b) => Number(b.ends_on > b.starts_on) - Number(a.ends_on > a.starts_on) || sirala(a, b))
+  const [, ay] = month.split('-').map(Number) as [number, number]
+  return (
+    <>
+      <section className="card a mcal" style={{ ['--d' as string]: 2 }} aria-label={`${AYLAR[ay - 1]} ${month.slice(0, 4)} takvimi`}>
+        <div className="mcal-wk" aria-hidden="true">
+          {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((d) => (
+            <span key={d} className="mcal-hd">
+              {d}
+            </span>
+          ))}
+        </div>
+        {weeks.map((w) => (
+          <div key={w[0]} className="mcal-wk">
+            {w.map((d, i) => {
+              const g = gunun(d)
+              const cok = g.filter((x) => x.ends_on > x.starts_on).sort(sirala)[0]
+              const tek = g.filter((x) => x.ends_on === x.starts_on).sort(sirala)
+              const bas = !!cok && (cok.starts_on === d || i === 0)
+              const son = !!cok && (cok.ends_on === d || i === 6)
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  className={`mcal-gun${d.slice(0, 7) !== month.slice(0, 7) ? ' out' : ''}${d === today ? ' today' : ''}`}
+                  aria-pressed={d === secili}
+                  aria-label={`${trDW(d)}${g.length ? `, ${g.length} etkinlik` : ''}`}
+                  onClick={() => setSecili(d)}
+                  data-testid="mcal-gun"
+                  data-date={d}
+                >
+                  {cok && <span className={`mcal-aralik${bas ? ' bas' : ''}${son ? ' son' : ''}`} style={{ ['--c' as string]: EVENT_COLOR[cok.type] }} aria-hidden="true" />}
+                  <span className="mcal-no">{Number(d.slice(8))}</span>
+                  <span className="mcal-nokta" aria-hidden="true">
+                    {tek.slice(0, 3).map((x) => (
+                      <i key={x.key} style={{ background: EVENT_COLOR[x.type] }} />
+                    ))}
+                    {tek.length > 3 && <b>+</b>}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        ))}
+      </section>
+      <section className="card a mgun" style={{ ['--d' as string]: 3 }} aria-label="Seçili gün" aria-live="polite">
+        <h2>{trDW(secili)}</h2>
+        {liste.length ? (
+          liste.map((x) => {
+            const t = etiket(x)
+            return (
+              <button key={x.key} className="srow" onClick={() => openItem(x)} data-testid="mgun-oge">
+                <span style={{ width: 4, alignSelf: 'stretch', borderRadius: 4, background: EVENT_COLOR[x.type] }} aria-hidden="true" />
+                <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                  <b style={{ display: 'block', fontSize: 15 }}>{x.title}</b>
+                  <span className="m" style={{ fontSize: 13 }}>
+                    {EVENT_TR[x.type]}
+                    {x.time ? ` · ${x.time}` : ''}
+                    {x.ends_on !== x.starts_on ? ` · ${trD(x.starts_on)} – ${trD(x.ends_on)}` : ''}
+                    {t ? ` · ${t}` : ''}
+                    {x.taslak ? ' · Taslak' : ''}
+                  </span>
+                </span>
+                <Icon name="right" size={16} />
+              </button>
+            )
+          })
+        ) : (
+          <span className="m">Bu gün etkinlik yok.</span>
+        )}
+      </section>
+    </>
+  )
+}
+
 function TakvimAfisDugmesi({ month, items, etiket, filtreAdi }: { month: string; items: Item[]; etiket: (x: Item) => string | null; filtreAdi: string }) {
   const okul = useOkulAdi()
   const ayar = useAyar()
