@@ -93,12 +93,12 @@ export const EVENT_COLOR: Record<EventType, string> = {
   yazili: '#b5541a',
   deneme: '#9c36b5',
   bursluluk: '#c92a2a',
-  gezi: '#2b8a3e',
+  gezi: '#2f7d3a',
   veli_toplantisi: '#3b5bdb',
-  kulup: '#0c8599',
-  tatil: '#868e96',
+  kulup: '#0b7285',
+  tatil: '#6c757d',
   odev_teslim: '#1f5f5b',
-  proje: '#e67700',
+  proje: '#a85a00',
   diger: '#495057',
 }
 export interface CalEvent {
