@@ -703,7 +703,8 @@ h2.sec{font-size:17px;font-weight:600}
 .hd-liste{list-style:none;margin:6px 0 0;padding:0;display:grid}
 .hd-satir{display:grid;grid-template-columns:minmax(0,1fr) 110px 170px auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .hd-satir.aile{grid-template-columns:minmax(0,1fr) 160px 230px}
-@media (max-width:760px){.hd-satir,.hd-satir.aile{grid-template-columns:minmax(0,1fr) auto}}
+.hd-satir.aile.ekle{grid-template-columns:minmax(0,1fr) 130px 190px 72px}
+@media (max-width:760px){.hd-satir,.hd-satir.aile,.hd-satir.aile.ekle{grid-template-columns:minmax(0,1fr) auto}}
 
 /* Günlük kontrol (0067): o günün eksiği kırmızı; açık ve koyu temada okunur kalsın diye temanın renkleriyle karıştırılır */
 :root{--gk-kirmizi:color-mix(in srgb,#d92d20 78%,var(--ink));--gk-kirmizi-soft:color-mix(in srgb,#d92d20 13%,var(--surface));--gk-kirmizi-cizgi:color-mix(in srgb,#d92d20 70%,var(--surface))}

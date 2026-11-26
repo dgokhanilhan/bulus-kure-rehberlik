@@ -63,14 +63,54 @@ test('öğrenci ve veli seçilen hedefleri Özet sayfasında görür (salt okunu
   await expect(kart).toContainText('E2E Anadolu Lisesi')
   await expect(kart).toContainText(`${YIL} tabanı 420,3`)
   await expect(kart).toContainText('deneme puanına göre tahminidir')
-  await expect(kart.getByRole('button')).toHaveCount(0)
+  // Öğretmenin eklediği hedef aileden çıkarılamaz
+  await expect(kart.getByTestId('aile-hedef')).toContainText('Öğretmen ekledi')
+  await expect(kart.getByRole('button', { name: /hedefini çıkar/ })).toHaveCount(0)
   await shot(page, 'aile-hedefler-ogrenci')
   await logout(page)
   await login(page, ...DEMO.veli)
   await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
   await page.goto('/ozet')
-  await expect(page.getByTestId('aile-hedefler').getByRole('heading', { name: 'Hedefler' })).toBeVisible()
-  await expect(page.getByTestId('aile-hedefler')).toContainText('E2E Anadolu Lisesi')
+  const vk = page.getByTestId('aile-hedefler')
+  await expect(vk.getByRole('heading', { name: 'Hedefler' })).toBeVisible()
+  await expect(vk).toContainText('E2E Anadolu Lisesi')
+
+  // Veli okul ekler (il listesinden), sonra kendi eklediğini çıkarır
+  await vk.getByTestId('okul-ekle-ac').click()
+  const ekle = vk.getByTestId('okul-ekle')
+  await ekle.getByLabel('İl').selectOption('Bartın')
+  await expect(ekle.getByTestId('okul-kapsam')).toContainText('Bartın: listede')
+  await expect(ekle).not.toContainText('E2E Anadolu Lisesi')
+  await ekle.getByLabel(/Ada göre ara/).fill('E2E Fen')
+  await expect(ekle.getByTestId('okul-secenek')).toHaveCount(1)
+  await ekle.getByRole('button', { name: /E2E Fen Lisesi.*hedeflere ekle/ }).click()
+  const yeni = vk.getByTestId('aile-hedef').filter({ hasText: 'E2E Fen Lisesi' })
+  await expect(yeni).toContainText('Veli ekledi')
+  await expect(ekle.getByTestId('okul-secenek')).toHaveCount(0)
+  await shot(page, 'aile-hedef-ekle')
+  await yeni.getByRole('button', { name: /hedefini çıkar/ }).click()
+  await expect(vk.getByTestId('aile-hedef')).toHaveCount(1)
+  // Rehbere bildirim gitti
+  const b = await svc.from('notifications').select('id').like('text', '%hedef ekledi: E2E Fen Lisesi%')
+  expect(b.data?.length).toBeGreaterThan(0)
+  await svc.from('notifications').delete().like('text', '%hedef ekledi: E2E%')
+})
+
+test('veli başka öğrenciye hedef ekleyemez; aile sınırı 5', async () => {
+  const svc = service()
+  const ps = (await svc.from('hedef_programlar').select('id').eq('yil', YIL)).data!
+  expect(ps.length).toBeGreaterThan(0)
+  const { createClient } = await import('@supabase/supabase-js')
+  const c = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_ANON_KEY!, { auth: { persistSession: false } })
+  await c.auth.signInWithPassword({ email: DEMO.veli[0], password: DEMO.veli[1] })
+  const baska = (await svc.from('students').select('id').neq('id', ELIF).limit(50)).data!.map((x) => x.id)
+  const bagli = (await svc.from('parent_links').select('student_id')).data!.map((x) => x.student_id)
+  const yabanci = baska.find((x) => !bagli.includes(x))!
+  const r = await c.rpc('aile_hedef_ekle', { p_student: yabanci, p_program: ps[0]!.id })
+  expect(r.error?.message).toContain('eklenemez')
+  const t = await c.from('ogrenci_hedefleri').insert({ school_id: ps[0]!.id, student_id: ELIF, program_id: ps[0]!.id })
+  expect(t.error).not.toBeNull()
+  await c.auth.signOut()
 })
 
 test('veli ve öğrenci Hedef sekmesini görmez', async ({ page }) => {

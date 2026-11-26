@@ -200,3 +200,18 @@ export function referansPuan(puanlar: (number | null | undefined)[], son = 3): n
   const v = puanlar.filter((p): p is number => typeof p === 'number' && Number.isFinite(p)).slice(-son)
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
 }
+
+/** Aile "Okul ekle" grupları (0095): deneme puanına göre üç grup; her grup tabana en yakından uzağa sıralı. */
+export type AileGrup = 'yakin' | 'calis' | 'rahat'
+export const AILE_GRUP_TR: Record<AileGrup, string> = { yakin: 'Bana yakın', calis: 'Biraz daha çalışmalıyım', rahat: 'Rahat ulaşırım' }
+export function aileGruplari<T extends { taban_puan: number | null }>(l: T[], puan: number, yakinlik = 15): Record<AileGrup, T[]> {
+  const g: Record<AileGrup, T[]> = { yakin: [], calis: [], rahat: [] }
+  for (const x of l) {
+    if (x.taban_puan === null) continue
+    const d = durum(puan, x.taban_puan, yakinlik)
+    g[d === 'yakin' ? 'yakin' : d === 'zorlayici' ? 'calis' : 'rahat'].push(x)
+  }
+  const uzak = (x: T) => Math.abs(puan - x.taban_puan!)
+  for (const k of Object.keys(g) as AileGrup[]) g[k].sort((a, b) => uzak(a) - uzak(b))
+  return g
+}
