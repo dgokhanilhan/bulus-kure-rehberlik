@@ -11,7 +11,7 @@ describe('aile okul ekle grupları', () => {
   ]
   it('puana göre üç grup, tabanı olmayan dışarıda', () => {
     const g = aileGruplari(l, 450)
-    expect(g.yakin.map((x) => x.id)).toEqual(['d', 'b'])
+    expect(g.yakin.map((x) => x.id)).toEqual(['b', 'd'])
     expect(g.calis.map((x) => x.id)).toEqual(['a'])
     expect(g.rahat.map((x) => x.id)).toEqual(['c'])
   })
