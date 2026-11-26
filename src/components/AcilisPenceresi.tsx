@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
+import { Icon } from './Icon'
 
 export interface Acilis {
   id: string
@@ -18,6 +19,55 @@ export interface Acilis {
   dugme_metin: string | null
   dugme_rota: string | null
   yayin_at?: string | null
+  kart_etiket?: string | null
+  kart_baslik?: string | null
+  kart_aciklama?: string | null
+  kart_cizim?: 'hedef' | 'oda' | 'duyuru' | null
+}
+export const KART_CIZIM_TR = { hedef: 'Hedef grupları', oda: 'Öğretmenler Odası kartları', duyuru: 'Duyuru simgesi' } as const
+
+/** Şablon kart (0098): görsel dosyası değil, sayfada çizilir; renkler kullanıcının temasından (--primary, --surface, --ink) gelir.
+ *  Çizim süslemedir (aria-hidden); anlamı başlık ve açıklama taşır. */
+export function AcilisKart({ a }: { a: Pick<Acilis, 'tur' | 'kart_etiket' | 'kart_baslik' | 'kart_aciklama' | 'kart_cizim'> }) {
+  const etiket = a.kart_etiket?.trim() || (a.tur === 'onemli' ? 'ÖNEMLİ' : 'YENİ ÖZELLİK')
+  return (
+    <div className={`acl-kart${a.tur === 'onemli' ? ' onemli' : ''}${a.kart_cizim ? '' : ' tek'}`} data-testid="acilis-kart">
+      <div className="acl-kart-sol">
+        <span className="acl-kart-etiket">{etiket}</span>
+        <b className="acl-kart-baslik">{a.kart_baslik}</b>
+        {a.kart_aciklama && <span className="acl-kart-aciklama">{a.kart_aciklama}</span>}
+      </div>
+      {a.kart_cizim && (
+        <div className="acl-kart-cizim" aria-hidden="true">
+          {a.kart_cizim === 'hedef' ? (
+            <>
+              <span>
+                Bana yakın <i className="up">↑ 4,9</i>
+              </span>
+              <span>
+                Çalışmalıyım <i className="dn">↓ 15,9</i>
+              </span>
+              <span>
+                Rahat ulaşırım <i className="up">↑ 23,4</i>
+              </span>
+              <span className="vurgu">+ Okul ekle</span>
+            </>
+          ) : a.kart_cizim === 'oda' ? (
+            <>
+              <span>Öğrenci Takip</span>
+              <span>Sohbet</span>
+              <span>Pano</span>
+              <span className="vurgu">Bugün okulda</span>
+            </>
+          ) : (
+            <span className="acl-kart-simge">
+              <Icon name="mega" size={64} stroke={1.6} />
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 // 'rehber' yalnız hedef kitle seçeneğidir (Rehberlik branşındaki öğretmenler); oturumda rehber de 'ogretmen' olarak sorar, sunucu ayırır.
 export type AcilisRol = 'veli' | 'ogrenci' | 'ogretmen' | 'rehber' | 'yonetim'
@@ -59,6 +109,7 @@ export function AcilisIcerik({ a }: { a: Acilis }) {
     <div className="acl-icerik">
       <span className={`chip ${a.tur === 'onemli' ? 'w' : 'n'}`}>{a.tur === 'onemli' ? 'Önemli duyuru' : 'Yeni özellik'}</span>
       <h2 className="acl-baslik">{a.baslik}</h2>
+      {a.kart_baslik && <AcilisKart a={a} />}
       {a.gorsel &&
         (g.data ? <img className="acl-gorsel" src={g.data} alt={a.gorsel_alt ?? ''} loading="lazy" /> : <div className="acl-gorsel bos" aria-hidden="true" />)}
       <p className="acl-metin">{a.metin}</p>
