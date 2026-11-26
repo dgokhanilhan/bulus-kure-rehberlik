@@ -39,7 +39,7 @@ export default function BildirimlerPage() {
     <>
       <div className="head a">
         <h1 className="hd">Bildirimler</h1>
-        <button className="btn" disabled={!unread.length} onClick={() => mark.mutate(unread.map((n) => n.id))}>
+        <button className="btn head-tam" disabled={!unread.length} onClick={() => mark.mutate(unread.map((n) => n.id))}>
           <Icon name="check" size={16} /> Tümünü okundu işaretle
         </button>
       </div>

@@ -431,7 +431,7 @@ export default function OgrenciPage() {
       {tab === 'konular' && (
         <section className="card a" style={{ ['--d' as string]: 3, overflow: 'hidden' }}>
           {weaknesses.length ? (
-            <div className="tbl">
+            <div className="tbl konu-tbl">
               <table>
                 <thead>
                   <tr>

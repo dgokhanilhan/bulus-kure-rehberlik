@@ -112,7 +112,7 @@ details.dd[open] .dd-body{animation:drop .35s var(--ease)}
 .brandline small{display:block;font-size:12px;color:var(--ink-muted);white-space:nowrap}
 .top .right{margin-left:auto;display:flex;align-items:center;gap:10px}
 .bell{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center}
-.bell .dot{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;border-radius:10px;background:var(--signal);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid var(--paper)}
+.bell .dot{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;border-radius:10px;background:var(--signal);color:var(--on-signal,#fff);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid var(--paper)}
 .bell.has svg{animation:ring 1.2s ease 1}
 .who{display:flex;align-items:center;gap:10px;padding:4px 12px 4px 4px;border-radius:99px;border:1px solid var(--line);background:var(--surface)}
 .who b{display:block;font-size:14px;line-height:1.2}.who small{display:block;font-size:12px;color:var(--ink-muted)}
@@ -750,6 +750,7 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
   .head>:first-child{grid-column:1/-1;margin:0}
   .head>.field,.head>select,.head>.seg{grid-column:1/-1}
   .head .btn{justify-content:center;white-space:normal;text-align:center;line-height:1.2;padding:6px 10px}
+  .head>.btn.head-tam{grid-column:1/-1;white-space:nowrap}
   /* Öğrenci dosyası düğmeleri: Görüşme planla | Veli raporu, altında Görev ata (geniş) | sil */
   .head>.ogr-eylem{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
   .ogr-eylem>.btn{white-space:nowrap}
@@ -947,9 +948,9 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .oy-lig-baslik span{width:38px;text-align:right}
 .oy-gizli{display:flex;gap:8px;align-items:center;font-size:13px;min-height:44px;cursor:pointer}
 .oy-gizli input{width:20px;height:20px}
-.oy-rozetler{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
-.oy-rozetler li{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:12px;border:1px dashed var(--line);opacity:.65;font-size:13px}
-.oy-rozetler li.var{opacity:1;border-style:solid;background:color-mix(in srgb,var(--highlight) 14%,transparent)}
+.oy-rozetler{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.oy-rozetler li{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:12px;border:1px dashed var(--line);color:var(--ink-muted);font-size:13px}
+.oy-rozetler li.var{color:var(--ink);border-style:solid;background:color-mix(in srgb,var(--highlight) 14%,transparent)}
 .oy-rozet-simge{font-size:24px}
 .oy-bas{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .oy-oyun{padding:18px;display:flex;flex-direction:column;gap:14px;align-items:center;min-width:0}
@@ -1493,3 +1494,19 @@ section[aria-labelledby="bg-akis-b"]{margin:4px 0 14px;min-width:0}
   .hsim-satir{grid-template-columns:minmax(0,1fr) auto;row-gap:0;padding:4px 0}
   .hsim-satir>input{grid-column:1/-1;order:3}
 }
+
+/* Öğrenci dosyası → Konular: telefonda her konu iki-üç satırlık blok (konu adı kelime kelime kırılmaz) */
+@media (max-width:640px){
+  .konu-tbl thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .konu-tbl table,.konu-tbl tbody{display:block}
+  .konu-tbl tbody tr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding:12px 16px;border-top:1px solid var(--line)}
+  .konu-tbl tbody tr:first-child{border-top:0}
+  .konu-tbl td{display:block;padding:0;border:0;min-width:0}
+  .konu-tbl td:nth-child(1){grid-column:1/-1}
+  .konu-tbl td:nth-child(2){grid-column:1;grid-row:2;font-size:13px;color:var(--ink-muted)}
+  .konu-tbl td:nth-child(4){grid-column:2;grid-row:2;justify-self:end}
+  .konu-tbl td:nth-child(3){grid-column:1;grid-row:3}
+  .konu-tbl td:nth-child(5){grid-column:2;grid-row:3;justify-self:end}
+  .konu-tbl .hist{flex-wrap:wrap}
+}
+
