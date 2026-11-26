@@ -19,6 +19,7 @@ import { useToast } from './Toast'
 import { TemaSecici } from './Tema'
 import { AvatarSecici, KisiSimge } from './Avatar'
 import { CevrimdisiKuyruk } from './CevrimdisiKuyruk'
+import { AcilisPenceresi } from './AcilisPenceresi'
 
 function Brand() {
   const info = useSchoolInfo()
@@ -419,6 +420,7 @@ export function AppShell() {
           <Outlet />
         </HataSiniri>
       </main>
+      <AcilisPenceresi />
     </div>
   )
 }
