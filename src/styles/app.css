@@ -1419,3 +1419,23 @@ section[aria-labelledby="bg-akis-b"]{margin:4px 0 14px;min-width:0}
   .as-ders{grid-template-columns:76px minmax(0,1fr)}
   .as-ders .as-acts{grid-column:1/-1;justify-content:flex-start}
 }
+
+/* Açılış penceresi şablon kartı (0098): temanın renkleriyle çizilir, pencerenin görsel alanına oturur (1,8:1) */
+.acl-kart{container-type:inline-size;aspect-ratio:1.8/1;width:100%;border-radius:12px;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:4cqw;align-items:center;padding:5cqw 5.5cqw;
+  background:linear-gradient(135deg,var(--primary) 0%,color-mix(in srgb,var(--primary) 70%,#000) 100%);color:var(--surface)}
+.acl-kart.tek{grid-template-columns:1fr}
+.acl-kart.onemli{background:linear-gradient(135deg,var(--signal) 0%,color-mix(in srgb,var(--signal) 70%,#000) 100%)}
+.acl-kart-sol{display:grid;gap:2.4cqw;align-content:center;min-width:0}
+.acl-kart-etiket{justify-self:start;background:var(--surface);color:var(--primary);font-weight:800;font-size:3.4cqw;letter-spacing:.08em;padding:1.1cqw 2.6cqw;border-radius:999px;text-transform:uppercase}
+.acl-kart.onemli .acl-kart-etiket{color:var(--signal)}
+.acl-kart-baslik{font-size:8cqw;line-height:1.08;font-weight:800;overflow-wrap:anywhere}
+.acl-kart.tek .acl-kart-baslik{font-size:9cqw}
+.acl-kart-aciklama{font-size:3.8cqw;line-height:1.35;opacity:.9}
+.acl-kart-cizim{display:grid;gap:1.6cqw;padding:2.6cqw;border-radius:2.6cqw;background:color-mix(in srgb,var(--surface) 12%,transparent);border:2px solid color-mix(in srgb,var(--surface) 25%,transparent)}
+.acl-kart-cizim span{display:flex;justify-content:space-between;align-items:center;gap:1cqw;background:var(--surface);color:var(--ink);border-radius:1.4cqw;padding:1.9cqw 2.2cqw;font-size:3cqw;font-weight:700;white-space:nowrap}
+.acl-kart-cizim i{font-style:normal}
+.acl-kart-cizim .up{color:var(--primary)}
+.acl-kart-cizim .dn{color:var(--signal-ink,var(--signal))}
+.acl-kart-cizim span.vurgu{justify-content:center;background:color-mix(in srgb,var(--surface) 80%,var(--primary))}
+.acl-kart-cizim .acl-kart-simge{background:none;justify-content:center;color:var(--surface);padding:4cqw 0}
+.acl-kart-simge svg{width:16cqw;height:16cqw}

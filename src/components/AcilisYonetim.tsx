@@ -1,27 +1,37 @@
-// Duyurular → Açılış pencereleri (yönetici, 0096): girişte açılan duyuru / yeni özellik pencerelerini hazırla, önizle, yayınla.
+// Duyurular → Açılış pencereleri (yönetici, 0096, 0098): girişte açılan duyuru / yeni özellik pencerelerini hazırla, önizle, yayınla.
 // Taslak yalnız yöneticide görünür. "Kaç kişi gördü" sayısı onaylı hedef kitleye göredir.
+// Görsel: şablon kart (temaya uyar, yazılar elle) ya da yüklenen görsel ya da yok. Yayındaki pencere düzenlenebilir;
+// arşiv = geri çek (kimse görmez, yeniden yayınlanabilir); kaldır = her yerden kalkar (kayıt silinmez).
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useToast } from './Toast'
 import { Modal } from './Modal'
-import { ACILIS_ROL_TR, AcilisIcerik, type Acilis, type AcilisRol } from './AcilisPenceresi'
+import { ACILIS_ROL_TR, AcilisIcerik, KART_CIZIM_TR, type Acilis, type AcilisRol } from './AcilisPenceresi'
 
+type Durum = 'taslak' | 'yayinda' | 'arsiv' | 'kaldirildi'
 interface Kayit extends Acilis {
   roller: AcilisRol[]
   siniflar: number[] | null
   modul: string | null
-  durum: 'taslak' | 'yayinda' | 'arsiv'
+  durum: Durum
   bitis_at: string | null
   created_at: string
 }
-const DURUM_TR = { taslak: 'Taslak', yayinda: 'Yayında', arsiv: 'Arşivde' }
+const DURUM_TR: Record<Durum, string> = { taslak: 'Taslak', yayinda: 'Yayında', arsiv: 'Geri çekildi', kaldirildi: 'Kaldırıldı' }
 const MODUL_TR: Record<string, string> = { oda: 'Öğretmenler Odası', lgs: 'LGS', etut: 'Etüt', odev: 'Ödev', takvim: 'Takvim', mesaj: 'Mesajlaşma' }
+type GorselTur = 'kart' | 'dosya' | 'yok'
 const BOS = {
   id: '',
+  durum: 'taslak' as Durum,
   tur: 'yenilik' as 'yenilik' | 'onemli',
   baslik: '',
   metin: '',
+  gorselTur: 'kart' as GorselTur,
+  kart_etiket: '',
+  kart_baslik: '',
+  kart_aciklama: '',
+  kart_cizim: '' as '' | 'hedef' | 'oda' | 'duyuru',
   gorsel: '',
   gorsel_alt: '',
   dugme_metin: '',
@@ -45,12 +55,19 @@ function useIstatistik(id: string, acik: boolean) {
   })
 }
 
+const MESAJ: Record<string, string> = {
+  yayinda: 'Yayınlandı. Hedef kitle bir sonraki girişte görecek.',
+  arsiv: 'Geri çekildi. Artık kimseye açılmaz ve Yenilikler’de görünmez.',
+  kaldirildi: 'Kaldırıldı.',
+  sil: 'Taslak silindi.',
+}
+
 function Satir({ k, onDuzenle, onOnizle }: { k: Kayit; onDuzenle: () => void; onOnizle: () => void }) {
   const qc = useQueryClient()
   const toast = useToast()
   const ist = useIstatistik(k.id, k.durum !== 'taslak')
   const degis = useMutation({
-    mutationFn: async (durum: Kayit['durum'] | 'sil') => {
+    mutationFn: async (durum: Durum | 'sil') => {
       const r =
         durum === 'sil'
           ? await supabase.from('acilis_pencereleri').delete().eq('id', k.id)
@@ -61,11 +78,13 @@ function Satir({ k, onDuzenle, onOnizle }: { k: Kayit; onDuzenle: () => void; on
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ['acilis-yonetim'] })
       qc.invalidateQueries({ queryKey: ['acilis-bekleyen'] })
-      toast(d === 'yayinda' ? 'Yayınlandı. Hedef kitle bir sonraki girişte görecek.' : d === 'sil' ? 'Taslak silindi.' : 'Arşive alındı.')
+      qc.invalidateQueries({ queryKey: ['acilis-yenilikler'] })
+      toast(MESAJ[d] ?? 'Kaydedildi.')
     },
     onError: (e: Error) => toast(e.message, 'warn'),
   })
   const kitle = `${k.roller.map((r) => ACILIS_ROL_TR[r]).join(', ')}${k.siniflar?.length ? ` · ${k.siniflar.join(', ')}. sınıf` : ''}${k.modul ? ` · ${MODUL_TR[k.modul] ?? k.modul} açıksa` : ''}`
+  const yayinla = (metin: string) => confirm(metin) && degis.mutate('yayinda')
   return (
     <li className="acl-ysatir" data-testid="acilis-kayit">
       <div style={{ minWidth: 0 }}>
@@ -89,11 +108,11 @@ function Satir({ k, onDuzenle, onOnizle }: { k: Kayit; onDuzenle: () => void; on
         <button type="button" className="btn sm ghost" onClick={onOnizle}>
           Önizle
         </button>
+        <button type="button" className="btn sm ghost" onClick={onDuzenle}>
+          Düzenle
+        </button>
         {k.durum === 'taslak' && (
           <>
-            <button type="button" className="btn sm ghost" onClick={onDuzenle}>
-              Düzenle
-            </button>
             <button type="button" className="btn sm ghost" disabled={degis.isPending} onClick={() => confirm('Taslak silinsin mi?') && degis.mutate('sil')}>
               Sil
             </button>
@@ -101,15 +120,40 @@ function Satir({ k, onDuzenle, onOnizle }: { k: Kayit; onDuzenle: () => void; on
               type="button"
               className="btn sm pri"
               disabled={degis.isPending}
-              onClick={() => confirm(`“${k.baslik}” yayınlansın mı? Hedef kitle bir sonraki girişte görecek.`) && degis.mutate('yayinda')}
+              onClick={() => yayinla(`“${k.baslik}” yayınlansın mı? Hedef kitle bir sonraki girişte görecek.`)}
             >
               Yayınla
             </button>
           </>
         )}
         {k.durum === 'yayinda' && (
-          <button type="button" className="btn sm ghost" disabled={degis.isPending} onClick={() => degis.mutate('arsiv')}>
-            Arşivle
+          <button
+            type="button"
+            className="btn sm ghost"
+            disabled={degis.isPending}
+            onClick={() => confirm(`“${k.baslik}” geri çekilsin mi? Kimseye açılmaz, Yenilikler’den de kalkar.`) && degis.mutate('arsiv')}
+          >
+            Geri çek
+          </button>
+        )}
+        {k.durum === 'arsiv' && (
+          <button
+            type="button"
+            className="btn sm ghost"
+            disabled={degis.isPending}
+            onClick={() => yayinla(`“${k.baslik}” yeniden yayınlansın mı? Daha önce görenlere tekrar açılmaz.`)}
+          >
+            Yeniden yayınla
+          </button>
+        )}
+        {(k.durum === 'yayinda' || k.durum === 'arsiv') && (
+          <button
+            type="button"
+            className="btn sm ghost"
+            disabled={degis.isPending}
+            onClick={() => confirm(`“${k.baslik}” kaldırılsın mı? Her yerden kalkar ve bu listede de görünmez.`) && degis.mutate('kaldirildi')}
+          >
+            Kaldır
           </button>
         )}
       </div>
@@ -126,27 +170,37 @@ export function AcilisYonetim() {
   const list = useQuery({
     queryKey: ['acilis-yonetim'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('acilis_pencereleri').select('*').order('created_at', { ascending: false }).limit(100)
+      const { data, error } = await supabase
+        .from('acilis_pencereleri')
+        .select('*')
+        .neq('durum', 'kaldirildi')
+        .order('created_at', { ascending: false })
+        .limit(100)
       if (error) throw new Error(error.message)
       return (data ?? []) as Kayit[]
     },
   })
   const kaydet = useMutation({
     mutationFn: async (f: Form) => {
-      let gorsel = f.gorsel.trim() || null
-      if (dosya) {
+      let gorsel: string | null = f.gorselTur === 'dosya' ? f.gorsel.trim() || null : null
+      if (f.gorselTur === 'dosya' && dosya) {
         const uzanti = dosya.type === 'image/png' ? 'png' : dosya.type === 'image/webp' ? 'webp' : 'jpg'
         const ad = `${crypto.randomUUID()}.${uzanti}`
         const up = await supabase.storage.from('acilis').upload(ad, dosya, { contentType: dosya.type })
         if (up.error) throw new Error('Görsel yüklenemedi: ' + up.error.message)
         gorsel = `acilis/${ad}`
       }
+      const kart = f.gorselTur === 'kart'
       const row = {
         tur: f.tur,
         baslik: f.baslik.trim(),
         metin: f.metin.trim(),
         gorsel,
-        gorsel_alt: f.gorsel_alt.trim() || null,
+        gorsel_alt: f.gorselTur === 'dosya' ? f.gorsel_alt.trim() || null : null,
+        kart_etiket: kart ? f.kart_etiket.trim() || null : null,
+        kart_baslik: kart ? f.kart_baslik.trim() || null : null,
+        kart_aciklama: kart ? f.kart_aciklama.trim() || null : null,
+        kart_cizim: kart ? f.kart_cizim || null : null,
         dugme_metin: f.dugme_metin.trim() || null,
         dugme_rota: f.dugme_metin.trim() ? f.dugme_rota.trim() || null : null,
         roller: f.roller,
@@ -157,14 +211,18 @@ export function AcilisYonetim() {
       const r = f.id ? await supabase.from('acilis_pencereleri').update(row).eq('id', f.id) : await supabase.from('acilis_pencereleri').insert(row)
       if (r.error)
         throw new Error(
-          r.error.message.includes('check') ? 'Alanları kontrol et: başlık 3–90, metin 3–1200 karakter; düğme varsa adresi / ile başlamalı.' : r.error.message,
+          r.error.message.includes('check')
+            ? 'Alanları kontrol et: başlık 3–90, metin 3–1200, kart başlığı 3–60, kart açıklaması en çok 140 karakter; düğme varsa adresi / ile başlamalı.'
+            : r.error.message,
         )
+      return f
     },
-    onSuccess: () => {
+    onSuccess: (f) => {
       qc.invalidateQueries({ queryKey: ['acilis-yonetim'] })
+      qc.invalidateQueries({ queryKey: ['acilis-yenilikler'] })
       setForm(null)
       setDosya(null)
-      toast('Taslak kaydedildi. Önizleyip yayınlayabilirsin.')
+      toast(f.durum === 'yayinda' ? 'Değişiklik kaydedildi; yayındaki pencere güncellendi.' : 'Kaydedildi. Önizleyip yayınlayabilirsin.')
     },
     onError: (e: Error) => toast(e.message, 'warn'),
   })
@@ -175,16 +233,21 @@ export function AcilisYonetim() {
     tur: f.tur,
     baslik: f.baslik || 'Başlık',
     metin: f.metin || 'Metin',
-    gorsel: dosya ? null : f.gorsel || null,
+    gorsel: f.gorselTur === 'dosya' && !dosya ? f.gorsel || null : null,
     gorsel_alt: f.gorsel_alt || null,
     dugme_metin: f.dugme_metin || null,
     dugme_rota: f.dugme_rota || null,
+    kart_etiket: f.kart_etiket || null,
+    kart_baslik: f.gorselTur === 'kart' ? f.kart_baslik || 'Kart başlığı' : null,
+    kart_aciklama: f.kart_aciklama || null,
+    kart_cizim: f.kart_cizim || null,
   })
   const gecerli =
     form &&
     form.baslik.trim().length >= 3 &&
     form.metin.trim().length >= 3 &&
     form.roller.length > 0 &&
+    (form.gorselTur !== 'kart' || form.kart_baslik.trim().length >= 3) &&
     (!form.dugme_metin.trim() || /^\//.test(form.dugme_rota.trim()))
 
   return (
@@ -203,8 +266,8 @@ export function AcilisYonetim() {
         </button>
       </div>
       <p className="m" style={{ margin: 0, fontSize: 13 }}>
-        Giriş yapınca bir kez açılan duyuru ya da yeni özellik tanıtımı. Önemli duyuru “Okudum” denene kadar her girişte açılır; yeni özellik 30 gün açılır,
-        sonra Duyurular → Yenilikler’de kalır. Bir girişte en çok 3 pencere açılır.
+        Giriş yapınca bir kez açılan duyuru ya da yeni özellik tanıtımı. Önemli duyuru “Okudum” denene kadar her girişte açılır; yeni özellik 30 gün açılır ve
+        yayında kaldıkça Duyurular → Yenilikler’de görünür. Geri çekilen pencere kimseye görünmez. Bir girişte en çok 3 pencere açılır.
       </p>
       {list.isLoading ? (
         <p className="m">
@@ -224,9 +287,15 @@ export function AcilisYonetim() {
               onDuzenle={() =>
                 setForm({
                   id: k.id,
+                  durum: k.durum,
                   tur: k.tur,
                   baslik: k.baslik,
                   metin: k.metin,
+                  gorselTur: k.kart_baslik ? 'kart' : k.gorsel ? 'dosya' : 'yok',
+                  kart_etiket: k.kart_etiket ?? '',
+                  kart_baslik: k.kart_baslik ?? '',
+                  kart_aciklama: k.kart_aciklama ?? '',
+                  kart_cizim: k.kart_cizim ?? '',
                   gorsel: k.gorsel ?? '',
                   gorsel_alt: k.gorsel_alt ?? '',
                   dugme_metin: k.dugme_metin ?? '',
@@ -245,6 +314,7 @@ export function AcilisYonetim() {
       {form && (
         <Modal
           title={form.id ? 'Pencereyi düzenle' : 'Yeni açılış penceresi'}
+          sub={form.durum === 'yayinda' ? 'Yayında: kaydedince görenler için de güncellenir. Daha önce görenlere yeniden açılmaz.' : undefined}
           width={640}
           onClose={() => setForm(null)}
           footer={
@@ -253,7 +323,7 @@ export function AcilisYonetim() {
                 Önizle
               </button>
               <button type="button" className="btn pri" disabled={!gecerli || kaydet.isPending} onClick={() => kaydet.mutate(form)}>
-                Taslak olarak kaydet
+                {form.durum === 'taslak' ? 'Taslak olarak kaydet' : 'Değişikliği kaydet'}
               </button>
             </>
           }
@@ -276,6 +346,72 @@ export function AcilisYonetim() {
               Metin <span className="m">({form.metin.length}/1200)</span>
               <textarea rows={6} value={form.metin} maxLength={1200} onChange={(e) => set('metin', e.target.value)} />
             </label>
+            <fieldset>
+              <legend>Görsel</legend>
+              <label>
+                <input type="radio" name="acl-gorsel" checked={form.gorselTur === 'kart'} onChange={() => set('gorselTur', 'kart')} /> Şablon kart (temaya uyar)
+              </label>
+              <label>
+                <input type="radio" name="acl-gorsel" checked={form.gorselTur === 'dosya'} onChange={() => set('gorselTur', 'dosya')} /> Görsel yükle
+              </label>
+              <label>
+                <input type="radio" name="acl-gorsel" checked={form.gorselTur === 'yok'} onChange={() => set('gorselTur', 'yok')} /> Görsel yok
+              </label>
+            </fieldset>
+            {form.gorselTur === 'kart' && (
+              <>
+                <div className="acl-iki">
+                  <label>
+                    Kart etiketi <span className="m">(boşsa {form.tur === 'onemli' ? 'ÖNEMLİ' : 'YENİ ÖZELLİK'})</span>
+                    <input value={form.kart_etiket} maxLength={24} onChange={(e) => set('kart_etiket', e.target.value)} />
+                  </label>
+                  <label>
+                    Kart çizimi
+                    <select value={form.kart_cizim} onChange={(e) => set('kart_cizim', e.target.value as Form['kart_cizim'])}>
+                      <option value="">Yok (yalnız yazı)</option>
+                      {Object.entries(KART_CIZIM_TR).map(([k, v]) => (
+                        <option key={k} value={k}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label>
+                  Kart başlığı <span className="m">({form.kart_baslik.length}/60)</span>
+                  <input
+                    value={form.kart_baslik}
+                    maxLength={60}
+                    placeholder="Örn. Hedef okulları artık siz seçin"
+                    onChange={(e) => set('kart_baslik', e.target.value)}
+                  />
+                </label>
+                <label>
+                  Kart açıklaması <span className="m">({form.kart_aciklama.length}/140)</span>
+                  <input value={form.kart_aciklama} maxLength={140} onChange={(e) => set('kart_aciklama', e.target.value)} />
+                </label>
+              </>
+            )}
+            {form.gorselTur === 'dosya' && (
+              <>
+                <label>
+                  Görsel (PNG, WEBP ya da JPG, en çok 2 MB)
+                  <input type="file" accept="image/png,image/webp,image/jpeg" onChange={(e) => setDosya(e.target.files?.[0] ?? null)} />
+                </label>
+                {form.gorsel && !dosya && (
+                  <p className="m" style={{ margin: 0, fontSize: 12 }}>
+                    Mevcut görsel yüklü.{' '}
+                    <button type="button" className="btn sm ghost" onClick={() => set('gorsel', '')}>
+                      Görseli kaldır
+                    </button>
+                  </p>
+                )}
+                <label>
+                  Görsel açıklaması (ekran okuyucu için)
+                  <input value={form.gorsel_alt} maxLength={200} onChange={(e) => set('gorsel_alt', e.target.value)} />
+                </label>
+              </>
+            )}
             <fieldset>
               <legend>Kimler görsün</legend>
               {(Object.keys(ACILIS_ROL_TR) as AcilisRol[]).map((r) => (
@@ -314,22 +450,6 @@ export function AcilisYonetim() {
                   </option>
                 ))}
               </select>
-            </label>
-            <label>
-              Görsel (PNG, WEBP ya da JPG, en çok 2 MB)
-              <input type="file" accept="image/png,image/webp,image/jpeg" onChange={(e) => setDosya(e.target.files?.[0] ?? null)} />
-            </label>
-            {form.gorsel && !dosya && (
-              <p className="m" style={{ margin: 0, fontSize: 12 }}>
-                Mevcut görsel: {form.gorsel}{' '}
-                <button type="button" className="btn sm ghost" onClick={() => set('gorsel', '')}>
-                  Görseli kaldır
-                </button>
-              </p>
-            )}
-            <label>
-              Görsel açıklaması (ekran okuyucu için)
-              <input value={form.gorsel_alt} maxLength={200} onChange={(e) => set('gorsel_alt', e.target.value)} />
             </label>
             <div className="acl-iki">
               <label>
