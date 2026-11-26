@@ -948,7 +948,7 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .oy-lig-baslik span{width:38px;text-align:right}
 .oy-gizli{display:flex;gap:8px;align-items:center;font-size:13px;min-height:44px;cursor:pointer}
 .oy-gizli input{width:20px;height:20px}
-.oy-rozetler{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.oy-rozetler{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
 .oy-rozetler li{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:12px;border:1px dashed var(--line);color:var(--ink-muted);font-size:13px}
 .oy-rozetler li.var{color:var(--ink);border-style:solid;background:color-mix(in srgb,var(--highlight) 14%,transparent)}
 .oy-rozet-simge{font-size:24px}
