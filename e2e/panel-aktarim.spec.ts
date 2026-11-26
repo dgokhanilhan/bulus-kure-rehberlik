@@ -38,7 +38,7 @@ test.describe.serial('Ana sayfa ve toplu aktarım', () => {
     await login(page, ...DEMO.veli)
     await expect(page).toHaveURL(/\/panel$/)
     await expect(page.getByRole('heading', { name: /^Merhaba/ })).toBeVisible()
-    await expect(cards(page).first()).toHaveAttribute('data-card', 'duyuru')
+    await expect(cards(page).first()).toHaveAttribute('data-card', /^(hedefler|gorevler|odev)$/) // 0097: çalışma kartları önde
     for (const n of ['Ödevler', 'Bugünün dersleri', 'Devamsızlık', 'Yaklaşan etkinlikler', 'LGS / Deneme']) await expect(page.getByRole('region', { name: n })).toBeVisible()
     await expect(page.locator('section[data-card="bursluluk"]')).toHaveCount(0) // varsayılan kapalı
     await axe(page, 'veli ana sayfa')
@@ -58,14 +58,14 @@ test.describe.serial('Ana sayfa ve toplu aktarım', () => {
     await page.goto('/yonetim?sekme=anasayfa')
     const box = page.getByRole('region', { name: 'Veli ana sayfa kartları' })
     await box.getByRole('checkbox', { name: 'Duyurular' }).uncheck()
-    for (let i = 0; i < 4; i++) await box.getByRole('button', { name: 'Devamsızlık yukarı' }).click()
+    for (let i = 0; i < 8; i++) await box.getByRole('button', { name: 'Devamsızlık yukarı' }).click()
     await box.getByRole('checkbox', { name: 'Bursluluk sınavı' }).check()
     await page.getByRole('button', { name: 'Kaydet' }).click()
     await expect(page.getByText('Ana sayfa düzeni kaydedildi')).toBeVisible()
     await axe(page, 'ana sayfa düzeni')
     await shot(page, 'h2-ana-sayfa-duzeni')
     const { data } = await svc.from('school_settings').select('value').eq('key', 'panel.veli').single()
-    expect((data!.value as { id: string }[]).map((x) => x.id).slice(0, 2)).toEqual(['yoklama', 'duyuru'])
+    expect((data!.value as { id: string }[]).map((x) => x.id).slice(0, 2)).toEqual(['yoklama', 'hedefler'])
     await logout(page)
 
     await login(page, ...DEMO.veli)

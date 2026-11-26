@@ -173,7 +173,7 @@ test.describe.serial('Yönetim Merkezi genişletme', () => {
     const kid = page.getByRole('group', { name: 'Öğrenciler' })
     if (await kid.isVisible().catch(() => false)) await kid.getByRole('button').first().click()
     await expect(page.locator('section[data-card="odev"]')).toHaveClass(/wide/)
-    await expect(page.locator('section[data-card="duyuru"]')).not.toHaveClass(/wide/)
+    await expect(page.locator('section[data-card]:not([data-card="odev"])').first()).not.toHaveClass(/wide/) // boş kart gizli (0097)
   })
 
   test('duyuru listesi: silme onay ister ve işlem geçmişine yazılır', async ({ page }) => {

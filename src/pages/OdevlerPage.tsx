@@ -86,6 +86,17 @@ function OgretmenOdev() {
   const today = todayISO()
   const assignable = useAssignable(classes.data ?? [])
   const open = sp.get('odev')
+  // Ana sayfadaki "＋ Ödev" (?yeni=<sınıf>): Ödev ver penceresi o sınıf seçili açılır; sınıf atanmamışsa yok sayılır
+  const yeni = sp.get('yeni')
+  const [ilkSinif, setIlkSinif] = useState<string | null>(null)
+  useEffect(() => {
+    if (!yeni || !assignable.size) return
+    if (assignable.has(yeni)) {
+      setIlkSinif(yeni)
+      setEdit('new')
+    }
+    setSp({}, { replace: true })
+  }, [yeni, assignable.size]) // eslint-disable-line react-hooks/exhaustive-deps
   const visibleHomework = (hw.data ?? []).filter((h) => profile?.role === 'admin' || h.teacher_id === profile?.id || teachingClasses.data?.includes(h.class_id))
   const cur = visibleHomework.find((h) => h.id === open)
   const cName = (id: string) => classes.data?.find((c) => c.id === id)?.name ?? '—'
@@ -179,13 +190,14 @@ function OgretmenOdev() {
       ) : (
         <div className="empty a">{view === 'acik' ? 'Süresi devam eden ödev yok.' : 'Ödev yok.'}</div>
       )}
-      {edit && <HomeworkModal h={edit === 'new' ? null : edit} classes={classes.data ?? []} assignable={assignable} dueRequired={settings.dueRequired} onClose={() => setEdit(null)} onSaved={(id) => setSp({ odev: id })} />}
+      {edit && <HomeworkModal h={edit === 'new' ? null : edit} ilkSinif={edit === 'new' ? ilkSinif : null} classes={classes.data ?? []} assignable={assignable} dueRequired={settings.dueRequired} onClose={() => (setEdit(null), setIlkSinif(null))} onSaved={(id) => setSp({ odev: id })} />}
     </>
   )
 }
 
 function HomeworkModal({
   h,
+  ilkSinif,
   classes,
   assignable,
   dueRequired,
@@ -193,6 +205,7 @@ function HomeworkModal({
   onSaved,
 }: {
   h: Homework | null
+  ilkSinif?: string | null
   classes: ClassRow[]
   assignable: Map<string, Set<string>>
   dueRequired: boolean
@@ -204,7 +217,7 @@ function HomeworkModal({
   const qc = useQueryClient()
   const toast = useToast()
   const clsOpts = classes.filter((c) => assignable.has(c.id) || c.id === h?.class_id)
-  const [selectedClasses, setSelectedClasses] = useState<string[]>([h?.class_id ?? clsOpts[0]?.id ?? ''].filter(Boolean))
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([h?.class_id ?? (ilkSinif && clsOpts.some((c) => c.id === ilkSinif) ? ilkSinif : clsOpts[0]?.id) ?? ''].filter(Boolean))
   const [multiple, setMultiple] = useState(false)
   const cls = selectedClasses[0] ?? ''
   const coOpts = (courses.data ?? []).filter((c) => (selectedClasses.length > 0 && selectedClasses.every((id) => assignable.get(id)?.has(c.id))) || c.id === h?.course_id)
