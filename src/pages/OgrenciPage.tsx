@@ -37,6 +37,7 @@ import { Icon } from '@/components/Icon'
 import { Seg, useIndicator } from '@/components/Indicator'
 import { LineChart } from '@/components/LineChart'
 import { TaskList, TaskModal } from '@/components/Tasks'
+import { GorevTakip } from '@/components/GorevTakip'
 import { MeetingList, MeetingModal } from '@/components/Meetings'
 import { GorusmeHazirlik, GorusmeKararlari, type DenemeSatiri } from '@/components/GorusmeHazirlik'
 import { useKararGuncelle } from '@/lib/gorusmeData'
@@ -83,6 +84,8 @@ export default function OgrenciPage() {
   const [sp, setSp] = useSearchParams()
   const mods = useModules()
   const tab = (TABS.find(([k]) => k === sp.get('sekme'))?.[0] ?? 'gelisim') as Tab
+  // Görev takip tablosu (0094): ?takip=tablo, karekoddan gelen telefon görünümü ?takip=hizli
+  const takip = tab === 'gorevler' && !!sp.get('takip')
   const setTab = (t: Tab) => setSp(t === 'gelisim' ? {} : { sekme: t }, { replace: true })
   const { role } = useAuth()
   const F = isFullAccess(role!)
@@ -510,12 +513,27 @@ export default function OgrenciPage() {
 
       {tab === 'gorevler' && (
         <>
-          {F && (
-            <button className="btn pri a" style={{ alignSelf: 'flex-start' }} onClick={() => setModal({ t: 'task' })}>
-              <Icon name="plus" size={18} stroke={2} />
-              Görev ata
-            </button>
-          )}
+          <div className="btns a" style={{ alignItems: 'center' }}>
+            {F && (
+              <button className="btn pri" onClick={() => setModal({ t: 'task' })}>
+                <Icon name="plus" size={18} stroke={2} />
+                Görev ata
+              </button>
+            )}
+            <Seg
+              label="Görev görünümü"
+              value={takip ? 'takip' : 'kartlar'}
+              onChange={(v) => setSp(v === 'takip' ? { sekme: 'gorevler', takip: 'tablo' } : { sekme: 'gorevler' }, { replace: true })}
+              options={[
+                ['kartlar', 'Kartlar'],
+                ['takip', 'Takip tablosu'],
+              ]}
+            />
+          </div>
+          {takip ? (
+            <GorevTakip s={s} tasks={myTasks} F={F} etki={ds ? (t) => gorevEtkisi(ds, sid, t) : undefined} />
+          ) : (
+            <>
           {(() => {
             const o = ds ? gorevEtkiOzeti(myTasks.map((t) => gorevEtkisi(ds, sid, t))) : null
             return o && o.olculen > 0 ? (
@@ -531,6 +549,8 @@ export default function OgrenciPage() {
             onEdit={(t) => setModal({ t: 'task', edit: t })}
             etki={ds ? (t) => gorevEtkisi(ds, sid, t) : undefined}
           />
+            </>
+          )}
         </>
       )}
 
