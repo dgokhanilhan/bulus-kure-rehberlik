@@ -169,7 +169,7 @@ export default function OgrenciPage() {
           </div>
         </div>
         {F && (
-          <div className="btns">
+          <div className="btns ogr-eylem">
             <button className="btn" onClick={() => setModal({ t: 'meeting' })}>
               <Icon name="cal" size={18} />
               Görüşme planla
