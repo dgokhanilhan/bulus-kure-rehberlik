@@ -1,6 +1,6 @@
 -- 0096 Açılış penceresi (duyuru / yenilik): giriş yapınca bir kez açılan pencere. Yönetici Duyurular sayfasından hazırlar.
 -- tur: 'onemli' → "Okudum" denmeden tekrar açılır; 'yenilik' → bir kez görülünce kapanır, bitişe kadar Yenilikler'de kalır.
--- Hedef kitle: roller (veli, ogrenci, ogretmen, yonetim) + isteğe bağlı sınıf düzeyleri (veli/öğrenci için) + isteğe bağlı modül.
+-- Hedef kitle: roller (veli, ogrenci, ogretmen, rehber, yonetim; rehber = Rehberlik branşındaki öğretmenler) + isteğe bağlı sınıf düzeyleri (veli/öğrenci için) + isteğe bağlı modül.
 -- Taslak yalnız yöneticide görünür. Metin yalnız düz metindir (arayüz HTML olarak işlemez). Kişisel veri tutulmaz.
 
 create table acilis_pencereleri (
@@ -13,7 +13,7 @@ create table acilis_pencereleri (
   gorsel_alt text check (gorsel_alt is null or char_length(gorsel_alt) <= 200),
   dugme_metin text check (dugme_metin is null or char_length(btrim(dugme_metin)) between 2 and 30),
   dugme_rota text check (dugme_rota is null or dugme_rota ~ '^/[a-z0-9/_-]*(\?[a-z0-9=&_-]*)?$'),
-  roller text[] not null check (cardinality(roller) > 0 and roller <@ array['veli', 'ogrenci', 'ogretmen', 'yonetim']),
+  roller text[] not null check (cardinality(roller) > 0 and roller <@ array['veli', 'ogrenci', 'ogretmen', 'rehber', 'yonetim']),
   siniflar smallint[] check (siniflar is null or (cardinality(siniflar) > 0 and siniflar <@ array[1,2,3,4,5,6,7,8,9,10,11,12]::smallint[])),
   modul text check (modul is null or modul in ('lgs','yoklama','ders_programi','yemek','duyuru','mesaj','odev','takvim','bursluluk','galeri','etut','oda')),
   durum text not null default 'taslak' check (durum in ('taslak', 'yayinda', 'arsiv')),
@@ -58,7 +58,9 @@ revoke all on acilis_goruldu from anon, authenticated;
 -- Çağıran bu pencerenin hedef kitlesinde mi? (p_rol: arayüzdeki etkin rol; sunucuda doğrulanır)
 create function acilis_hedefte(p acilis_pencereleri, p_rol text) returns boolean
 language sql stable security definer set search_path = public as $$
-  select p.school_id = my_school() and p_rol = any(p.roller)
+  select p.school_id = my_school()
+    and (p_rol = any(p.roller) or (p_rol = 'ogretmen' and 'rehber' = any(p.roller)
+         and exists (select 1 from profiles r where r.id = auth.uid() and r.branch = 'Rehberlik')))
     and exists (select 1 from profiles me where me.id = auth.uid() and me.status = 'approved')
     and case p_rol
           when 'yonetim' then has_role(auth.uid(), 'admin')
@@ -124,6 +126,7 @@ language sql stable security definer set search_path = public as $$
     where pr.school_id = p.school_id and pr.status = 'approved'
       and ((('yonetim' = any(p.roller)) and has_role(pr.id, 'admin'))
         or (('ogretmen' = any(p.roller)) and has_role(pr.id, 'ogretmen'))
+        or (('rehber' = any(p.roller)) and has_role(pr.id, 'ogretmen') and pr.branch = 'Rehberlik')
         or (('ogrenci' = any(p.roller)) and has_role(pr.id, 'ogrenci')
             and (p.siniflar is null or exists (select 1 from students s join classes c on c.id = s.class_id where s.id = pr.student_id and s.archived_at is null and c.grade = any(p.siniflar))))
         or (('veli' = any(p.roller)) and has_role(pr.id, 'veli')

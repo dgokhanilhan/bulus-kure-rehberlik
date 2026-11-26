@@ -19,8 +19,15 @@ export interface Acilis {
   dugme_rota: string | null
   yayin_at?: string | null
 }
-export type AcilisRol = 'veli' | 'ogrenci' | 'ogretmen' | 'yonetim'
-export const ACILIS_ROL_TR: Record<AcilisRol, string> = { veli: 'Veli', ogrenci: 'Öğrenci', ogretmen: 'Öğretmen', yonetim: 'Yönetim' }
+// 'rehber' yalnız hedef kitle seçeneğidir (Rehberlik branşındaki öğretmenler); oturumda rehber de 'ogretmen' olarak sorar, sunucu ayırır.
+export type AcilisRol = 'veli' | 'ogrenci' | 'ogretmen' | 'rehber' | 'yonetim'
+export const ACILIS_ROL_TR: Record<AcilisRol, string> = {
+  veli: 'Veli',
+  ogrenci: 'Öğrenci',
+  ogretmen: 'Tüm öğretmenler',
+  rehber: 'Yalnız rehber öğretmenler',
+  yonetim: 'Yönetim',
+}
 
 /** Arayüzdeki etkin rol → pencere hedef kitlesi (sunucu ayrıca doğrular). */
 export function acilisRol(role: string | null | undefined): AcilisRol | null {

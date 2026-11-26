@@ -68,8 +68,21 @@ test('veli girişte önce önemliyi, sonra yeniliği görür; Okudum ve düğme 
   await logout(page)
 })
 
-test('öğretmen veli/öğrenci penceresini görmez', async ({ page }) => {
+test('öğretmen veli/öğrenci penceresini görmez; "yalnız rehber" pencereyi rehber görür, branş öğretmeni görmez', async ({ page }) => {
   await login(page, ...DEMO.rehber)
   await expect(page).toHaveURL(/\/bugun$/)
   await expect(page.getByTestId('acilis-penceresi')).toHaveCount(0)
+  await logout(page)
+
+  const okul = (await service().from('students').select('school_id').eq('id', ELIF).single()).data!.school_id
+  const r = await service()
+    .from('acilis_pencereleri')
+    .insert({ school_id: okul, tur: 'yenilik', baslik: `${AD} rehber`, metin: 'Yalnız rehberlik için.', roller: ['rehber'], durum: 'yayinda' })
+  expect(r.error).toBeNull()
+  await login(page, ...DEMO.matematik)
+  await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
+  await expect(page.getByTestId('acilis-penceresi')).toHaveCount(0)
+  await logout(page)
+  await login(page, ...DEMO.rehber)
+  await expect(page.getByTestId('acilis-penceresi')).toContainText(`${AD} rehber`)
 })
