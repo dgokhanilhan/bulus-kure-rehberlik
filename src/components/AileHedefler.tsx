@@ -1,9 +1,11 @@
-// Veli / öğrenci Özeti → Hedefler (0060, 0095): hedef okullar (LGS) ya da bölümler (YKS). Öğretmenin seçtikleri salt okunur;
+// Veli / öğrenci Hedefim sayfası (0060, 0095): hedef okullar (LGS) ya da bölümler (YKS). Öğretmenin seçtikleri salt okunur;
 // aile en çok 5 hedef ekleyip kendi eklediklerini çıkarabilir (veritabanı fonksiyonlarıyla; tablo aileye açık değil).
 // Her hedef öğrencinin son denemelerinin puanıyla (en çok 3 deneme ortalaması) karşılaştırılır; her yerde "tahmini" yazar.
 // Sınıf sıralaması yok; öğrenci yalnız kendi puanıyla kıyaslanır (CLAUDE.md §3).
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { Icon } from './Icon'
 import { supabase } from '@/lib/supabase'
 import { examScores } from '@/lib/examScores'
 import { fmt } from '@/lib/analiz'
@@ -86,14 +88,72 @@ export function AileHedefler({ sid, grade, veli }: { sid: string; grade: number 
       const { error } = await supabase.rpc('aile_hedef_sil', { p_student: sid, p_hedef: id })
       if (error) throw new Error(error.message)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['aile-hedefleri', sid] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['aile-hedefleri', sid] })
+      qc.invalidateQueries({ queryKey: ['aile-hedefleri-kart', sid] })
+    },
     onError: (e: Error) => setHata(e.message),
   })
 
   const simHedefler = list.filter((h) => h.taban_puan !== null).map((h) => ({ ad: ad(sinav, h), taban: h.taban_puan! }))
+  // Özet kutuları (LGS): son 3 denemenin ortalaması ve ondan önceki (en çok 3) denemeye göre değişim; en yakın hedef
+  const lgsSeri = useMemo(
+    () =>
+      (puanlar.data ?? [])
+        .filter((r) => r.exams.exam_type === 'LGS' || r.exams.exam_type === null)
+        .map((r) => r.score)
+        .filter((x): x is number => typeof x === 'number'),
+    [puanlar.data],
+  )
+  const onceki = lgsSeri.length >= 4 ? referansPuan(lgsSeri.slice(0, -3)) : null
+  const degisim = lgsRef.puan !== null && onceki !== null ? lgsRef.puan - onceki : null
+  const farklar = list
+    .map((h) => {
+      const r = ref(sinav === 'LGS' ? 'LGS' : (h.puan_turu ?? 'SAY'))
+      return r.puan !== null && h.taban_puan !== null ? r.puan - h.taban_puan : null
+    })
+    .filter((f): f is number => f !== null)
+  const ulasilmayan = farklar.filter((f) => f < 0)
+  const enYakin = ulasilmayan.length ? Math.max(...ulasilmayan) : null
+  const birim = sinav === 'LGS' ? 'okul' : 'bölüm'
+
+  const ozet = sinav === 'LGS' && (
+    <div className="hdm-ozet" data-testid="hedefim-ozet">
+      <div className="card hdm-kutu a" style={{ ['--d' as string]: 2 }}>
+        <span className="m">Deneme puanı (son {lgsRef.adet || 3} deneme)</span>
+        <b className="num">{lgsRef.puan === null ? '—' : fmt(lgsRef.puan, 2)}</b>
+        {degisim !== null && Math.abs(degisim) >= 0.05 ? (
+          <span className={`hdm-deg ${degisim >= 0 ? 'up' : 'down'}`}>
+            {degisim >= 0 ? '↑' : '↓'} {fmt(Math.abs(degisim), 1)} önceki denemelere göre
+          </span>
+        ) : (
+          <span className="m">{lgsRef.puan === null ? 'Henüz deneme puanı yok' : 'Değişim için en az 4 deneme gerekir'}</span>
+        )}
+      </div>
+      <div className="card hdm-kutu a" style={{ ['--d' as string]: 3 }}>
+        <span className="m">Hedef {birim}</span>
+        <b className="num">{list.length}</b>
+        <span className="m">
+          {!list.length
+            ? 'Henüz seçilmedi'
+            : enYakin !== null
+              ? `En yakını ${fmt(-enYakin, 1)} puan uzakta`
+              : farklar.length
+                ? 'Hepsinin tabanına ulaşılıyor'
+                : 'Karşılaştırma için deneme puanı yok'}
+        </span>
+      </div>
+    </div>
+  )
+
   const kart = (
-    <section className="card a" style={{ ['--d' as string]: 4, padding: 20, display: 'grid', gap: 8 }} aria-label="Hedefler" data-testid="aile-hedefler">
-      <h2 className="sec">{veli ? 'Hedefler' : 'Hedeflerin'}</h2>
+    <section
+      className="card a hdm-kart"
+      style={{ ['--d' as string]: 4 }}
+      aria-label={sinav === 'LGS' ? 'Hedef okullar' : 'Hedef bölümler'}
+      data-testid="aile-hedefler"
+    >
+      <h2 className="sec">{sinav === 'LGS' ? 'Hedef okullar' : 'Hedef bölümler'}</h2>
       {hedefler.isLoading || puanlar.isLoading ? (
         <p className="m">
           <span className="spinner" aria-hidden="true" /> Yükleniyor…
@@ -103,70 +163,62 @@ export function AileHedefler({ sid, grade, veli }: { sid: string; grade: number 
       ) : !list.length ? (
         <p className="m" style={{ margin: 0 }}>
           {veli
-            ? `Henüz hedef ${sinav === 'LGS' ? 'okul' : 'bölüm'} yok. Aşağıdan ekleyebilir ya da öğretmenle birlikte belirleyebilirsiniz.`
+            ? `Henüz hedef ${birim} yok. Aşağıdan ekleyebilir ya da öğretmenle birlikte belirleyebilirsiniz.`
             : `Henüz hedef ${sinav === 'LGS' ? 'okulun' : 'bölümün'} yok. Aşağıdan ekleyebilir ya da öğretmeninle birlikte belirleyebilirsin.`}
         </p>
       ) : (
-        <>
-          {sinav === 'LGS' && (
-            <p style={{ margin: 0, fontSize: 14 }}>
-              Deneme puanı (son {lgsRef.adet} deneme ortalaması): <b className="num">{lgsRef.puan === null ? '—' : fmt(lgsRef.puan, 2)}</b>
-            </p>
-          )}
-          <ul className="hd-liste">
-            {list.map((h) => {
-              const r = ref(sinav === 'LGS' ? 'LGS' : (h.puan_turu ?? 'SAY'))
-              const f = r.puan !== null && h.taban_puan !== null ? r.puan - h.taban_puan : null
-              return (
-                <li key={h.id} className="hd-satir aile ekle" data-testid="aile-hedef">
-                  <div style={{ minWidth: 0 }}>
-                    <b>{ad(sinav, h)}</b>
-                    <div className="m" style={{ fontSize: 12 }}>
-                      {alt(sinav, h)}
-                    </div>
-                    <span className="chip n" style={{ marginTop: 4, fontSize: 11 }}>
-                      {EKLEYEN_TR[h.ekleyen]}
-                    </span>
+        <ul className="hdm-liste">
+          {list.map((h) => {
+            const r = ref(sinav === 'LGS' ? 'LGS' : (h.puan_turu ?? 'SAY'))
+            const f = r.puan !== null && h.taban_puan !== null ? r.puan - h.taban_puan : null
+            const dr = f === null ? null : durum(r.puan!, h.taban_puan!)
+            // Çubuk: tabana kalan puan (100 puanlık ölçek); tabana ulaşılınca dolu. Puan / taban oranı yanıltıcı olurdu (20 puan eksik = %95).
+            const oran = f === null ? 0 : f >= 0 ? 100 : Math.max(4, 100 + f)
+            return (
+              <li key={h.id} className="hdm-hedef" data-testid="aile-hedef">
+                <div className="hdm-ust">
+                  <b>{ad(sinav, h)}</b>
+                  {dr && <span className={`chip hdm-d ${dr}`}>{DURUM_TR[dr]}</span>}
+                </div>
+                <div className="m hdm-alt">
+                  <span>{alt(sinav, h)}</span>
+                  <span className="chip n">{EKLEYEN_TR[h.ekleyen]}</span>
+                </div>
+                {f !== null && (
+                  <div
+                    className={`hdm-cubuk${f >= 0 ? ' tam' : ''}`}
+                    role="img"
+                    aria-label={f >= 0 ? 'Taban puana ulaşılıyor' : `Taban puana ${fmt(-f, 1)} puan kaldı`}
+                  >
+                    <i style={{ width: `${oran}%` }} />
                   </div>
-                  <div className="num" style={{ textAlign: 'right', fontSize: 13 }}>
+                )}
+                <div className="hdm-satir">
+                  <span>
                     {h.yil} tabanı {h.taban_puan === null ? '—' : fmt(h.taban_puan, 2)}
-                    {h.yuzdelik !== null ? <div className="m">%{fmt(h.yuzdelik, 2)}</div> : null}
-                    {sinav === 'YKS' && r.puan !== null ? <div className="m">Deneme {fmt(r.puan, 2)}</div> : null}
-                  </div>
-                  <div style={{ fontSize: 13 }}>
-                    {f === null ? (
-                      <span className="m">Deneme puanı yok</span>
-                    ) : (
-                      <>
-                        {DURUM_TR[durum(r.puan!, h.taban_puan!)]} · <Fark f={f} />
-                      </>
-                    )}
-                  </div>
-                  <div>
-                    {h.silinebilir && (
-                      <button
-                        type="button"
-                        className="btn sm ghost"
-                        disabled={sil.isPending}
-                        aria-label={`${ad(sinav, h)} hedefini çıkar`}
-                        onClick={() => {
-                          setHata(null)
-                          sil.mutate(h.id)
-                        }}
-                      >
-                        Çıkar
-                      </button>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-          <p className="m" style={{ fontSize: 13, margin: 0 }}>
-            Karşılaştırma <b>deneme puanına göre tahminidir</b>; deneme puanı {sinav} puanıyla birebir aynı değildir. Taban puan, o yılki yerleştirmenin en
-            düşük puanıdır.
-          </p>
-        </>
+                    {h.yuzdelik !== null ? ` · %${fmt(h.yuzdelik, 2)}` : ''}
+                    {sinav === 'YKS' && r.puan !== null ? ` · deneme ${fmt(r.puan, 2)}` : ''}
+                  </span>
+                  {f === null ? <span className="m">Deneme puanı yok</span> : <Fark f={f} />}
+                </div>
+                {h.silinebilir && (
+                  <button
+                    type="button"
+                    className="btn sm ghost hdm-cikar"
+                    disabled={sil.isPending}
+                    aria-label={`${ad(sinav, h)} hedefini çıkar`}
+                    onClick={() => {
+                      setHata(null)
+                      sil.mutate(h.id)
+                    }}
+                  >
+                    Çıkar
+                  </button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
       )}
       {hata && (
         <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--signal-ink, var(--signal))' }}>
@@ -186,12 +238,53 @@ export function AileHedefler({ sid, grade, veli }: { sid: string; grade: number 
       )}
     </section>
   )
-  if (sinav !== 'LGS' || lgsRef.puan === null || !simHedefler.length) return kart
   return (
-    <>
+    <div className="hdm" data-testid="hedefim">
+      {ozet}
       {kart}
-      <HedefSimulator key={lgsRef.puan} kim={veli ? 'veli' : 'ogrenci'} puan={lgsRef.puan} netler={netler} hedefler={simHedefler} />
-    </>
+      {sinav === 'LGS' && lgsRef.puan !== null && simHedefler.length > 0 && (
+        <HedefSimulator key={lgsRef.puan} kim={veli ? 'veli' : 'ogrenci'} puan={lgsRef.puan} netler={netler} hedefler={simHedefler} />
+      )}
+      <p className="m hdm-not">
+        Karşılaştırma <b>deneme puanına göre tahminidir</b>; deneme puanı {sinav} puanıyla birebir aynı değildir. Taban puan, o yılki yerleştirmenin en
+        düşük puanıdır.
+      </p>
+    </div>
+  )
+}
+
+/** LGS özeti / Özet: Hedefim sayfasına kısa bağlantı (hedef sayısı). */
+export function HedefimOzetKart({ sid, grade, veli }: { sid: string; grade: number | null | undefined; veli: boolean }) {
+  const sinav = grade === 8 ? 'LGS' : 'YKS'
+  const hedefler = useQuery({
+    queryKey: ['aile-hedefleri', sid],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('aile_hedef_listesi', { p_student: sid })
+      if (error) throw new Error(error.message)
+      return ((data ?? []) as Hedef[]).map((h) => ({ ...h, taban_puan: sayi(h.taban_puan), yuzdelik: sayi(h.yuzdelik) }))
+    },
+  })
+  const n = (hedefler.data ?? []).filter((h) => h.sinav === sinav).length
+  const birim = sinav === 'LGS' ? 'okul' : 'bölüm'
+  return (
+    <Link to="/hedefim" className="card a hdm-link" style={{ ['--d' as string]: 4 }} data-testid="hedefim-baglanti">
+      <span className="hdm-ikon" aria-hidden="true">
+        <Icon name="target" size={22} />
+      </span>
+      <span style={{ minWidth: 0, flex: 1 }}>
+        <b>Hedefim</b>
+        <span className="m" style={{ display: 'block', fontSize: 13 }}>
+          {hedefler.isLoading
+            ? 'Yükleniyor…'
+            : n
+              ? `${n} hedef ${birim} · puan karşılaştırması ve simülatör`
+              : veli
+                ? `Henüz hedef ${birim} yok · ${birim} ekleyebilirsiniz`
+                : `Henüz hedef ${birim} yok · ${birim} ekleyebilirsin`}
+        </span>
+      </span>
+      <Icon name="right" size={18} />
+    </Link>
   )
 }
 
@@ -250,7 +343,10 @@ function OkulEkle(p: {
       const { error } = await supabase.rpc('aile_hedef_ekle', { p_student: sid, p_program: id })
       if (error) throw new Error(error.message)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['aile-hedefleri', sid] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['aile-hedefleri', sid] })
+      qc.invalidateQueries({ queryKey: ['aile-hedefleri-kart', sid] })
+    },
     onError: (e: Error) => p.onHata(e.message),
   })
 

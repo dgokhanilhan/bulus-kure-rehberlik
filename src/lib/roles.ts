@@ -45,12 +45,12 @@ export const isFullAccess = (r: Role) => r === 'admin' || r === 'rehber'
 export type PageId =
   | 'bugun' | 'ogrenciler' | 'odevler' | 'takvim' | 'bildirimler' | 'denemeler' | 'siniflar' | 'onaylar' | 'yonetim'
   | 'nobet-takip' | 'panel' | 'ozet' | 'okul' | 'duyurular' | 'iletisim' | 'gorevler' | 'raporlar' | 'gorusmeler' | 'galeri'
-  | 'gozetmen' | 'etut' | 'ogretmenler-odasi'
+  | 'gozetmen' | 'etut' | 'ogretmenler-odasi' | 'hedefim'
 
 export interface NavItem {
   id: PageId
   label: string
-  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega' | 'image' | 'search' | 'flag' | 'cup'
+  icon: 'sun' | 'users' | 'doc' | 'grid' | 'shield' | 'home' | 'task' | 'cal' | 'pen' | 'chat' | 'book' | 'spark' | 'mega' | 'image' | 'search' | 'flag' | 'cup' | 'target'
 }
 
 const STAFF: NavItem[] = [
@@ -72,6 +72,8 @@ const FAMILY: NavItem[] = [
   { id: 'ozet', label: 'LGS özeti', icon: 'spark' },
   { id: 'okul', label: 'Okul', icon: 'grid' },
   { id: 'odevler', label: 'Ödevler', icon: 'book' },
+  /** Hedefim: hedef okullar / bölümler (8., 11., 12. sınıf); eskiden Özet'in altındaydı. Telefonda alt çubuktaki ilk dört sayfa değişmesin diye Ödevler'den sonra. */
+  { id: 'hedefim', label: 'Hedefim', icon: 'target' },
   { id: 'takvim', label: 'Takvim', icon: 'cal' },
   DUYURULAR,
   ILETISIM,
@@ -92,7 +94,7 @@ function navFor(r: Role): NavItem[] {
   if (r === 'rehber') return [...staff, ETUT, DUYURULAR, ILETISIM]
   // Branş öğretmeni Sınıflar'da yalnız derse girdiği şubeleri ve kendi dersini görür (SiniflarPage; öğrenci verisi RLS 0023)
   if (r === 'brans') return [PANEL, STAFF[1]!, ODA, STAFF[2]!, STAFF[3]!, STAFF[5]!, ETUT, DUYURULAR, ILETISIM]
-  const fam = [...FAMILY.slice(0, 4), ETUT, ...FAMILY.slice(4)] // Ödevler'den sonra
+  const fam = [...FAMILY.slice(0, 5), ETUT, ...FAMILY.slice(5)] // Ödevler ve Hedefim'den sonra
   if (r === 'ogrenci') return fam.filter((n) => n.id !== 'iletisim') // öğrenci mesajlaşmaz; duyuruları görür
   return fam
 }
@@ -115,6 +117,7 @@ const PAGE_MODULES: Partial<Record<PageId, ModuleId[]>> = {
   iletisim: ['mesaj'],
   etut: ['etut'],
   'ogretmenler-odasi': ['oda'],
+  hedefim: ['lgs'],
 }
 
 /** Galeri (0022): herkes için, Takvim'den sonra; modül kapalıyken menüde yok. */
@@ -128,11 +131,13 @@ function withGallery(list: NavItem[]): NavItem[] {
  * fam.lgs: veli/öğrenci için LGS'ye uygun (8. sınıf) çocuk var mı. Yoksa ya da LGS modülü kapalıysa sayfa "Özet" adını alır
  * ve LGS bölümü gösterilmez; görevler, görüşmeler, raporlar, öğretmen notları ve etütler herkes için kalır.
  */
-export function navItems(r: Role, mods: Modules = MODULE_DEFAULTS, fam: { lgs: boolean } = { lgs: true }): NavItem[] {
+/** fam.hedef: hedef seçimi olan (8., 11., 12. sınıf) çocuk var mı; verilmezse fam.lgs. */
+export function navItems(r: Role, mods: Modules = MODULE_DEFAULTS, fam: { lgs: boolean; hedef?: boolean } = { lgs: true }): NavItem[] {
   const base = navFor(r)
   if (r === 'brans' || r === 'rehber') base.splice(base.findIndex(n => n.id === 'takvim') + 1, 0, { id: 'nobet-takip', label: 'Nöbet Takip', icon: 'cal' })
   return withGallery(base)
     .filter((n) => !PAGE_MODULES[n.id] || PAGE_MODULES[n.id]!.some((m) => mods[m]))
+    .filter((n) => n.id !== 'hedefim' || (fam.hedef ?? fam.lgs))
     .map((n) => (n.id === 'ozet' && !(fam.lgs && mods.lgs) ? { ...n, label: 'Özet' } : n))
 }
 

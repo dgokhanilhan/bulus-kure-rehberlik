@@ -1,4 +1,4 @@
-// Hedef simülatörü (LGS): öğretmen Hedef sekmesinde, öğrenci ve veli Özet → Hedefler altında. Tahmini puan, önerilen dağılım, sıfırla.
+// Hedef simülatörü (LGS): öğretmen Hedef sekmesinde, öğrenci ve veli Hedefim sayfasında. Tahmini puan, önerilen dağılım, sıfırla.
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { DEMO, ELIF, login, logout, openStudent, service, shot } from './helpers'
@@ -67,10 +67,10 @@ test('öğretmen: hedef seçili gelir, önerilen dağılım puanı yükseltir, s
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
 })
 
-test('öğrenci "sen", veli "siz" diliyle simülatörü Özet sayfasında görür', async ({ page }) => {
+test('öğrenci "sen", veli "siz" diliyle simülatörü Hedefim sayfasında görür', async ({ page }) => {
   await login(page, ...DEMO.ogrenci)
   await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
-  await page.goto('/ozet')
+  await page.goto('/hedefim')
   const sim = page.getByTestId('hedef-simulator')
   await expect(sim.getByRole('heading', { name: 'Hedefine nasıl ulaşırsın?' })).toBeVisible()
   await expect(sim).not.toContainText('sınıf')
@@ -78,6 +78,6 @@ test('öğrenci "sen", veli "siz" diliyle simülatörü Özet sayfasında görü
   await logout(page)
   await login(page, ...DEMO.veli)
   await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
-  await page.goto('/ozet')
+  await page.goto('/hedefim')
   await expect(page.getByTestId('hedef-simulator').getByRole('heading', { name: 'Hedefe nasıl ulaşılır?' })).toBeVisible()
 })

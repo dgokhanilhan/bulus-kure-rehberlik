@@ -40,7 +40,7 @@ import { MeetingList } from '@/components/Meetings'
 import { ExamModal } from '@/components/ExamModal'
 import { useOpenReport } from '@/components/Report'
 import { GenelDenemeler } from '@/components/GenelDenemeler'
-import { AileHedefler } from '@/components/AileHedefler'
+import { AileHedefler, HedefimOzetKart } from '@/components/AileHedefler'
 import { useEtutOgrenci } from '@/lib/etutData'
 import { useAyar } from '@/lib/ayarlar'
 
@@ -301,8 +301,8 @@ export function OzetPage() {
           {ayar.bool('aile.soru_sor') && <Cozemedim sid={s.id} veli={veli} />}
         </div>
       ) : null}
-      {/* Hedefler (0060): öğretmenin seçtiği hedef okullar / bölümler — 8. sınıf LGS, 11–12. sınıf YKS */}
-      {mods.lgs && [8, 11, 12].includes(s.grade ?? 0) && <AileHedefler sid={s.id} grade={s.grade} veli={veli} />}
+      {/* Hedefler (0060, 0095): ayrıntı Hedefim sayfasında; burada yalnız kısa özet ve bağlantı */}
+      {mods.lgs && [8, 11, 12].includes(s.grade ?? 0) && <HedefimOzetKart sid={s.id} grade={s.grade} veli={veli} />}
       {cur >= 0 && dsq.data && (
         <ExamModal
           ds={dsq.data}
@@ -312,6 +312,33 @@ export function OzetPage() {
           studentName={s.full_name}
           onClose={() => setExam(null)}
         />
+      )}
+    </>
+  )
+}
+
+/** Hedefim: hedef okullar (LGS) / bölümler (YKS), deneme puanıyla tahmini karşılaştırma, okul ekleme, simülatör. */
+export function HedefimPage() {
+  const { s, list, loading, choose, veli, students } = useMyStudent()
+  const mods = useModules()
+  if (!s) return <Wait loading={loading} sorgular={[students]} />
+  const first = s.full_name.split(' ')[0]!
+  const uygun = mods.lgs && [8, 11, 12].includes(s.grade ?? 0)
+  return (
+    <>
+      <div className="head a">
+        <div className="stack" style={{ gap: 4 }}>
+          <span className="m" style={{ fontWeight: 500 }}>
+            {first} · {s.class_name}
+          </span>
+          <h1 className="hd">{veli ? `${gen(first)} hedefleri` : 'Hedefim'}</h1>
+        </div>
+      </div>
+      <ChildPicker list={list} s={s} choose={choose} />
+      {uygun ? (
+        <AileHedefler key={s.id} sid={s.id} grade={s.grade} veli={veli} />
+      ) : (
+        <div className="empty a">Hedef okul ve bölüm seçimi 8., 11. ve 12. sınıflar içindir.</div>
       )}
     </>
   )
