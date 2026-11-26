@@ -235,25 +235,38 @@ export function Yenilikler() {
       </h2>
       <ul className="acl-liste">
         {q.data.map((a) => (
-          <li key={a.id}>
-            <details>
-              <summary>
-                <b>{a.baslik}</b>
-                <span className="m" style={{ fontSize: 12 }}>
-                  {a.tur === 'onemli' ? 'Önemli duyuru' : 'Yeni özellik'}
-                  {a.yayin_at ? ` · ${new Date(a.yayin_at).toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul' })}` : ''}
-                </span>
-              </summary>
-              <AcilisIcerik a={a} />
-              {a.dugme_metin && a.dugme_rota && (
-                <button type="button" className="btn sm" onClick={() => nav(a.dugme_rota!)}>
-                  {a.dugme_metin}
-                </button>
-              )}
-            </details>
-          </li>
+          <YenilikSatir key={a.id} a={a} onGit={(r) => nav(r)} />
         ))}
       </ul>
     </section>
+  )
+}
+
+/** Yenilikler satırı: içerik yalnız açıkken çizilir. iPhone Safari kapalı <details> içindeki kartın
+ *  genişliğini 0 sanıp (cqw) yazıları bozuyordu; açılınca yeniden çizmek bunu önler. */
+function YenilikSatir({ a, onGit }: { a: Acilis; onGit: (rota: string) => void }) {
+  const [acik, setAcik] = useState(false)
+  return (
+    <li>
+      <details onToggle={(e) => setAcik(e.currentTarget.open)}>
+        <summary>
+          <b>{a.baslik}</b>
+          <span className="m" style={{ fontSize: 12 }}>
+            {a.tur === 'onemli' ? 'Önemli duyuru' : 'Yeni özellik'}
+            {a.yayin_at ? ` · ${new Date(a.yayin_at).toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul' })}` : ''}
+          </span>
+        </summary>
+        {acik && (
+          <>
+            <AcilisIcerik a={a} />
+            {a.dugme_metin && a.dugme_rota && (
+              <button type="button" className="btn sm" onClick={() => onGit(a.dugme_rota!)}>
+                {a.dugme_metin}
+              </button>
+            )}
+          </>
+        )}
+      </details>
+    </li>
   )
 }

@@ -1456,6 +1456,12 @@ section[aria-labelledby="bg-akis-b"]{margin:4px 0 14px;min-width:0}
 .acl-kart-cizim span.vurgu{justify-content:center;background:color-mix(in srgb,var(--surface) 80%,var(--primary))}
 .acl-kart-cizim .acl-kart-simge{background:none;justify-content:center;color:var(--surface);padding:4cqw 0}
 .acl-kart-simge svg{width:16cqw;height:16cqw}
+/* Kapsayıcı ölçüsü (cqw) desteklemeyen eski tarayıcılarda sabit ölçüler */
+@supports not (width:1cqw){
+  .acl-kart-sol{gap:7px}.acl-kart-etiket{font-size:11px;padding:4px 9px}.acl-kart-baslik{font-size:22px}.acl-kart.tek .acl-kart-baslik{font-size:26px}
+  .acl-kart-aciklama{font-size:12px}.acl-kart-cizim{gap:5px;padding:8px;border-radius:8px}.acl-kart-cizim span{font-size:10px;padding:6px 7px;border-radius:5px}
+  .acl-kart-simge svg{width:48px;height:48px}
+}
 
 /* ---------- Hedefim (veli / öğrenci) ---------- */
 .hdm{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}

@@ -766,69 +766,6 @@ export function CozemedimKart({ s, d }: { s?: Student; d: number }) {
   )
 }
 
-/** Öğretmen: derse girdiği sınıfların son denemedeki ders net ortalaması ve bir önceki denemeye göre değişim. */
-export function DersDenemeKart({ d }: { d: number }) {
-  const { profile } = useAuth()
-  const ds = useDataset(true)
-  const classes = useClasses()
-  const students = useStudents()
-  const tt = useQuery({
-    queryKey: ['my-lessons-all', profile?.id],
-    enabled: !!profile?.id,
-    queryFn: async () =>
-      ((await supabase.from('timetable').select('class_id, subject').eq('teacher_id', profile!.id)).data ?? []) as { class_id: string; subject: string }[],
-  })
-  const satirlar = useMemo(() => {
-    if (!ds.data || !tt.data || !students.data) return []
-    const idx = indexResults(ds.data.results)
-    const ciftler = [...new Map(tt.data.map((x) => [`${x.class_id}|${x.subject}`, x])).values()]
-    const out: { k: string; ad: string; deneme: string; ort: number; fark: number | null }[] = []
-    for (const c of ciftler) {
-      const ders = ds.data.subjects.find(
-        (x) => x.ad.toLocaleLowerCase('tr') === c.subject.toLocaleLowerCase('tr') || x.short.toLocaleLowerCase('tr') === c.subject.toLocaleLowerCase('tr'),
-      )
-      if (!ders) continue
-      const ids = students.data.filter((x) => x.class_id === c.class_id).map((x) => x.id)
-      const ort = (examId: string) => {
-        const n = ids.map((sid) => idx.get(`${examId}|${sid}`)?.subjects[ders.code]?.net).filter((x): x is number => typeof x === 'number')
-        return n.length ? n.reduce((a, b) => a + b, 0) / n.length : null
-      }
-      const ex = ds.data.exams.filter((e) => ort(e.id) !== null)
-      const L = ex.at(-1)
-      const P = ex.at(-2)
-      if (!L) continue
-      const o = ort(L.id)!
-      out.push({
-        k: `${c.class_id}|${ders.code}`,
-        ad: `${classes.data?.find((x) => x.id === c.class_id)?.name ?? ''} ${ders.short}`,
-        deneme: L.name,
-        ort: o,
-        fark: P ? o - ort(P.id)! : null,
-      })
-    }
-    return out.sort((a, b) => a.ad.localeCompare(b.ad, 'tr'))
-  }, [ds.data, tt.data, students.data, classes.data])
-  if (!satirlar.length) return null
-  return (
-    <Card id="ders_deneme" title="Dersimde son deneme" to="/denemeler" toLabel="Denemeler" d={d}>
-      {satirlar.slice(0, 4).map((x) => (
-        <div key={x.k} className="as-li">
-          <div className="t">
-            <b>{x.ad}</b>
-            <span className="m">{x.deneme} · sınıf ortalaması</span>
-          </div>
-          <span className="num" style={{ whiteSpace: 'nowrap' }}>
-            {fmt(x.ort, 1)} net{' '}
-            {x.fark != null && Math.abs(x.fark) >= 0.1 && (
-              <span className={`chip ${x.fark > 0 ? 'up' : 'down'}`}>{x.fark > 0 ? `↑ ${fmt(x.fark)}` : `↓ ${fmt(-x.fark)}`}</span>
-            )}
-          </span>
-        </div>
-      ))}
-    </Card>
-  )
-}
-
 const NOBET_YER: Record<string, string> = { kantin: 'Kantin', arka_bahce: 'Arka bahçe', lise_1: '1. kat lise', orta_56: '2. kat 5/6', orta_78: '2. kat 7/8' }
 const NOBET_ZAMAN: Record<string, string> = { before_noon: 'Öğleden önce', after_noon: 'Öğleden sonra' }
 /** Öğretmen: bugünkü nöbet (Nöbet Takip). Nöbet yoksa kart görünmez. */
