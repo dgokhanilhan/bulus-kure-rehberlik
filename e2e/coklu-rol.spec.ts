@@ -14,7 +14,7 @@ const svc = service()
 const stamp = Date.now() % 100000
 const T = { name: `Deniz Çiftrol ${stamp}`, email: `e2e-ciftrol-${stamp}@ornek.com`, pass: 'Ciftrol123!', id: '' }
 const TEACHER_MENU = ['Ana sayfa', 'Öğrenciler', /^Öğretmenler Odası/, 'Ödevler', 'Takvim', 'Nöbet Takip', 'Sınıflar', 'Etüt', 'Duyurular', /^İletişim/]
-const FAMILY_MENU = ['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Etüt', 'Takvim', 'Duyurular', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler']
+const FAMILY_MENU = ['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Hedefim', 'Etüt', 'Takvim', 'Duyurular', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler']
 const role = (page: Page) => page.getByRole('button', { name: /^Profil:/ })
 
 test.describe.serial('Çoklu rol', () => {

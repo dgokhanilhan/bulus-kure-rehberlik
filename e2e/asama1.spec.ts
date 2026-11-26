@@ -38,7 +38,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('veli yalnız kendi sayfalarını görür', async ({ page }) => {
     await login(page, ...DEMO.veli)
     await expect(page).toHaveURL(/\/panel$/)
-    await expect(menu(page)).toHaveText(['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Etüt', 'Takvim', 'Duyurular', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Hedefim', 'Etüt', 'Takvim', 'Duyurular', /^İletişim/, 'Görevler', 'Raporlar', 'Görüşmeler'])
     for (const p of ['/bugun', '/ogrenciler', '/onaylar']) {
       await page.goto(p)
       await expect(page).toHaveURL(/\/panel$/)
@@ -49,7 +49,7 @@ test.describe('Giriş ve rol bazlı menü', () => {
   test('öğrenci yalnız kendi sayfalarını görür', async ({ page }) => {
     await login(page, ...DEMO.ogrenci)
     await expect(page).toHaveURL(/\/panel$/)
-    await expect(menu(page)).toHaveText(['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Etüt', 'Takvim', 'Duyurular', 'Görevler', 'Raporlar', 'Görüşmeler'])
+    await expect(menu(page)).toHaveText(['Ana sayfa', 'LGS özeti', 'Okul', 'Ödevler', 'Hedefim', 'Etüt', 'Takvim', 'Duyurular', 'Görevler', 'Raporlar', 'Görüşmeler'])
     await page.goto('/ogrenciler')
     await expect(page).toHaveURL(/\/panel$/)
     await logout(page)
