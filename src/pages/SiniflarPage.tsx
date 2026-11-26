@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { VeriDurumu } from '@/components/VeriDurumu'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { classHeat, fmt, outcomeCode, repeats, subjectOf, type Dataset, type HeatRow, type Subject } from '@/lib/analiz'
+import { classHeat, fmt, gorevEtkisi, outcomeCode, repeats, subjectOf, type Dataset, type HeatRow, type Subject } from '@/lib/analiz'
+import { SinifGorevFormlari } from '@/components/GorevTakip'
 import { useClasses, useModules, useStudents } from '@/lib/data'
 import { initials, todayISO, trD, trDW } from '@/lib/format'
 import { DENEME_GRADE } from '@/lib/roles'
@@ -75,9 +76,19 @@ export default function SiniflarPage() {
 
   if (analiz && cls) return <SinifAnalizi key={cls} cls={cls} grade={cg} onBack={() => setSp({})} brans={scoped ? (profile?.branch ?? null) : undefined} />
   const analizDugme = cls ? (
-    <button type="button" className="btn pri" onClick={() => setSp({ gorunum: 'analiz' })}>
-      <Icon name="grid" size={16} /> Sınıf analizi
-    </button>
+    <>
+      <button type="button" className="btn pri" onClick={() => setSp({ gorunum: 'analiz' })}>
+        <Icon name="grid" size={16} /> Sınıf analizi
+      </button>
+      {/* Görev takip formları (0094): rehber ve yönetici, şubenin bütün formları tek PDF */}
+      {(role === 'admin' || role === 'rehber') && (
+        <SinifGorevFormlari
+          cls={cls}
+          ogrenciler={(students.data ?? []).filter((s) => s.class_name === cls)}
+          etki={dsq.data ? (sid, t) => gorevEtkisi(dsq.data!, sid, t) : undefined}
+        />
+      )}
+    </>
   ) : null
 
   if (!data && (dsq.isLoading || dsq.isError || !classes.data || !students.data))

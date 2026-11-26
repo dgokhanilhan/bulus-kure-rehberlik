@@ -1319,3 +1319,15 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
 .bg-ev{display:block;width:100%;font-size:11px;line-height:1.25;color:var(--ink);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
 section[aria-labelledby="bg-akis-b"]{margin:4px 0 14px;min-width:0}
 @media (prefers-reduced-motion:reduce){.bg-akis{scroll-behavior:auto}}
+
+/* Görev takip tablosu ve hızlı giriş (0094) */
+.gt-kaydir{overflow-x:auto;max-width:100%}
+.gt-tablo{min-width:860px}
+.gt-tablo td{vertical-align:top}
+.gt-girdi{width:100%;max-width:96px;min-height:36px;font-family:var(--font-mono);font-size:15px;padding:4px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.gt-girdi.buyuk{max-width:none;min-height:48px;font-size:18px;text-align:center}
+.gt-girdi:disabled{background:transparent;border-color:transparent;padding-left:0}
+.gt-ipucu{display:block;font-size:11.5px;margin-top:3px;line-height:1.3}
+.gt-kart{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
+.gt-uc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gt-k{display:grid;gap:4px;min-width:0}
