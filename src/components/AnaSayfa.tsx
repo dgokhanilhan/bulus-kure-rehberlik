@@ -143,7 +143,7 @@ function useSonDeneme(s: Student, acik: boolean) {
 function useLgsGunu() {
   const today = todayISO()
   const cal = useCalendar(today, addDays(today, 400))
-  const e = (cal.data ?? []).find((x) => /\bLGS\b/i.test(x.title) && !/deneme/i.test(x.title.toLocaleLowerCase('tr')) && x.type === 'sinav')
+  const e = (cal.data ?? []).find((x) => /\bLGS\b/i.test(x.title) && !/deneme/i.test(x.title.toLocaleLowerCase('tr')) && x.type !== 'deneme')
   return e ? Math.round((Date.parse(e.starts_on) - Date.parse(today)) / 86400_000) : null
 }
 
@@ -164,7 +164,7 @@ export function VeliUst({ s }: { s: Student }) {
   const toplam = ak.reduce((a, t) => a + t.question_count, 0)
   const acikGorev = ak.filter((t) => !t.completed_at).length
   const lm = lim.data?.items.find((x) => x.current) ?? lim.data?.items[0]
-  const sinav = (cal.data ?? []).find((e) => e.type === 'sinav' && e.starts_on >= today)
+  const sinav = (cal.data ?? []).find((e) => (e.type === 'yazili' || e.type === 'deneme') && e.starts_on >= today)
 
   const cumle: ReactNode[] = []
   if (odev.hafta)
