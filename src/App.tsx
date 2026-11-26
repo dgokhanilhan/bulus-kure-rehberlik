@@ -44,6 +44,7 @@ const OkulPage = lazy(() => fam().then((m) => ({ default: m.OkulPage })))
 const GorevlerPage = lazy(() => fam().then((m) => ({ default: m.GorevlerPage })))
 const GorusmelerPage = lazy(() => fam().then((m) => ({ default: m.GorusmelerPage })))
 const RaporlarPage = lazy(() => fam().then((m) => ({ default: m.RaporlarPage })))
+const HedefimPage = lazy(() => fam().then((m) => ({ default: m.HedefimPage })))
 const Wait = () => (
   <p className="m" style={{ padding: 20 }}>
     <span className="spinner" aria-hidden="true" /> Yükleniyor…
@@ -73,6 +74,7 @@ const PAGES: Record<PageId, JSX.Element> = {
   gozetmen: <GozetmenPage />,
   etut: <EtutPage />,
   'ogretmenler-odasi': <OgretmenlerOdasi />,
+  hedefim: <HedefimPage />,
 }
 
 // Oturum süresi: genel 12 saat (supabase/config.toml [auth.sessions]); yönetici için 2 saat (burada).

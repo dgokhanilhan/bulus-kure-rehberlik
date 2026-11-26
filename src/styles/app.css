@@ -1455,3 +1455,41 @@ section[aria-labelledby="bg-akis-b"]{margin:4px 0 14px;min-width:0}
 .acl-kart-cizim span.vurgu{justify-content:center;background:color-mix(in srgb,var(--surface) 80%,var(--primary))}
 .acl-kart-cizim .acl-kart-simge{background:none;justify-content:center;color:var(--surface);padding:4cqw 0}
 .acl-kart-simge svg{width:16cqw;height:16cqw}
+
+/* ---------- Hedefim (veli / öğrenci) ---------- */
+.hdm{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.hdm-ozet{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.hdm-kutu{display:flex;flex-direction:column;gap:2px;padding:16px 18px}
+.hdm-kutu>.m{font-size:13px}
+.hdm-kutu>b{font-size:28px;font-weight:600;line-height:1.2;align-self:flex-start;text-align:left}
+.hdm-deg{font-size:13px;font-weight:600}
+.hdm-deg.up{color:var(--primary)}
+.hdm-deg.down{color:var(--signal-ink,var(--signal))}
+.hdm-kart{padding:20px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.hdm-liste{list-style:none;margin:0;padding:0;display:grid}
+.hdm-hedef{display:grid;gap:6px;padding:14px 0;border-top:1px solid var(--line)}
+.hdm-hedef:first-child{border-top:0;padding-top:4px}
+.hdm-ust{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.hdm-ust>b{font-size:15px;min-width:0;overflow-wrap:break-word}
+.hdm-ust>.chip{flex-shrink:0}
+.hdm-alt{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12px}
+.hdm-alt .chip{font-size:11px}
+.chip.hdm-d.ulasilabilir{background:var(--primary-soft);color:var(--primary)}
+.chip.hdm-d.yakin{background:var(--highlight);color:var(--ink-fixed)}
+.chip.hdm-d.zorlayici{background:var(--signal-soft);color:var(--signal-ink,var(--signal))}
+.hdm-cubuk{height:8px;border-radius:99px;background:var(--surface-sunken);overflow:hidden;position:relative}
+.hdm-cubuk>i{display:block;height:100%;border-radius:99px;background:var(--primary);transition:width .5s var(--ease)}
+.hdm-satir{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px 12px;font-size:13px;font-variant-numeric:tabular-nums}
+.hdm-cikar{justify-self:start;min-height:44px}
+.hdm-not{font-size:13px;margin:0}
+.hdm-link{display:flex;align-items:center;gap:14px;padding:16px 18px;color:var(--ink);text-decoration:none;min-height:44px}
+.hdm-link:hover{border-color:var(--primary)}
+.hdm-ikon{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary);flex-shrink:0}
+@media (prefers-reduced-motion:reduce){.hdm-cubuk>i{transition:none}}
+@media (max-width:420px){.hdm-ozet{gap:8px}.hdm-kutu{padding:12px 14px}.hdm-kutu>b{font-size:24px}}
+/* Hedef simülatörü ders satırı: geniş ekranda ad | kaydırıcı | net; telefonda ad ve net üstte, kaydırıcı tam genişlik */
+.hsim-satir{display:grid;grid-template-columns:minmax(84px,130px) minmax(0,1fr) 96px;gap:10px;align-items:center}
+@media (max-width:640px){
+  .hsim-satir{grid-template-columns:minmax(0,1fr) auto;row-gap:0;padding:4px 0}
+  .hsim-satir>input{grid-column:1/-1;order:3}
+}

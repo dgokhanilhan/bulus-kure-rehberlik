@@ -70,6 +70,8 @@ export function useFamilyTracks(enabled = true) {
     loading: students.isLoading,
     lgs: students.isLoading || list.some((s) => examTrack(s.grade) === 'lgs'),
     yks: list.some((s) => examTrack(s.grade) === 'yks'),
+    /** Hedef okul / bölüm seçimi (Hedefim): 8., 11., 12. sınıf */
+    hedef: students.isLoading || list.some((s) => [8, 11, 12].includes(s.grade ?? 0)),
   }
 }
 

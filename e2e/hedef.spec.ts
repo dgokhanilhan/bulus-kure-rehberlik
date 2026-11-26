@@ -50,19 +50,27 @@ test('yönetici LGS listesini yükler; öğrenci dosyasında deneme puanına gö
   await expect(sek.getByTestId('hedefler')).toHaveCount(0)
 })
 
-test('öğrenci ve veli seçilen hedefleri Özet sayfasında görür (salt okunur)', async ({ page }) => {
+test("öğrenci ve veli seçilen hedefleri Hedefim sayfasında görür; Özet'te Hedefim bağlantısı", async ({ page }) => {
   const svc = service()
   const p = (await svc.from('hedef_programlar').select('id, school_id').eq('yil', YIL).eq('kurum', 'E2E Anadolu Lisesi').single()).data!
   await svc.from('ogrenci_hedefleri').insert({ school_id: p.school_id, student_id: ELIF, program_id: p.id })
   await login(page, ...DEMO.ogrenci)
   await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
+  // Menüde Hedefim; Özet'te yalnız bağlantı kartı
+  await expect(page.getByRole('navigation', { name: 'Ana menü' }).getByRole('link', { name: 'Hedefim' })).toBeVisible()
   await page.goto('/ozet')
+  await expect(page.getByTestId('aile-hedefler')).toHaveCount(0)
+  await page.getByTestId('hedefim-baglanti').click()
+  await expect(page).toHaveURL(/\/hedefim$/)
+  await expect(page.getByRole('heading', { name: 'Hedefim', level: 1 })).toBeVisible()
+  await expect(page.getByTestId('hedefim-ozet')).toContainText('Deneme puanı')
+  await expect(page.getByTestId('hedefim-ozet')).toContainText('Hedef okul')
   const kart = page.getByTestId('aile-hedefler')
-  await expect(kart.getByRole('heading', { name: 'Hedeflerin' })).toBeVisible()
+  await expect(kart.getByRole('heading', { name: 'Hedef okullar' })).toBeVisible()
   await expect(kart.getByTestId('aile-hedef')).toHaveCount(1)
   await expect(kart).toContainText('E2E Anadolu Lisesi')
   await expect(kart).toContainText(`${YIL} tabanı 420,3`)
-  await expect(kart).toContainText('deneme puanına göre tahminidir')
+  await expect(page.getByTestId('hedefim')).toContainText('deneme puanına göre tahminidir')
   // Öğretmenin eklediği hedef aileden çıkarılamaz
   await expect(kart.getByTestId('aile-hedef')).toContainText('Öğretmen ekledi')
   await expect(kart.getByRole('button', { name: /hedefini çıkar/ })).toHaveCount(0)
@@ -70,9 +78,10 @@ test('öğrenci ve veli seçilen hedefleri Özet sayfasında görür (salt okunu
   await logout(page)
   await login(page, ...DEMO.veli)
   await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
-  await page.goto('/ozet')
+  await page.goto('/hedefim')
+  await expect(page.getByRole('heading', { name: "Elif'in hedefleri", level: 1 })).toBeVisible()
   const vk = page.getByTestId('aile-hedefler')
-  await expect(vk.getByRole('heading', { name: 'Hedefler' })).toBeVisible()
+  await expect(vk.getByRole('heading', { name: 'Hedef okullar' })).toBeVisible()
   await expect(vk).toContainText('E2E Anadolu Lisesi')
 
   // Veli okul ekler (il listesinden), sonra kendi eklediğini çıkarır

@@ -135,7 +135,7 @@ export function HedefSimulator({ puan, netler, hedefler, kim }: { puan: number; 
           const v = aktif[d.kod] ?? 0
           const id = `hsim-${d.kod}`
           return (
-            <div key={d.kod} style={{ display: 'grid', gridTemplateColumns: 'minmax(84px, 130px) minmax(0, 1fr) 96px', gap: 10, alignItems: 'center' }}>
+            <div key={d.kod} className="hsim-satir">
               <label htmlFor={id} style={{ fontSize: 14, fontWeight: 600 }}>
                 {d.ad}
               </label>

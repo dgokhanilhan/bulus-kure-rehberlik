@@ -510,11 +510,12 @@ interface HedefSatir {
   program: string | null
   taban_puan: number | null
 }
-/** Hedefler (0060 aile_hedefleri): deneme puanıyla tahmini karşılaştırma. Hedef yoksa Özet'e yönlendirir. */
+/** Hedefler (0060 aile_hedefleri): deneme puanıyla tahmini karşılaştırma; ayrıntı ve okul ekleme Hedefim sayfasında. */
 export function HedeflerKart({ s, d, veli }: { s: Student; d: number; veli: boolean }) {
   const sinav = s.grade === 8 ? 'LGS' : 'YKS'
   const q = useQuery({
-    queryKey: ['aile-hedefleri', s.id],
+    // Anahtar Hedefim'in listesinden (aile_hedef_listesi) ayrı: iki fonksiyonun döndürdüğü alanlar farklı
+    queryKey: ['aile-hedefleri-kart', s.id],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('aile_hedefleri', { p_student: s.id })
       if (error) throw new Error(error.message)
@@ -528,7 +529,7 @@ export function HedeflerKart({ s, d, veli }: { s: Student; d: number; veli: bool
   const ref =
     sinav === 'LGS' ? referansPuan((puanlar.data ?? []).filter((r) => r.exams.exam_type === 'LGS' || r.exams.exam_type === null).map((r) => r.score)) : null
   return (
-    <Card id="hedefler" title={veli ? 'Hedefler' : 'Hedefim'} to="/ozet" toLabel={sinav === 'LGS' && list.length ? 'Hedef simülatörü' : 'Özet'} d={d}>
+    <Card id="hedefler" title="Hedefim" to="/hedefim" toLabel="Hedefim" d={d}>
       {list.length ? (
         <>
           {list.map((h, i) => {
@@ -553,8 +554,8 @@ export function HedeflerKart({ s, d, veli }: { s: Student; d: number; veli: bool
       ) : (
         <Empty>
           {veli
-            ? 'Henüz hedef okul seçilmedi. Özet sayfasından hedeflerinizi görebilirsiniz.'
-            : 'Henüz hedef okulun yok. Özet sayfasından hedeflerine bakabilirsin.'}
+            ? 'Henüz hedef okul seçilmedi. Hedefim sayfasından okul ekleyebilirsiniz.'
+            : 'Henüz hedef okulun yok. Hedefim sayfasından okul ekleyebilirsin.'}
         </Empty>
       )}
     </Card>
