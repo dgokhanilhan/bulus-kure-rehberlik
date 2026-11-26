@@ -15,6 +15,8 @@ import { Icon } from '@/components/Icon'
 import { useToast } from '@/components/Toast'
 import { AttachmentList, Cover, FilePick, PickedFiles } from '@/components/Files'
 import { uploadFiles, useAttachments, useFileRules } from '@/lib/files'
+import { Yenilikler } from '@/components/AcilisPenceresi'
+import { AcilisYonetim } from '@/components/AcilisYonetim'
 
 const AUD_TR = { veli: 'Veliler', ogrenci: 'Öğrenciler', ogretmen: 'Öğretmenler' } as const
 type Aud = keyof typeof AUD_TR
@@ -42,11 +44,14 @@ export default function IletisimPage() {
 
 /** Duyurular: ayrı sayfa (/duyurular). ?d=<id> ile bildirimden gelinen duyuru vurgulanır. */
 export function DuyurularPage() {
+  const { role } = useAuth()
   return (
     <>
       <div className="head a">
         <h1 className="hd">Duyurular</h1>
       </div>
+      {role === 'admin' && <AcilisYonetim />}
+      <Yenilikler />
       <Duyurular />
     </>
   )
