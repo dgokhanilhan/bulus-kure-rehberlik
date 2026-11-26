@@ -704,7 +704,16 @@ h2.sec{font-size:17px;font-weight:600}
 .hd-satir{display:grid;grid-template-columns:minmax(0,1fr) 110px 170px auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .hd-satir.aile{grid-template-columns:minmax(0,1fr) 160px 230px}
 .hd-satir.aile.ekle{grid-template-columns:minmax(0,1fr) 130px 190px 72px}
-@media (max-width:760px){.hd-satir,.hd-satir.aile,.hd-satir.aile.ekle{grid-template-columns:minmax(0,1fr) auto}}
+@media (max-width:760px){
+  /* Telefonda hedef satırı: ad tam satır; altında durum / puan farkı (gerekirse alt satıra iner) ve düğme sağda */
+  .hd-satir,.hd-satir.aile,.hd-satir.aile.ekle{grid-template-columns:minmax(0,1fr) auto}
+  .hd-satir:not(.aile){column-gap:10px;row-gap:6px}
+  .hd-satir:not(.aile)>:first-child{grid-column:1/-1}
+  .hd-satir:not(.aile)>*{min-width:0}
+  .hd-satir:not(.aile) span{white-space:normal!important}
+  .hd-satir:not(.aile)>.btn:last-child{grid-column:2;justify-self:end}
+  .hd-satir:not(.aile)>.num{text-align:left!important}
+}
 
 /* Günlük kontrol (0067): o günün eksiği kırmızı; açık ve koyu temada okunur kalsın diye temanın renkleriyle karıştırılır */
 :root{--gk-kirmizi:color-mix(in srgb,#d92d20 78%,var(--ink));--gk-kirmizi-soft:color-mix(in srgb,#d92d20 13%,var(--surface));--gk-kirmizi-cizgi:color-mix(in srgb,#d92d20 70%,var(--surface))}
@@ -741,6 +750,13 @@ main.view{padding-left:max(36px,calc((100% - 1400px)/2));padding-right:max(36px,
   .head>:first-child{grid-column:1/-1;margin:0}
   .head>.field,.head>select,.head>.seg{grid-column:1/-1}
   .head .btn{justify-content:center;white-space:normal;text-align:center;line-height:1.2;padding:6px 10px}
+  /* Öğrenci dosyası düğmeleri: Görüşme planla | Veli raporu, altında Görev ata (geniş) | sil */
+  .head>.ogr-eylem{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+  .ogr-eylem>.btn{white-space:nowrap}
+  .ogr-eylem>.btn:nth-child(1){grid-column:1/4}
+  .ogr-eylem>.btn:nth-child(2){grid-column:4/7}
+  .ogr-eylem>.btn:nth-child(3){grid-column:1/6}
+  .ogr-eylem>.btn:nth-child(4){grid-column:6/7;padding:0;justify-content:center}
   /* Öğrenciler tablosu: sınıf, okul no ve baş harf gizlenir; durum adın altına iner, yatay kaydırma olmaz */
   .ogr-tbl .ogr-sinif,.ogr-tbl .ogr-no,.ogr-tbl .ogr-av,.ogr-tbl th.ogr-durum{display:none}
   .ogr-tbl :is(th,td){padding:10px 8px}

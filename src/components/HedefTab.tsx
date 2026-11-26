@@ -150,7 +150,7 @@ export default function HedefTab({ sid, grade }: { sid: string; grade: number | 
   ]
 
   return (
-    <div style={{ display: 'grid', gap: 14 }} data-testid="hedef-sekme">
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 14 }} data-testid="hedef-sekme">
       <section className="card a" style={{ padding: '16px 20px', display: 'grid', gap: 10 }}>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div>
@@ -221,9 +221,9 @@ export default function HedefTab({ sid, grade }: { sid: string; grade: number | 
         />
       )}
 
-      <section className="card a" style={{ padding: '16px 20px', display: 'grid', gap: 10 }} aria-label="Öneriler">
+      <section className="card a" style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 10 }} aria-label="Öneriler">
         <div className="btns" style={{ alignItems: 'flex-end' }}>
-          <div className="seg" role="group" aria-label="İl">
+          <div className="seg" role="group" aria-label="İl" style={{ maxWidth: '100%', overflowX: 'auto' }}>
             {['hepsi', ...iller].map((x) => (
               <button key={x} type="button" className={il === x ? 'on' : ''} aria-pressed={il === x} onClick={() => setIl(x)}>
                 {x === 'hepsi' ? 'Tüm iller' : x}
