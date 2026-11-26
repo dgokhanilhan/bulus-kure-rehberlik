@@ -1,6 +1,7 @@
 // Ana sayfa 2 (veli · öğrenci · öğretmen): üst özet alanı ve yeni kartlar. Kart düzeni ve gruplar PanelPage'de.
 // Yalnız sistemde olan veri gösterilir; boş kart gizlenir. Veli/öğrenci ekranında sınıf sıralaması yok (öğrenci kendisiyle kıyaslanır).
 import { createContext, Fragment, useContext, useMemo, type ReactNode } from 'react'
+import { useSayfaIzinli } from '@/lib/izinliSayfalar'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -60,11 +61,12 @@ export function Card({
 }) {
   const wide = useContext(WideCtx)
   const grup = useContext(GrupCtx)
+  const izinli = useSayfaIzinli()
   return (
     <section className={`card a pcard${wide ? ' wide' : ''}`} style={{ ['--d' as string]: d }} aria-label={label ?? title} data-card={id} data-grup={grup}>
       <div className="kv">
         <h2 className="pcard-title">{title}</h2>
-        {to && (
+        {to && izinli(to) && (
           <Link to={to} className="m" style={{ fontSize: 13 }}>
             {toLabel} →
           </Link>
