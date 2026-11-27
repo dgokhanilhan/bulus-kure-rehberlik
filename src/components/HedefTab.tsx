@@ -38,7 +38,7 @@ export default function HedefTab({ sid, grade }: { sid: string; grade: number | 
   const sinav: Sinav = grade === 8 ? 'LGS' : 'YKS'
   const toast = useToast()
   const qc = useQueryClient()
-  const { profile } = useAuth()
+  const { profile, role } = useAuth()
   const ayar = useAyar()
   const iller = ayar.list('hedef.iller')
   const puanlar = useDenemePuanlari(sid)
@@ -244,7 +244,9 @@ export default function HedefTab({ sid, grade }: { sid: string; grade: number | 
             {sinav} listesi yok ya da seçili illerde kayıt yok.{' '}
             {sinav === 'LGS' ? (
               <>
-                Yönetici <Link to="/yonetim?sekme=hedefler">Yönetim → Hedef listeleri</Link>'nden e-Okul'daki taban puan listesini yükler.
+                Yönetici{' '}
+                {role === 'admin' ? <Link to="/yonetim?sekme=hedefler">Yönetim → Hedef listeleri</Link> : 'Yönetim → Hedef listeleri'}'nden e-Okul'daki taban puan
+                listesini yükler.
               </>
             ) : null}
           </p>

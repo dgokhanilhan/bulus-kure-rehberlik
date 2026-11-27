@@ -493,7 +493,7 @@ function Thread({ c, title, onBack }: { c: Conversation; title: string; onBack: 
                   send()
                 }
               }}
-              placeholder="Mesajını yaz… (Enter gönderir, Shift+Enter yeni satır)"
+              placeholder={profile?.role === 'veli' ? 'Mesajınızı yazın… (Enter gönderir, Shift+Enter yeni satır)' : 'Mesajını yaz… (Enter gönderir, Shift+Enter yeni satır)'}
             />
           </label>
           {rules.message && <FilePick label="Dosya" onPick={(f) => setFiles((x) => [...x, ...f])} disabled={busy} />}
@@ -564,8 +564,8 @@ function StartModal({ onClose, onStarted }: { onClose: () => void; onStarted: (i
   const target = who || people[0]?.id || ''
 
   async function go() {
-    if (!student || !target) return setErr(veli ? 'Kime yazacağını seç.' : 'Öğrenci ve veli seç.')
-    if (!text.trim()) return setErr('Mesajını yaz.')
+    if (!student || !target) return setErr(veli ? 'Kime yazacağınızı seçin.' : 'Öğrenci ve veli seç.')
+    if (!text.trim()) return setErr(veli ? 'Mesajınızı yazın.' : 'Mesajını yaz.')
     setBusy(true)
     const { data: id, error } = await supabase.rpc('start_conversation', { p_student: student, p_other: target })
     if (error) {

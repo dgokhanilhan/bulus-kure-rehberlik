@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { bulunmaEki } from '@/lib/turkceEk'
 import { VeriDurumu } from '@/components/VeriDurumu'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { classHeat, fmt, gorevEtkisi, outcomeCode, repeats, subjectOf, type Dataset, type HeatRow, type Subject } from '@/lib/analiz'
@@ -278,7 +279,7 @@ export default function SiniflarPage() {
             <span style={{ flex: 1 }}>
               <b style={{ display: 'block' }}>{w.outcome.title}</b>
               <span className="m" style={{ fontSize: 13 }}>
-                {w.toplam.wrong.length} öğrenci {tek ? `${L?.name}'de` : `seçili ${ex.length} denemede`} yanlış yaptı · listeyi gör
+                {w.toplam.wrong.length} öğrenci {tek ? `${L?.name}'${bulunmaEki(L?.name ?? '')}` : `seçili ${ex.length} denemede`} yanlış yaptı · listeyi gör
               </span>
             </span>
             <Icon name="right" size={18} stroke={2} />

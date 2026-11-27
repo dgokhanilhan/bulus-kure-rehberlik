@@ -1,4 +1,5 @@
 import { SchoolAppearance } from '@/pages/OkulKontrolleri'
+import { IzinliSayfalarCtx } from '@/lib/izinliSayfalar'
 import { SekmeSimgesi } from '@/components/SekmeSimgesi'
 import { Suspense, lazy, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
@@ -158,7 +159,10 @@ function RoleRoutes() {
   // Modül ayarları yüklenmeden yönlendirme kararı verilmez (varsayılanı kapalı modülün sayfasına doğrudan gelen ana sayfaya atılmasın)
   analizAyarla({ tekrarEsik: ayarOkuyucu(settings.data).num('analiz.tekrar_esik') })
   if (settings.isLoading) return <Wait />
+  // Menü dışında herkese açık yollar da bağlantı denetiminde izinli sayılır
+  const izinli = [...allowed, 'bildirimler', 'hesap-ayarlari', ...(allowed.includes('duyurular') ? ['iletisim'] : []), ...(role === 'admin' ? ['ayarlar'] : [])]
   return (
+    <IzinliSayfalarCtx.Provider value={izinli}>
     <Routes>
       <Route element={<AppShell />}>
         {allowed.map((id) => (
@@ -205,5 +209,6 @@ function RoleRoutes() {
         <Route path="*" element={<Navigate to={home} replace />} />
       </Route>
     </Routes>
+    </IzinliSayfalarCtx.Provider>
   )
 }

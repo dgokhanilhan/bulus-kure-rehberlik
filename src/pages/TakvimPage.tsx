@@ -119,6 +119,15 @@ export default function TakvimPage() {
       },
       { replace: true },
     )
+  // Bildirimden gelinen etkinlik silinmiş ya da artık görünmüyorsa boş takvimde bırakma: söyle ve bağlantıyı temizle
+  const toastAna = useToast()
+  const yok = !!open && !cal.isPending && single.isSuccess && !detail
+  useEffect(() => {
+    if (!yok) return
+    toastAna('Bu etkinlik kaldırılmış ya da artık takvimde görünmüyor.', 'warn')
+    kapatDetay()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yok])
   const seviyeAdi = seviye === 'all' ? null : `${seviye}. sınıflar`
   const filtreAdi = [filter === 'all' ? null : EVENT_TR[filter], seviyeAdi].filter(Boolean).join(' · ')
 

@@ -31,14 +31,36 @@ export function Modal({
   closeRef.current = onClose
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current()
+    // Esc kapatır; Tab odağı pencerenin içinde döndürür (aria-modal: arkadaki sayfaya geçilmez)
+    const onKey = (e: KeyboardEvent) => {
+      if (!ref.current) return
+      // İç içe pencerede (ör. form → önizleme) yalnız en üstteki Esc'e yanıt verir ve odağı tutar; tek Esc formu da kapatıp yazılanı silmez
+      if ([...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].at(-1) !== ref.current) return
+      if (e.key === 'Escape') return closeRef.current()
+      if (e.key !== 'Tab') return
+      const f = [...ref.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter(
+        (x) => x.offsetParent !== null || x === document.activeElement,
+      )
+      if (!f.length) return
+      const ilk = f[0]!
+      const son = f[f.length - 1]!
+      const ic = ref.current.contains(document.activeElement)
+      if (e.shiftKey && (document.activeElement === ilk || !ic)) {
+        e.preventDefault()
+        son.focus()
+      } else if (!e.shiftKey && (document.activeElement === son || !ic)) {
+        e.preventDefault()
+        ilk.focus()
+      }
+    }
     document.addEventListener('keydown', onKey)
     const first = ref.current?.querySelector<HTMLElement>('input, select, textarea, button:not(.xbtn)')
     first?.focus()
     document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      // Altta başka pencere açıksa sayfa kaydırması kilitli kalır
+      if (!document.querySelector('[role="dialog"][aria-modal="true"]')) document.body.style.overflow = ''
       prev?.focus?.()
     }
   }, [])

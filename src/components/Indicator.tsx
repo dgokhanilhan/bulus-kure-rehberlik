@@ -24,6 +24,12 @@ export function useIndicator<T extends HTMLElement>(active: string | undefined) 
       i.style.width = vert ? '' : `${act.offsetWidth}px`
     }
     place()
+    // Yatay kayan şeritte (telefonda sekmeler) seçili öğe görünür alana gelsin; sayfa dikey kaydırılmaz
+    if (el && !(getComputedStyle(el).flexDirection === 'column') && el.scrollWidth > el.clientWidth + 1) {
+      const act = el.querySelector<HTMLElement>(':scope > [aria-pressed="true"], :scope > [aria-selected="true"], :scope > [aria-current="page"]')
+      if (act && (act.offsetLeft < el.scrollLeft || act.offsetLeft + act.offsetWidth > el.scrollLeft + el.clientWidth))
+        el.scrollLeft = Math.max(0, act.offsetLeft - (el.clientWidth - act.offsetWidth) / 2)
+    }
     // Kapsayıcı ya da öğeler boyut değiştirince (kırılım, yazı tipi yüklenmesi) yeniden hizala.
     const ro = new ResizeObserver(place)
     if (el) {

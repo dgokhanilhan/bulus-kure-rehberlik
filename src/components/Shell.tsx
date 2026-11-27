@@ -13,7 +13,7 @@ import type { Notification } from '@/lib/types'
 import { ago } from '@/lib/format'
 import { Icon, SchoolLogo } from './Icon'
 import { useSchoolInfo } from '@/lib/files'
-import { ntype, useOpenNotification } from '@/lib/notifications'
+import { hepsiniOkunduYap, ntype, useOkunmamisSayisi, useOpenNotification } from '@/lib/notifications'
 import { useIndicator } from './Indicator'
 import { useToast } from './Toast'
 import { TemaSecici } from './Tema'
@@ -240,6 +240,9 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
   })
   const list = q.data ?? []
   const unread = list.filter((x) => !x.read_at)
+  const sayac = useOkunmamisSayisi(profile?.id, role)
+  const okunmamis = Math.max(sayac.data ?? 0, unread.length)
+  const hepsi = useMutation({ mutationFn: hepsiniOkunduYap, onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }) })
 
   useEffect(() => {
     if (!open) return
@@ -265,20 +268,20 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
   return (
     <div ref={ref}>
       <button
-        className={`bell ${unread.length ? 'has' : ''}`}
+        className={`bell ${okunmamis ? 'has' : ''}`}
         onClick={() => setOpen(!open)}
-        aria-label={`Bildirimler${unread.length ? `, ${unread.length} okunmamış` : ''}`}
+        aria-label={`Bildirimler${okunmamis ? `, ${okunmamis} okunmamış` : ''}`}
         aria-expanded={open}
       >
         <Icon name="bell" />
-        {unread.length > 0 && <span className="dot">{unread.length}</span>}
+        {okunmamis > 0 && <span className="dot">{okunmamis > 99 ? '99+' : okunmamis}</span>}
       </button>
       {open && (
         <div className="npanel" role="dialog" aria-label="Bildirimler">
           <div className="kv" style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
             <b>Bildirimler</b>
-            {unread.length > 0 && (
-              <button className="btn ghost sm" onClick={() => markRead.mutate(unread.map((x) => x.id))}>
+            {okunmamis > 0 && (
+              <button className="btn ghost sm" disabled={hepsi.isPending} onClick={() => hepsi.mutate()}>
                 Hepsini okundu yap
               </button>
             )}
@@ -342,6 +345,23 @@ export function AppShell() {
     setEnterKey(loc.pathname)
     setMore(false)
   }, [loc.pathname])
+  // "Daha" menüsü: Escape, dışarıya dokunma veya zil / profil açılınca kapanır
+  const moreRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!more) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMore(false)
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (moreRef.current?.contains(t) || (t as Element).closest?.('.morebtn')) return
+      setMore(false)
+    }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onDown)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onDown)
+    }
+  }, [more])
   // Telefonda alt çubukta ilk 4 sayfa + "Daha" (menü 5'ten uzunsa); geniş ekranda hepsi yan menüde.
   const overflow = items.length > 5
   const extra = overflow ? items.slice(4) : []
@@ -393,9 +413,9 @@ export function AppShell() {
           )}
         </div>
         {more && (
-          <div className="moresheet" role="menu" aria-label="Diğer sayfalar">
+          <div className="moresheet" role="menu" aria-label="Diğer sayfalar" ref={moreRef}>
             {extra.map((it) => (
-              <NavLink key={it.id} to={`/${it.id}`} role="menuitem" className="navbtn">
+              <NavLink key={it.id} to={`/${it.id}`} role="menuitem" className="navbtn" onClick={() => setMore(false)}>
                 <Icon name={it.icon} />
                 <span className="lbl">{it.label}</span>
                 {it.id === 'onaylar' && pending > 0 && <span className="badge">{pending}</span>}

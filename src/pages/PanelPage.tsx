@@ -38,7 +38,6 @@ import {
   Card,
   CozemedimKart,
   DefterKart,
-  DersDenemeKart,
   Empty,
   GorevlerKart,
   GorusmeRaporKart,
@@ -63,7 +62,7 @@ export type PanelRole = 'veli' | 'ogrenci' | 'ogretmen' | 'yonetim'
 export type CardId =
   | 'duyuru' | 'odev' | 'yoklama' | 'program' | 'yemek' | 'takvim' | 'mesaj' | 'lgs' | 'bursluluk' | 'derslerim' | 'odev_kontrol' | 'devamsizlik'
   | 'deneme' | 'gorusmeler' | 'gorevler'
-  | 'hedefler' | 'defter' | 'gorusme' | 'cozemedim' | 'ders_deneme' | 'nobet' | 'oda'
+  | 'hedefler' | 'defter' | 'gorusme' | 'cozemedim' | 'nobet' | 'oda'
 /** Kart genişliği (0024): geniş kart ana sayfa ızgarasında iki sütun kaplar. Yoksa dar. */
 export type CardWidth = 'dar' | 'genis'
 export interface LayoutItem {
@@ -91,23 +90,22 @@ export const CARD_TR: Record<CardId, string> = {
   defter: 'Yanlış defteri',
   gorusme: 'Görüşmeler ve raporlar',
   cozemedim: 'Çözemedim soruları',
-  ders_deneme: 'Dersimde son deneme',
   nobet: 'Bugünkü nöbet',
   oda: 'Öğretmenler Odası',
 }
 /** Kartın bağlı olduğu modül: kapalıysa kart gösterilmez. */
 const CARD_MODULE: Partial<Record<CardId, keyof Modules>> = {
   duyuru: 'duyuru', odev: 'odev', odev_kontrol: 'odev', yoklama: 'yoklama', devamsizlik: 'yoklama', program: 'ders_programi', derslerim: 'ders_programi',
-  yemek: 'yemek', takvim: 'takvim', mesaj: 'mesaj', lgs: 'lgs', bursluluk: 'bursluluk', deneme: 'lgs', hedefler: 'lgs', defter: 'lgs', ders_deneme: 'lgs', oda: 'oda',
+  yemek: 'yemek', takvim: 'takvim', mesaj: 'mesaj', lgs: 'lgs', bursluluk: 'bursluluk', deneme: 'lgs', hedefler: 'lgs', defter: 'lgs', oda: 'oda',
 }
 /** Kartın ana sayfadaki grubu (renk ve başlık). */
 const GRUP: Record<CardId, Grup> = {
   hedefler: 'calisma', gorevler: 'calisma', odev: 'calisma', lgs: 'calisma', defter: 'calisma', gorusme: 'calisma', cozemedim: 'calisma', derslerim: 'calisma',
-  odev_kontrol: 'calisma', ders_deneme: 'calisma', devamsizlik: 'calisma', deneme: 'calisma', gorusmeler: 'calisma',
+  odev_kontrol: 'calisma', devamsizlik: 'calisma', deneme: 'calisma', gorusmeler: 'calisma',
   program: 'okul', yemek: 'okul', yoklama: 'okul', nobet: 'okul', takvim: 'okul', bursluluk: 'okul',
   duyuru: 'iletisim', mesaj: 'iletisim', oda: 'iletisim',
 }
-/** Veritabanı varsayılanlarıyla aynı (setting_spec, 0097). */
+/** Veritabanı varsayılanlarıyla aynı (setting_spec, 0097). 'Dersimde son deneme' kartı kaldırıldı: kayıtlı düzende kalsa da CARD_TR'de olmadığı için atlanır. */
 export const PANEL_DEFAULTS: Record<PanelRole, LayoutItem[]> = {
   veli: [
     { id: 'hedefler', on: true }, { id: 'gorevler', on: true }, { id: 'odev', on: true }, { id: 'lgs', on: true }, { id: 'defter', on: true }, { id: 'gorusme', on: true },
@@ -119,7 +117,7 @@ export const PANEL_DEFAULTS: Record<PanelRole, LayoutItem[]> = {
     { id: 'program', on: true }, { id: 'yemek', on: true }, { id: 'yoklama', on: true }, { id: 'takvim', on: true }, { id: 'duyuru', on: true }, { id: 'bursluluk', on: false },
   ],
   ogretmen: [
-    { id: 'derslerim', on: true, w: 'genis' }, { id: 'odev_kontrol', on: true }, { id: 'cozemedim', on: true }, { id: 'ders_deneme', on: true }, { id: 'devamsizlik', on: true },
+    { id: 'derslerim', on: true, w: 'genis' }, { id: 'odev_kontrol', on: true }, { id: 'cozemedim', on: true }, { id: 'devamsizlik', on: true },
     { id: 'nobet', on: true }, { id: 'takvim', on: true }, { id: 'yemek', on: false }, { id: 'duyuru', on: true }, { id: 'mesaj', on: true }, { id: 'oda', on: true },
   ],
   yonetim: [{ id: 'deneme', on: true }, { id: 'devamsizlik', on: true }, { id: 'gorusmeler', on: true }, { id: 'gorevler', on: true }],
@@ -243,8 +241,6 @@ function CardBody({ id, s, role, d }: { id: CardId; s?: Student; role: PanelRole
       return s && role === 'veli' ? <GorusmeRaporKart s={s} d={d} /> : null
     case 'cozemedim':
       return role === 'veli' ? null : <CozemedimKart s={s} d={d} />
-    case 'ders_deneme':
-      return role === 'ogretmen' ? <DersDenemeKart d={d} /> : null
     case 'nobet':
       return role === 'ogretmen' ? <NobetKart d={d} /> : null
     case 'oda':

@@ -10,7 +10,7 @@ import { Modal } from '@/components/Modal'
 import { KvkkBasvuruFormu } from '@/components/Kvkk'
 import { TahtaPinKarti } from '@/components/AkilliTahta'
 export default function HesapAyarlari() {
-  const { session, roles, aal } = useAuth(),
+  const { session, roles, aal, role } = useAuth(),
     qc = useQueryClient()
   const uid = session!.user.id
   const [theme, setTheme] = useState(() => readPreference(uid,'theme') || 'school')
@@ -27,12 +27,14 @@ export default function HesapAyarlari() {
     [nonce, setNonce] = useState(''),
     [accountMessage, setAccountMessage] = useState('')
   const admin = roles.includes('admin')
+  // Veliye "siz" diye hitap edilir (öğretmen/öğrenci "sen")
+  const h = (sen: string, siz: string) => (role === 'veli' ? siz : sen)
   async function changePassword() {
     setAccountMessage('')
     if (password.length < 10 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password))
       return setAccountMessage('Şifre en az 10 karakter; büyük/küçük harf, rakam ve özel karakter içermeli.')
     if (password !== confirmPassword) return setAccountMessage('Yeni şifreler aynı değil.')
-    if (!currentPassword) return setAccountMessage('Mevcut şifreni yaz.')
+    if (!currentPassword) return setAccountMessage(h('Mevcut şifreni yaz.', 'Mevcut şifrenizi yazın.'))
     setBusy(true)
     const verifier=createClient(import.meta.env.VITE_SUPABASE_URL,import.meta.env.VITE_SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}})
     const { error } = await changeOwnPassword(supabase,verifier,currentPassword,password,nonce.trim()||undefined)
@@ -40,32 +42,32 @@ export default function HesapAyarlari() {
     if (error)
       return setAccountMessage(
         error.code === 'reauthentication_needed'
-          ? 'E-posta doğrulama kodu gönderip kodu girerek tekrar dene.'
-          : 'Şifre değiştirilemedi. Mevcut şifreni ve güvenlik kodunu kontrol et.',
+          ? h('E-posta doğrulama kodu gönderip kodu girerek tekrar dene.', 'E-posta doğrulama kodu gönderip kodu girerek tekrar deneyin.')
+          : h('Şifre değiştirilemedi. Mevcut şifreni ve güvenlik kodunu kontrol et.', 'Şifre değiştirilemedi. Mevcut şifrenizi ve güvenlik kodunu kontrol edin.'),
       )
     setCurrentPassword('')
     setPassword('')
     setConfirmPassword('')
     setNonce('')
-    setAccountMessage('Şifren güncellendi.')
+    setAccountMessage(h('Şifren güncellendi.', 'Şifreniz güncellendi.'))
   }
   async function sendCode() {
     setBusy(true)
     const { error } = await supabase.auth.reauthenticate()
     setBusy(false)
-    setAccountMessage(error ? 'Kod gönderilemedi. Biraz sonra tekrar dene.' : 'Doğrulama kodu e-posta adresine gönderildi.')
+    setAccountMessage(error ? h('Kod gönderilemedi. Biraz sonra tekrar dene.', 'Kod gönderilemedi. Biraz sonra tekrar deneyin.') : h('Doğrulama kodu e-posta adresine gönderildi.', 'Doğrulama kodu e-posta adresinize gönderildi.'))
   }
   async function changeEmail() {
     setAccountMessage('')
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setAccountMessage('Geçerli bir e-posta adresi yaz.')
-    if (email.trim().toLowerCase() === session!.user.email?.toLowerCase()) return setAccountMessage('Yeni adres mevcut adresinle aynı.')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setAccountMessage(h('Geçerli bir e-posta adresi yaz.', 'Geçerli bir e-posta adresi yazın.'))
+    if (email.trim().toLowerCase() === session!.user.email?.toLowerCase()) return setAccountMessage(h('Yeni adres mevcut adresinle aynı.', 'Yeni adres mevcut adresinizle aynı.'))
     setBusy(true)
     const { error } = await supabase.auth.updateUser({ email: email.trim() }, { emailRedirectTo: window.location.origin + '/hesap-ayarlari' })
     setBusy(false)
     setAccountMessage(
       error
-        ? 'E-posta değişikliği başlatılamadı. Adresi kontrol edip tekrar dene.'
-        : 'E-posta değişikliği için doğrulama bağlantısı gönderildi. Gelen kutularını kontrol edip bağlantıları onayla.',
+        ? h('E-posta değişikliği başlatılamadı. Adresi kontrol edip tekrar dene.', 'E-posta değişikliği başlatılamadı. Adresi kontrol edip tekrar deneyin.')
+        : h('E-posta değişikliği için doğrulama bağlantısı gönderildi. Gelen kutularını kontrol edip bağlantıları onayla.', 'E-posta değişikliği için doğrulama bağlantısı gönderildi. Gelen kutularınızı kontrol edip bağlantıları onaylayın.'),
     )
     if (!error) setEmail('')
   }
@@ -89,7 +91,7 @@ export default function HesapAyarlari() {
       if (f.status !== 'verified') continue
       const { error } = await supabase.auth.mfa.unenroll({ factorId: f.id })
       if (error) {
-        setErr('Doğrulama kapatılamadı. Güncel Authenticator koduyla tekrar giriş yap.')
+        setErr(h('Doğrulama kapatılamadı. Güncel Authenticator koduyla tekrar giriş yap.', 'Doğrulama kapatılamadı. Güncel Authenticator koduyla tekrar giriş yapın.'))
         setBusy(false)
         return
       }
@@ -105,7 +107,7 @@ export default function HesapAyarlari() {
       <h1>Hesap ayarları</h1>
       <section className="card stack" style={{ padding: 20 }}>
         <h2>Görünüm</h2>
-        <p className="m">Bu tercihler yalnız bu tarayıcıdaki kendi hesabın için geçerlidir.</p>
+        <p className="m">{h('Bu tercihler yalnız bu tarayıcıdaki kendi hesabın için geçerlidir.', 'Bu tercihler yalnız bu tarayıcıdaki kendi hesabınız için geçerlidir.')}</p>
         <label className="field">
           Tema
           <select aria-label="Tema"
@@ -139,9 +141,9 @@ export default function HesapAyarlari() {
       <section className="card stack" style={{ padding: 20 }}>
         <h2>İki faktörlü doğrulama</h2>
         <p>
-          Girişte şifrene ek olarak telefonundaki Authenticator uygulamasından kod istenir. Yönetici hesaplarında zorunludur; diğer hesaplarda isteğe bağlıdır.
+          {h('Girişte şifrene ek olarak telefonundaki', 'Girişte şifrenize ek olarak telefonunuzdaki')} Authenticator uygulamasından kod istenir. Yönetici hesaplarında zorunludur; diğer hesaplarda isteğe bağlıdır.
         </p>
-        <p>Telefonunu değiştirmeden önce hesabına erişebildiğinden emin ol. Telefonuna erişemiyorsan okul yönetimiyle iletişime geç.</p>
+        <p>{h('Telefonunu değiştirmeden önce hesabına erişebildiğinden emin ol. Telefonuna erişemiyorsan okul yönetimiyle iletişime geç.', 'Telefonunuzu değiştirmeden önce hesabınıza erişebildiğinizden emin olun. Telefonunuza erişemiyorsanız okul yönetimiyle iletişime geçin.')}</p>
         {factors === null ? (
           <p>Yükleniyor…</p>
         ) : (
@@ -181,7 +183,7 @@ export default function HesapAyarlari() {
           Yeni şifre tekrar
           <input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
         </label>
-        <p className="m">En az 10 karakter; büyük/küçük harf, rakam ve özel karakter kullan.</p>
+        <p className="m">{h('En az 10 karakter; büyük/küçük harf, rakam ve özel karakter kullan.', 'En az 10 karakter; büyük/küçük harf, rakam ve özel karakter kullanın.')}</p>
         <label className="field">
           E-posta güvenlik kodu (istenirse)
           <input autoComplete="one-time-code" value={nonce} onChange={(e) => setNonce(e.target.value)} />

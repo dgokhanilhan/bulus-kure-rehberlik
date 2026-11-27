@@ -252,7 +252,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           /* yok */
         }
       }
-      await supabase.auth.signOut()
+      // Yalnız bu cihazdan çık: tahtada çıkış yapan öğretmenin telefonundaki oturumu kapanmasın
+      await supabase.auth.signOut({ scope: 'local' })
     },
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

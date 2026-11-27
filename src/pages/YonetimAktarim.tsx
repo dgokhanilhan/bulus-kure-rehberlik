@@ -90,7 +90,7 @@ function LayoutEditor({ role }: { role: PanelRole }) {
                   aria-label={`${CARD_TR[c.id]} genişliği`}
                   value={c.w ?? 'dar'}
                   onChange={(e) => setList((l) => l.map((x) => (x.id === c.id ? (e.target.value === 'genis' ? { ...x, w: 'genis' as const } : { id: x.id, on: x.on }) : x)))}
-                  style={{ width: 'auto', padding: '4px 8px', fontSize: 13 }}
+                  style={{ width: 'auto', minHeight: 44, padding: '4px 8px', fontSize: 13 }}
                 >
                   <option value="dar">Dar</option>
                   <option value="genis">Geniş</option>

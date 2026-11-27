@@ -101,7 +101,8 @@ test('rehber: Oda, Öğrenci Takip ve Sohbet; matematik öğretmeni anılınca b
   await secili.getByRole('button', { name: 'Sınıf ekle' }).click()
   const sinif8A = page.getByRole('group', { name: 'Sınıf seçimi' }).getByRole('button', { name: '8/A' })
   if ((await sinif8A.getAttribute('aria-pressed')) !== 'true') await sinif8A.click()
-  await expect(secili.getByRole('button', { name: '8/A: seçimden çıkar' })).toBeVisible()
+  // Tek seçili sınıfta çarpı yok (çıkarılamaz); birden çoksa '8/A: seçimden çıkar' düğmesi
+  await expect(secili.locator('.oda-cip.secili', { hasText: '8/A' })).toBeVisible()
   await shot(page, 'oda-sinif-secici')
   await secili.getByRole('button', { name: 'Listeyi kapat' }).click()
   await expect(page.getByRole('group', { name: 'Sınıf seçimi' })).toHaveCount(0)

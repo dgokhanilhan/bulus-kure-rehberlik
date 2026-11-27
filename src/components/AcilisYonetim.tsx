@@ -1,3 +1,4 @@
+import type { PageId } from '@/lib/roles'
 // Duyurular → Açılış pencereleri (yönetici, 0096, 0098): girişte açılan duyuru / yeni özellik pencerelerini hazırla, önizle, yayınla.
 // Taslak yalnız yöneticide görünür. "Kaç kişi gördü" sayısı onaylı hedef kitleye göredir.
 // Görsel: şablon kart (temaya uyar, yazılar elle) ya da yüklenen görsel ya da yok. Yayındaki pencere düzenlenebilir;
@@ -161,6 +162,13 @@ function Satir({ k, onDuzenle, onOnizle }: { k: Kayit; onDuzenle: () => void; on
   )
 }
 
+// Düğme adresi uygulamadaki gerçek bir sayfa olmalı (yoksa kullanıcı ana sayfaya düşer; ölü bağlantı)
+const SAYFALAR: readonly string[] = ['bugun', 'ogrenciler', 'odevler', 'takvim', 'bildirimler', 'denemeler', 'siniflar', 'onaylar', 'yonetim', 'nobet-takip', 'panel', 'ozet', 'okul', 'duyurular', 'iletisim', 'gorevler', 'raporlar', 'gorusmeler', 'galeri', 'gozetmen', 'etut', 'ogretmenler-odasi', 'hedefim', 'hesap-ayarlari'] satisfies readonly (PageId | 'hesap-ayarlari')[]
+export function rotaGecerli(r: string) {
+  const m = /^\/([a-z-]+)(?:[/?#].*)?$/.exec(r.trim())
+  return !!m && SAYFALAR.includes(m[1]!)
+}
+
 export function AcilisYonetim() {
   const qc = useQueryClient()
   const toast = useToast()
@@ -248,7 +256,7 @@ export function AcilisYonetim() {
     form.metin.trim().length >= 3 &&
     form.roller.length > 0 &&
     (form.gorselTur !== 'kart' || form.kart_baslik.trim().length >= 3) &&
-    (!form.dugme_metin.trim() || /^\//.test(form.dugme_rota.trim()))
+    (!form.dugme_metin.trim() || rotaGecerli(form.dugme_rota))
 
   return (
     <section
@@ -458,7 +466,12 @@ export function AcilisYonetim() {
               </label>
               <label>
                 Düğme adresi
-                <input value={form.dugme_rota} placeholder="/ozet" onChange={(e) => set('dugme_rota', e.target.value)} />
+                <input value={form.dugme_rota} placeholder="/ozet" onChange={(e) => set('dugme_rota', e.target.value)} aria-invalid={!!form.dugme_metin.trim() && !rotaGecerli(form.dugme_rota)} />
+                {!!form.dugme_metin.trim() && !rotaGecerli(form.dugme_rota) && (
+                  <span className="m" style={{ fontSize: 12, fontWeight: 400 }}>
+                    Uygulamadaki bir sayfa yaz (ör. /ozet, /hedefim, /takvim). Olmayan adres kullanıcıyı ana sayfaya atar.
+                  </span>
+                )}
               </label>
             </div>
             <label>
@@ -474,13 +487,14 @@ export function AcilisYonetim() {
           <div data-testid="acilis-onizleme">
             <AcilisIcerik a={onizle} />
             <div className="acl-alt" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
-              <span className="btn" aria-hidden="true">
+              {/* Önizlemede düğmeler yalnız önizlemeyi kapatır (gerçek pencerede düğme adrese gider) */}
+              <button type="button" className="btn" onClick={() => setOnizle(null)}>
                 {onizle.tur === 'onemli' ? 'Okudum' : 'Kapat'}
-              </span>
+              </button>
               {onizle.dugme_metin && (
-                <span className="btn pri" aria-hidden="true">
+                <button type="button" className="btn pri" onClick={() => setOnizle(null)}>
                   {onizle.dugme_metin}
-                </span>
+                </button>
               )}
             </div>
           </div>

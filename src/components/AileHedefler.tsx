@@ -9,7 +9,7 @@ import { Icon } from './Icon'
 import { supabase } from '@/lib/supabase'
 import { examScores } from '@/lib/examScores'
 import { fmt } from '@/lib/analiz'
-import { AILE_GRUP_TR, DURUM_TR, aileGruplari, durum, referansPuan, type AileGrup, type PuanTuru } from '@/lib/hedef'
+import { AILE_GRUP_TR, AILE_GRUP_VELI_TR, DURUM_TR, aileGruplari, durum, referansPuan, type AileGrup, type PuanTuru } from '@/lib/hedef'
 import { useDenemePuanlari } from './HedefTab'
 import { sonLgsNetleri } from '@/lib/hedefSim'
 import { HedefSimulator } from './HedefSimulator'
@@ -435,9 +435,9 @@ function OkulEkle(p: {
           : `${AILE_SINIR} hedef sınırına ulaşıldı. Yeni hedef için önce ${p.veli ? 'eklediğiniz' : 'eklediğin'} birini çıkar${p.veli ? 'ın' : ''}.`}
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        <label style={{ display: 'grid', gap: 2, fontSize: 12 }}>
+        <label className="field" style={{ flex: '0 1 180px' }}>
           İl
-          <select value={il} onChange={(e) => setIl(e.target.value)} disabled={aramada} style={{ minHeight: 44 }}>
+          <select value={il} onChange={(e) => setIl(e.target.value)} disabled={aramada}>
             {(iller.data ?? []).map((x) => (
               <option key={x.il} value={x.il}>
                 {x.il}
@@ -445,9 +445,9 @@ function OkulEkle(p: {
             ))}
           </select>
         </label>
-        <label style={{ display: 'grid', gap: 2, fontSize: 12 }}>
+        <label className="field" style={{ flex: '0 1 200px' }}>
           {sinav === 'LGS' ? 'Okul türü' : 'Puan türü'}
-          <select value={turSec} onChange={(e) => setTurSec(e.target.value)} style={{ minHeight: 44 }}>
+          <select value={turSec} onChange={(e) => setTurSec(e.target.value)}>
             <option value="">Tümü</option>
             {turler.map((t) => (
               <option key={t} value={t}>
@@ -456,9 +456,9 @@ function OkulEkle(p: {
             ))}
           </select>
         </label>
-        <label style={{ display: 'grid', gap: 2, fontSize: 12, flex: '1 1 200px' }}>
+        <label className="field" style={{ flex: '1 1 200px' }}>
           Ada göre ara (tüm Türkiye)
-          <input type="search" value={ara} onChange={(e) => setAra(e.target.value)} placeholder="En az 3 harf" style={{ minHeight: 44 }} />
+          <input type="search" value={ara} onChange={(e) => setAra(e.target.value)} placeholder="En az 3 harf" />
         </label>
       </div>
       {!aramada && ilBilgi && (
@@ -476,7 +476,7 @@ function OkulEkle(p: {
       ) : !l.length ? (
         <p className="m">{aramada ? 'Bu adla eşleşen kayıt yok.' : 'Bu seçimde kayıt yok.'}</p>
       ) : gruplar ? (
-        (Object.keys(AILE_GRUP_TR) as AileGrup[]).map((k) => grupListe(k, AILE_GRUP_TR[k], gruplar[k]))
+        (Object.keys(AILE_GRUP_TR) as AileGrup[]).map((k) => grupListe(k, (p.veli ? AILE_GRUP_VELI_TR : AILE_GRUP_TR)[k], gruplar[k]))
       ) : (
         <>
           {!puanVar && (

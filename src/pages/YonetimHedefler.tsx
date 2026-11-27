@@ -100,7 +100,7 @@ export default function YonetimHedefler() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 14 }}>
+    <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'minmax(0,1fr)' }}>
       <p className="m" style={{ fontSize: 14, margin: 0 }}>
         Öğrenci dosyasındaki <b>Hedef</b> sekmesi bu listelerle çalışır: öğrencinin deneme puanı liselerin (LGS) ve üniversite programlarının (YKS) taban puanlarıyla
         karşılaştırılır. Listelenen iller: <b>{ayar.list('hedef.iller').join(', ') || '—'}</b> (<Link to="/yonetim?sekme=tum_ayarlar">Tüm ayarlar</Link> → "hedef").

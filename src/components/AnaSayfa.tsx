@@ -1,6 +1,7 @@
 // Ana sayfa 2 (veli · öğrenci · öğretmen): üst özet alanı ve yeni kartlar. Kart düzeni ve gruplar PanelPage'de.
 // Yalnız sistemde olan veri gösterilir; boş kart gizlenir. Veli/öğrenci ekranında sınıf sıralaması yok (öğrenci kendisiyle kıyaslanır).
 import { createContext, Fragment, useContext, useMemo, type ReactNode } from 'react'
+import { useSayfaIzinli } from '@/lib/izinliSayfalar'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -27,7 +28,7 @@ import { defterKur } from '@/lib/destek'
 import { useKonuCalisma, useKonuIsaretle, useSoruTalepler } from '@/lib/destekData'
 import { usePanoNotlar } from '@/lib/panoData'
 import { useAyar } from '@/lib/ayarlar'
-import { referansPuan } from '@/lib/hedef'
+import { DURUM_TR, durum, referansPuan } from '@/lib/hedef'
 import { useDenemePuanlari } from './HedefTab'
 import { addDays, isoDow, localDate, localHM, todayISO, trD, trDW } from '@/lib/format'
 import { examTrack } from '@/lib/roles'
@@ -60,11 +61,12 @@ export function Card({
 }) {
   const wide = useContext(WideCtx)
   const grup = useContext(GrupCtx)
+  const izinli = useSayfaIzinli()
   return (
     <section className={`card a pcard${wide ? ' wide' : ''}`} style={{ ['--d' as string]: d }} aria-label={label ?? title} data-card={id} data-grup={grup}>
       <div className="kv">
         <h2 className="pcard-title">{title}</h2>
-        {to && (
+        {to && izinli(to) && (
           <Link to={to} className="m" style={{ fontSize: 13 }}>
             {toLabel} →
           </Link>
@@ -328,6 +330,7 @@ export function OgrenciUst({ s }: { s: Student }) {
   const defter = lgs && ayar.bool('aile.yanlis_defteri')
   const marks = useKonuCalisma(s.id, defter)
   const odev = useOdevDurumu(s)
+  const bekleyenOdev = odev.acik.length - odev.geciken.length
   const tasks = useTasks(s.id)
   const lgsGun = useLgsGunu()
   const bas = haftaBasi(today)
@@ -363,7 +366,8 @@ export function OgrenciUst({ s }: { s: Student }) {
             )
           ) : null}{' '}
           {acik.length ? `${acik.length} açık görevin` : 'Açık görevin yok'}
-          {odev.acik.length ? ` ve ${odev.acik.length} bekleyen ödevin var.` : acik.length ? ' var.' : '.'}
+          {bekleyenOdev ? ` ve ${bekleyenOdev} bekleyen ödevin var.` : acik.length ? ' var.' : '.'}
+          {odev.geciken.length ? ` ${odev.geciken.length} ödevin teslim tarihi geçti.` : ''}
         </p>
       </div>
       {lgs && lgsGun != null && lgsGun >= 0 && (
@@ -543,12 +547,20 @@ export function HedeflerKart({ s, d, veli }: { s: Student; d: number; veli: bool
                     {ref !== null && sinav === 'LGS' ? ` · tahmini puan ${fmt(ref, 1)}` : ''}
                   </span>
                 </div>
-                {f !== null && <span className={`chip ${f >= 0 ? 'up' : 'down'}`}>{f >= 0 ? '✓ Ulaşıldı' : `↓ ${fmt(-f)} puan`}</span>}
+                {/* Hedefim sayfasıyla aynı durum etiketi (sınırda olan "Hedefe yakın"; tabana kalan puan ↓ ile) */}
+                {f !== null && (
+                  <span style={{ display: 'grid', justifyItems: 'end', gap: 2 }}>
+                    <span className={`chip hdm-d ${durum(ref!, h.taban_puan!)}`}>{DURUM_TR[durum(ref!, h.taban_puan!)]}</span>
+                    {f < 0 && <span className="m" style={{ fontSize: 12 }}>↓ {fmt(-f)} puan</span>}
+                  </span>
+                )}
               </div>
             )
           })}
           <span className="m" style={{ fontSize: 12 }}>
-            Puanlar son denemelere göre tahminidir.
+            {sinav === 'LGS' && ref === null && !puanlar.isLoading
+              ? 'Henüz LGS deneme puanı yok; ilk deneme sonucu girilince hedefe uzaklık burada görünür.'
+              : 'Puanlar son denemelere göre tahminidir.'}
           </span>
         </>
       ) : (
@@ -759,69 +771,6 @@ export function CozemedimKart({ s, d }: { s?: Student; d: number }) {
           </div>
           <span className={`chip ${x.durum === 'cozuldu' ? 'up' : x.durum === 'yeni' ? 'gold' : 'n'}`}>
             {x.durum === 'cozuldu' ? 'Yanıtlandı' : x.durum === 'yeni' ? 'Yeni' : 'Görüldü'}
-          </span>
-        </div>
-      ))}
-    </Card>
-  )
-}
-
-/** Öğretmen: derse girdiği sınıfların son denemedeki ders net ortalaması ve bir önceki denemeye göre değişim. */
-export function DersDenemeKart({ d }: { d: number }) {
-  const { profile } = useAuth()
-  const ds = useDataset(true)
-  const classes = useClasses()
-  const students = useStudents()
-  const tt = useQuery({
-    queryKey: ['my-lessons-all', profile?.id],
-    enabled: !!profile?.id,
-    queryFn: async () =>
-      ((await supabase.from('timetable').select('class_id, subject').eq('teacher_id', profile!.id)).data ?? []) as { class_id: string; subject: string }[],
-  })
-  const satirlar = useMemo(() => {
-    if (!ds.data || !tt.data || !students.data) return []
-    const idx = indexResults(ds.data.results)
-    const ciftler = [...new Map(tt.data.map((x) => [`${x.class_id}|${x.subject}`, x])).values()]
-    const out: { k: string; ad: string; deneme: string; ort: number; fark: number | null }[] = []
-    for (const c of ciftler) {
-      const ders = ds.data.subjects.find(
-        (x) => x.ad.toLocaleLowerCase('tr') === c.subject.toLocaleLowerCase('tr') || x.short.toLocaleLowerCase('tr') === c.subject.toLocaleLowerCase('tr'),
-      )
-      if (!ders) continue
-      const ids = students.data.filter((x) => x.class_id === c.class_id).map((x) => x.id)
-      const ort = (examId: string) => {
-        const n = ids.map((sid) => idx.get(`${examId}|${sid}`)?.subjects[ders.code]?.net).filter((x): x is number => typeof x === 'number')
-        return n.length ? n.reduce((a, b) => a + b, 0) / n.length : null
-      }
-      const ex = ds.data.exams.filter((e) => ort(e.id) !== null)
-      const L = ex.at(-1)
-      const P = ex.at(-2)
-      if (!L) continue
-      const o = ort(L.id)!
-      out.push({
-        k: `${c.class_id}|${ders.code}`,
-        ad: `${classes.data?.find((x) => x.id === c.class_id)?.name ?? ''} ${ders.short}`,
-        deneme: L.name,
-        ort: o,
-        fark: P ? o - ort(P.id)! : null,
-      })
-    }
-    return out.sort((a, b) => a.ad.localeCompare(b.ad, 'tr'))
-  }, [ds.data, tt.data, students.data, classes.data])
-  if (!satirlar.length) return null
-  return (
-    <Card id="ders_deneme" title="Dersimde son deneme" to="/denemeler" toLabel="Denemeler" d={d}>
-      {satirlar.slice(0, 4).map((x) => (
-        <div key={x.k} className="as-li">
-          <div className="t">
-            <b>{x.ad}</b>
-            <span className="m">{x.deneme} · sınıf ortalaması</span>
-          </div>
-          <span className="num" style={{ whiteSpace: 'nowrap' }}>
-            {fmt(x.ort, 1)} net{' '}
-            {x.fark != null && Math.abs(x.fark) >= 0.1 && (
-              <span className={`chip ${x.fark > 0 ? 'up' : 'down'}`}>{x.fark > 0 ? `↑ ${fmt(x.fark)}` : `↓ ${fmt(-x.fark)}`}</span>
-            )}
           </span>
         </div>
       ))}
