@@ -1359,6 +1359,11 @@ section[aria-labelledby="bg-akis-b"]{margin:4px 0 14px;min-width:0}
 .acl-form fieldset{border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 16px}
 .acl-form fieldset label{display:flex;align-items:center;gap:6px;min-height:44px}
 .acl-form legend{font-size:12px;padding:0 4px}
+.acl-form label>input:not([type=radio]):not([type=checkbox]):not([type=file]),.acl-form label>select,.acl-form label>textarea{min-height:44px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);padding:0 12px;width:100%;font-size:14px;transition:border-color .2s,box-shadow .2s}
+.acl-form label>textarea{padding:10px 12px;min-height:110px;resize:vertical;line-height:1.5}
+.acl-form label>input:focus,.acl-form label>select:focus,.acl-form label>textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.acl-form label>input[aria-invalid=true]{border-color:var(--signal)}
+@media (pointer:coarse){.acl-form label>input,.acl-form label>select,.acl-form label>textarea{font-size:16px}}
 .acl-siniflar{display:flex;flex-wrap:wrap;gap:4px 12px}
 .acl-iki{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:600px){.acl-iki,.acl-ysatir{grid-template-columns:1fr}.acl-ydugme{justify-content:flex-start}}
