@@ -6,11 +6,13 @@ import { PinEkrani } from './PinEkrani'
 import { QrOnay } from './QrOnay'
 import * as S from './lib/sunucu'
 import * as M from './lib/masaustu'
+import { version as SURUM } from '../src-tauri/tauri.conf.json'
 import {
   bekleyenAyikla,
   bekleyenEkle,
   bildirimCumlesi,
   DURUMLAR,
+  denetimZamani,
   dokunus,
   ETIKET,
   ISARET,
@@ -18,6 +20,7 @@ import {
   kayitHazirla,
   kodBicimle,
   kodTamam,
+  kurulabilir,
   otomatikPencerede,
   saatYaz,
   sayac,
@@ -38,6 +41,7 @@ type Ekran =
 const PIN_SURE = 15 * 60_000
 const YENIDEN_DENE = 20_000
 const BITTI_SURE = 60_000
+const SON_DENETIM = 'bk-tahta-guncelleme-denetim'
 const GUN_ADI = new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 const kilitSaat = (k: string) => (k === 'infinity' ? null : new Date(k).toLocaleTimeString('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit' }))
 
@@ -162,6 +166,53 @@ export function App() {
     setEkran({ ad: 'ana' })
   }
 
+  // ---------- Otomatik güncelleme ----------
+  // Açılışta ve günde bir kez sessizce bakılır; yeni sürüm arka planda indirilir. Kurulum yalnız program boştayken
+  // (ana ekran, 1 dk dokunulmamış, PIN/QR ekranı kapalı, gönderim ve bekleyen yoklama yok) yapılır.
+  // İnternet yoksa ya da kontrol başarısızsa hiçbir şey gösterilmez.
+  const [yeniSurum, setYeniSurum] = useState<string | null>(null)
+  const [kuruluyor, setKuruluyor] = useState(false)
+  const sonEtkilesim = useRef(Date.now())
+  useEffect(() => {
+    if (!M.masaustunde) return
+    let ilk = true
+    const bak = async () => {
+      let son: number | null = null
+      try {
+        son = Number(localStorage.getItem(SON_DENETIM)) || null
+      } catch {
+        /* depo kapalı */
+      }
+      if (!ilk && !denetimZamani(son, Date.now())) return
+      ilk = false
+      try {
+        const v = await M.guncellemeHazirla()
+        try {
+          localStorage.setItem(SON_DENETIM, String(Date.now()))
+        } catch {
+          /* depo kapalı */
+        }
+        if (v) setYeniSurum(v)
+      } catch {
+        /* sessiz: bir saat sonra yeniden denenir */
+      }
+    }
+    void bak()
+    const i = setInterval(bak, 60 * 60_000)
+    return () => clearInterval(i)
+  }, [])
+  useEffect(() => {
+    const dokundu = () => {
+      sonEtkilesim.current = Date.now()
+    }
+    window.addEventListener('pointerdown', dokundu, true)
+    window.addEventListener('keydown', dokundu, true)
+    return () => {
+      window.removeEventListener('pointerdown', dokundu, true)
+      window.removeEventListener('keydown', dokundu, true)
+    }
+  }, [])
+
   // ---------- Kurulum ----------
   const [kod, setKod] = useState('')
   async function bagla() {
@@ -182,6 +233,25 @@ export function App() {
     }
   }
   const [baglantiSor, setBaglantiSor] = useState(false)
+
+  const bos = ekran.ad === 'ana' && !pinAcik && !mesgul && !baglantiSor && bekleyen.length === 0
+  useEffect(() => {
+    if (!yeniSurum || !bos || kuruluyor) return
+    sonEtkilesim.current = Date.now()
+    const i = setInterval(() => {
+      if (!kurulabilir(true, sonEtkilesim.current, Date.now())) return
+      clearInterval(i)
+      setKuruluyor(true)
+      // Mesaj görünsün diye kısa bekleme; kurulum programı bu programı kapatıp yeni sürümü açar.
+      setTimeout(() => {
+        M.guncellemeKur().catch(() => {
+          setKuruluyor(false)
+          setYeniSurum(null)
+        })
+      }, 2000)
+    }, 5000)
+    return () => clearInterval(i)
+  }, [yeniSurum, bos, kuruluyor])
   async function baglantiyiDegistir() {
     await M.anahtarSil()
     setToken(null)
@@ -393,6 +463,7 @@ export function App() {
               <button className="buyuk" disabled={!kodTamam(kod) || mesgul} onClick={bagla}>
                 {mesgul ? 'Bağlanıyor…' : 'Bağla'}
               </button>
+              <p className="soluk kucuk sayi">Sürüm {SURUM}</p>
             </div>
           </section>
         )}
@@ -434,7 +505,10 @@ export function App() {
               )}
             </div>
             <footer className="alt">
-              {durum && <span>{durum.okul}</span>}
+              <span>
+                {durum && <>{durum.okul} · </>}
+                <span className="sayi">Sürüm {SURUM}</span>
+              </span>
               {baglantiSor ? (
                 <span>
                   Bu tahtanın okulla bağlantısı silinsin mi? Yeniden bağlamak için idareden kod gerekir.{' '}
@@ -594,6 +668,17 @@ export function App() {
           </section>
         )}
       </main>
+
+      {kuruluyor && (
+        <div className="perde" role="alertdialog" aria-modal="true" aria-labelledby="guncelleme-baslik">
+          <div className="kurulum ortala">
+            <h2 id="guncelleme-baslik">Yeni sürüm kuruluyor</h2>
+            <p className="soluk">
+              BK Yoklama {yeniSurum} sürümüne geçiyor. Program birkaç saniye içinde kendiliğinden yeniden açılacak; bir şey yapman gerekmiyor.
+            </p>
+          </div>
+        </div>
+      )}
 
       {pinAcik?.tur === 'gonder' && sinif && (
         <PinEkrani

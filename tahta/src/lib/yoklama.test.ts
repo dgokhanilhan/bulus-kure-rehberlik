@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
+  BOSTA_SURE,
+  denetimZamani,
+  GUNCELLEME_ARALIK,
+  kurulabilir,
   bekleyenAyikla,
   bekleyenEkle,
   bildirimCumlesi,
@@ -74,5 +78,21 @@ describe('Tahta yoklaması yardımcıları', () => {
     expect(bildirimCumlesi('10:00', true, 2)).toContain("10:00'da gidecek (2 öğrenci)")
     expect(bildirimCumlesi('10:00', false, 1)).toContain('gönderildi')
     expect(bildirimCumlesi('10:00', true, 0)).toBe('Bugün velilere yoklama bildirimi gitmeyecek.')
+  })
+})
+
+describe('otomatik güncelleme zamanlaması', () => {
+  it('açılışta ve günde bir kez bakar', () => {
+    expect(denetimZamani(null, 1000)).toBe(true)
+    expect(denetimZamani(0, GUNCELLEME_ARALIK - 1)).toBe(false)
+    expect(denetimZamani(0, GUNCELLEME_ARALIK)).toBe(true)
+    // saat geri alınmış ya da bozuk kayıt: yine bakar
+    expect(denetimZamani(Number.NaN, 5)).toBe(true)
+    expect(denetimZamani(10_000, 5)).toBe(true)
+  })
+  it('yalnız 1 dakikadır boştayken kurar', () => {
+    expect(kurulabilir(false, 0, BOSTA_SURE * 10)).toBe(false)
+    expect(kurulabilir(true, 0, BOSTA_SURE - 1)).toBe(false)
+    expect(kurulabilir(true, 0, BOSTA_SURE)).toBe(true)
   })
 })
