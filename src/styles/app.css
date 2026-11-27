@@ -1451,7 +1451,7 @@ section[aria-labelledby="bg-akis-b"]{margin:4px 0 14px;min-width:0}
 .acl-kart.tek .acl-kart-baslik{font-size:9cqw}
 .acl-kart-aciklama{font-size:3.8cqw;line-height:1.35;opacity:.9}
 .acl-kart-cizim{min-width:0;overflow:hidden;display:grid;gap:1.6cqw;padding:2.6cqw;border-radius:2.6cqw;background:color-mix(in srgb,var(--surface) 12%,transparent);border:2px solid color-mix(in srgb,var(--surface) 25%,transparent)}
-.acl-kart-cizim span{display:flex;justify-content:space-between;align-items:center;gap:1cqw;background:var(--surface);color:var(--ink);border-radius:1.4cqw;padding:1.9cqw 2.2cqw;font-size:3cqw;font-weight:700;white-space:nowrap}
+.acl-kart-cizim span{min-width:0;overflow:hidden;display:flex;justify-content:space-between;align-items:center;gap:1cqw;background:var(--surface);color:var(--ink);border-radius:1.4cqw;padding:1.9cqw 1.8cqw;font-size:2.75cqw;font-weight:700;white-space:nowrap}
 .acl-kart-cizim i{font-style:normal}
 .acl-kart-cizim .up{color:var(--primary)}
 .acl-kart-cizim .dn{color:var(--signal-ink,var(--signal))}
