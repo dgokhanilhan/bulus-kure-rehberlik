@@ -1,7 +1,10 @@
 // Bildirim türleri (0015): simge ve ad; bildirime tıklanınca ilgili sayfayı açma.
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from './supabase'
 import { useOpenReport } from '@/components/Report'
 import { useToast } from '@/components/Toast'
+import { useAuth } from '@/auth/AuthProvider'
 import { useSayfaIzinli } from './izinliSayfalar'
 import type { Notification } from './types'
 
@@ -38,6 +41,7 @@ export function useOpenNotification() {
   const openReport = useOpenReport()
   const izinli = useSayfaIzinli()
   const toast = useToast()
+  const { activeStudent, switchStudent } = useAuth()
   return (n: Notification) => {
     const L = n.link
     if (L.report) return openReport({ id: L.report })
@@ -47,11 +51,41 @@ export function useOpenNotification() {
     else if (L.album) to = `/galeri?album=${L.album}`
     else if (L.conversation) to = `/iletisim?c=${L.conversation}`
     else if (L.announcement) to = `/duyurular?d=${L.announcement}`
-    else if (L.page === 'ogrenci' && L.sid) to = `/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`
+    else if (L.page === 'ogrenci' && L.sid) {
+      to = `/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`
+      // Aynı bildirim veliye de gider (ör. "görevini tamamladı"); veli öğrenci dosyasına giremez, kendi sayfasına yönlenir
+      if (!izinli(to)) {
+        const aile: Record<string, string> = { gorevler: '/gorevler', gorusmeler: '/gorusmeler', raporlar: '/raporlar', notlar: '/ozet', hedef: '/hedefim' }
+        to = aile[L.tab ?? ''] ?? '/panel'
+        if (L.sid !== activeStudent?.id) switchStudent(L.sid)
+      }
+    }
     else if (L.page === 'ogretmenler-odasi' && L.kanal) to = `/ogretmenler-odasi?sekme=sohbet&kanal=${encodeURIComponent(L.kanal)}`
     else if (L.page) to = L.tab ? `/${L.page}?sekme=${L.tab}` : `/${L.page}`
     if (!to) return
     if (!izinli(to)) return toast('Bu bildirimin sayfası şu anda kapalı.', 'warn')
     nav(to)
   }
+}
+
+/** Okunmamış bildirim sayısı (liste 40 ile sınırlı; sayaç tümünü sayar). Nöbet hatırlatması yalnız öğretmenlere. */
+export function useOkunmamisSayisi(uid: string | undefined, role: string | null | undefined) {
+  return useQuery({
+    queryKey: ['notifications', uid, role, 'sayac'],
+    enabled: !!uid,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      let b = supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null)
+      if (role !== 'brans' && role !== 'rehber') b = b.or('type.is.null,type.neq.nobet')
+      const { count, error } = await b
+      if (error) throw error
+      return count ?? 0
+    },
+  })
+}
+
+/** Okunmamış bildirimlerin hepsini okundu yapar (yalnız ekrandaki 40'ı değil). */
+export async function hepsiniOkunduYap() {
+  const { error } = await supabase.from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null)
+  if (error) throw error
 }

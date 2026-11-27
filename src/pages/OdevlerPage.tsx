@@ -596,7 +596,7 @@ function HomeworkDetail({
 // ---------------------------------------------------------------- Veli / öğrenci
 function AileOdev() {
   const { profile, activeStudent, switchStudent } = useAuth()
-  const [sp] = useSearchParams()
+  const [sp, setSp] = useSearchParams()
   const students = useStudents()
   const courses = useCourses()
   const hw = useHomework()
@@ -638,7 +638,20 @@ function AileOdev() {
   useEffect(() => {
     const f = items.find((x) => x.h.id === focus)
     if (f) setTab(f.group as typeof tab)
-  }, [focus, items])
+    // Bildirimden gelinen ödev silinmişse boş sekmede bırakma: söyle ve bağlantıyı temizle
+    else if (focus && hw.isSuccess && rows.isSuccess && s) {
+      toast('Bu ödev kaldırılmış ya da artık listede görünmüyor.', 'warn')
+      setSp(
+        (p) => {
+          const n = new URLSearchParams(p)
+          n.delete('odev')
+          return n
+        },
+        { replace: true },
+      )
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus, items, hw.isSuccess, rows.isSuccess])
 
   if (!s)
     return students.isLoading ? (

@@ -124,7 +124,7 @@ export default function TakvimPage() {
   const yok = !!open && !cal.isPending && single.isSuccess && !detail
   useEffect(() => {
     if (!yok) return
-    toastAna('Bu etkinlik kaldırılmış ya da artık takviminde görünmüyor.', 'warn')
+    toastAna('Bu etkinlik kaldırılmış ya da artık takvimde görünmüyor.', 'warn')
     kapatDetay()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yok])

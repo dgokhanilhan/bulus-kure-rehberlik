@@ -33,10 +33,11 @@ export function Modal({
     const prev = document.activeElement as HTMLElement | null
     // Esc kapatır; Tab odağı pencerenin içinde döndürür (aria-modal: arkadaki sayfaya geçilmez)
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') return closeRef.current()
-      if (e.key !== 'Tab' || !ref.current) return
-      // İç içe pencerede yalnız en üstteki odağı tutar
+      if (!ref.current) return
+      // İç içe pencerede (ör. form → önizleme) yalnız en üstteki Esc'e yanıt verir ve odağı tutar; tek Esc formu da kapatıp yazılanı silmez
       if ([...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].at(-1) !== ref.current) return
+      if (e.key === 'Escape') return closeRef.current()
+      if (e.key !== 'Tab') return
       const f = [...ref.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter(
         (x) => x.offsetParent !== null || x === document.activeElement,
       )
@@ -58,7 +59,8 @@ export function Modal({
     document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      // Altta başka pencere açıksa sayfa kaydırması kilitli kalır
+      if (!document.querySelector('[role="dialog"][aria-modal="true"]')) document.body.style.overflow = ''
       prev?.focus?.()
     }
   }, [])

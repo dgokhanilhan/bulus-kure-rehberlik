@@ -33,6 +33,11 @@ export function LineChart({
     observer.observe(element)
     return () => observer.disconnect()
   }, [width, values.length])
+  // Yana kayan grafikte (telefonda) açılışta en son deneme görünsün
+  useEffect(() => {
+    const element = container.current
+    if (element && element.scrollWidth > element.clientWidth) element.scrollLeft = element.scrollWidth
+  }, [values.length, availableWidth])
   if (!values.length) return null
   const W = Math.max(width, availableWidth, values.length * 150),
     H = height,

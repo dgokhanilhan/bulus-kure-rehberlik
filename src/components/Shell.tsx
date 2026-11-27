@@ -13,7 +13,7 @@ import type { Notification } from '@/lib/types'
 import { ago } from '@/lib/format'
 import { Icon, SchoolLogo } from './Icon'
 import { useSchoolInfo } from '@/lib/files'
-import { ntype, useOpenNotification } from '@/lib/notifications'
+import { hepsiniOkunduYap, ntype, useOkunmamisSayisi, useOpenNotification } from '@/lib/notifications'
 import { useIndicator } from './Indicator'
 import { useToast } from './Toast'
 import { TemaSecici } from './Tema'
@@ -240,6 +240,9 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
   })
   const list = q.data ?? []
   const unread = list.filter((x) => !x.read_at)
+  const sayac = useOkunmamisSayisi(profile?.id, role)
+  const okunmamis = Math.max(sayac.data ?? 0, unread.length)
+  const hepsi = useMutation({ mutationFn: hepsiniOkunduYap, onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }) })
 
   useEffect(() => {
     if (!open) return
@@ -265,20 +268,20 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
   return (
     <div ref={ref}>
       <button
-        className={`bell ${unread.length ? 'has' : ''}`}
+        className={`bell ${okunmamis ? 'has' : ''}`}
         onClick={() => setOpen(!open)}
-        aria-label={`Bildirimler${unread.length ? `, ${unread.length} okunmamış` : ''}`}
+        aria-label={`Bildirimler${okunmamis ? `, ${okunmamis} okunmamış` : ''}`}
         aria-expanded={open}
       >
         <Icon name="bell" />
-        {unread.length > 0 && <span className="dot">{unread.length}</span>}
+        {okunmamis > 0 && <span className="dot">{okunmamis > 99 ? '99+' : okunmamis}</span>}
       </button>
       {open && (
         <div className="npanel" role="dialog" aria-label="Bildirimler">
           <div className="kv" style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
             <b>Bildirimler</b>
-            {unread.length > 0 && (
-              <button className="btn ghost sm" onClick={() => markRead.mutate(unread.map((x) => x.id))}>
+            {okunmamis > 0 && (
+              <button className="btn ghost sm" disabled={hepsi.isPending} onClick={() => hepsi.mutate()}>
                 Hepsini okundu yap
               </button>
             )}

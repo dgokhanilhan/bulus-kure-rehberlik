@@ -39,7 +39,7 @@ export default function YonetimHatalar() {
   }
   const zaman = (t: string) => new Date(t).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
   return (
-    <div style={{ display: 'grid', gap: 14 }}>
+    <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'minmax(0,1fr)' }}>
       <p className="m" style={{ fontSize: 14, margin: 0 }}>
         Kullanıcıların uygulamada karşılaştığı hatalar burada toplanır (kişisel veri içermez; 90 gün saklanır). Aynı hata birden çok kişide görünüyorsa geliştiriciye
         iletin.

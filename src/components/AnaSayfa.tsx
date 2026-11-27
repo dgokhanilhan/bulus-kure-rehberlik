@@ -28,7 +28,7 @@ import { defterKur } from '@/lib/destek'
 import { useKonuCalisma, useKonuIsaretle, useSoruTalepler } from '@/lib/destekData'
 import { usePanoNotlar } from '@/lib/panoData'
 import { useAyar } from '@/lib/ayarlar'
-import { referansPuan } from '@/lib/hedef'
+import { DURUM_TR, durum, referansPuan } from '@/lib/hedef'
 import { useDenemePuanlari } from './HedefTab'
 import { addDays, isoDow, localDate, localHM, todayISO, trD, trDW } from '@/lib/format'
 import { examTrack } from '@/lib/roles'
@@ -330,6 +330,7 @@ export function OgrenciUst({ s }: { s: Student }) {
   const defter = lgs && ayar.bool('aile.yanlis_defteri')
   const marks = useKonuCalisma(s.id, defter)
   const odev = useOdevDurumu(s)
+  const bekleyenOdev = odev.acik.length - odev.geciken.length
   const tasks = useTasks(s.id)
   const lgsGun = useLgsGunu()
   const bas = haftaBasi(today)
@@ -365,7 +366,8 @@ export function OgrenciUst({ s }: { s: Student }) {
             )
           ) : null}{' '}
           {acik.length ? `${acik.length} açık görevin` : 'Açık görevin yok'}
-          {odev.acik.length ? ` ve ${odev.acik.length} bekleyen ödevin var.` : acik.length ? ' var.' : '.'}
+          {bekleyenOdev ? ` ve ${bekleyenOdev} bekleyen ödevin var.` : acik.length ? ' var.' : '.'}
+          {odev.geciken.length ? ` ${odev.geciken.length} ödevin teslim tarihi geçti.` : ''}
         </p>
       </div>
       {lgs && lgsGun != null && lgsGun >= 0 && (
@@ -545,12 +547,20 @@ export function HedeflerKart({ s, d, veli }: { s: Student; d: number; veli: bool
                     {ref !== null && sinav === 'LGS' ? ` · tahmini puan ${fmt(ref, 1)}` : ''}
                   </span>
                 </div>
-                {f !== null && <span className={`chip ${f >= 0 ? 'up' : 'down'}`}>{f >= 0 ? '✓ Ulaşıldı' : `↓ ${fmt(-f)} puan`}</span>}
+                {/* Hedefim sayfasıyla aynı durum etiketi (sınırda olan "Hedefe yakın"; tabana kalan puan ↓ ile) */}
+                {f !== null && (
+                  <span style={{ display: 'grid', justifyItems: 'end', gap: 2 }}>
+                    <span className={`chip hdm-d ${durum(ref!, h.taban_puan!)}`}>{DURUM_TR[durum(ref!, h.taban_puan!)]}</span>
+                    {f < 0 && <span className="m" style={{ fontSize: 12 }}>↓ {fmt(-f)} puan</span>}
+                  </span>
+                )}
               </div>
             )
           })}
           <span className="m" style={{ fontSize: 12 }}>
-            Puanlar son denemelere göre tahminidir.
+            {sinav === 'LGS' && ref === null && !puanlar.isLoading
+              ? 'Henüz LGS deneme puanı yok; ilk deneme sonucu girilince hedefe uzaklık burada görünür.'
+              : 'Puanlar son denemelere göre tahminidir.'}
           </span>
         </>
       ) : (

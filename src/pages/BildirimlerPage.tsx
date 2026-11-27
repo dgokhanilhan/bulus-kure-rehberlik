@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
-import { NTYPES, ntype, useOpenNotification } from '@/lib/notifications'
+import { NTYPES, hepsiniOkunduYap, ntype, useOkunmamisSayisi, useOpenNotification } from '@/lib/notifications'
 import { ago } from '@/lib/format'
 import type { Notification } from '@/lib/types'
 import { Seg } from '@/components/Indicator'
@@ -34,12 +34,15 @@ export default function BildirimlerPage() {
   const types = [...new Set(all.map((n) => n.type ?? 'diger'))]
   const list = all.filter((n) => (only === 'all' || !n.read_at) && (type === 'all' || (n.type ?? 'diger') === type))
   const unread = all.filter((n) => !n.read_at)
+  const sayac = useOkunmamisSayisi(profile?.id, role)
+  const okunmamis = Math.max(sayac.data ?? 0, unread.length)
+  const hepsi = useMutation({ mutationFn: hepsiniOkunduYap, onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }) })
 
   return (
     <>
       <div className="head a">
         <h1 className="hd">Bildirimler</h1>
-        <button className="btn head-tam" disabled={!unread.length} onClick={() => mark.mutate(unread.map((n) => n.id))}>
+        <button className="btn head-tam" disabled={!okunmamis || hepsi.isPending} onClick={() => hepsi.mutate()}>
           <Icon name="check" size={16} /> Tümünü okundu işaretle
         </button>
       </div>
@@ -50,7 +53,7 @@ export default function BildirimlerPage() {
           onChange={setOnly}
           options={[
             ['all', 'Tümü'],
-            ['unread', `Okunmamış (${unread.length})`],
+            ['unread', `Okunmamış (${okunmamis})`],
           ]}
         />
         <label className="field" style={{ minWidth: 200 }}>

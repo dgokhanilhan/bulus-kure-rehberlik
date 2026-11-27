@@ -240,7 +240,7 @@ export default function BugunPage() {
           <span className="m" style={{ fontWeight: 500 }}>
             {todayLong()}
           </span>
-          <h1 className="hd">Bugün {data.all.length} öğrenciye bakmalısın.</h1>
+          <h1 className="hd">Bugün {new Set(data.all.map((o) => o.sid)).size} öğrenciye bakmalısın.</h1>
         </div>
         <Link className="btn pri" to="/denemeler">
           <Icon name="up" size={18} stroke={2} />

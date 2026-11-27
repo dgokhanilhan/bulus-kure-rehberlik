@@ -204,6 +204,8 @@ export function referansPuan(puanlar: (number | null | undefined)[], son = 3): n
 /** Aile "Okul ekle" grupları (0095): deneme puanına göre üç grup; her grup tabana en yakından uzağa sıralı. */
 export type AileGrup = 'yakin' | 'calis' | 'rahat'
 export const AILE_GRUP_TR: Record<AileGrup, string> = { yakin: 'Bana yakın', calis: 'Biraz daha çalışmalıyım', rahat: 'Rahat ulaşırım' }
+/** Veli ekranı: aynı gruplar üçüncü kişiyle (velinin ağzından "bana" denmez). */
+export const AILE_GRUP_VELI_TR: Record<AileGrup, string> = { yakin: 'Puanına yakın', calis: 'Biraz daha çalışma gerekir', rahat: 'Rahat ulaşılır' }
 export function aileGruplari<T extends { taban_puan: number | null }>(l: T[], puan: number, yakinlik = 15): Record<AileGrup, T[]> {
   const g: Record<AileGrup, T[]> = { yakin: [], calis: [], rahat: [] }
   for (const x of l) {

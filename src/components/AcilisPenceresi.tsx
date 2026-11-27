@@ -107,7 +107,7 @@ export function AcilisIcerik({ a }: { a: Acilis }) {
   const g = useAcilisGorsel(a.gorsel)
   return (
     <div className="acl-icerik">
-      <span className={`chip ${a.tur === 'onemli' ? 'w' : 'n'}`}>{a.tur === 'onemli' ? 'Önemli duyuru' : 'Yeni özellik'}</span>
+      <span className={`chip ${a.tur === 'onemli' ? 'gold' : 'n'}`}>{a.tur === 'onemli' ? 'Önemli duyuru' : 'Yeni özellik'}</span>
       <h2 className="acl-baslik">{a.baslik}</h2>
       {a.kart_baslik && <AcilisKart a={a} />}
       {a.gorsel &&

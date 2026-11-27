@@ -28,7 +28,7 @@ test('silinmiş etkinliğe giden bildirim bağlantısı: uyarı verir, takvimi b
   await login(page, DEMO.veli[0], DEMO.veli[1])
   await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible()
   await page.goto('/takvim?etkinlik=00000000-0000-4000-8fff-000000000099')
-  await expect(page.getByText('Bu etkinlik kaldırılmış ya da artık takviminde görünmüyor.')).toBeVisible()
+  await expect(page.getByText('Bu etkinlik kaldırılmış ya da artık takvimde görünmüyor.')).toBeVisible()
   await expect(page).not.toHaveURL(/etkinlik=/)
 })
 
