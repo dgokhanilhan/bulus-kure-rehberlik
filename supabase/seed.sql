@@ -822,4 +822,7 @@ insert into meals (school_id, day, meal, items) values
 -- Demo hesaplar açık rıza metnini (0057) onaylamış sayılır; yoksa her demo girişinde onay ekranı çıkar.
 update profiles set acik_riza_version = 'ACIK-RIZA-1.0', acik_riza_at = now() where acik_riza_version is null;
 
+-- Etkinlik günlüğü (0100): yalnız yerel/staging demo yöneticisi görür. Production'da yetki SQL ile ayrıca verilir.
+insert into etkinlik_yetki (user_id) values ('00000000-0000-4000-8003-000000000001') on conflict do nothing;
+
 commit;

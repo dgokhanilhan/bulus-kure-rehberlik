@@ -1523,3 +1523,37 @@ section[aria-labelledby="bg-akis-b"]{margin:4px 0 14px;min-width:0}
   .konu-tbl .hist{flex-wrap:wrap}
 }
 
+
+/* Etkinlik günlüğü (0100) */
+.etk-gun{display:flex;align-items:center;gap:6px}
+.etk-gun .btn.sm{min-height:44px;min-width:44px;padding:0}
+.etk-tarih input{min-height:44px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);padding:0 10px;font:inherit}
+.etk-sayac{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.etk-kutu{background:var(--surface-sunken);border-radius:14px;padding:10px 14px;display:grid;gap:2px}
+.etk-kutu span{font-size:13px}
+.etk-kutu b{font-size:22px;font-variant-numeric:tabular-nums}
+.etk-kutu small{font-size:13px;font-weight:500}
+.etk-not{display:flex;gap:8px;align-items:flex-start;padding:12px 14px;margin:0;font-size:14px;background:var(--surface)}
+.etk-suz{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.etk-izgara{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.etk-liste{overflow:hidden}
+.etk-liste ul{list-style:none;margin:0;padding:0}
+.etk-liste li+li{border-top:1px solid var(--line)}
+.etk-satir{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;min-height:56px;padding:10px 14px;background:transparent;border:0;text-align:left;color:var(--ink);cursor:pointer;font:inherit}
+.etk-satir b{display:block;font-size:15px;overflow-wrap:anywhere}
+.etk-satir small{display:block;font-size:12px}
+button.etk-satir:hover{background:var(--surface-sunken)}
+button.etk-satir[aria-pressed="true"]{background:var(--primary-soft)}
+.etk-detay{padding:14px 16px;position:sticky;top:12px}
+.etk-akis{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.etk-akis li{display:grid;grid-template-columns:44px 12px minmax(0,1fr);gap:8px;align-items:baseline;font-size:14px;padding:4px 0}
+.etk-akis time{color:var(--ink-muted);font-variant-numeric:tabular-nums;font-size:13px}
+.etk-akis .nokta{width:8px;height:8px;border-radius:50%;background:var(--line-strong);align-self:center}
+.etk-akis li.sayfa span:last-child{color:var(--ink-muted)}
+.etk-akis li.is .nokta{background:var(--primary)}
+.etk-akis li.is span:last-child{font-weight:600}
+.etk-akis li.giris .nokta{background:var(--ink)}
+@media (max-width:860px){
+  .etk-izgara{grid-template-columns:minmax(0,1fr)}
+  .etk-detay{position:static;scroll-margin-top:72px}
+}
