@@ -12,6 +12,8 @@ export * from './etkinlikMetin'
 interface Olay { rol: Role; tur: 'giris' | 'sayfa'; sayfa?: string; cihaz: Cihaz; at: string }
 // Bekleyen olaylar sekme belleğinde de tutulur: sayfa yenilense ya da adres yazılarak gidilse de gönderilmeden kaybolmaz.
 const KUYRUK_ANAHTAR = 'bk-etk-kuyruk'
+/** Uygulama bu süreden uzun arka planda kalıp yeniden açılırsa yeni giriş sayılır. */
+export const YENI_GIRIS_MS = 30 * 60_000
 let kuyruk: Olay[] | null = null
 let zamanlayici: ReturnType<typeof setTimeout> | null = null
 let sonYol: string | null = null
@@ -83,9 +85,25 @@ export function useEtkinlikKaydi(uid: string | undefined, rol: Role | null, yol:
       sonYol = null
       ekle({ rol, tur: 'giris', cihaz: simdikiCihaz(), at: new Date().toISOString() })
     }
-    const gizlenince = () => document.visibilityState === 'hidden' && void gonder()
-    document.addEventListener('visibilitychange', gizlenince)
-    return () => document.removeEventListener('visibilitychange', gizlenince)
+    // Arka plana alınınca bekleyenler gönderilir; 30 dakikadan uzun arka planda kalıp dönülürse yeni bir giriş sayılır
+    let gizlendi = 0
+    const gorunurluk = () => {
+      if (document.visibilityState === 'hidden') {
+        gizlendi = Date.now()
+        void gonder()
+      } else if (gizlendi && Date.now() - gizlendi >= YENI_GIRIS_MS) {
+        gizlendi = 0
+        sonYol = null
+        ekle({ rol, tur: 'giris', cihaz: simdikiCihaz(), at: new Date().toISOString() })
+        const p = kayitYolu(window.location.pathname)
+        if (p) {
+          sonYol = p
+          ekle({ rol, tur: 'sayfa', sayfa: p, cihaz: simdikiCihaz(), at: new Date(Date.now() + 1).toISOString() })
+        }
+      } else gizlendi = 0
+    }
+    document.addEventListener('visibilitychange', gorunurluk)
+    return () => document.removeEventListener('visibilitychange', gorunurluk)
   }, [uid, rol])
   useEffect(() => {
     if (!uid || !rol) return
@@ -118,11 +136,13 @@ export interface Giren {
   ilk: string
   son: string
   sayfa: number
+  /** O gün uygulamanın açılış sayısı (sayfa kaydından) */
+  giris: number
   islem: number
   cihaz: Cihaz | null
   kayitli: boolean
 }
-export interface Girmeyen { id: string; ad: string; rol: string; brans: string | null; son_giris: string | null }
+export interface Girmeyen { id: string; ad: string; rol: string; brans: string | null; son_gorulme: string | null }
 export interface EtkinlikGun { gun: string; girenler: Giren[]; girmeyenler: Girmeyen[]; kayit_basi: string | null }
 
 export function useEtkinlikGun(gun: string) {

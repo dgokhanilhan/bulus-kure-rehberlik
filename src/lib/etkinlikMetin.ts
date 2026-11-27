@@ -54,7 +54,7 @@ export function sayfaAdi(yol: string | null, ogrenci?: string | null): string {
 export type IslemTuru =
   | 'gorev_verdi' | 'gorev_tamamladi' | 'gorusme' | 'not' | 'rapor_gonderdi' | 'odev_verdi' | 'odev_kontrol' | 'duyuru' | 'mesaj'
   | 'yoklama' | 'takvim' | 'deneme_yayin' | 'gunluk_kontrol' | 'soru_sordu' | 'soru_yanit' | 'galeri' | 'oda_mesaj' | 'calisma'
-  | 'gor_rehber_notu' | 'gor_rapor' | 'etkinlik_gunlugu' | 'yonetim'
+  | 'gor_rehber_notu' | 'gor_rapor' | 'etkinlik_gunlugu' | 'yonetim' | 'oyun'
 
 const sayili = (n: number, tek: string, cok: (n: number) => string) => (n > 1 ? cok(n) : tek)
 /** Yapılan işin metni. İçerik yok; yalnız türü ve sayısı. */
@@ -79,11 +79,31 @@ export function islemMetni(tur: string, adet: number): string {
     case 'galeri': return sayili(n, 'Galeriye dosya yükledi', (k) => `Galeriye ${k} dosya yükledi`)
     case 'oda_mesaj': return sayili(n, 'Öğretmenler Odası’na yazdı', (k) => `Öğretmenler Odası’na ${k} mesaj yazdı`)
     case 'calisma': return 'Çalışma oturumu ekledi'
+    case 'oyun': return sayili(n, 'Öğretmenler Odası’nda oyun oynadı', (k) => `Öğretmenler Odası’nda ${k} oyun oynadı`)
     case 'gor_rehber_notu': return 'Rehberlik notlarını görüntüledi'
     case 'gor_rapor': return 'Bir raporu görüntüledi'
     case 'etkinlik_gunlugu': return 'Etkinlik günlüğünü açtı'
     default: return sayili(n, 'Yönetim işlemi yaptı', (k) => `${k} yönetim işlemi yaptı`)
   }
+}
+
+/** Dökümde iş dışındaki satırlar: uygulama açılışı, şifreyle giriş, oturum yenilemesi. Diğerleri null. */
+export function girisMetni(tur: string, cihaz: Cihaz | null): string | null {
+  if (tur === 'giris') return `Uygulamayı açtı${cihaz ? ` (${CIHAZ_TR[cihaz].toLocaleLowerCase('tr-TR')})` : ''}`
+  if (tur === 'sifre_giris') return 'Şifreyle giriş yaptı'
+  if (tur === 'oturum') return 'Uygulama açıktı (oturum yenilendi)'
+  return null
+}
+/** Son görülme metni: bugün/dün ise saatle, değilse tarih ve saatle; hiç yoksa "Hiç girmedi". */
+export function sonGorulmeMetni(ts: string | null, now = new Date()): string {
+  if (!ts) return 'Hiç girmedi'
+  const g = bugunIst(new Date(ts))
+  const b = bugunIst(now)
+  const saat = saatIst(ts)
+  if (g === b) return `Son görülme bugün ${saat}`
+  if (g === gunKaydir(b, -1)) return `Son görülme dün ${saat}`
+  const t = new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', day: 'numeric', month: 'short' }).format(new Date(ts))
+  return `Son görülme ${t} ${saat}`
 }
 
 /** Ekrandaki rol adı ve süzme anahtarı: rehberlik branşlı öğretmen ayrı. */
