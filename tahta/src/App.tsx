@@ -1,8 +1,9 @@
 // BK Akıllı Yoklama — akıllı tahta ekranları.
-// Akış: (ilk açılış) tahtayı okula bağla → sınıf hazır gelir → gelmeyene dokun → Gönder → kişisel PIN → kaydedildi.
+// Akış: (ilk açılış) tahtayı okula bağla → sınıf hazır gelir → gelmeyene dokun → Gönder → kişisel PIN ya da telefonla QR onayı → kaydedildi.
 // Bağlantı yoksa yoklama bekletilir (PIN yalnız bellekte), bağlantı gelince kendiliğinden gönderilir.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PinEkrani } from './PinEkrani'
+import { QrOnay } from './QrOnay'
 import * as S from './lib/sunucu'
 import * as M from './lib/masaustu'
 import {
@@ -49,7 +50,8 @@ export function App() {
   const [sinif, setSinif] = useState<{ id: string; ad: string } | null>(null)
   const [liste, setListe] = useState<Ogrenci[]>([])
   const [menu, setMenu] = useState<string | null>(null)
-  const [pinAcik, setPinAcik] = useState<null | { tur: 'gonder' } | { tur: 'bekleyen'; id: string }>(null)
+  // kayit: PIN ekranı açılırken alınan liste (QR onayı bu listeyi sunucuya bırakır; ekran açıkken değişmez)
+  const [pinAcik, setPinAcik] = useState<null | { tur: 'gonder'; kayit: Record<string, Durum> } | { tur: 'bekleyen'; id: string }>(null)
   const [bekleyen, setBekleyen] = useState<Bekleyen[]>(() => M.bekleyenOku<Bekleyen>())
   const [eskimis, setEskimis] = useState<Bekleyen[]>([])
   const [uyari, setUyari] = useState('')
@@ -212,7 +214,7 @@ export function App() {
   function gonderBas() {
     const p = pinBellek.current
     if (p && p.son > Date.now()) return void pinIle(p.pin, true)
-    setPinAcik({ tur: 'gonder' })
+    setPinAcik({ tur: 'gonder', kayit: kayitHazirla(liste) })
   }
 
   /** Listeyi PIN'le gönderir. Hata metni dönerse PIN ekranı yeniden sorar. */
@@ -224,7 +226,7 @@ export function App() {
       setCevrimici(true)
       if (!r.ok) {
         pinBellek.current = null
-        if (bellekten) setPinAcik({ tur: 'gonder' })
+        if (bellekten) setPinAcik({ tur: 'gonder', kayit })
         if (r.hata === 'pin') return `PIN eşleşmedi. ${r.kalan} hakkın kaldı.`
         const s = kilitSaat(r.kilit)
         return s ? `Çok sayıda yanlış PIN girildi. Tahta ${s}'e kadar kilitli; idareye haber verildi.` : 'Bu tahta kilitlendi. İdarenin kilidi açması gerekiyor.'
@@ -277,6 +279,32 @@ export function App() {
     setPinAcik(null)
     setUyari(r)
     return null
+  }
+
+  /** Telefonla QR onayı geldi: sunucu yoklamayı işledi. */
+  function qrOnaylandi(r: Basari) {
+    if (!sinif || !token) return
+    setCevrimici(true)
+    setPinAcik(null)
+    setEkran({ ad: 'bitti', sonuc: r, sinifAd: sinif.ad })
+    void yenile(token)
+  }
+  function bekleyenQrOnaylandi(id: string) {
+    const b = bekleyen.find((x) => x.id === id)
+    delete bekleyenPin.current[id]
+    setBekleyen((l) => l.filter((x) => x.id !== id))
+    setPinAcik(null)
+    if (b) setUyari(`${b.sinifAd} yoklaması telefondan onaylanıp gönderildi.`)
+    if (token) void yenile(token)
+  }
+  function qrHata(e: S.SunucuHatasi, sinifId: string | null) {
+    setPinAcik(null)
+    if (S.baglantiKaldirildi(e)) return void (token && yenile(token))
+    if (e.kod === '22023' && sinifId) {
+      setUyari(`${e.message} Liste yenilendi; işaretlerini kontrol et.`)
+      return void listeAc(sinifId)
+    }
+    setUyari(e.message)
   }
 
   // ---------- Görünüm ----------
@@ -568,7 +596,12 @@ export function App() {
       </main>
 
       {pinAcik?.tur === 'gonder' && sinif && (
-        <PinEkrani baslik={`${sinif.ad} yoklamasını gönder`} onPin={(p) => pinIle(p)} onKapat={() => setPinAcik(null)} />
+        <PinEkrani
+          baslik={`${sinif.ad} yoklamasını gönder`}
+          onPin={(p) => pinIle(p)}
+          onKapat={() => setPinAcik(null)}
+          yan={token && <QrOnay token={token} sinifId={sinif.id} kayit={pinAcik.kayit} onOnay={qrOnaylandi} onHata={(e) => qrHata(e, sinif.id)} />}
+        />
       )}
       {pinAcik?.tur === 'bekleyen' && (
         <PinEkrani
@@ -576,6 +609,10 @@ export function App() {
           aciklama="Program kapanıp açıldığı için PIN'in tekrar gerekiyor."
           onPin={(p) => bekleyenPinIle(pinAcik.id, p)}
           onKapat={() => setPinAcik(null)}
+          yan={(() => {
+            const b = bekleyen.find((x) => x.id === pinAcik.id)
+            return token && b ? <QrOnay token={token} sinifId={b.sinifId} kayit={b.kayit} onOnay={() => bekleyenQrOnaylandi(b.id)} onHata={(e) => qrHata(e, null)} /> : null
+          })()}
         />
       )}
     </div>

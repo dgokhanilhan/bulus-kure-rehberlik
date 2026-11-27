@@ -35,6 +35,7 @@ const SiniflarPage = lazy(() => import('@/pages/SiniflarPage'))
 const HesapAyarlari = lazy(() => import('@/pages/HesapAyarlari'))
 const AyarlarPage = lazy(() => import('@/pages/AyarlarPage'))
 const EtkinlikGunlugu = lazy(() => import('@/pages/EtkinlikGunlugu')) // 0100: yalnız etkinlik_yetki'deki yönetici
+const TahtaOnay = lazy(() => import('@/pages/TahtaOnay')) // 0102: tahta yoklamasını telefondan onay (/t/<kod>)
 const KvkkPage = lazy(() => import('@/pages/KvkkPage'))
 const AcikRizaPage = lazy(() => import('@/pages/AcikRizaPage'))
 const BurslulukBasvuru = lazy(() => import('@/pages/BurslulukBasvuru'))
@@ -161,7 +162,7 @@ function RoleRoutes() {
   analizAyarla({ tekrarEsik: ayarOkuyucu(settings.data).num('analiz.tekrar_esik') })
   if (settings.isLoading) return <Wait />
   // Menü dışında herkese açık yollar da bağlantı denetiminde izinli sayılır
-  const izinli = [...allowed, 'bildirimler', 'hesap-ayarlari', ...(allowed.includes('duyurular') ? ['iletisim'] : []), ...(role === 'admin' ? ['ayarlar', 'etkinlik'] : [])]
+  const izinli = [...allowed, 'bildirimler', 'hesap-ayarlari', ...(allowed.includes('duyurular') ? ['iletisim'] : []), ...(role === 'admin' ? ['ayarlar', 'etkinlik'] : []), 't']
   return (
     <IzinliSayfalarCtx.Provider value={izinli}>
     <Routes>
@@ -194,6 +195,15 @@ function RoleRoutes() {
           element={
             <Suspense fallback={<Wait />}>
               <HesapAyarlari />
+            </Suspense>
+          }
+        />
+        {/* Tahtadaki QR: her rol açabilir, onay yetkisini sunucu denetler (öğretmen / yönetici) */}
+        <Route
+          path="t/:kod"
+          element={
+            <Suspense fallback={<Wait />}>
+              <TahtaOnay />
             </Suspense>
           }
         />

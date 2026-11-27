@@ -1557,3 +1557,14 @@ button.etk-satir[aria-pressed="true"]{background:var(--primary-soft)}
   .etk-izgara{grid-template-columns:minmax(0,1fr)}
   .etk-detay{position:static;scroll-margin-top:72px}
 }
+
+/* Tahta yoklaması telefondan onay (0102) */
+.tahta-onay{max-width:520px;width:100%;margin:0 auto}
+.tahta-onay-sayi{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px}
+.tahta-onay-sayi div{background:var(--paper);border-radius:10px;padding:8px;text-align:center}
+.tahta-onay-sayi b{display:block;font-family:var(--font-display,Georgia,serif);font-weight:500;font-size:24px}
+.tahta-onay-sayi span{font-size:13px;color:var(--ink-2)}
+.tahta-onay-liste{list-style:none;margin:0;padding:0}
+.tahta-onay-liste li{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;border-top:1px solid var(--line)}
+.tahta-onay-btn{min-height:52px;font-size:16px}
+.tahta-onay-tik{width:44px;height:44px;border-radius:50%;background:var(--primary);color:var(--on-primary,#fff);display:flex;align-items:center;justify-content:center;font-size:22px}
