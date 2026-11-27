@@ -1,0 +1,84 @@
+# BK Akıllı Yoklama sürüm yayını: "tahta-v0.2.0" gibi bir etiket atılınca imzalı kurulum dosyası + latest.json üretir ve
+# GitHub Release'e yükler. Tahtalardaki program (0.2.0 ve sonrası) latest.json'a bakıp yeni sürümü kendisi kurar.
+#
+# Gerekenler (Settings → Secrets and variables → Actions):
+#   Secrets:   TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD  (güncelleme imza anahtarı; repoya asla girmez)
+#   Variables: TAHTA_SUPABASE_URL, TAHTA_SUPABASE_ANON_KEY                    (production adresi; yoksa yayın yapılmaz)
+# Etiketteki sürüm, tahta/src-tauri/tauri.conf.json ve Cargo.toml'daki sürümle aynı olmalı.
+# PR / main derlemesi ayrı iş: tahta-exe.yml (imzasız, Actions artefaktı).
+name: Tahta programı sürüm yayını
+on:
+  push:
+    tags: ['tahta-v*']
+concurrency:
+  group: tahta-surum-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  yayinla:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sürüm ve ayar kontrolü
+        shell: bash
+        env:
+          ETIKET: ${{ github.ref_name }}
+          URL: ${{ vars.TAHTA_SUPABASE_URL }}
+          KEY: ${{ vars.TAHTA_SUPABASE_ANON_KEY }}
+          IMZA: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          PAROLA: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          V="${ETIKET#tahta-v}"
+          CONF=$(node -p "require('./tahta/src-tauri/tauri.conf.json').version")
+          CARGO=$(sed -n 's/^version = "\(.*\)"/\1/p' tahta/src-tauri/Cargo.toml | head -1)
+          if [ "$V" != "$CONF" ] || [ "$V" != "$CARGO" ]; then
+            echo "::error::Etiket $V, tauri.conf.json $CONF, Cargo.toml $CARGO — üçü aynı olmalı."; exit 1
+          fi
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then echo "::error::TAHTA_SUPABASE_URL / TAHTA_SUPABASE_ANON_KEY tanımlı değil."; exit 1; fi
+          if [ -z "$IMZA" ] || [ -z "$PAROLA" ]; then echo "::error::TAURI_SIGNING_PRIVATE_KEY / _PASSWORD secret'ları tanımlı değil."; exit 1; fi
+          echo "SURUM=$V" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=$URL" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_ANON_KEY=$KEY" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: 'tahta/src-tauri -> target' }
+      - name: Simgeler
+        working-directory: tahta
+        run: npx --yes @tauri-apps/cli@^2 icon app-icon.png
+      - name: Derle ve imzala
+        working-directory: tahta
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx --yes @tauri-apps/cli@^2 build --config src-tauri/tauri.surum.conf.json
+      - name: latest.json hazırla
+        shell: bash
+        env:
+          ETIKET: ${{ github.ref_name }}
+          DEPO: ${{ github.repository }}
+        run: |
+          cd tahta/src-tauri/target/release/bundle/nsis
+          EXE=$(ls *-setup.exe | head -1)
+          [ -f "$EXE.sig" ] || { echo "::error::$EXE.sig üretilmedi (imza anahtarı?)"; exit 1; }
+          AD="BK-Yoklama_${SURUM}_x64-setup.exe"
+          mkdir -p "$GITHUB_WORKSPACE/yayin"
+          cp "$EXE" "$GITHUB_WORKSPACE/yayin/$AD"
+          cp "$EXE.sig" "$GITHUB_WORKSPACE/yayin/$AD.sig"
+          ADRES="https://github.com/$DEPO/releases/download/$ETIKET/$AD" IMZA="$(cat "$EXE.sig")" node -e '
+            const j = { version: process.env.SURUM, notes: "BK Akıllı Yoklama " + process.env.SURUM, pub_date: new Date().toISOString(),
+              platforms: { "windows-x86_64": { signature: process.env.IMZA, url: process.env.ADRES } } };
+            require("fs").writeFileSync(process.env.GITHUB_WORKSPACE + "/yayin/latest.json", JSON.stringify(j, null, 2));'
+          ls -la "$GITHUB_WORKSPACE/yayin"
+      - name: GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ETIKET: ${{ github.ref_name }}
+        run: |
+          gh release create "$ETIKET" yayin/* --title "BK Yoklama $SURUM" --latest \
+            --notes "BK Akıllı Yoklama $SURUM. Tahtalardaki program (0.2.0 ve sonrası) bu sürümü boştayken kendiliğinden kurar. İlk kurulum için: BK-Yoklama_${SURUM}_x64-setup.exe"

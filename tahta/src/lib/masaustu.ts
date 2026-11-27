@@ -48,3 +48,14 @@ export function bekleyenYaz<T>(l: T[]) {
     /* depolama kapalıysa bellekte kalır */
   }
 }
+
+// Otomatik güncelleme (yalnız Windows programında; tarayıcıda hiçbir şey yapmaz).
+/** Yeni sürüm varsa indirip bekletir ve numarasını döner; yoksa null. Kontrol başarısızsa (internet yok vb.) hata fırlatır. */
+export async function guncellemeHazirla(): Promise<string | null> {
+  if (!tauri) return null
+  return tauri.core.invoke<string | null>('guncelleme_hazirla')
+}
+/** Bekleyen sürümü kurar; program kapanıp yeni sürümle açılır. */
+export async function guncellemeKur() {
+  if (tauri) await tauri.core.invoke<void>('guncelleme_kur')
+}

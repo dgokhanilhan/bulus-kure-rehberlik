@@ -93,3 +93,11 @@ export function bekleyenAyikla(liste: Bekleyen[], bugun: string) {
 export function bekleyenEkle(liste: Bekleyen[], b: Bekleyen) {
   return [...liste.filter((x) => !(x.sinifId === b.sinifId && x.gun === b.gun)), b]
 }
+
+// ---------- Otomatik güncelleme zamanlaması ----------
+export const GUNCELLEME_ARALIK = 24 * 60 * 60_000
+export const BOSTA_SURE = 60_000
+/** Son başarılı kontrolden bu yana bir gün geçtiyse yeniden bakılır (açılışta her zaman bakılır). */
+export const denetimZamani = (son: number | null, simdi: number) => son === null || simdi < son || !(simdi - son < GUNCELLEME_ARALIK)
+/** Kurulum ancak program 1 dakikadır boştaysa yapılır (ana ekranda, dokunulmadan, gönderim ve bekleyen yoklama yokken). */
+export const kurulabilir = (bos: boolean, sonEtkilesim: number, simdi: number) => bos && simdi - sonEtkilesim >= BOSTA_SURE

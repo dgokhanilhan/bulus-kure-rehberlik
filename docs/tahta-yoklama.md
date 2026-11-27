@@ -20,15 +20,35 @@ gönderim için PIN tekrar sorulur. Ertesi güne kalan bekleyen yoklama gönderi
 
 ## Kurulum (her tahtaya bir kez)
 
-1. **Kurulum dosyası:** GitHub → Actions → "Tahta programı (.exe)" → son başarılı çalıştırma → **BK-Yoklama-kurulum** (zip içinde
-   `BK Yoklama_0.1.0_x64-setup.exe`). Program imzasız olduğu için Windows SmartScreen "Bilinmeyen yayımcı" diyebilir:
-   *Ek bilgi → Yine de çalıştır*.
-2. Kurulum tüm kullanıcılar için yapılır (yönetici izni ister). WebView2 yoksa kurulum indirir.
+1. **Kurulum dosyası:** GitHub → Releases → en son **BK Yoklama x.y.z** → `BK-Yoklama_x.y.z_x64-setup.exe`. Program kod imzalı
+   olmadığı için Windows SmartScreen "Bilinmeyen yayımcı" diyebilir: *Ek bilgi → Yine de çalıştır*.
+2. Kurulum tahtada oturum açan Windows kullanıcısına yapılır, yönetici izni istemez (güncellemeler de bu sayede onay sormadan kurulur).
+   Tahtada birden çok Windows kullanıcısı varsa programı kullanan hesapta kur. WebView2 yoksa kurulum indirir.
+   **0.1.0'dan geçerken:** önce Ayarlar → Uygulamalar'dan eski **BK Yoklama**'yı kaldır (0.1.0 tüm kullanıcılara kurulmuştu), sonra
+   0.2.0'ı kur. Tahta bağlantısı silinmez; yeniden kod gerekmez.
 3. **Bağlama:** buluskurementor.com → Yönetim → Yoklama ayarları → Akıllı tahtalar → sınıfı seç → **Tahta ekle ve kod al**.
    Tahtada programı aç, `XXXX-XXXX` kodunu yaz → **Bağla**. Kod 10 dakika geçerli ve tek kullanımlıktır.
    Bağlanınca program Windows açılışında başlamak üzere kendini ayarlar.
 4. **PIN:** Pilot sınıfa giren her öğretmen sitede Hesap ayarları → **Tahta yoklama PIN'in** → **PIN al**. PIN'i sistem verir ve bir
    kez gösterir; unutan yenisini alır (eskisi geçersiz olur).
+
+## Güncelleme (0.2.0 ve sonrası)
+
+Program açılışta ve günde bir kez yeni sürüm olup olmadığına sessizce bakar, varsa arka planda indirir. Kurulum yalnız program
+boştayken yapılır: ana ekranda, 1 dakikadır dokunulmamış, PIN/QR ekranı kapalı, gönderim ya da tahtada bekleyen yoklama yokken.
+Ekranda "Yeni sürüm kuruluyor" görünür, program birkaç saniyede yeni sürümle açılır. İnternet yoksa ya da kontrol başarısızsa hiçbir
+şey görünmez. Hangi tahtada hangi sürüm olduğu ana ekranın alt satırında yazar ("Sürüm 0.2.0").
+
+Yeni sürüm yayınlamak (geliştirici):
+
+1. `tahta/src-tauri/tauri.conf.json` ve `tahta/src-tauri/Cargo.toml`'da `version`'ı artır, PR ile main'e al.
+2. main'de etiket at: `git tag tahta-v0.2.1 && git push origin tahta-v0.2.1`.
+3. `.github/workflows/tahta-surum.yml` imzalı kurulum dosyasını ve `latest.json`'ı Release'e yükler ("Latest" olarak). Tahtalar ilk
+   boş anlarında kurar. Başka bir Release'i "Latest" yapma: program `releases/latest/download/latest.json`'a bakar.
+
+İmza anahtarı yalnız GitHub Secrets'ta (`TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`); açık anahtar
+`tauri.conf.json` → `plugins.updater.pubkey`. Anahtar kaybolursa tahtalar yeni sürümleri reddeder; yeni anahtarlı sürüm her tahtaya
+bir kez elle kurulur. Güncelleme isteği programın Windows tarafından (Rust) yapılır; pencerenin CSP'si bu yüzden değişmedi.
 
 ## Sorunlar
 
@@ -49,4 +69,4 @@ gönderim için PIN tekrar sorulur. Ertesi güne kalan bekleyen yoklama gönderi
   `cd tahta && npx @tauri-apps/cli icon app-icon.png && npx @tauri-apps/cli build`.
 - Production derlemesi için depo değişkenleri: `TAHTA_SUPABASE_URL`, `TAHTA_SUPABASE_ANON_KEY` (anon anahtar açıktır; yapay zekâ
   ya da service role anahtarı **asla** buraya girmez).
-- Henüz yok: kod imzalama sertifikası, otomatik güncelleme (yeni sürüm = yeni kurulum dosyası).
+- Henüz yok: Windows kod imzalama sertifikası (SmartScreen uyarısı bundan). Güncelleme imzası ayrı ve var (yukarıda).

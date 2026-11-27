@@ -62,6 +62,8 @@ test.describe.serial('BK Akıllı Yoklama programı', () => {
     await page.getByRole('button', { name: 'Bağla' }).click()
 
     await expect(page.getByText('Bu tahta: 8/A tahtası')).toBeVisible()
+    // Hangi tahtada hangi sürüm var: ana ekranın alt satırında
+    await expect(page.getByText(/^Sürüm \d+\.\d+\.\d+$/)).toBeVisible()
     await page.getByRole('button', { name: '8/A yoklamasını al' }).click()
     await expect(page.getByRole('heading', { name: /8\/A · \d+ öğrenci/ })).toBeVisible()
 
