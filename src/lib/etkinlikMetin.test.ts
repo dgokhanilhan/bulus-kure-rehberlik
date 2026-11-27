@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bugunIst, cihazTuru, gunKaydir, islemMetni, kayitYolu, rolAnahtari, rolMetni, saatIst, sayfaAdi } from './etkinlikMetin'
+import { bugunIst, cihazTuru, girisMetni, gunKaydir, islemMetni, sonGorulmeMetni, kayitYolu, rolAnahtari, rolMetni, saatIst, sayfaAdi } from './etkinlikMetin'
 
 describe('etkinlik günlüğü yardımcıları', () => {
   it('cihaz türü: dokunmatik değilse bilgisayar, kısa kenara göre telefon/tablet', () => {
@@ -48,5 +48,20 @@ describe('etkinlik günlüğü yardımcıları', () => {
     // 21:30 UTC = 00:30 İstanbul (ertesi gün)
     expect(bugunIst(new Date('2026-11-26T21:30:00Z'))).toBe('2026-11-27')
     expect(saatIst('2026-11-26T21:30:00Z')).toBe('00:30')
+  })
+  it('giriş satırları ve oyun', () => {
+    expect(girisMetni('giris', 'telefon')).toBe('Uygulamayı açtı (telefon)')
+    expect(girisMetni('sifre_giris', null)).toBe('Şifreyle giriş yaptı')
+    expect(girisMetni('oturum', null)).toBe('Uygulama açıktı (oturum yenilendi)')
+    expect(girisMetni('sayfa', null)).toBeNull()
+    expect(islemMetni('oyun', 2)).toBe('Öğretmenler Odası’nda 2 oyun oynadı')
+  })
+
+  it('son görülme: bugün, dün, tarih, hiç', () => {
+    const now = new Date('2026-11-27T12:00:00Z')
+    expect(sonGorulmeMetni('2026-11-27T06:51:00Z', now)).toBe('Son görülme bugün 09:51')
+    expect(sonGorulmeMetni('2026-11-26T15:43:00Z', now)).toBe('Son görülme dün 18:43')
+    expect(sonGorulmeMetni('2026-10-07T10:44:00Z', now)).toBe('Son görülme 7 Eki 13:44')
+    expect(sonGorulmeMetni(null, now)).toBe('Hiç girmedi')
   })
 })

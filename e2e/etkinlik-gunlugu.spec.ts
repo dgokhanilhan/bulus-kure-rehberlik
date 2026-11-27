@@ -65,12 +65,16 @@ test.describe.serial('Etkinlik günlüğü', () => {
     const akis = page.getByTestId('etk-akis')
     await expect(akis).toContainText('Uygulamayı açtı (bilgisayar)')
     await expect(akis).toContainText('Ödevler')
+    await expect(akis).toContainText('Şifreyle giriş yaptı') // oturum kaydı (sayfa kaydı başlamadan önceki günler için de)
+    await expect(liste.getByRole('button', { name: /Murat Kaya/ })).toContainText('giriş')
     await expect(page.getByTestId('etk-detay')).toContainText('Mesaj, not ve görüşme içerikleri burada görünmez.')
 
     // Girmeyenler listesi
     await page.getByLabel('İsim ara').fill('')
     await page.getByRole('group', { name: 'Liste' }).getByRole('button', { name: 'Girmeyenler' }).click()
     await expect(page.getByTestId('etk-girmeyenler').or(page.getByText('Bu gün herkes girmiş.'))).toBeVisible()
+    // Son görülme şifreyle girişten değil, en yeni etkinlikten (oturum yenileme dahil)
+    await expect(page.getByTestId('etk-girmeyenler').getByText(/Son görülme|Hiç girmedi/).first()).toBeVisible()
     await page.getByRole('group', { name: 'Liste' }).getByRole('button', { name: 'Girenler' }).click()
 
     // Önceki güne geçilir, sonraki gün bugünden ileri gitmez

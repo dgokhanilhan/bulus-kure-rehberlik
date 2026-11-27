@@ -5,7 +5,7 @@ import { useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Icon } from '@/components/Icon'
 import {
-  bugunIst, CIHAZ_TR, gunKaydir, islemMetni, rolAnahtari, rolMetni, saatIst, sayfaAdi, useEtkinlikGun, useEtkinlikKisi, useEtkinlikYetki,
+  bugunIst, CIHAZ_TR, girisMetni, gunKaydir, islemMetni, sonGorulmeMetni, rolAnahtari, rolMetni, saatIst, sayfaAdi, useEtkinlikGun, useEtkinlikKisi, useEtkinlikYetki,
   type Giren,
 } from '@/lib/etkinlik'
 
@@ -106,8 +106,8 @@ function Gunluk() {
         <p className="card etk-not" data-testid="etk-kayit-oncesi">
           <Icon name="warn" size={16} />
           <span>
-            Sayfa kayıtları {kayitBasi ? `${gunMetni(bugunIst(new Date(d!.kayit_basi!)))} günü` : 'bu özellik yayına girince'} başladı. Bu gün için
-            yalnız yapılan işler (ödev, görev, yoklama, mesaj…) görünür; yalnız bakıp çıkanlar görünmez.
+            Sayfa kayıtları {kayitBasi ? `${gunMetni(bugunIst(new Date(d!.kayit_basi!)))} günü` : 'bu özellik yayına girince'} başladı. Bu gün için girenler
+            oturum kayıtlarından ve yapılan işlerden (ödev, görev, yoklama, mesaj, oyun…) çıkarıldı; açılan sayfalar ve giriş sayısı yalnız bu tarihten sonra görünür.
           </span>
         </p>
       )}
@@ -171,9 +171,7 @@ function Gunluk() {
                     <small className="m">{rolMetni(g.rol, g.brans)}</small>
                   </span>
                   <small className="m" style={{ textAlign: 'right' }}>
-                    {g.son_giris
-                      ? `Son giriş ${new Date(g.son_giris).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', timeZone: 'Europe/Istanbul' })}`
-                      : 'Hiç girmedi'}
+                    {sonGorulmeMetni(g.son_gorulme)}
                   </small>
                 </li>
               ))}
@@ -200,7 +198,9 @@ function KisiSatiri({ g, secili, onSec }: { g: Giren; secili: boolean; onSec: ()
           {saatIst(g.ilk)}–{saatIst(g.son)}
         </small>
         <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {g.giris > 0 && <span className="chip n">{g.giris} giriş</span>}
           {g.kayitli && <span className="chip n">{g.sayfa} sayfa</span>}
+          {!g.kayitli && !g.islem && <span className="chip n">Oturum açık</span>}
           {g.islem > 0 && <span className="chip up">{g.islem} iş</span>}
         </span>
       </span>
@@ -224,13 +224,14 @@ function KisiGunu({ g, gun }: { g: Giren; gun: string }) {
         <ol className="etk-akis" data-testid="etk-akis">
           {(q.data ?? []).map((o, i) => {
             const sayfa = o.tur === 'sayfa'
-            const giris = o.tur === 'giris'
+            const gm = girisMetni(o.tur, o.cihaz)
+            const giris = gm !== null
             return (
               <li key={i} className={sayfa ? 'sayfa' : giris ? 'giris' : 'is'}>
                 <time>{saatIst(o.at)}</time>
                 <span aria-hidden="true" className="nokta" />
                 <span>
-                  {giris ? `Uygulamayı açtı${o.cihaz ? ` (${CIHAZ_TR[o.cihaz].toLocaleLowerCase('tr-TR')})` : ''}` : sayfa ? sayfaAdi(o.sayfa, o.ogrenci) : islemMetni(o.tur, o.adet)}
+                  {gm ?? (sayfa ? sayfaAdi(o.sayfa, o.ogrenci) : islemMetni(o.tur, o.adet))}
                 </span>
               </li>
             )
