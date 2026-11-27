@@ -9,6 +9,8 @@ export interface Declared {
   relation?: string
   className?: string
   schoolNo?: string
+  /** Veli davet koduyla gelen kaydın öğrencisi (0103) */
+  davetStudent?: string
 }
 
 export interface Profile {

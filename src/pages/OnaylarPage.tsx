@@ -18,6 +18,8 @@ export function suggestStudent(p: Pick<Profile, 'role' | 'full_name' | 'declared
     return m ? m.id : NEW
   }
   if (p.role === 'veli') {
+    // Davet koduyla gelen kayıt: öğrencisi kesin (0103)
+    if (p.declared.davetStudent && students.some((s) => s.id === p.declared.davetStudent)) return p.declared.davetStudent
     const name = fold(p.declared.childName ?? '')
     const cls = p.declared.childClass
     const m = students.find((s) => fold(s.full_name) === name && (!cls || s.class_name === cls)) ?? students.find((s) => fold(s.full_name) === name)
@@ -105,6 +107,12 @@ export default function OnaylarPage() {
                 <span style={{ fontSize: 14 }}>
                   {u.role === 'ogrenci' && `${u.declared.className ?? ''} · No ${u.declared.schoolNo || '—'}`}
                   {u.role === 'veli' && `${u.declared.relation ?? ''} · Öğrenci: ${u.declared.childName ?? ''} (${u.declared.childClass ?? ''})`}
+                  {u.role === 'veli' && u.declared.davetStudent && (
+                    <>
+                      {' '}
+                      <span className="chip up">Davet koduyla geldi</span>
+                    </>
+                  )}
                   {u.role === 'ogretmen' &&
                     `Branş: ${u.branch ?? '—'}${u.branch === 'Rehberlik' ? ' · tam yetkili olacak' : ' · yalnızca Öğrenciler sekmesi'}`}
                 </span>
