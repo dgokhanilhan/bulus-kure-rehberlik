@@ -5,7 +5,7 @@ import { useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Icon } from '@/components/Icon'
 import {
-  bugunIst, CIHAZ_TR, girisMetni, gunKaydir, islemMetni, sonGorulmeMetni, rolAnahtari, rolMetni, saatIst, sayfaAdi, useEtkinlikGun, useEtkinlikKisi, useEtkinlikYetki,
+  akisSadelestir, bugunIst, CIHAZ_TR, girisMetni, gunKaydir, islemMetni, sonGorulmeMetni, rolAnahtari, rolMetni, saatIst, sayfaAdi, useEtkinlikGun, useEtkinlikKisi, useEtkinlikYetki,
   type Giren,
 } from '@/lib/etkinlik'
 
@@ -44,7 +44,8 @@ function Gunluk() {
   }
   const seciliKisi = d?.girenler.find((g) => g.id === secili) ?? null
   const kayitBasi = d?.kayit_basi ? d.kayit_basi.slice(0, 10) : null
-  const kayitOncesi = !kayitBasi || gun < bugunIst(new Date(d!.kayit_basi!))
+  // Kayıt başladığı gün de not görünür: o günün kayıt saatinden önceki girişlerinde sayfa ayrıntısı yoktur
+  const kayitOncesi = !kayitBasi || gun <= bugunIst(new Date(d!.kayit_basi!))
 
   const gunDegis = (g: string) => {
     setGun(g)
@@ -106,8 +107,9 @@ function Gunluk() {
         <p className="card etk-not" data-testid="etk-kayit-oncesi">
           <Icon name="warn" size={16} />
           <span>
-            Sayfa kayıtları {kayitBasi ? `${gunMetni(bugunIst(new Date(d!.kayit_basi!)))} günü` : 'bu özellik yayına girince'} başladı. Bu gün için girenler
-            oturum kayıtlarından ve yapılan işlerden (ödev, görev, yoklama, mesaj, oyun…) çıkarıldı; açılan sayfalar ve giriş sayısı yalnız bu tarihten sonra görünür.
+            Sayfa kayıtları {kayitBasi ? `${gunMetni(bugunIst(new Date(d!.kayit_basi!)))} ${saatIst(d!.kayit_basi!)}’de` : 'bu özellik yayına girince'} başladı. Bundan
+            önce girenlerde yalnız uygulamanın açık olduğu saatler ve yapılan işler (ödev, görev, yoklama, mesaj, oyun…) görünür; hangi sayfalara bakıldığı
+            görünmez. Bu yüzden o kişilerde “Uygulamayı açtı” yazar.
           </span>
         </p>
       )}
@@ -200,7 +202,7 @@ function KisiSatiri({ g, secili, onSec }: { g: Giren; secili: boolean; onSec: ()
         <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {g.giris > 0 && <span className="chip n">{g.giris} giriş</span>}
           {g.kayitli && <span className="chip n">{g.sayfa} sayfa</span>}
-          {!g.kayitli && !g.islem && <span className="chip n">Oturum açık</span>}
+          {!g.kayitli && !g.islem && <span className="chip n">Uygulamayı açtı</span>}
           {g.islem > 0 && <span className="chip up">{g.islem} iş</span>}
         </span>
       </span>
@@ -222,7 +224,7 @@ function KisiGunu({ g, gun }: { g: Giren; gun: string }) {
         <p style={{ color: 'var(--signal)' }}>Döküm yüklenemedi.</p>
       ) : (
         <ol className="etk-akis" data-testid="etk-akis">
-          {(q.data ?? []).map((o, i) => {
+          {akisSadelestir(q.data ?? []).map((o, i) => {
             const sayfa = o.tur === 'sayfa'
             const gm = girisMetni(o.tur, o.cihaz)
             const giris = gm !== null
@@ -239,6 +241,7 @@ function KisiGunu({ g, gun }: { g: Giren; gun: string }) {
         </ol>
       )}
       <p className="m" style={{ fontSize: 12, margin: '10px 0 0', borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+        {akisSadelestir(q.data ?? []).some((o) => o.tur === 'oturum') &&'“Uygulama açıktı”: o saatte uygulama açıktı, hangi sayfaya bakıldığı kayıtlı değil. '}
         Mesaj, not ve görüşme içerikleri burada görünmez.
       </p>
     </>
