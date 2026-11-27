@@ -67,3 +67,21 @@ export const durumAl = (token: string) => rpc<TahtaDurum>('tahta_durum', { p_tok
 export const listeAl = (token: string, sinif: string) => rpc<SinifListe>('tahta_liste', { p_token: token, p_class: sinif })
 export const gonder = (token: string, pin: string, sinif: string, kayit: Record<string, Durum>) =>
   rpc<GonderSonuc>('tahta_yoklama_gonder', { p_token: token, p_pin: pin, p_class: sinif, p_kayit: kayit })
+
+// ---------- Telefonla QR onayı (0102) ----------
+export type OnayDurum =
+  | { durum: 'bekliyor'; son: string }
+  | { durum: 'onaylandi'; sonuc: Extract<GonderSonuc, { ok: true }> }
+  | { durum: 'suresi_doldu' }
+  | { durum: 'yok' }
+export const onayBaslat = (token: string, sinif: string, kayit: Record<string, Durum>) =>
+  rpc<{ kod: string; son: string; sure: number }>('tahta_onay_baslat', { p_token: token, p_class: sinif, p_kayit: kayit })
+export const onayDurum = (token: string, kod: string) => rpc<OnayDurum>('tahta_onay_durum', { p_token: token, p_kod: kod })
+
+/** QR'daki adres: Windows programında site adresi; tarayıcıda yerelde denerken aynı adres. */
+export function onayAdresi(kod: string) {
+  const ortam = (import.meta.env.VITE_SITE_URL as string | undefined)?.replace(/\/$/, '')
+  const yerel = typeof location !== 'undefined' && /^https?:$/.test(location.protocol) && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+  const kok = ortam || (yerel ? location.origin : 'https://buluskurementor.com')
+  return `${kok}/t/${kod}`
+}

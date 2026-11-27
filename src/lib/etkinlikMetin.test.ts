@@ -13,6 +13,8 @@ describe('etkinlik günlüğü yardımcıları', () => {
     expect(kayitYolu('/odevler#x')).toBe('/odevler')
     expect(kayitYolu('/ogrenciler/')).toBe('/ogrenciler')
     expect(kayitYolu('/')).toBe('/')
+    expect(kayitYolu('/t/ABCD-EFGH-JKLM-NPQR')).toBe('/t')
+    expect(kayitYolu('/v/R7TK-2QXA')).toBe('/v')
     expect(kayitYolu('/<script>')).toBeNull()
     expect(kayitYolu('/çğ')).toBeNull()
     expect(kayitYolu(`/${'a'.repeat(90)}`)).toBeNull()

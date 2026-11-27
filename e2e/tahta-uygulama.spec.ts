@@ -125,6 +125,72 @@ test.describe.serial('BK Akıllı Yoklama programı', () => {
     expect(await durumu(ELIF)).toEqual({ status: 'devamsiz', kaynak: 'tahta' })
   })
 
+  test('telefonla QR onayı: PIN olmadan, yalnız öğretmen onaylar, kod tek kullanımlık', async ({ page, browser }) => {
+    const yeni = 'TEST-QRAB'
+    await svc.from('attendance').delete().in('student_id', [ELIF, AYSE]).eq('day', bugun)
+    await svc.from('tahta').update({ kod_hash: createHash('sha256').update(yeni.replace('-', '')).digest('hex'), kod_son: new Date(Date.now() + 600_000).toISOString() }).eq('class_id', sinif)
+    await page.setViewportSize({ width: 1366, height: 768 })
+    await page.goto(URL)
+    await page.getByLabel('Eşleştirme kodu').fill(yeni)
+    await page.getByRole('button', { name: 'Bağla' }).click()
+    await page.getByRole('button', { name: /8\/A yoklamasını (al|düzelt)/ }).click()
+    await page.getByRole('button', { name: 'Hepsi geldi' }).click()
+    await page.getByRole('button', { name: 'Elif Yıldız: Geldi' }).click()
+    await page.getByRole('button', { name: 'Yoklamayı gönder' }).click()
+    const pinEkrani = page.getByRole('dialog', { name: '8/A yoklamasını gönder' })
+    await expect(pinEkrani.getByRole('heading', { name: 'Telefonla onayla' })).toBeVisible()
+    await expect(pinEkrani.getByRole('button', { name: 'Vazgeç' })).toBeVisible() // PIN tuşları yerinde
+    const qr = pinEkrani.getByRole('img', { name: 'Telefonla okutulacak onay kodu' })
+    await expect(qr).toBeVisible()
+    await expect(pinEkrani.getByRole('status')).toHaveText('Telefondan onay bekleniyor…')
+    await axe(page, 'tahta QR onayı')
+    await shot(page, 'tahta-uyg-5-qr', false)
+    const adres = (await qr.getAttribute('data-adres'))!
+    const yol = new globalThis.URL(adres).pathname
+    expect(yol).toMatch(/^\/t\/[A-HJ-NP-Z2-9]{4}(-[A-HJ-NP-Z2-9]{4}){3}$/)
+
+    // Veli hesabı okutursa onaylayamaz
+    const veli = await browser.newContext()
+    const vp = await veli.newPage()
+    await vp.goto(yol)
+    await vp.getByLabel('E-posta').fill(DEMO.veli[0])
+    await vp.getByLabel('Şifre', { exact: true }).fill(DEMO.veli[1])
+    await vp.getByRole('button', { name: 'Giriş yap' }).last().click()
+    await expect(vp.getByRole('alert')).toContainText('Bu işlem için yetkin yok')
+    await veli.close()
+    expect(await durumu(ELIF)).toBeNull()
+
+    // Öğretmen: bağlantı giriş sonrasında da açık kalır; listeyi görür, onaylar
+    const ogr = await browser.newContext({ viewport: { width: 390, height: 844 } })
+    const op = await ogr.newPage()
+    await op.goto(yol)
+    await op.getByLabel('E-posta').fill(DEMO.matematik[0])
+    await op.getByLabel('Şifre', { exact: true }).fill(DEMO.matematik[1])
+    await op.getByRole('button', { name: 'Giriş yap' }).last().click()
+    await expect(op.getByRole('heading', { name: '8/A yoklamasını onaylıyor musun?' })).toBeVisible()
+    const ozet = op.getByRole('region', { name: 'Yoklama özeti' })
+    await expect(ozet.getByRole('listitem')).toHaveCount(1)
+    await expect(ozet.getByRole('listitem')).toContainText('Elif Yıldız')
+    await expect(ozet.getByRole('listitem')).toContainText('Gelmedi')
+    await axe(op, 'telefon onay')
+    await shot(op, 'tahta-uyg-6-telefon-onay', false)
+    await op.getByRole('button', { name: 'Onayla ve gönder' }).click()
+    await expect(op.getByRole('heading', { name: '8/A yoklaması gönderildi' })).toBeVisible()
+
+    // Tahta sonucu kendisi alır
+    await expect(page.getByRole('heading', { name: '8/A yoklaması kaydedildi' })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/Murat Kaya/)).toBeVisible()
+    expect(await durumu(ELIF)).toEqual({ status: 'devamsiz', kaynak: 'tahta' })
+    const o = (await svc.from('yoklama_oturum').select('yontem, profile_id').eq('class_id', sinif).eq('day', bugun).single()).data
+    expect(o).toEqual({ yontem: 'qr', profile_id: MAT })
+
+    // Aynı kod ikinci kez kullanılamaz
+    await op.goto(yol)
+    await expect(op.getByRole('alert')).toContainText('tarafından onaylandı')
+    await expect(op.getByRole('button', { name: 'Onayla ve gönder' })).toHaveCount(0)
+    await ogr.close()
+  })
+
   test('idare tahtayı kaldırınca program yeniden kod ister', async ({ page }) => {
     const yeni = 'TEST-ABCD'
     await svc.from('tahta').update({ kod_hash: createHash('sha256').update(yeni.replace('-', '')).digest('hex'), kod_son: new Date(Date.now() + 600_000).toISOString() }).eq('class_id', sinif)

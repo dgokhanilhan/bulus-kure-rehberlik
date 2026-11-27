@@ -11,13 +11,16 @@ export const CIHAZ_TR: Record<Cihaz, string> = { telefon: 'Telefon', tablet: 'Ta
 
 /** Kayda girecek yol: sorgu ve # atılır; yalnız küçük harf, rakam, / ve - (sunucu da aynı kuralı uygular). Uymuyorsa null. */
 export function kayitYolu(yol: string): string | null {
-  const p = (yol.split(/[?#]/)[0] ?? '').toLowerCase().replace(/\/+$/, '') || '/'
+  let p = (yol.split(/[?#]/)[0] ?? '').toLowerCase().replace(/\/+$/, '') || '/'
+  // Tahta onay ve veli davet bağlantılarındaki kod kayda geçmez
+  if (/^\/(t|v)\//.test(p)) p = p.slice(0, 2)
   return /^\/[a-z0-9/-]{0,79}$/.test(p) ? p : null
 }
 
 const SAYFA_TR: Record<string, string> = {
   '/': 'Ana sayfa',
   '/bugun': 'Bugün',
+  '/t': 'Tahta yoklaması onayı',
   '/panel': 'Ana sayfa',
   '/ogrenciler': 'Öğrenciler',
   '/ogretmenler-odasi': 'Öğretmenler Odası',
