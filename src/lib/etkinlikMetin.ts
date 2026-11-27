@@ -86,16 +86,116 @@ export function islemMetni(tur: string, adet: number): string {
     case 'gor_rehber_notu': return 'Rehberlik notlarını görüntüledi'
     case 'gor_rapor': return 'Bir raporu görüntüledi'
     case 'etkinlik_gunlugu': return 'Etkinlik günlüğünü açtı'
-    default: return sayili(n, 'Yönetim işlemi yaptı', (k) => `${k} yönetim işlemi yaptı`)
+    default: return tur.startsWith('y:') ? kayitIslemMetni(tur.slice(2), n) : sayili(n, 'Yönetim işlemi yaptı', (k) => `${k} yönetim işlemi yaptı`)
   }
+}
+
+// İşlem kaydındaki (audit_log, 0104) işlerin metni: 'action/entity' → [tek, çok]. İçerik yok; yalnız tür ve sayı.
+type Kalip = [string, (k: number) => string]
+const sabit = (m: string): Kalip => [m, (k) => `${m} (${k})`]
+const KAYIT_ISLEM: Record<string, Kalip> = {
+  'insert/timetable': ['Ders programına ders ekledi', (k) => `Ders programına ${k} ders ekledi`],
+  'update/timetable': ['Ders programında değişiklik yaptı', (k) => `Ders programında ${k} değişiklik yaptı`],
+  'delete/timetable': ['Ders programından ders sildi', (k) => `Ders programından ${k} ders sildi`],
+  'outcome_match/exams': sabit('Denemede kazanım eşleştirmesi yaptı'),
+  'pdf_outcome_add/exams': sabit('Deneme PDF’inden kazanım ekledi'),
+  'import/exams': ['Deneme sonucu yükledi', (k) => `${k} deneme sonucu yükledi`],
+  'publish/exams': sabit('Deneme sonucunu yayınladı'),
+  'delete/exams': ['Bir denemeyi sildi', (k) => `${k} denemeyi sildi`],
+  'repair_pdf/exams': sabit('Deneme PDF’ini onardı'),
+  'lgs_unresolved_items/exams': sabit('Denemede okunamayan soruları düzeltti'),
+  'hide_topics/exams': sabit('Denemede konuları gizledi'),
+  'show_topics/exams': sabit('Denemede konuları gösterdi'),
+  'insert/yaklasan_denemeler': sabit('Yaklaşan deneme ekledi'),
+  'update/yaklasan_denemeler': sabit('Yaklaşan denemeyi düzenledi'),
+  'delete/yaklasan_denemeler': sabit('Yaklaşan denemeyi sildi'),
+  'insert/students': ['Öğrenci ekledi', (k) => `${k} öğrenci ekledi`],
+  'update/students': ['Öğrenci bilgisini güncelledi', (k) => `${k} öğrenci bilgisini güncelledi`],
+  'delete/students': ['Öğrenci kaydını kaldırdı', (k) => `${k} öğrenci kaydını kaldırdı`],
+  'merge/students': sabit('İki öğrenci kaydını birleştirdi'),
+  'insert/teaching_assignments': ['Ders–öğretmen ataması ekledi', (k) => `${k} ders–öğretmen ataması ekledi`],
+  'delete/teaching_assignments': ['Ders–öğretmen atamasını kaldırdı', (k) => `${k} ders–öğretmen atamasını kaldırdı`],
+  'insert/classes': sabit('Sınıf ekledi'),
+  'update/classes': sabit('Sınıf bilgisini düzenledi'),
+  'delete/classes': sabit('Sınıf sildi'),
+  'insert/courses': ['Ders ekledi', (k) => `${k} ders ekledi`],
+  'update/courses': sabit('Ders bilgisini düzenledi'),
+  'approve/profiles': ['Bir hesabı onayladı', (k) => `${k} hesabı onayladı`],
+  'reject/profiles': ['Bir kaydı reddetti', (k) => `${k} kaydı reddetti`],
+  'rejected_signup_removed/profiles': sabit('Reddedilen kaydı kaldırdı'),
+  'update/profiles': sabit('Hesap bilgisini düzenledi'),
+  'deactivate/profiles': sabit('Bir hesabı pasifleştirdi'),
+  'activate/profiles': sabit('Bir hesabı yeniden açtı'),
+  'role_add/profiles': sabit('Bir hesaba rol ekledi'),
+  'role_remove/profiles': sabit('Bir hesaptan rol kaldırdı'),
+  'account_delete/profiles': sabit('Bir hesabı sildi'),
+  'email_change/profiles': sabit('E-posta adresini değiştirdi'),
+  'acik_riza/profiles': sabit('Açık rıza metnini onayladı'),
+  'parent_link_add/parent_links': ['Veli bağladı', (k) => `${k} veli bağladı`],
+  'parent_link_remove/parent_links': sabit('Veli bağlantısını kaldırdı'),
+  'veli_davet/veli_davet': sabit('Veli davet kodu hazırladı'),
+  'send_report/reports': ['Rapor gönderdi', (k) => `${k} rapor gönderdi`],
+  'media_upload/gallery_media': ['Galeriye dosya yükledi', (k) => `Galeriye ${k} dosya yükledi`],
+  'media_delete/gallery_media': ['Galeriden dosya sildi', (k) => `Galeriden ${k} dosya sildi`],
+  'album_create/gallery_albums': sabit('Galeride albüm açtı'),
+  'album_update/gallery_albums': sabit('Galeride albümü düzenledi'),
+  'album_delete/gallery_albums': sabit('Galeride albüm sildi'),
+  'album_publish/gallery_albums': sabit('Galeride albüm yayınladı'),
+  'album_archive/gallery_albums': sabit('Galeride albümü arşivledi'),
+  'insert/calendar_events': ['Takvime etkinlik ekledi', (k) => `Takvime ${k} etkinlik ekledi`],
+  'update/calendar_events': sabit('Takvimde etkinliği düzenledi'),
+  'delete/calendar_events': sabit('Takvimden etkinlik sildi'),
+  'insert/announcements': sabit('Duyuru yayınladı'),
+  'delete/announcements': sabit('Duyuru sildi'),
+  'insert/homework': ['Ödev verdi', (k) => `${k} ödev verdi`],
+  'update/homework': sabit('Ödevi düzenledi'),
+  'delete/homework': sabit('Ödev sildi'),
+  'insert/attachments': ['Dosya ekledi', (k) => `${k} dosya ekledi`],
+  'delete/attachments': ['Dosya sildi', (k) => `${k} dosya sildi`],
+  'settings/school_settings': sabit('Okul ayarlarını değiştirdi'),
+  'settings/schools': sabit('Okul bilgisini değiştirdi'),
+  'module_toggle/school_settings': sabit('Bir modülü açıp kapattı'),
+  'update/teacher_duties': sabit('Nöbet çizelgesini düzenledi'),
+  'insert/teacher_duties': sabit('Nöbet çizelgesine ekleme yaptı'),
+  'update/bell_times': sabit('Zil saatlerini düzenledi'),
+  'insert/bell_times': sabit('Zil saati ekledi'),
+  'list_export/school_list_documents': sabit('Liste belgesi indirdi'),
+  'insert/acilis_pencereleri': sabit('Açılış penceresi ekledi'),
+  'update/acilis_pencereleri': sabit('Açılış penceresini düzenledi'),
+  'insert/scholarship_session_quotas': sabit('Bursluluk kontenjanı girdi'),
+  'update/scholarship_applications': sabit('Bursluluk başvurusunu düzenledi'),
+  'delete/scholarship_applications': sabit('Bursluluk başvurusunu sildi'),
+  'insert/scholarship_exams': sabit('Bursluluk sınavı ekledi'),
+  'update/scholarship_exams': sabit('Bursluluk sınavını düzenledi'),
+  'delete/scholarship_exams': sabit('Bursluluk sınavını sildi'),
+  'insert/scholarship_sessions': sabit('Bursluluk oturumu ekledi'),
+  'update/scholarship_sessions': sabit('Bursluluk oturumunu düzenledi'),
+  'etut_grup_ekle/etut_gunler': sabit('Etüt grubu ekledi'),
+  'hedef_yukle/hedef_programlar': sabit('Hedef program listesi yükledi'),
+  'update/school_roles': sabit('Okul görevlerini düzenledi'),
+  'insert/academic_years': sabit('Yeni eğitim yılı açtı'),
+  'update/ad_duzeltme': sabit('Ad düzeltmesi yaptı'),
+}
+/** İşlem kaydı türünün metni. Listede olmayan türde genel ama anlaşılır metin. */
+function kayitIslemMetni(anahtar: string, n: number): string {
+  const k = KAYIT_ISLEM[anahtar]
+  if (k) return n > 1 ? k[1](n) : k[0]
+  const islem = anahtar.split('/')[0]
+  const genel = islem === 'insert' ? 'Kayıt ekledi' : islem === 'update' ? 'Kayıt düzenledi' : islem === 'delete' ? 'Kayıt sildi' : 'Yönetim işlemi yaptı'
+  return n > 1 ? `${genel} (${n})` : genel
 }
 
 /** Dökümde iş dışındaki satırlar: uygulama açılışı, şifreyle giriş, oturum yenilemesi. Diğerleri null. */
 export function girisMetni(tur: string, cihaz: Cihaz | null): string | null {
   if (tur === 'giris') return `Uygulamayı açtı${cihaz ? ` (${CIHAZ_TR[cihaz].toLocaleLowerCase('tr-TR')})` : ''}`
   if (tur === 'sifre_giris') return 'Şifreyle giriş yaptı'
-  if (tur === 'oturum') return 'Uygulama açıktı (oturum yenilendi)'
+  if (tur === 'oturum') return 'Uygulama açıktı'
   return null
+}
+/** Dökümde "Uygulama açıktı" (oturum yenilemesi) satırı, 10 dakika içinde kayıtlı bir açılış ya da sayfa varsa tekrar sayılır ve gizlenir. */
+export function akisSadelestir<T extends { at: string; tur: string }>(olaylar: T[]): T[] {
+  const kayitli = olaylar.filter((o) => o.tur === 'giris' || o.tur === 'sayfa').map((o) => new Date(o.at).getTime())
+  return olaylar.filter((o) => o.tur !== 'oturum' || !kayitli.some((t) => Math.abs(t - new Date(o.at).getTime()) <= 10 * 60_000))
 }
 /** Son görülme metni: bugün/dün ise saatle, değilse tarih ve saatle; hiç yoksa "Hiç girmedi". */
 export function sonGorulmeMetni(ts: string | null, now = new Date()): string {

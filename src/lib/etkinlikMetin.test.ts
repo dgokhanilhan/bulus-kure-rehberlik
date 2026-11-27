@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bugunIst, cihazTuru, girisMetni, gunKaydir, islemMetni, sonGorulmeMetni, kayitYolu, rolAnahtari, rolMetni, saatIst, sayfaAdi } from './etkinlikMetin'
+import { akisSadelestir, bugunIst, cihazTuru, girisMetni, gunKaydir, islemMetni, sonGorulmeMetni, kayitYolu, rolAnahtari, rolMetni, saatIst, sayfaAdi } from './etkinlikMetin'
 
 describe('etkinlik günlüğü yardımcıları', () => {
   it('cihaz türü: dokunmatik değilse bilgisayar, kısa kenara göre telefon/tablet', () => {
@@ -34,6 +34,13 @@ describe('etkinlik günlüğü yardımcıları', () => {
     expect(islemMetni('mesaj', 2)).toBe('2 mesaj gönderdi')
     expect(islemMetni('etkinlik_gunlugu', 1)).toBe('Etkinlik günlüğünü açtı')
     expect(islemMetni('bilinmeyen', 1)).toBe('Yönetim işlemi yaptı')
+    // İşlem kaydı türleri (0104)
+    expect(islemMetni('y:acik_riza/profiles', 1)).toBe('Açık rıza metnini onayladı')
+    expect(islemMetni('y:insert/timetable', 12)).toBe('Ders programına 12 ders ekledi')
+    expect(islemMetni('y:approve/profiles', 3)).toBe('3 hesabı onayladı')
+    expect(islemMetni('y:outcome_match/exams', 4)).toBe('Denemede kazanım eşleştirmesi yaptı (4)')
+    expect(islemMetni('y:update/yeni_tablo', 1)).toBe('Kayıt düzenledi')
+    expect(islemMetni('y:garip/yeni_tablo', 2)).toBe('Yönetim işlemi yaptı (2)')
   })
 
   it('rol metni ve süzme anahtarı', () => {
@@ -54,7 +61,7 @@ describe('etkinlik günlüğü yardımcıları', () => {
   it('giriş satırları ve oyun', () => {
     expect(girisMetni('giris', 'telefon')).toBe('Uygulamayı açtı (telefon)')
     expect(girisMetni('sifre_giris', null)).toBe('Şifreyle giriş yaptı')
-    expect(girisMetni('oturum', null)).toBe('Uygulama açıktı (oturum yenilendi)')
+    expect(girisMetni('oturum', null)).toBe('Uygulama açıktı')
     expect(girisMetni('sayfa', null)).toBeNull()
     expect(islemMetni('oyun', 2)).toBe('Öğretmenler Odası’nda 2 oyun oynadı')
   })
@@ -65,5 +72,17 @@ describe('etkinlik günlüğü yardımcıları', () => {
     expect(sonGorulmeMetni('2026-11-26T15:43:00Z', now)).toBe('Son görülme dün 18:43')
     expect(sonGorulmeMetni('2026-10-07T10:44:00Z', now)).toBe('Son görülme 7 Eki 13:44')
     expect(sonGorulmeMetni(null, now)).toBe('Hiç girmedi')
+  })
+})
+
+describe('döküm sadeleştirme', () => {
+  it('kayıtlı açılışa 10 dakikadan yakın oturum yenilemesi gizlenir, uzaktaki kalır', () => {
+    const o = [
+      { at: '2026-11-27T04:58:00Z', tur: 'oturum' },
+      { at: '2026-11-27T16:05:00Z', tur: 'oturum' },
+      { at: '2026-11-27T16:05:30Z', tur: 'giris' },
+      { at: '2026-11-27T16:06:00Z', tur: 'sayfa' },
+    ]
+    expect(akisSadelestir(o).map((x) => x.tur)).toEqual(['oturum', 'giris', 'sayfa'])
   })
 })
