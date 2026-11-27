@@ -36,6 +36,7 @@ const HesapAyarlari = lazy(() => import('@/pages/HesapAyarlari'))
 const AyarlarPage = lazy(() => import('@/pages/AyarlarPage'))
 const EtkinlikGunlugu = lazy(() => import('@/pages/EtkinlikGunlugu')) // 0100: yalnız etkinlik_yetki'deki yönetici
 const TahtaOnay = lazy(() => import('@/pages/TahtaOnay')) // 0102: tahta yoklamasını telefondan onay (/t/<kod>)
+const VeliDavetKayit = lazy(() => import('@/pages/VeliDavetKayit')) // 0103: veli davet kodu (/v/<kod>), giriş gerekmez
 const KvkkPage = lazy(() => import('@/pages/KvkkPage'))
 const AcikRizaPage = lazy(() => import('@/pages/AcikRizaPage'))
 const BurslulukBasvuru = lazy(() => import('@/pages/BurslulukBasvuru'))
@@ -118,6 +119,14 @@ export default function App() {
           <AcikRizaPage />
         </Suspense>
       </>
+    )
+  if (loc.pathname === '/v' || loc.pathname.startsWith('/v/'))
+    return (
+      <Suspense fallback={<Wait />}>
+        <Routes>
+          <Route path="/v/:kod?" element={<VeliDavetKayit />} />
+        </Routes>
+      </Suspense>
     )
   if (loc.pathname === '/kvkk')
     return (

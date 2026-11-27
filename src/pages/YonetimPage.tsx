@@ -26,6 +26,7 @@ import { BurslulukAdmin } from './BurslulukAdmin'
 import { GaleriAyarlari } from './YonetimGaleri'
 import { AnaSayfaDuzeni, TopluAktarim } from './YonetimAktarim'
 import { InviteChip, InviteParentModal, InviteTeacherModal } from './YonetimDavet'
+import { VeliDavet } from './YonetimVeliDavet'
 import { RolesSection, AccountRolesAdmin } from './YonetimRoller'
 import { GirisBilgileri } from './YonetimGiris'
 import { DenemeMerkezi } from './DenemeMerkezi'
@@ -88,6 +89,7 @@ type Tab =
   | 'kvkk'
   | 'kurulum'
   | 'veri_sagligi'
+  | 'veli_davet'
 /** Yönetim Merkezi bölümleri, gruplu. Modüle bağlı bölümler modül kapalıyken uyarıyla açılır. */
 const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
   {
@@ -143,6 +145,7 @@ const GROUPS: { title: string; items: [Tab, string, ModuleId?][] }[] = [
       ['ogrenciler', 'Öğrenciler'],
       ['ogretmenler', 'Öğretmenler'],
       ['veliler', 'Veliler'],
+      ['veli_davet', 'Veli daveti (QR · WhatsApp)'],
       ['kapali', 'Kapalı hesaplar'],
       ['aktarim', 'Toplu aktarım'],
       ['veri_sagligi', 'Veri sağlığı'],
@@ -181,6 +184,7 @@ const KEYWORDS: Partial<Record<Tab, string>> = {
   ogrenciler: 'öğrenci arşiv okul no taşı',
   ogretmenler: 'öğretmen branş hesap rol atama',
   veliler: 'veli bağla çocuk davet',
+  veli_davet: 'veli davet kod karekod qr kart yazdır whatsapp kampanya kapsam bağlı veli kayıt',
   kapali: 'kapalı hesap aç',
   veri_sagligi: 'tekrar eden kayıt aynı ad birleştir ad yazımı büyük harf okul no eksik veli bağlı değil sınıf öğretmeni atanmamış temizlik',
   aktarim: 'excel csv toplu içe aktar',
@@ -324,6 +328,7 @@ export default function YonetimPage() {
               {tab === 'ogrenciler' && <Ogrenciler classes={classes.data!} {...data.data!} />}
               {tab === 'ogretmenler' && <Ogretmenler classes={classes.data!} {...data.data!} />}
               {tab === 'veliler' && <Veliler {...data.data!} />}
+              {tab === 'veli_davet' && <VeliDavet />}
               {tab === 'yoklama' && <YoklamaAdmin classes={classes.data!} students={data.data!.students} />}
               {tab === 'program' && <ProgramAdmin classes={classes.data!} profiles={data.data!.profiles} />}
               {tab === 'yemek' && <YemekAdmin />}

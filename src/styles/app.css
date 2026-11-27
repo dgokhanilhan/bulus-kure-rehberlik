@@ -1568,3 +1568,24 @@ button.etk-satir[aria-pressed="true"]{background:var(--primary-soft)}
 .tahta-onay-liste li{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;border-top:1px solid var(--line)}
 .tahta-onay-btn{min-height:52px;font-size:16px}
 .tahta-onay-tik{width:44px;height:44px;border-radius:50%;background:var(--primary);color:var(--on-primary,#fff);display:flex;align-items:center;justify-content:center;font-size:22px}
+/* Yönetim → Veli daveti (0103) */
+.vd-ozet{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.vd-ozet div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.vd-ozet b{display:block;font-family:var(--font-display);font-weight:500;font-size:26px}
+.vd-ozet span{font-size:13px;color:var(--ink-muted)}
+.vd-toplu{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.vd-toplu .field{min-width:200px}
+.vd-kutu{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:14px}
+.vd-kutu input{width:20px;height:20px}
+.vd-cubuk{display:inline-block;vertical-align:middle;width:110px;height:8px;border-radius:4px;background:var(--surface-sunken);overflow:hidden}
+.vd-cubuk i{display:block;height:100%;background:var(--primary)}
+.tbl tr.vd-acik{background:color-mix(in srgb,var(--primary) 6%,transparent)}
+.tbl tr.vd-acik .linkbtn{min-height:44px}
+.vd-liste{list-style:none;margin:0;padding:0}
+.vd-liste li{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;border-top:1px solid var(--line)}
+.vd-ad{flex:1;min-width:200px;display:flex;flex-direction:column;gap:2px}
+.vd-ad .m{font-size:13px}
+.vd-btns{gap:6px}
+.vd-btns .btn{min-height:44px}
+.btn.vd-wa{background:#25d366;border-color:#25d366;color:#07311a}
+.vdk-baslik{font-family:var(--font-display);font-size:24px;font-weight:500;line-height:1.2;text-wrap:balance}
