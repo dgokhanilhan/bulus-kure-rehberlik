@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useAuth } from '@/auth/AuthProvider'
 import { useStudents } from '@/lib/data'
 import { ago, localDate, trDM } from '@/lib/format'
-import { ACIK_RIZA_VERSION, KVKK_VERSION } from '@/lib/kvkk'
+import { ACIK_RIZA_VERSION, KVKK_GECERLI_ESKI, KVKK_VERSION } from '@/lib/kvkk'
 import {
   kalanGun,
   KVKK_DURUM_TR,
@@ -276,7 +276,7 @@ export function KvkkDosyasi({ sid }: { sid: string }) {
                   </span>
                 </span>
                 <span className="gh-islem">
-                  <span className={`chip ${guncel(h.aydinlatma, KVKK_VERSION)}`}>
+                  <span className={`chip ${KVKK_GECERLI_ESKI.includes(h.aydinlatma ?? '') ? 'up' : guncel(h.aydinlatma, KVKK_VERSION)}`}>
                     Aydınlatma:{' '}
                     {h.aydinlatma ? `${h.aydinlatma}${h.aydinlatma_at ? ` · ${trDM(localDate(h.aydinlatma_at))}` : ''}` : 'kayıt yok'}
                   </span>

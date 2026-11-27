@@ -14,7 +14,7 @@ export default function KvkkPage() {
         <p>Uygulamaya üyelik ve kullanım kapsamında temel olarak ad, soyad ve e-posta adresi işlenmektedir. Telefon numarası zorunlu değildir ve mevcut üyelik sürecinde talep edilmemektedir.</p>
         <p>Öğrenci hesapları, okul tarafından oluşturulmuş ilgili öğrenci profiliyle eşleştirilebilir. Bu kapsamda öğrencinin deneme ve sınav sonuçları, doğru, yanlış, boş, net ve puan bilgileri ile ders, konu ve kazanım bazlı akademik analizleri uygulamada işlenebilir ve yetkili kullanıcılara gösterilebilir.</p>
         <p>Hesap ve öğrenci bilgileri kayıt formları, okulun yetkili personeli, sınav dosyaları ve uygulamadaki işlemler yoluyla elektronik ortamda toplanır. Kullanılan özelliklere göre sınıf, okul numarası, veli-öğrenci ilişkisi, ödev ve görev ilerlemesi, devamsızlık, görüşme, öğretmen notu, mesaj, bildirim ve rapor bilgileri işlenir. Galeri ve dosya yüklemelerinde fotoğraf, video ve dosya içerikleri de işlenebilir. Bursluluk başvurusunda öğrenci ve veli adı, sınıf, mevcut okul ve iletişim telefonu alınır.</p>
-        <p>Ayrıca sistemin güvenliği ve çalışması için kullanıcı kimliği, giriş/oturum ve gerekli teknik işlem kayıtları tutulabilir.</p>
+        <p>Ayrıca sistemin güvenliği ve çalışması için kullanıcı kimliği, giriş/oturum ve gerekli teknik işlem kayıtları tutulabilir. Bu kapsamda uygulamanın hangi gün ve saatte açıldığı, hangi sayfaların görüntülendiği ve cihaz türü (telefon, tablet veya bilgisayar) kullanım kaydı olarak tutulur. Kullanım kayıtları mesaj, not veya görüşme içeriği ile IP adresi içermez; yalnız okul yönetiminin yetkilendirdiği kişi tarafından güvenlik ve hizmet kalitesi amacıyla görüntülenebilir.</p>
         <h2 className="sec">Amaç</h2>
         <p>Kişisel veriler; kullanıcı hesabının oluşturulması ve güvenliğinin sağlanması, öğrenci hesabının doğru öğrenci profiliyle eşleştirilmesi, öğrencinin akademik gelişiminin izlenmesi, deneme ve sınav sonuçlarının analiz edilmesi, öğrenci ve velinin akademik gelişim hakkında bilgilendirilmesi ve uygulamanın güvenli şekilde işletilmesi amaçlarıyla işlenmektedir.</p>
         <h2 className="sec">Hukuki Sebepler ve İsteğe Bağlı İşlemler</h2>
@@ -29,7 +29,7 @@ export default function KvkkPage() {
         <h2 className="sec">Güvenlik</h2>
         <p>Kişisel verilere erişim kullanıcı rolü ve yetkisine göre sınırlandırılır. Öğrenci verileri yalnız ilgili öğrenci, yetkilendirilmiş veli ve görev kapsamında yetkili okul personeli tarafından görüntülenebilir. Yetkisiz erişimin önlenmesi amacıyla teknik ve idari güvenlik tedbirleri uygulanır.</p>
         <h2 className="sec">Saklama ve Silme</h2>
-        <p>Kişisel veriler yalnız işleme amacı ve ilgili mevzuatın gerektirdiği süre boyunca saklanır. Saklanmasını gerektiren hukuki bir sebep kalmadığında silinir, yok edilir veya anonim hâle getirilir.</p>
+        <p>Kişisel veriler yalnız işleme amacı ve ilgili mevzuatın gerektirdiği süre boyunca saklanır. Kullanım kayıtları (açılış ve görüntülenen sayfalar) 90 gün sonra otomatik olarak silinir. Saklanmasını gerektiren hukuki bir sebep kalmadığında silinir, yok edilir veya anonim hâle getirilir.</p>
         <h2 className="sec">Yeni Özellikler</h2>
         <p>Uygulamaya ileride yeni özellikler eklenebilir. Yeni bir özelliğin mevcut kapsam dışında kişisel veri işlenmesini gerektirmesi halinde kullanıcılar önceden bilgilendirilir; mevzuat gerektiriyorsa ilgili işlem için ayrıca açık rıza alınır.</p>
         <h2 className="sec">Haklarınız</h2>

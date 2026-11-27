@@ -7,6 +7,7 @@ import { supabase, SOURCE_URL } from '@/lib/supabase'
 import { gateOf, useAuth } from '@/auth/AuthProvider'
 import { navItems, ROLE_HINT, ROLE_TR, SWITCH_TR } from '@/lib/roles'
 import { menuAyarla, useAyar } from '@/lib/ayarlar'
+import { useEtkinlikKaydi, useEtkinlikYetki } from '@/lib/etkinlik'
 import { useOdaOkunmamis } from '@/lib/odaData'
 import { useConversations, useFamilyTracks, useModules, useSettings } from '@/lib/data'
 import type { Notification } from '@/lib/types'
@@ -73,6 +74,7 @@ export function useLogout() {
 /** Profil kartı: tıklanınca kişi bilgisi ve "Çıkış yap" açılır. */
 function ProfileMenu() {
   const { profile, role, session, switchable, switchRole, children, activeStudent, switchStudent } = useAuth()
+  const etkYetki = useEtkinlikYetki(role === 'admin')
   const logout = useLogout()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -134,6 +136,12 @@ function ProfileMenu() {
             >
               <Icon name="shield" size={18} />
               Okul ayarları
+            </Link>
+          )}
+          {etkYetki.data && (
+            <Link className="pitem" role="menuitem" to="/etkinlik" onClick={() => setOpen(false)} style={{ color: 'var(--ink)', fontWeight: 500, textDecoration: 'none' }}>
+              <Icon name="lock" size={18} />
+              Etkinlik günlüğü
             </Link>
           )}
           {children.length > 1 && (
@@ -322,10 +330,11 @@ function Bell({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void 
 }
 
 export function AppShell() {
-  const { role } = useAuth()
+  const { role, session } = useAuth()
   hataRol(role)
   const logout = useLogout()
   const loc = useLocation()
+  useEtkinlikKaydi(session?.user.id, role, loc.pathname) // etkinlik günlüğü (0100): açılış ve sayfa kaydı
   const mods = useModules()
   const fam = useFamilyTracks(role === 'veli' || role === 'ogrenci')
   const ayar = useAyar()
