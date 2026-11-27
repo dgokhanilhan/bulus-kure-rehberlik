@@ -1440,7 +1440,7 @@ section[aria-labelledby="bg-akis-b"]{margin:4px 0 14px;min-width:0}
 
 /* Açılış penceresi şablon kartı (0098): temanın renkleriyle çizilir, pencerenin görsel alanına oturur (1,8:1) */
 /* overflow görünür: uzun başlık/açıklamada kart oranın ötesine uzar (aspect-ratio en az yükseklik olur), metin kesilmez */
-.acl-kart{container-type:inline-size;aspect-ratio:1.8/1;width:100%;border-radius:12px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);column-gap:4.5%;align-items:center;padding:5% 5.5%;
+.acl-kart{container-type:inline-size;aspect-ratio:1.8/1;width:100%;max-width:100%;min-width:0;border-radius:12px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);column-gap:4.5%;align-items:center;padding:5% 5.5%;
   background:linear-gradient(135deg,var(--primary) 0%,color-mix(in srgb,var(--primary) 70%,#000) 100%);color:var(--surface)}
 .acl-kart.tek{grid-template-columns:1fr}
 .acl-kart.onemli{background:linear-gradient(135deg,var(--signal) 0%,color-mix(in srgb,var(--signal) 70%,#000) 100%)}
