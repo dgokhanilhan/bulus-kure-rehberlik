@@ -1,6 +1,8 @@
 // Bildirim türleri (0015): simge ve ad; bildirime tıklanınca ilgili sayfayı açma.
 import { useNavigate } from 'react-router-dom'
 import { useOpenReport } from '@/components/Report'
+import { useToast } from '@/components/Toast'
+import { useSayfaIzinli } from './izinliSayfalar'
 import type { Notification } from './types'
 
 type IconName = 'book' | 'chat' | 'doc' | 'cal' | 'warn' | 'task' | 'shield' | 'bell' | 'spark' | 'users' | 'image' | 'cup'
@@ -30,20 +32,26 @@ export const NTYPES: Record<string, { label: string; icon: IconName }> = {
 }
 export const ntype = (t?: string | null) => NTYPES[t ?? 'diger'] ?? NTYPES.diger!
 
-/** Bildirimin bağlantısına göre ilgili ekranı açar. */
+/** Bildirimin bağlantısına göre ilgili ekranı açar. Hedef sayfa bu kişiye kapalıysa (modül kapatılmış vb.) ana sayfaya atmak yerine söyler. */
 export function useOpenNotification() {
   const nav = useNavigate()
   const openReport = useOpenReport()
+  const izinli = useSayfaIzinli()
+  const toast = useToast()
   return (n: Notification) => {
     const L = n.link
-    if (L.report) openReport({ id: L.report })
-    else if (L.homework) nav(`/odevler?odev=${L.homework}`)
-    else if (L.event) nav(`/takvim?etkinlik=${L.event}`)
-    else if (L.album) nav(`/galeri?album=${L.album}`)
-    else if (L.conversation) nav(`/iletisim?c=${L.conversation}`)
-    else if (L.announcement) nav(`/duyurular?d=${L.announcement}`)
-    else if (L.page === 'ogrenci' && L.sid) nav(`/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`)
-    else if (L.page === 'ogretmenler-odasi' && L.kanal) nav(`/ogretmenler-odasi?sekme=sohbet&kanal=${encodeURIComponent(L.kanal)}`)
-    else if (L.page) nav(L.tab ? `/${L.page}?sekme=${L.tab}` : `/${L.page}`)
+    if (L.report) return openReport({ id: L.report })
+    let to: string | null = null
+    if (L.homework) to = `/odevler?odev=${L.homework}`
+    else if (L.event) to = `/takvim?etkinlik=${L.event}`
+    else if (L.album) to = `/galeri?album=${L.album}`
+    else if (L.conversation) to = `/iletisim?c=${L.conversation}`
+    else if (L.announcement) to = `/duyurular?d=${L.announcement}`
+    else if (L.page === 'ogrenci' && L.sid) to = `/ogrenciler/${L.sid}${L.tab ? `?sekme=${L.tab}` : ''}`
+    else if (L.page === 'ogretmenler-odasi' && L.kanal) to = `/ogretmenler-odasi?sekme=sohbet&kanal=${encodeURIComponent(L.kanal)}`
+    else if (L.page) to = L.tab ? `/${L.page}?sekme=${L.tab}` : `/${L.page}`
+    if (!to) return
+    if (!izinli(to)) return toast('Bu bildirimin sayfası şu anda kapalı.', 'warn')
+    nav(to)
   }
 }

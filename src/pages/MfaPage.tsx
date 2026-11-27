@@ -69,13 +69,18 @@ export default function MfaPage({ embedded = false, onCancel }: { embedded?: boo
 
   const form = (
     <form className="stack a" noValidate onSubmit={submit}>
-      <div className="chip dark" style={{ alignSelf: 'flex-start' }}>
-        <Icon name="shield" size={14} stroke={2} />
-        İki adımlı doğrulama
-      </div>
-      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>
-        {st.k === 'enroll' ? 'Authenticator kurulumu' : 'Authenticator kodu'}
-      </h2>
+      {/* Hesap ayarlarındaki pencerede başlık pencerenin kendisinde; burada tekrar edilmez */}
+      {!embedded && (
+        <>
+          <div className="chip dark" style={{ alignSelf: 'flex-start' }}>
+            <Icon name="shield" size={14} stroke={2} />
+            İki adımlı doğrulama
+          </div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>
+            {st.k === 'enroll' ? 'Authenticator kurulumu' : 'Authenticator kodu'}
+          </h2>
+        </>
+      )}
       {st.k === 'loading' && (
         <p className="m">
           <span className="spinner" aria-hidden="true" /> Hazırlanıyor…
@@ -127,7 +132,7 @@ export default function MfaPage({ embedded = false, onCancel }: { embedded?: boo
           )}
           <button className="btn pri" style={{ minHeight: 50, fontSize: 16 }} type="submit" disabled={busy}>
             {busy ? <span className="spinner" aria-hidden="true" /> : null}
-            Doğrula ve gir
+            {embedded ? 'Doğrula ve etkinleştir' : 'Doğrula ve gir'}
           </button>
         </>
       )}

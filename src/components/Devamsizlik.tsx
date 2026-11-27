@@ -28,8 +28,13 @@ export interface AttLimits {
   thresholds: { sari: number; turuncu: number }
 }
 export const LEVEL_COLOR = { normal: 'var(--primary)', sari: '#c9962e', turuncu: '#e67700', kirmizi: '#c92a2a' } as const
-/** Yazı için koyu tonlar (beyaz zeminde WCAG AA kontrast). */
-export const LEVEL_INK = { normal: 'var(--primary)', sari: '#7a5a12', turuncu: '#a34a00', kirmizi: '#b02525' } as const
+/** Yazı tonları: renk temanın yazı rengiyle karışır; açık temada koyulaşır, koyu temada açılır (her ikisinde de WCAG AA). */
+export const LEVEL_INK = {
+  normal: 'var(--primary)',
+  sari: 'color-mix(in srgb, #c9962e 60%, var(--ink))',
+  turuncu: 'color-mix(in srgb, #e67700 60%, var(--ink))',
+  kirmizi: 'color-mix(in srgb, #c92a2a 60%, var(--ink))',
+} as const
 export const LEVEL_TEXT = { normal: 'Sınırın altında', sari: 'Dikkat', turuncu: 'Sınıra yaklaştı', kirmizi: 'Sınıra ulaştı' } as const
 export const gun = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','))
 

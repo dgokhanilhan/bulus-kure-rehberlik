@@ -184,12 +184,19 @@ export default function OdaOgrenciTakip() {
         <div className="oda-sinifsec">
           <h2 className="sec">Sınıflar</h2>
           <div className="oda-cips" role="group" aria-label="Seçili sınıflar">
-            {secim.map((c) => (
-              <button key={c} type="button" className="oda-cip secili" aria-label={`${c}: seçimden çıkar`} onClick={() => sec(c)}>
-                {c}
-                <Icon name="x" size={14} stroke={2.4} />
-              </button>
-            ))}
+            {secim.map((c) =>
+              // Tek seçili sınıf çıkarılamaz (boş seçim ilk sınıfa döner); çarpı yerine yalnız ad
+              secim.length > 1 ? (
+                <button key={c} type="button" className="oda-cip secili" aria-label={`${c}: seçimden çıkar`} onClick={() => sec(c)}>
+                  {c}
+                  <Icon name="x" size={14} stroke={2.4} />
+                </button>
+              ) : (
+                <span key={c} className="oda-cip secili">
+                  {c}
+                </span>
+              ),
+            )}
             <button type="button" className="oda-cip ekle" aria-expanded={panel} aria-controls="sinifPanel" onClick={() => setPanel((x) => !x)}>
               <Icon name={panel ? 'up' : 'plus'} size={14} stroke={2.4} />
               {panel ? 'Listeyi kapat' : 'Sınıf ekle'}

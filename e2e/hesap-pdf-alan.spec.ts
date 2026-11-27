@@ -35,7 +35,7 @@ test('hesap ayarları: kişisel tema, şifre ve e-posta formları; isteğe bağl
   await page.getByRole('button', { name: 'Authenticator ile etkinleştir' }).click()
   const secret = (await page.getByTestId('totp-secret').innerText()).replace(/\s/g, '')
   await page.getByLabel('Kod', { exact: true }).fill(await totpCode(secret))
-  await page.getByRole('button', { name: 'Doğrula ve gir' }).click()
+  await page.getByRole('button', { name: 'Doğrula ve etkinleştir' }).click()
   await expect(page.getByText('Aktif', { exact: true })).toBeVisible()
   await logout(page)
   await login(page, email, password)

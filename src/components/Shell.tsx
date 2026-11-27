@@ -342,6 +342,23 @@ export function AppShell() {
     setEnterKey(loc.pathname)
     setMore(false)
   }, [loc.pathname])
+  // "Daha" menüsü: Escape, dışarıya dokunma veya zil / profil açılınca kapanır
+  const moreRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!more) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMore(false)
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (moreRef.current?.contains(t) || (t as Element).closest?.('.morebtn')) return
+      setMore(false)
+    }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onDown)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onDown)
+    }
+  }, [more])
   // Telefonda alt çubukta ilk 4 sayfa + "Daha" (menü 5'ten uzunsa); geniş ekranda hepsi yan menüde.
   const overflow = items.length > 5
   const extra = overflow ? items.slice(4) : []
@@ -393,9 +410,9 @@ export function AppShell() {
           )}
         </div>
         {more && (
-          <div className="moresheet" role="menu" aria-label="Diğer sayfalar">
+          <div className="moresheet" role="menu" aria-label="Diğer sayfalar" ref={moreRef}>
             {extra.map((it) => (
-              <NavLink key={it.id} to={`/${it.id}`} role="menuitem" className="navbtn">
+              <NavLink key={it.id} to={`/${it.id}`} role="menuitem" className="navbtn" onClick={() => setMore(false)}>
                 <Icon name={it.icon} />
                 <span className="lbl">{it.label}</span>
                 {it.id === 'onaylar' && pending > 0 && <span className="badge">{pending}</span>}
