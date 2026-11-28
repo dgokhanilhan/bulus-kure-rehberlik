@@ -80,7 +80,7 @@ test.describe.serial('§6 Raporlar', () => {
     await expect(page.getByTestId('report-paper')).toContainText('E2E gündem: matematikte tekrar eden hatalar.')
   })
 
-  test('6.4 PDF indir: metin seçilebilir, Türkçe karakterler doğru, 1–2 sayfa', async ({ page }) => {
+  test('6.4 PDF indir: metin seçilebilir, Türkçe karakterler doğru, özet sayfası + 1–2 sayfa rapor', async ({ page }) => {
     await login(page, ...DEMO.veli)
     await page.getByRole('navigation', { name: 'Ana menü' }).getByText('Raporlar').click()
     await page.getByTestId('report-row').first().click()
@@ -92,8 +92,10 @@ test.describe.serial('§6 Raporlar', () => {
     await file.saveAs(path)
     expect(readFileSync(path).subarray(0, 5).toString()).toBe('%PDF-')
     const { pages, text } = await pdfText(path)
-    expect(pages).toBeGreaterThanOrEqual(1)
-    expect(pages).toBeLessThanOrEqual(2)
+    // İlk sayfa "Bir Bakışta" özeti, ardından tam rapor (1–2 sayfa)
+    expect(pages).toBeGreaterThanOrEqual(2)
+    expect(pages).toBeLessThanOrEqual(3)
+    expect(text).toContain('Gelişim özeti')
     for (const s of ['Elif Yıldız', 'T.C. İnkılap Tarihi', 'İngilizce', 'Fen Bilimleri'])
       expect(text, s).toContain(s)
     // Başlıklar Türkçe büyük harf kuralıyla (i → İ)

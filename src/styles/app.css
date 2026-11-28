@@ -215,6 +215,39 @@ h2.sec{font-size:17px;font-weight:600}
 .paper .foot{border-top:1px solid #e3ddd0;padding-top:10px;display:flex;justify-content:space-between;font-size:11px;color:#56636a;gap:10px;flex-wrap:wrap}
 .ptxt{width:100%;border:1px dashed #c9c0ae;border-radius:10px;background:#fffdf7;color:#1b2a2f;padding:10px 12px;font:inherit;line-height:1.6;resize:vertical;min-height:70px}
 .paper .sec{break-inside:avoid;page-break-inside:avoid}
+/* Rapor özeti (veli: Bir Bakışta, öğrenci: Öğrenci Sürümü) — tam raporun üstünde */
+.paper.oz{gap:18px;margin-bottom:22px}
+.paper.oz h3{margin-bottom:8px}
+.oz-bas{border-bottom:2px solid #1b2a2f;padding-bottom:12px}
+.oz-bas h2{font-family:var(--font-display);font-size:24px;line-height:1.25;margin:0 0 2px;font-weight:600}
+.oz-bas p{margin:0;color:#56636a;font-size:13px}
+.oz-ust{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:22px;align-items:start}
+.oz-net{background:#f6f3ec;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.oz-net span{font-size:12px;color:#56636a;text-transform:uppercase;letter-spacing:.5px}
+.oz-net b{font-size:44px;line-height:1.05;color:#1f5f5b}
+.oz-net em{font-style:normal;font-size:13px;color:#56636a}
+.oz-up{color:#1f5f5b!important;font-weight:600}.oz-down{color:#b5541a!important;font-weight:600}
+.oz-ders{display:flex;flex-direction:column;gap:7px}
+.oz-ders-satir{display:grid;grid-template-columns:minmax(0,130px) minmax(0,1fr) 70px;gap:10px;align-items:center;font-size:13.5px}
+.oz-ders-ad{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oz-bar{height:8px;border-radius:4px;background:#ece6d9;overflow:hidden}
+.oz-bar i{display:block;height:100%;background:#1f5f5b;border-radius:4px}
+.oz-ders-satir b{text-align:right}
+.oz-oncelik{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.oz-oncelik li::marker{color:#c9962e;font-weight:700}
+.oz-evde{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.oz-mentor{border-left:4px solid #c9962e;background:#fbf8f1;border-radius:0 10px 10px 0;padding:12px 16px}
+.oz-mentor p{margin:0}
+.oz-not{margin:0;font-size:12.5px;color:#56636a;border-top:1px solid #e3ddd0;padding-top:10px}
+.oz-rozet{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.oz-rozet div,.oz-hedef div{background:#f6f3ec;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:3px}
+.oz-rozet b{color:#1f5f5b;font-size:15px}
+.oz-rozet span,.oz-hedef span{font-size:13.5px}
+.oz-hedef{display:flex;flex-direction:column;gap:10px}
+.oz-hedef div{border-left:4px solid #c9962e;border-radius:0 12px 12px 0}
+.baslik-yarim{color:#b5541a;font-size:11.5px}
+.oz-gecis{max-width:794px;margin:0 auto 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:rgba(255,255,255,.85);font-size:13px}
+@media (max-width:640px){.oz-ust{grid-template-columns:minmax(0,1fr)}.oz-ders-satir{grid-template-columns:minmax(0,110px) minmax(0,1fr) 62px}.oz-bas h2{font-size:20px}.oz-net b{font-size:38px}}
 /* Rapor: alıcı seçimi üst çubuğa bağlı açılır kutu; metin kutuları yazı kadar uzar; yapay zekâ yazarken kutular parlar */
 .rsend{position:absolute;top:calc(100% + 6px);right:0;width:min(380px,calc(100vw - 32px));z-index:5;padding:16px;display:flex;flex-direction:column;gap:10px;color:var(--ink);box-shadow:0 18px 40px rgba(0,0,0,.35);animation:drop .25s var(--ease)}
 .rsend-not{margin:0;font-size:12.5px;color:var(--ink-muted)}
