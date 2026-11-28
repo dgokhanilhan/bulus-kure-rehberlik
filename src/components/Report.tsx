@@ -1,7 +1,18 @@
 import { scoreText } from '@/lib/examScores'
 // Rapor ekranı (veli / öğretmen): prototipteki tam ekran "kâğıt" görünümü.
 // Tam yetkili düzenler, yapay zekâyla yazdırır, kaydeder, gönderir; alıcılar yalnız okur ve PDF indirir.
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type TextareaHTMLAttributes,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/auth/AuthProvider'
@@ -11,7 +22,7 @@ import { SUBJECTS, fmt, outcomeCode, totalNet, type Dataset } from '@/lib/analiz
 import { useDatasetForExam } from '@/lib/sinavBaglami'
 import { useNotes, usePeople, useRefresh, useStudents, useTasks, useParentLinks } from '@/lib/data'
 import { aiPayload, genVeli, reportData, type OgretmenBody, type VeliBody } from '@/lib/rapor'
-import { fold, todayISO, trD } from '@/lib/format'
+import { fold, todayISO, trD, trDY } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { Icon } from './Icon'
 import { useAyar } from '@/lib/ayarlar'
@@ -134,6 +145,16 @@ function ReportView({
     return V ? ({ genel: '', guclu: '', gelisim: '', oneriler: '', mentor: '', rehber: '', ai: false } as VeliBody) : { toplanti: '' }
   })
   const [ai, setAi] = useState<null | 'run' | { err: string }>(null)
+  // Yapay zekâdan önceki metin ("Eski metne dön") ve yeni metnin işaretli olup olmadığı
+  const [prevBody, setPrevBody] = useState<VeliBody | null>(null)
+  const [yeni, setYeni] = useState(false)
+  const [sure, setSure] = useState(0)
+  useEffect(() => {
+    if (ai !== 'run') return
+    setSure(0)
+    const i = setInterval(() => setSure((x) => x + 1), 1000)
+    return () => clearInterval(i)
+  }, [ai])
   const [mentorEdited, setMentorEdited] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -197,6 +218,7 @@ function ReportView({
   }
 
   async function writeAi() {
+    const onceki = body as VeliBody
     setAi('run')
     const { data, error } = await supabase.functions.invoke('ai-veli-raporu', { body: { student_id: s.id, payload: aiPayload(R!) } })
     if (error || !data?.report) {
@@ -252,10 +274,19 @@ function ReportView({
       mentor: mentorEdited ? (b as VeliBody).mentor : r.mentorOneri,
       ai: true,
     }))
+    setPrevBody(onceki)
+    setYeni(true)
     setAi(null)
+    // Sayfa kaydırılmaz: öğretmen nerede bıraktıysa orada kalır; değişen bölümler işaretlenir.
     toast('Rapor yapay zekâ ile yazıldı', 'spark')
-    // Metin sayfanın aşağısındaki bölümlere yazılır; oraya kaydır ki görülsün.
-    requestAnimationFrame(() => document.getElementById('rapor-genel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  function eskiMetin() {
+    if (!prevBody) return
+    setBody(prevBody)
+    setPrevBody(null)
+    setYeni(false)
+    toast('Önceki metin geri getirildi')
   }
 
   const hasParent = links.data?.some((l) => l.student_id === s.id) ?? false
@@ -290,7 +321,7 @@ function ReportView({
     ['Ad Soyad', s.full_name],
     ['Şube', s.class_name],
     ['Deneme', `${exam.name}${exam.publisher ? ` · ${exam.publisher}` : ''}`],
-    ['Tarih', trD(exam.exam_date)],
+    ['Tarih', trDY(exam.exam_date)],
     ['Puan', scoreText(x)],
     ['Toplam Net', fmt(totalNet(x), 2)],
   ]
@@ -393,11 +424,12 @@ function ReportView({
 
   const tx = (k: 'genel' | 'guclu' | 'gelisim' | 'mentor' | 'rehber' | 'toplanti', rows: number, label: string, placeholder?: string) =>
     E ? (
-      <textarea
-        className="ptxt"
+      <AutoText
+        className={`ptxt${yeni && k !== 'rehber' && k !== 'toplanti' ? ' yeni' : ''}`}
         rows={rows}
         aria-label={label}
         placeholder={placeholder}
+        readOnly={ai === 'run' && k !== 'rehber'}
         value={((body as unknown as Record<string, string>)[k] ?? '') as string}
         onChange={(e) => {
           if (k === 'mentor') setMentorEdited(true)
@@ -413,7 +445,7 @@ function ReportView({
       <div className="rbar">
         <b>
           {V ? 'Veli raporu' : 'Öğretmen raporu'} · {s.full_name} · {exam.name}
-          {row?.status === 'sent' && (
+          {row?.status === 'sent' && E && (
             <span className="chip up" style={{ marginLeft: 8 }}>
               Gönderildi
             </span>
@@ -423,7 +455,7 @@ function ReportView({
           <button className={`btn sm ${ai === 'run' ? '' : 'gold'}`} onClick={writeAi} disabled={ai === 'run'}>
             {ai === 'run' ? (
               <>
-                <span className="spinner" aria-hidden="true" /> Yazıyor…
+                <span className="spinner" aria-hidden="true" /> Yazıyor… {sure} sn
               </>
             ) : (
               <>
@@ -444,7 +476,7 @@ function ReportView({
           PDF indir
         </button>
         {E && (
-          <button className="btn sm pri" onClick={() => setSendOpen(!sendOpen)}>
+          <button className="btn sm pri" onClick={() => setSendOpen(!sendOpen)} aria-expanded={sendOpen}>
             <Icon name="right" size={16} />
             Gönder
           </button>
@@ -452,15 +484,10 @@ function ReportView({
         <button className="btn sm" onClick={onClose} aria-label="Kapat">
           <Icon name="x" size={16} stroke={2.4} />
         </button>
-      </div>
 
+      {/* Alıcı seçimi üst çubuğa bağlı açılır: sayfanın neresinde olunursa olunsun "Gönder"in hemen altında görünür. */}
       {sendOpen && (
-        <div
-          className="card"
-          style={{ maxWidth: 840, margin: '0 auto 14px', padding: 16, display: 'flex', flexDirection: 'column', gap: 10, animation: 'drop .3s var(--ease)' }}
-          role="group"
-          aria-label="Alıcılar"
-        >
+        <div className="card rsend" role="group" aria-label="Alıcılar">
           <b>Kime gönderilsin?</b>
           {V ? (
             <>
@@ -498,8 +525,9 @@ function ReportView({
               ))}
             </>
           )}
+          {V && <p className="rsend-not">Gönderince seçilenlerin uygulamasına bildirim gider; raporu uygulamada ve PDF olarak görürler.</p>}
           <div className="btns">
-            <button className="btn pri" onClick={send}>
+            <button className="btn pri" onClick={send} disabled={busy}>
               <Icon name="right" size={16} />
               Gönder
             </button>
@@ -509,20 +537,43 @@ function ReportView({
           </div>
         </div>
       )}
+      </div>
+
+      {ai === 'run' && (
+        <div className="aibox ai-adim" role="status">
+          <span className="spinner" aria-hidden="true" />
+          <span style={{ flex: 1 }}>
+            <b>Yapay zekâ yazıyor · {sure} sn.</b> Metin yazılıp yazım kurallarına göre denetleniyor; genelde 5–15 saniye sürer. Öğrenci adı gönderilmez.
+          </span>
+        </div>
+      )}
       {ai && ai !== 'run' && (
         <div className="aibox" style={{ maxWidth: 840, margin: '0 auto 14px' }} role="status">
           <Icon name="warn" size={18} />
           {ai.err}
         </div>
       )}
-      {V && vb.ai && E && (
-        <div className="aibox" style={{ maxWidth: 840, margin: '0 auto 14px' }}>
+      {V && vb.ai && E && ai !== 'run' && (
+        <div className="aibox" style={{ maxWidth: 840, margin: '0 auto 14px' }} role="status">
           <Icon name="spark" size={18} />
-          Metin yapay zekâ tarafından senin kurallarınla yazıldı. Gözden geçirip düzenleyebilirsin.
+          <span style={{ flex: 1 }}>
+            {yeni ? (
+              <>
+                <b>Yeni metin hazır.</b> Değişen bölümler sarı çizgiyle işaretli; gözden geçirip düzenleyebilirsin.
+              </>
+            ) : (
+              'Metin yapay zekâ tarafından senin kurallarınla yazıldı. Gözden geçirip düzenleyebilirsin.'
+            )}
+          </span>
+          {yeni && prevBody && (
+            <button className="btn sm" onClick={eskiMetin}>
+              Eski metne dön
+            </button>
+          )}
         </div>
       )}
 
-      <article className="paper" data-testid="report-paper">
+      <article className={`paper${ai === 'run' ? ' ai-yaz' : ''}`} data-testid="report-paper">
         <div className="rh">
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <img src={okulLogo} alt="Buluş Küre Koleji logosu" width={44} height={44} style={{ borderRadius: '50%' }} />
@@ -673,9 +724,10 @@ function ReportView({
               <h3>Çalışma Önerileri</h3>
               {E ? (
                 <>
-                  <textarea
-                    className="ptxt"
+                  <AutoText
+                    className={`ptxt${yeni ? ' yeni' : ''}`}
                     rows={5}
+                    readOnly={ai === 'run'}
                     aria-label="Çalışma önerileri (her satıra bir öneri)"
                     value={vb.oneriler}
                     onChange={(e) => set('oneriler', e.target.value)}
@@ -825,6 +877,33 @@ function ReportView({
       </article>
     </>
   )
+}
+
+/** Yazı kadar uzayan metin kutusu: içinde ayrıca kaydırma gerekmez, metnin tamamı görünür. */
+function AutoText(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const t = ref.current
+    if (!t) return
+    const fit = () => {
+      t.style.height = 'auto'
+      t.style.height = `${t.scrollHeight + 2}px`
+    }
+    fit()
+    // Genişlik değişince (pencere, telefon döndürme) satır sayısı da değişir; yükseklik değişimi yok sayılır.
+    let w = t.clientWidth
+    const ro =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => {
+            if (t.clientWidth === w) return
+            w = t.clientWidth
+            fit()
+          })
+    ro?.observe(t)
+    return () => ro?.disconnect()
+  }, [props.value])
+  return <textarea ref={ref} {...props} />
 }
 
 function Check({ on, onClick, label, hint, bold, disabled }: { on: boolean; onClick: () => void; label: string; hint?: string; bold?: boolean; disabled?: boolean }) {

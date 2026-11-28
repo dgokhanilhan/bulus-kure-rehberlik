@@ -27,7 +27,8 @@ test.describe.serial('§6 Raporlar', () => {
     await expect(page.getByLabel('Genel değerlendirme')).not.toHaveValue('')
 
     await page.getByRole('button', { name: 'Yapay zekâ ile yaz' }).click()
-    await expect(page.getByText('Metin yapay zekâ tarafından senin kurallarınla yazıldı.')).toBeVisible()
+    await expect(page.getByText('Yeni metin hazır.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Eski metne dön' })).toBeVisible()
     await expect(page.getByLabel('Genel değerlendirme')).toHaveValue(/^Öğrencimiz TG-5 sonucunda/)
     await page.getByLabel('Mentör yorumu').fill('E2E mentör: Elif ile haftalık matematik planını birlikte takip edeceğiz.')
     await page.getByLabel('Rehber öğretmen yorumu').fill('E2E rehber: Planlı çalışma alışkanlığı gelişiyor.')
