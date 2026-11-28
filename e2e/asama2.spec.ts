@@ -58,7 +58,11 @@ test.describe.serial('§3 Görevler', () => {
     const dlg = page.getByRole('dialog', { name: 'Görev ata' })
     const konu = dlg.getByRole('group', { name: 'Konu' }).getByRole('button', { name: /Kareköklü ifadeler/ })
     await expect(konu.getByText(/Tekrar eden hata · \d deneme/)).toBeVisible()
+    // Çoklu seçim: önceden seçili konular kaldırılır, yalnız bu konu seçilir
+    const secili = dlg.getByRole('group', { name: 'Konu' }).locator('button[aria-pressed="true"]')
+    while ((await secili.count()) > 0) await secili.first().click()
     await konu.click()
+    await expect(konu).toHaveAttribute('aria-pressed', 'true')
     await dlg.getByRole('button', { name: 'Kaydet ve yeni ekle' }).click()
     await expect(page.getByText('Görev atandı')).toBeVisible()
 

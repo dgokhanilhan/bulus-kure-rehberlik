@@ -177,7 +177,8 @@ export const SUBJECT_SHORT: Record<string, string> = {
 
 interface TaskForm {
   subject: Subject
-  konu: string | null // listeden seçilen kazanım kodu
+  /** Listeden seçilen kazanım kodları. Yeni görevde birden çok seçilebilir (her biri ayrı görev olur); düzenlemede tek. */
+  konular: string[]
   konuOther: string
   adet: string
   due: string
@@ -226,7 +227,7 @@ export function TaskModal({
       )
       return {
         subject: subj,
-        konu: std?.code ?? null,
+        konular: std ? [std.code] : [],
         konuOther: std ? '' : edit.topic,
         adet: String(edit.question_count),
         due: edit.due_date,
@@ -238,7 +239,7 @@ export function TaskModal({
     const top = repeats[0]
     const subject = preset?.subject ?? top?.outcome.subject ?? (subjects.find((x) => x.code === 'MAT') ?? subjects[0])?.code ?? 'MAT'
     const konu = preset ? (preset.code ?? null) : (top?.outcome.code ?? null)
-    return { subject, konu, konuOther: preset?.konuOther ?? '', adet: '20', due: nextDow(5), weekly: false, veli: true, note: preset?.note ?? '' }
+    return { subject, konular: konu ? [konu] : [], konuOther: preset?.konuOther ?? '', adet: '20', due: nextDow(5), weekly: false, veli: true, note: preset?.note ?? '' }
   }
   const [m, setM] = useState<TaskForm>(init)
   const [err, setErr] = useState<string | null>(null)
@@ -256,16 +257,24 @@ export function TaskModal({
     return [...base].sort((a, b) => rank(a) - rank(b))
   }, [outcomes, usedCodes, repeats, m.subject])
 
+  // Seçili kazanımlar listedeki sırayla; düzenlemede yazılan konu listedekinin yerine geçer (eski davranış)
+  const secili = list.filter((o) => m.konular.includes(o.code))
+  const yazilan = m.konuOther.trim()
+  const hedefler: { topic: string; own: Outcome | null }[] = edit
+    ? yazilan
+      ? [{ topic: yazilan, own: null }]
+      : secili.slice(0, 1).map((o) => ({ topic: o.title, own: o }))
+    : [...secili.map((o) => ({ topic: o.title, own: o })), ...(yazilan ? [{ topic: yazilan, own: null }] : [])]
+  const gorevSayisi = hedefler.length
+
   async function save(more: boolean) {
-    const chosen = list.find((o) => o.code === m.konu)
-    const topic = m.konuOther.trim() || chosen?.title
     const adet = parseInt(m.adet, 10)
-    if (!topic) return setErr('Bir konu seç ya da yaz.')
+    if (!gorevSayisi) return setErr('Bir konu seç ya da yaz.')
     if (!(adet > 0) || adet > 500) return setErr('Soru sayısı 1 ile 500 arasında olmalı.')
     if (!m.due || m.due < today) return setErr('Son gün bugünden önce olamaz.')
     const sd = subjects.find((x) => x.code === m.subject)
-    const own = m.konuOther.trim() ? null : chosen
-    const row = {
+    // Her konu ayrı görev: öğrenci tek tek tamamlar, sonraki denemedeki gidiş konu bazında izlenir
+    const rows = hedefler.map(({ topic, own }) => ({
       student_id: student.id,
       // ders: veritabanı ders kodu (bölüm anahtarı FEL2 → FEL); LGS'de aynı
       subject: sd?.base ?? m.subject,
@@ -279,19 +288,22 @@ export function TaskModal({
       weekly: m.weekly,
       parent_visible: m.veli,
       note: m.note.trim() || null,
-    }
+    }))
     setBusy(true)
     let yeniId: string | null = null
-    const { error } = edit
-      ? await supabase.from('tasks').update(row).eq('id', edit.id)
-      : onSaved
-        ? await supabase
-            .from('tasks')
-            .insert({ ...row, created_by: (await supabase.auth.getUser()).data.user!.id })
-            .select('id')
-            .single()
-            .then((r) => ((yeniId = (r.data as { id: string } | null)?.id ?? null), r))
-        : await supabase.from('tasks').insert({ ...row, created_by: (await supabase.auth.getUser()).data.user!.id })
+    let error: { message?: string } | null = null
+    if (edit) error = (await supabase.from('tasks').update(rows[0]!).eq('id', edit.id)).error
+    else {
+      const uid = (await supabase.auth.getUser()).data.user!.id
+      // Tek istekte eklenir: ya hepsi ya hiçbiri
+      const r = await supabase
+        .from('tasks')
+        .insert(rows.map((row) => ({ ...row, created_by: uid })))
+        .select('id')
+      error = r.error
+      // Görüşme kararı ilk göreve bağlanır
+      yeniId = (r.data as { id: string }[] | null)?.[0]?.id ?? null
+    }
     setBusy(false)
     if (error) return setErr(error.message || 'Kaydedilemedi.')
     if (yeniId && onSaved) onSaved(yeniId)
@@ -300,10 +312,14 @@ export function TaskModal({
       toast('Görev güncellendi')
       return onClose()
     }
-    toast('Görev atandı')
-    if (more) setM((x) => ({ ...x, konu: null, konuOther: '', note: '' }))
+    toast(rows.length > 1 ? `${rows.length} görev atandı` : 'Görev atandı')
+    if (more) setM((x) => ({ ...x, konular: [], konuOther: '', note: '' }))
     else onClose()
   }
+  const konuSec = (code: string) =>
+    edit
+      ? set({ konular: [code], konuOther: '' })
+      : set({ konular: m.konular.includes(code) ? m.konular.filter((c) => c !== code) : [...m.konular, code] })
 
   const shortcuts: [string, string][] = [
     [addDays(today, 1), 'Yarın'],
@@ -329,7 +345,7 @@ export function TaskModal({
             </button>
           )}
           <button className="btn pri" type="button" disabled={busy} onClick={() => save(false)}>
-            {edit ? 'Kaydet' : 'Görevi ata'}
+            {edit ? 'Kaydet' : gorevSayisi > 1 ? `${gorevSayisi} görevi ata` : 'Görevi ata'}
           </button>
         </>
       }
@@ -345,16 +361,19 @@ export function TaskModal({
       >
         <div className="stack" style={{ gap: 6 }}>
           <span className="label">Ders</span>
-          <Seg label="Ders" value={m.subject} onChange={(subject) => set({ subject, konu: null })} options={subjects.map((s) => [s.code, s.short] as const)} />
+          <Seg label="Ders" value={m.subject} onChange={(subject) => set({ subject, konular: [] })} options={subjects.map((s) => [s.code, s.short] as const)} />
         </div>
         <div className="stack" style={{ gap: 6 }}>
-          <span className="label">Konu</span>
+          <span className="label">
+            Konu
+            {!edit && <span className="konu-ipucu"> · birden çok seçebilirsin, her konu ayrı görev olur</span>}
+          </span>
           <div className="pick" role="group" aria-label="Konu">
             {list.map((o) => {
               const r = repeats.find((x) => x.outcome.code === o.code)
-              const on = m.konu === o.code && !m.konuOther
+              const on = m.konular.includes(o.code) && !(edit && m.konuOther)
               return (
-                <button type="button" key={o.code} aria-pressed={on} onClick={() => set({ konu: o.code, konuOther: '' })}>
+                <button type="button" key={o.code} aria-pressed={on} onClick={() => konuSec(o.code)}>
                   <span style={{ flex: 1 }}>{o.title}</span>
                   {r && <span className="chip down">Tekrar eden hata · {r.count} deneme</span>}
                   {on && <Icon name="check" size={18} stroke={2.6} />}
@@ -366,6 +385,11 @@ export function TaskModal({
             Başka bir konu yaz
             <input id="tKonuOther" placeholder="Örn. Karışık tekrar testi" value={m.konuOther} onChange={(e) => set({ konuOther: e.target.value })} />
           </label>
+          {!edit && gorevSayisi > 1 && (
+            <p className="konu-ozet" role="status">
+              {gorevSayisi} ayrı görev atanacak · her biri {parseInt(m.adet, 10) || 0} soru, toplam {gorevSayisi * (parseInt(m.adet, 10) || 0)} soru
+            </p>
+          )}
         </div>
         <div className="grid2">
           <div className="stack" style={{ gap: 6 }}>
