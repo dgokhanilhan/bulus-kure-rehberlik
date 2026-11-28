@@ -5,6 +5,7 @@ import logo from '@/assets/okul-logo.jpg?url'
 import sansRegular from '@ibm/plex-sans/fonts/complete/woff/IBMPlexSans-Regular.woff?url'
 import sansSemi from '@ibm/plex-sans/fonts/complete/woff/IBMPlexSans-SemiBold.woff?url'
 import monoMedium from '@ibm/plex-mono/fonts/complete/woff/IBMPlexMono-Medium.woff?url'
+import type { RaporOzet } from './rapor'
 
 Font.register({ family: 'Plex', fonts: [{ src: sansRegular }, { src: sansSemi, fontWeight: 600 }] })
 Font.register({ family: 'PlexMono', src: monoMedium })
@@ -73,7 +74,8 @@ export interface PdfCommon {
   totalNet: string
   reportDate: string
   subjects: PdfSubjectRow[]
-  weaknesses?: {konu:string;kod:string;ders:string;source:'official'|'pdf';type:string}[]
+  /** eksik: başlık yayınevi kaynağında yarım; veli PDF'inde tek tek yazılmaz */
+  weaknesses?: { konu: string; kod: string; ders: string; source: 'official' | 'pdf'; type: string; eksik?: boolean }[]
   /** Okul ayarları (rapor.*): başlık, alt bilgi, imza satırı, logo */
   baslik?: string
   altBilgi?: string
@@ -88,6 +90,8 @@ export interface PdfVeli extends PdfCommon {
   oneriler: string[]
   mentor: string
   rehber: string
+  /** İlk sayfa: veliye "Bir Bakışta", öğrenciye "Öğrenci Sürümü"; tam rapor sonraki sayfadan başlar */
+  ozet?: RaporOzet & { mod: 'veli' | 'ogrenci' }
 }
 export interface PdfOgretmen extends PdfCommon {
   kind: 'ogretmen'
@@ -171,11 +175,173 @@ function DersTablosu({ rows }: { rows: PdfSubjectRow[] }) {
   )
 }
 
+/** Yanlış çıkan hedefler. Veli PDF'inde başlığı yayınevi kaynağında yarım gelenler tek tek yazılmaz; sayısı not edilir. */
+function Hedefler({ w, veli }: { w: NonNullable<PdfCommon['weaknesses']>; veli: boolean }) {
+  return (
+    <>
+      {(['official', 'pdf'] as const).map((source) => {
+        const tum = w.filter((x) => x.source === source)
+        const rows = veli ? tum.filter((x) => !x.eksik) : tum
+        const gizli = tum.length - rows.length
+        const tur = (x: (typeof w)[number]) => (x.type === 'OGRENME_CIKTISI' ? 'Öğrenme çıktısı' : 'Kazanım')
+        const ad = (x: (typeof w)[number]) => (x.eksik ? `${x.konu}… (başlık kaynakta yarım)` : x.konu)
+        return tum.length ? (
+          <View key={source}>
+            <H>{source === 'pdf' ? 'Okulun PDF’den eklediği çalışma hedefleri' : 'Resmî programdaki çalışma hedefleri'}</H>
+            {source === 'pdf' && <Text style={s.p}>Deneme PDF’sinden okul tarafından eklenen hedeflerdir; resmî program eşleşmesi değildir.</Text>}
+            {rows.length > 0 && (
+              <Table
+                head={veli ? ['Ders', 'Hedef', 'Tür'] : ['Ders', 'Hedef', 'Tür', 'Kod']}
+                rows={rows.map((x) => (veli ? [x.ders, ad(x), tur(x)] : [x.ders, ad(x), tur(x), x.kod]))}
+                widths={veli ? [22, 58, 20] : [18, 47, 17, 18]}
+                numFrom={5}
+              />
+            )}
+            {gizli > 0 && (
+              <Text style={[s.p, { fontSize: 8.5, color: C.muted, marginTop: 3 }]}>
+                {gizli} hedefin başlığı yayınevinin kaynağında yarım geldiği için burada listelenmedi.
+              </Text>
+            )}
+          </View>
+        ) : null
+      })}
+    </>
+  )
+}
+
+const OZ = StyleSheet.create({
+  h2: { fontSize: 18, fontWeight: 600, lineHeight: 1.3 },
+  kart: { backgroundColor: C.paper, borderRadius: 8, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 6 },
+  kartSol: { borderLeftWidth: 3, borderLeftColor: C.hl },
+})
+/** Ders çubukları: net / soru sayısı; yön oku ve renkle (renk tek başına anlam taşımaz) */
+function OzetDersler({ o }: { o: RaporOzet }) {
+  return (
+    <View>
+      {o.dersler.map((d) => (
+        <View key={d.ad} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }} wrap={false}>
+          <Text style={{ width: 120, fontSize: 9.5 }}>{d.ad}</Text>
+          <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: '#ece6d9' }}>
+            <View style={{ width: `${Math.round(Math.max(0, Math.min(1, d.net / (d.soru || 1))) * 100)}%`, height: 6, borderRadius: 3, backgroundColor: C.primary }} />
+          </View>
+          <Text style={[s.num, { width: 64, color: d.trend === 'up' ? C.primary : d.trend === 'down' ? C.signal : C.ink }]}>
+            {`${d.net.toFixed(2).replace('.', ',')}${d.trend === 'up' ? ' ↑' : d.trend === 'down' ? ' ↓' : ''}`}
+          </Text>
+        </View>
+      ))}
+    </View>
+  )
+}
+function OzetSayfa({ d }: { d: PdfVeli }) {
+  const o = d.ozet!
+  const n1 = (v: number) => (Math.round(v * 10) / 10).toFixed(1).replace('.', ',').replace(/,0$/, '')
+  const fark =
+    o.fark == null
+      ? 'İlk deneme: bundan sonrakiler bu sonuçla karşılaştırılacak'
+      : Math.abs(o.fark) < 0.05
+        ? 'Önceki denemeyle aynı seviyede'
+        : `${o.fark > 0 ? '↑' : '↓'} önceki denemeden ${n1(Math.abs(o.fark))} net ${o.fark > 0 ? 'fazla' : 'az'}`
+  const ogr = o.mod === 'ogrenci'
+  return (
+    <Page size="A4" style={s.page}>
+      <View style={s.head}>
+        <View style={s.brandRow}>
+          {d.logo !== false && <Image src={logo} style={s.logo} />}
+          <View>
+            <Text style={s.brand}>Buluş Küre Koleji</Text>
+            <Text style={s.sub}>{ogr ? 'Rehberlik & Mentörlük · Sonuç kartın' : 'Rehberlik & Mentörlük · Gelişim özeti'}</Text>
+          </View>
+        </View>
+        <View>
+          <Text style={[s.sub, { textAlign: 'right' }]}>Deneme tarihi</Text>
+          <Text style={{ fontSize: 10, fontWeight: 600, textAlign: 'right' }}>{d.date}</Text>
+        </View>
+      </View>
+      <Serit />
+      {ogr ? (
+        <>
+          <Text style={OZ.h2}>{`Merhaba ${d.student.split(/\s+/)[0]}! İşte ${d.exam.split(" · ")[0]} sonucun`}</Text>
+          <Text style={[s.sub, { marginBottom: 8 }]}>Yalnız kendinle yarışıyorsun</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -3 }}>
+            {o.rozetler.map((r) => (
+              <View key={r.baslik} style={{ width: '33.33%', padding: 3 }}>
+                <View style={[OZ.kart, { marginBottom: 0, minHeight: 46 }]}>
+                  <Text style={{ fontWeight: 600, color: C.primary }}>{r.baslik}</Text>
+                  <Text style={{ fontSize: 9 }}>{r.metin}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          <H>Senin çizgin</H>
+          <OzetDersler o={o} />
+          <H>Sıradaki hedeflerin</H>
+          {o.hedefler.map((h, i) => (
+            <View key={i} style={[OZ.kart, OZ.kartSol]} wrap={false}>
+              <Text style={{ fontWeight: 600 }}>{`Hedef ${i + 1} · ${h.baslik}`}</Text>
+              <Text style={{ fontSize: 9.5 }}>{h.metin}</Text>
+            </View>
+          ))}
+        </>
+      ) : (
+        <>
+          <Text style={OZ.h2}>{`${d.student} · ${d.exam}`}</Text>
+          <View style={{ flexDirection: 'row', marginTop: 8 }}>
+            <View style={[OZ.kart, { width: 150, marginRight: 14, marginBottom: 0 }]}>
+              <Text style={s.infoK}>TOPLAM NET</Text>
+              <Text style={{ fontSize: 30, fontWeight: 600, color: C.primary, lineHeight: 1.15 }}>{o.toplamNet}</Text>
+              <Text style={{ fontSize: 8.5, color: o.fark != null && o.fark >= 0.05 ? C.primary : o.fark != null && o.fark <= -0.05 ? C.signal : C.muted }}>{fark}</Text>
+              {o.rekor && <Text style={{ fontSize: 8.5, color: C.muted }}>{`Son ${Math.min(o.denemeSayisi, 5)} denemenin en yüksek sonucu`}</Text>}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.th, { marginBottom: 4 }]}>DERSLER</Text>
+              <OzetDersler o={o} />
+            </View>
+          </View>
+          <H>Kısaca</H>
+          <Text style={s.p}>{o.kisaca}</Text>
+          {o.oncelikler.length > 0 && (
+            <>
+              <H>{o.oncelikler.length === 3 ? 'Önümüzdeki 2 haftanın 3 önceliği' : 'Önümüzdeki 2 haftanın öncelikleri'}</H>
+              {o.oncelikler.map((x, i) => (
+                <View key={i} style={[OZ.kart, OZ.kartSol, { flexDirection: 'row' }]} wrap={false}>
+                  <Text style={{ width: 16, fontWeight: 600, color: C.hl }}>{i + 1}</Text>
+                  <Text style={{ flex: 1, fontSize: 9.5 }}>{x}</Text>
+                </View>
+              ))}
+            </>
+          )}
+          <H>Evde yapabilecekleriniz</H>
+          {o.evde.map((x, i) => (
+            <View style={s.li} key={i} wrap={false}>
+              <Text style={{ width: 12 }}>•</Text>
+              <Text style={{ flex: 1 }}>{x}</Text>
+            </View>
+          ))}
+          {d.mentor.trim() ? (
+            <>
+              <H>Mentör öğretmenimizden</H>
+              <View style={[s.kutu, { borderLeftWidth: 3, borderLeftColor: C.hl }]}>
+                <Text style={{ fontSize: 10 }}>{d.mentor}</Text>
+              </View>
+            </>
+          ) : null}
+        </>
+      )}
+      <Text style={[s.sub, { marginTop: 10 }]}>Ayrıntılı rapor sonraki sayfada devam ediyor.</Text>
+      <View style={s.foot} fixed>
+        <Text>{ogr ? 'Bu sayfa yalnız senin önceki denemelerinle karşılaştırma yapar.' : 'Öğrenci yalnız kendi önceki denemeleriyle karşılaştırılır; sınıf sıralaması kullanılmaz.'}</Text>
+        <Text render={sayfaNo} />
+      </View>
+    </Page>
+  )
+}
+
 function Report(d: PdfVeli | PdfOgretmen) {
   const V = d.kind === 'veli'
   const baslik = d.baslik || (V ? 'Veli Gelişim Raporu' : 'Öğretmen Bilgilendirme Raporu')
   return (
     <Document title={`${baslik} · ${d.student} · ${d.exam}`} author="Buluş Küre Koleji" language="tr">
+      {V && d.ozet && <OzetSayfa d={d} />}
       <Page size="A4" style={s.page}>
         <View style={s.head}>
           <View style={s.brandRow}>
@@ -223,10 +389,7 @@ function Report(d: PdfVeli | PdfOgretmen) {
         <H>Ders Performansı</H>
         <DersTablosu rows={d.subjects} />
         {!V && <>
-        {(['official','pdf'] as const).map(source=>{
-          const rows=(d.weaknesses??[]).filter(w=>w.source===source)
-          return rows.length ? <View key={source}><H>{source==='pdf'?'Okulun PDF’den eklediği çalışma hedefleri':'Resmî programdaki çalışma hedefleri'}</H>{source==='pdf'&&<Text style={s.p}>Deneme PDF’sinden okul tarafından eklenen hedeflerdir; resmî program eşleşmesi değildir.</Text>}<Table head={V?['Ders','Hedef','Tür']:['Ders','Hedef','Tür','Kod']} rows={rows.map(w=>V?[w.ders,w.konu,w.type==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım']:[w.ders,w.konu,w.type==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım',w.kod])} widths={V?[22,58,20]:[18,47,17,18]} numFrom={5}/></View>:null
-        })}
+        <Hedefler w={d.weaknesses ?? []} veli={V} />
         </>}
         {V ? (
           <>
@@ -259,10 +422,7 @@ function Report(d: PdfVeli | PdfOgretmen) {
                 </View>
               </>
             )}
-        {(['official','pdf'] as const).map(source=>{
-          const rows=(d.weaknesses??[]).filter(w=>w.source===source)
-          return rows.length ? <View key={source}><H>{source==='pdf'?'Okulun PDF’den eklediği çalışma hedefleri':'Resmî programdaki çalışma hedefleri'}</H>{source==='pdf'&&<Text style={s.p}>Deneme PDF’sinden okul tarafından eklenen hedeflerdir; resmî program eşleşmesi değildir.</Text>}<Table head={V?['Ders','Hedef','Tür']:['Ders','Hedef','Tür','Kod']} rows={rows.map(w=>V?[w.ders,w.konu,w.type==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım']:[w.ders,w.konu,w.type==='OGRENME_CIKTISI'?'Öğrenme çıktısı':'Kazanım',w.kod])} widths={V?[22,58,20]:[18,47,17,18]} numFrom={5}/></View>:null
-        })}
+        <Hedefler w={d.weaknesses ?? []} veli={V} />
           </>
         ) : (
           <>

@@ -11,6 +11,7 @@ import { withCatalogItems, type ItemRow } from './genelVeriSeti'
 import { calendarInScope } from './calendarScope'
 import { gizliKonuSil } from './pdfTopics'
 import { tazele } from './tazele'
+import { katalogBaslik } from './baslik'
 
 async function all<T>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await q
@@ -550,7 +551,13 @@ export function useDataset(enabled = true) {
             .order('q_no')
             .range(a, b),
         ),
-        all<Outcome>(supabase.from('outcomes').select('code, subject, title').order('code')),
+        all<Outcome & { full_text?: string | null }>(supabase.from('outcomes').select('code, subject, title, full_text').order('code')).then((l) =>
+          // Kısa adı "Hz" gibi kesik kalan eski kazanımlar her yerde tam metinle; "…" ile kısaltılanların tam metni raporlarda (fullTitle)
+          l.map(({ full_text, ...o }) => {
+            const tam = katalogBaslik(o.title, full_text)
+            return { ...o, title: o.title.replace(/\.$/, '').trim().length < 6 ? tam : o.title, ...(tam !== o.title ? { fullTitle: tam } : {}) }
+          }),
+        ),
         // source: öğrencinin kitapçığı (source.booklets) — Eşleşmeyen hedefler'den eşlenen hedefler kitapçığa göre bağlanır
         pages<Result & { exams?: unknown; source?: unknown }>((a, b) =>
           supabase

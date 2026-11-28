@@ -73,6 +73,8 @@ export interface Outcome {
   code: string
   subject: Subject
   title: string
+  /** Kısa adı kesik eski kazanımın tam metni (rapor ve PDF'te kullanılır). */
+  fullTitle?: string
   rawTitle?: string // AI katalog doğrulaması için kaynaktaki metin; görünümde temizlenmiş title kullanılır.
   /** Gösterilen resmî kod (genel); yoksa code gösterilir. */
   display?: string | null

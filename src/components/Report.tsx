@@ -21,7 +21,9 @@ import { isFullAccess, isTeacherP, ROLE_TR, roleOf } from '@/lib/roles'
 import { SUBJECTS, fmt, outcomeCode, totalNet, type Dataset } from '@/lib/analiz'
 import { useDatasetForExam } from '@/lib/sinavBaglami'
 import { useNotes, usePeople, useRefresh, useStudents, useTasks, useParentLinks } from '@/lib/data'
-import { aiPayload, genVeli, reportData, type OgretmenBody, type VeliBody } from '@/lib/rapor'
+import { aiPayload, genVeli, raporOzet, reportData, type OgretmenBody, type VeliBody } from '@/lib/rapor'
+import { RaporOzetKagidi, type OzetMod } from './RaporOzet'
+import { tekTamamlama } from '@/lib/baslik'
 import { fold, todayISO, trD, trDY } from '@/lib/format'
 import type { Student } from '@/lib/types'
 import { Icon } from './Icon'
@@ -163,6 +165,27 @@ function ReportView({
   const people = usePeople()
   const links = useParentLinks(E)
   const [rec, setRec] = useState({ veli: true, ogrenci: false, users: [] as string[] })
+  // İlk sayfa: veliye "Bir Bakışta", öğrenciye "Öğrenci Sürümü"; öğretmen ikisini de önizleyebilir
+  const [ozGor, setOzGor] = useState<OzetMod>('veli')
+  const ozMod: OzetMod = role === 'ogrenci' ? 'ogrenci' : role === 'veli' ? 'veli' : ozGor
+  // Yayınevi PDF'inde yarım kesilen başlıklar: resmî listede bu başlangıçla tek bir başlık varsa o kullanılır (uydurma yok)
+  const eksikDersler = [...new Set((R?.lastWrong ?? []).filter((w) => w.eksik).map((w) => w.subject))].sort()
+  const tamam = useQuery({
+    queryKey: ['baslik-tamamla', s.grade, eksikDersler.join(',')],
+    enabled: eksikDersler.length > 0 && s.grade != null,
+    staleTime: 3600_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('learning_outcomes')
+        .select('subject_code, title, curriculum_versions!inner(curriculum_type)')
+        .in('subject_code', eksikDersler)
+        .eq('grade', s.grade!)
+        .eq('active', true)
+        .neq('curriculum_versions.curriculum_type', 'PDF')
+      if (error) throw error
+      return (data ?? []) as { subject_code: string; title: string }[]
+    },
+  })
 
   if (!R)
     return (
@@ -173,6 +196,11 @@ function ReportView({
         </button>
       </div>
     )
+  const lastWrong = R.lastWrong.map((w) => {
+    if (!w.eksik) return w
+    const t = tekTamamlama(w.title, (tamam.data ?? []).filter((x) => x.subject_code === w.subject).map((x) => x.title))
+    return t ? { ...w, title: t, eksik: false } : w
+  })
   const vb = body as VeliBody
   const ob = body as OgretmenBody
   const set = (k: string, v: string) => setBody((b) => ({ ...b, [k]: v }))
@@ -354,7 +382,8 @@ function ReportView({
         prev: r.p ? fmt(r.p.net, 2) : '—',
         trend: r.trend,
       })),
-      weaknesses: R!.lastWrong.map((w) => ({
+      weaknesses: lastWrong.map((w) => ({
+        eksik: !!w.eksik,
         konu: w.title,
         kod: w.code,
         ders: R!.subjects.find((d) => d.code === w.subject)?.ad ?? w.subject,
@@ -375,6 +404,7 @@ function ReportView({
             .filter(Boolean),
           mentor: vb.mentor,
           rehber: vb.rehber ?? '',
+          ozet: { ...raporOzet(R!, vb), mod: ozMod },
         }
       : {
           ...common,
@@ -573,6 +603,18 @@ function ReportView({
         </div>
       )}
 
+      {V && E && (
+        <div className="oz-gecis" role="group" aria-label="İlk sayfa önizlemesi">
+          <span>İlk sayfa önizlemesi:</span>
+          <button className={`btn sm${ozGor === 'veli' ? ' pri' : ''}`} aria-pressed={ozGor === 'veli'} onClick={() => setOzGor('veli')}>
+            Velinin gördüğü
+          </button>
+          <button className={`btn sm${ozGor === 'ogrenci' ? ' pri' : ''}`} aria-pressed={ozGor === 'ogrenci'} onClick={() => setOzGor('ogrenci')}>
+            Öğrencinin gördüğü
+          </button>
+        </div>
+      )}
+      {V && <RaporOzetKagidi o={raporOzet(R, vb)} mod={ozMod} ad={s.full_name} deneme={exam.name} tarih={trDY(exam.exam_date)} mentor={vb.mentor} />}
       <article className={`paper${ai === 'run' ? ' ai-yaz' : ''}`} data-testid="report-paper">
         <div className="rh">
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -672,8 +714,11 @@ function ReportView({
         {!V && (
           <>
             {(['official', 'pdf'] as const).map((source) => {
-              const rows = R.lastWrong.filter((w) => (w.source ?? 'official') === source)
-              return rows.length ? (
+              const tum = lastWrong.filter((w) => (w.source ?? 'official') === source)
+              // Veliye yarım başlık yazılmaz; öğretmen yarım başlığı işaretli görür
+              const rows = V && !E ? tum.filter((w) => !w.eksik) : tum
+              const gizli = tum.length - rows.length
+              return tum.length ? (
                 <div className="sec" key={source}>
                   <h3>{source === 'pdf' ? 'Okulun PDF’den eklediği çalışma hedefleri' : 'Resmî programdaki çalışma hedefleri'}</h3>
                   <p className="m" style={{ fontSize: 12 }}>
@@ -681,7 +726,7 @@ function ReportView({
                       ? 'Bu hedefler deneme PDF’sinden okul tarafından eklenmiştir; resmî program eşleşmesi olarak değerlendirilmez.'
                       : 'Bu denemede yanlış yanıtlanan soruların eşleştiği kazanım ve öğrenme çıktıları.'}
                   </p>
-                  <table>
+                  {rows.length > 0 && <table>
                     <thead>
                       <tr>
                         <th>Ders</th>
@@ -694,13 +739,21 @@ function ReportView({
                       {rows.map((w, i) => (
                         <tr key={`${w.subject}:${w.code}:${i}`}>
                           <td>{R.subjects.find((d) => d.code === w.subject)?.ad ?? w.subject}</td>
-                          <td>{w.title}</td>
+                          <td>
+                            {w.eksik ? `${w.title}…` : w.title}
+                            {w.eksik && <span className="baslik-yarim"> (başlık yayınevi kaynağında yarım)</span>}
+                          </td>
                           <td>{w.outcomeType === 'OGRENME_CIKTISI' ? 'Öğrenme çıktısı' : 'Kazanım'}</td>
                           {!V && <td>{w.code}</td>}
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table>}
+                  {gizli > 0 && (
+                    <p className="m" style={{ fontSize: 12, margin: '6px 0 0' }}>
+                      {gizli} hedefin başlığı yayınevinin kaynağında yarım geldiği için burada listelenmedi.
+                    </p>
+                  )}
                 </div>
               ) : null
             })}
@@ -756,8 +809,11 @@ function ReportView({
               </div>
             )}
             {(['official', 'pdf'] as const).map((source) => {
-              const rows = R.lastWrong.filter((w) => (w.source ?? 'official') === source)
-              return rows.length ? (
+              const tum = lastWrong.filter((w) => (w.source ?? 'official') === source)
+              // Veliye yarım başlık yazılmaz; öğretmen yarım başlığı işaretli görür
+              const rows = V && !E ? tum.filter((w) => !w.eksik) : tum
+              const gizli = tum.length - rows.length
+              return tum.length ? (
                 <div className="sec" key={source}>
                   <h3>{source === 'pdf' ? 'Okulun PDF’den eklediği çalışma hedefleri' : 'Resmî programdaki çalışma hedefleri'}</h3>
                   <p className="m" style={{ fontSize: 12 }}>
@@ -765,7 +821,7 @@ function ReportView({
                       ? 'Bu hedefler deneme PDF’sinden okul tarafından eklenmiştir; resmî program eşleşmesi olarak değerlendirilmez.'
                       : 'Bu denemede yanlış yanıtlanan soruların eşleştiği kazanım ve öğrenme çıktıları.'}
                   </p>
-                  <table>
+                  {rows.length > 0 && <table>
                     <thead>
                       <tr>
                         <th>Ders</th>
@@ -778,13 +834,21 @@ function ReportView({
                       {rows.map((w, i) => (
                         <tr key={`${w.subject}:${w.code}:${i}`}>
                           <td>{R.subjects.find((d) => d.code === w.subject)?.ad ?? w.subject}</td>
-                          <td>{w.title}</td>
+                          <td>
+                            {w.eksik ? `${w.title}…` : w.title}
+                            {w.eksik && <span className="baslik-yarim"> (başlık yayınevi kaynağında yarım)</span>}
+                          </td>
                           <td>{w.outcomeType === 'OGRENME_CIKTISI' ? 'Öğrenme çıktısı' : 'Kazanım'}</td>
                           {!V && <td>{w.code}</td>}
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table>}
+                  {gizli > 0 && (
+                    <p className="m" style={{ fontSize: 12, margin: '6px 0 0' }}>
+                      {gizli} hedefin başlığı yayınevinin kaynağında yarım geldiği için burada listelenmedi.
+                    </p>
+                  )}
                 </div>
               ) : null
             })}
