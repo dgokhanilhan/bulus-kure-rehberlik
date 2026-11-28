@@ -53,11 +53,21 @@ const loc = (s: SubjectDef) => LOC_TR[s.code] ?? (s.base ? LOC_TR[s.base] : unde
 const lj = (a: string[]) => (a.length < 2 ? a.join('') : `${a.slice(0, -1).join(', ')} ve ${a.at(-1)}`)
 const dz = (a: string[]) => lj(a) + (a.length > 1 ? ' derslerinde' : ' dersinde')
 const bolum = (a: string[]) => `${lj(a)} ${a.length > 1 ? 'bölümlerinde' : 'bölümünde'}`
-/** Konu adını cümle içine alır: ilk harf küçülür, "DNA" gibi kısaltmalar korunur. */
-const lc = (t: string) =>
+/** Cümle içinde de büyük harfle kalan özel adlar (kesme işaretinden önceki kök küçük harfle). */
+const OZEL_AD = new Set(
+  (
+    'mustafa kemal atatürk türkiye türk türkçe ingilizce osmanlı anadolu rumeli trakya avrupa asya afrika amerika istanbul ankara izmir ' +
+    'lozan sevr mondros mudanya erzurum sivas amasya samsun sakarya çanakkale selanik havza inönü dumlupınar kuva-yi milliye misak-ı ' +
+    'tbmm hz. allah kur kerim kâbe mekke medine muhammed peygamber isa musa ibrahim nuh yusuf lokman ehlibeyt ' +
+    'akdeniz karadeniz ege marmara dünya güneş ay'
+  ).split(' '),
+)
+const ozelAd = (w: string) => OZEL_AD.has(w.split(/[’']/)[0]!.toLocaleLowerCase('tr'))
+/** Konu adını cümle içine alır: ilk harf küçülür; "DNA" gibi kısaltmalar ve "Mustafa Kemal’in" gibi özel adlar korunur. */
+export const lc = (t: string) =>
   t
     .split(' ')
-    .map((w) => (w.length > 1 && w === w.toLocaleUpperCase('tr') ? w : w.toLocaleLowerCase('tr')))
+    .map((w) => ((w.length > 1 && w === w.toLocaleUpperCase('tr')) || ozelAd(w) ? w : w.toLocaleLowerCase('tr')))
     .join(' ')
 const hash = (s: string) => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0
 

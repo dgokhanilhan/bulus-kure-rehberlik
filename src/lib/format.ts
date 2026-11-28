@@ -47,7 +47,9 @@ export const nextDow = (isoDow: number, from = todayISO()) => {
   return addDays(from, 7)
 }
 export const trD = (iso: string) => noon(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', timeZone: 'UTC' })
-export const trDW = (iso: string) => noon(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long', timeZone: 'UTC' })
+/** "19 Eylül 2026": raporlarda ve PDF'te yıl her zaman yazılır. */
+export const trDY = (iso: string) => noon(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+export const trDW =(iso: string) => noon(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long', timeZone: 'UTC' })
 export const trDShort = (iso: string) => noon(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', weekday: 'short', timeZone: 'UTC' })
 export const trDayShort = (iso: string) => noon(iso).toLocaleDateString('tr-TR', { weekday: 'short', timeZone: 'UTC' })
 export const trDM = (iso: string) => noon(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', timeZone: 'UTC' })

@@ -100,7 +100,12 @@ export interface PdfOgretmen extends PdfCommon {
 }
 
 /** Bölüm başlığı: Türkçe büyük harf (i → İ). Stil ile büyütme Türkçe kuralını bilmez. */
-const H = ({ children }: { children: string }) => <Text style={s.h3}>{children.toLocaleUpperCase('tr')}</Text>
+// minPresenceAhead: başlığın altına sığacak yer yoksa başlık da sonraki sayfaya geçer (sayfa sonunda yalnız kalmaz).
+const H = ({ children }: { children: string }) => (
+  <Text style={s.h3} minPresenceAhead={60}>
+    {children.toLocaleUpperCase('tr')}
+  </Text>
+)
 
 function Table({ head, rows, widths, numFrom }: { head: string[]; rows: string[][]; widths: number[]; numFrom: number }) {
   return (
